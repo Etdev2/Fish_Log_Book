@@ -1,8 +1,8 @@
 # Canonical Ontology
 
-**Status:** draft for the domain-modeling session. Resolves O5, implements D11 and D13.
+**Status:** draft. Resolves O5; implements D11, D13, D18, D20.
 **Owner:** `architect`. Corrections to the vocabularies belong to the founder.
-**Not** a migration. No code follows from this until the founder has walked the lists.
+**Not** a migration. Species and tackle lists still need the founder's red pen.
 
 ## How to read this
 
@@ -50,6 +50,11 @@ Six things hang together and the rest is vocabulary:
   where the fish came from; the Spot is the user's name for the neighbourhood.
 - **Species, LureClass, BaitType, StructureType** etc. are global reference tables, not
   enums in code — rows get added without a deploy, and they carry `water_class` scoping.
+  D15 makes this load-bearing: with Swift, a later Kotlin client and the server in play,
+  a compiled enum guarantees three clients that disagree about what "jerkbait" means.
+  Vocabularies ship from the database with a version stamp, cached on device. Same
+  reason: keep client-side derivations arithmetic — logic written three times must be
+  too simple to drift.
 - **CustomField\* is a separate, physically isolated island.** §5.
 
 ### Blank trips, and the honesty problem underneath them
@@ -86,6 +91,10 @@ is nobody to display it to.
 | `geo_cell_1km`, `geo_cell_10km` | DERIV | Generated. The only geography that leaves the user's rows. |
 | `tide_station_id` | DERIV | Nearest *reference* station, resolved once and pinned. |
 | `weather_station_id`, `buoy_id` | DERIV | Same, with distance stored. |
+| `alongshore_bearing_deg` | USER | 0–359. The compass bearing of *up-coast* from this spot — what the angler calls "uphill". Salt only. §3.1 |
+| `offshore_bearing_deg` | USER | 0–359. The bearing of *away from land*. Salt only. §3.1 |
+| `axis_source` | AUTO | `user_drawn` \| `coastline_prefill` \| `unset`. Provenance for the two bearings above. |
+| `axis_revision` | AUTO | Bumped whenever either bearing is edited. §3.1 explains why this matters. |
 
 Pinning the station on the Spot rather than resolving per-catch matters: a spot whose
 station silently changes has an incoherent history.
@@ -180,14 +189,56 @@ time, for the icon only.
 | `tide_pct_through_cycle` | DERIV — 0–100 |
 | `twelfths_hour` | DERIV — presentation over the real curve, never the maths underneath |
 | `tide_range_m` | DERIV — the day's high minus low. "Big tide" lives here |
-| `current_direction` | **USER** — D10, O2. uphill / downhill / inshore / offshore |
+| `current_term` | **USER** — D10/D20. uphill / downhill / inshore / offshore. The angler's raw assertion |
+| `current_bearing_deg` | DERIV — the physical direction, from `current_term` + the Spot's two axes. §3.1 |
+| `current_axis_revision` | DERIV — which revision of the Spot's axes produced the bearing |
 | `current_strength` | USER — none / light / moderate / ripping `?` |
 | `swell_height_m`, `swell_period_s`, `swell_dir_deg` | AUTO where a buoy is in range, else null |
 
 Never call `tide_rate_m_per_hr` "current" in schema, API, or copy (R7) — hence the
 column name.
 
-### Fresh/bass only — null on the coast
+### 3.1 Current direction: words on top, bearing underneath (D20)
+
+Settled: two perpendicular axes, four terms. **Uphill** is the current running up-coast —
+northwest here, toward Long Beach and Santa Barbara. **Downhill** is down-coast, toward
+Dana Point and San Diego. **Inshore** is toward the beach, **offshore** away from it.
+Anchored to the coastline, **not to the tide**: a flooding tide can run either way along
+the coast, so `current_term` and `tide_state` are independent variables. Nothing here is
+derivable from tide phase, and code that tries is a bug.
+
+The angler only ever sees and taps their own four words. Underneath:
+
+| where | column | why |
+|---|---|---|
+| Spot | `alongshore_bearing_deg` | bearing of "uphill" here. USER |
+| Spot | `offshore_bearing_deg` | bearing of "away from land". Two explicit bearings, not one plus a rule — one bearing leaves offshore ambiguous between two perpendiculars, and a jetty corner need not be exactly 90°. Do not constrain them perpendicular |
+| Spot | `axis_source`, `axis_revision` | provenance, and a bump on every edit |
+| Snapshot | `current_term` | the raw datum: what the angler asserted |
+| Snapshot | `current_bearing_deg` | DERIV from term + the Spot's axes. What analysis pools on |
+| Snapshot | `current_axis_revision` | detects a bearing computed from superseded geometry |
+
+Both are stored, deliberately. Only the bearing, and a spot whose axes were set wrong can
+never be corrected — you cannot recover "they said uphill" from a wrong number. Only the
+term, and nothing pools across spots or coastlines. Derivation is a lookup plus one
+mod-360 add (`downhill = alongshore + 180`), trivial by design because under D15 it gets
+written in Swift, in Kotlin and on the server.
+
+**Where the axes come from.** Asked once per Spot, ever: the map shows a two-headed arrow
+the user drags along the beach, then taps the water side. Two gestures. Prefilling from a
+coastline dataset is a possible later improvement, not a plan — NOAA CUSP, Natural Earth
+and GSHHG are all *unverified* here for resolution, licence and size, and Natural Earth
+is almost certainly too coarse for a jetty. Somebody verifies before anybody designs
+against it. Unlike water temperature (O3), a confirmed prefill here would be legitimate:
+a coastline bearing is a static geometric fact, not a measurement.
+
+**No spot, no bearing.** A roaming boat trip may have `trip.spot_id = null`. Record
+`current_term` anyway, leave `current_bearing_deg` null, and report it as unresolved.
+Inventing an axis for a catch two miles out would be fabrication.
+
+Reasoning, alternatives and costs: `decisions/002-current-direction-storage.md`.
+
+### Fresh/bass only — absent on the coast
 | field | mark |
 |---|---|
 | `water_clarity_id` | USER — §7 |
@@ -196,6 +247,17 @@ column name.
 | `water_level_trend` | USER — rising / stable / falling `?` (auto only for ~30 CA waters, per biostat §6) |
 | `lake_elevation_m` | AUTO where USGS covers the water, null otherwise |
 | `seasonal_pattern_id` | USER — §7. The bass-angler frame that has no saltwater equivalent |
+
+**Freshwater has no current-direction fields at all** — not nullable ones. A lake has no
+coastline axis and no along-shore current, so `current_term`, `current_bearing_deg` and
+the Spot's two bearings are absent for `water_class = 'fresh'`, exactly as tide is. A
+meaningless nullable column gets filled in by somebody eventually.
+
+D18 makes this live rather than theoretical. **Open question for the founder:** dam
+tailrace and creek-inflow current genuinely matters to bass anglers, and I do not know
+whether it belongs in V1. If it does, it is a *different* field with a different
+vocabulary — not a reuse of the coastline four. Reusing these terms inland is the exact
+mistake D13 exists to prevent.
 
 ### The trap in the nullable approach
 
@@ -377,21 +439,23 @@ prespawn · spawn · postspawn · summer · fall transition `?` · winter
 
 ### Fixed vocabularies I am confident about
 - `tide_state`: flood · ebb · slack (DERIV)
-- `current_direction`: uphill · downhill · inshore · offshore (D10, USER)
+- `current_term`: uphill · downhill · inshore · offshore (D10/D20, USER; stored
+  alongside a derived compass bearing — §3.1)
 - `disposition`: kept · released
 - `water_class`: salt · fresh
 
-## 8. The question I most need answered
+## 8. What is still open
 
-**What do "uphill" and "downhill" actually mean?** (D10.)
+The blocking question — what "uphill" and "downhill" mean — is answered. D20 is in §3.1.
+What remains, in order of how much it costs to get wrong:
 
-Three readings, and I do not know which is the founder's: (a) up-coast versus down-coast
-— northwest toward Huntington and Long Beach versus southeast toward Laguna and Dana
-Point; (b) the current running with or against the prevailing swell; (c) water moving
-toward or away from the structure the angler is standing on. Encode the wrong one and
-every catch logged before the correction is mislabelled and unfixable — nobody remembers
-which way the water ran six months ago. One sentence from the founder unblocks it, and
-nothing else here is as urgent.
-
-Cheaper questions for the same session: is a lost fish worth logging (§2, Catch
-`outcome`)? Do surf anglers think in "structure" at all, or is that a bass word?
+1. **Does bass mode need a current field at all?** (§3, fresh.) D18 puts bass in V1, and
+   dam tailraces and creek inflows are real to a bass angler. If yes, it is a new
+   vocabulary, not the coastline four.
+2. **`Trip.platform` and `Catch.outcome`** (§2) are still proposals awaiting a founder
+   yes/no. Both are cheap taps and both, if omitted, get reinvented as custom fields.
+3. **The species, lure and bait lists** (§7). Every `?` is a guess. An hour with the
+   founder replaces the lot; nobody should build a dropdown from them first.
+4. **Red tide** — colour, clarity, or its own flag (§7).
+5. **Coastline datasets** (§3.1) are unverified for licence, resolution and size. The
+   manual path does not depend on them, so this blocks nothing yet.
