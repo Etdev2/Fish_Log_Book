@@ -195,6 +195,61 @@ refuses to render below threshold (D12a), and generic fishing advice not derived
 user's own data is out of scope (it competes with every blog on the internet and trades
 away the differentiator).
 
+**D21 — A web build comes first, as the working prototype and as the spec for Swift.** SETTLED 2026-08-28
+Founder's call. The calendar, notebook and quick-mark get built now in this Next.js repo as
+a mobile web app the founder can carry on a boat this week. **This does not overturn D15.**
+Native Swift/SwiftUI for iPhone + Apple Watch remains the shipping V1 client; the Watch is
+still the reason for that decision and a browser cannot serve it.
+What the web build is for: getting the four verbs, the calendar and the notebook in front of
+a real angler on real water in days instead of weeks, so the Swift version is built from a
+thing that was used rather than from a markdown document that was read.
+*Accepted cost, stated plainly:* the logging and calendar UI gets written twice. That is the
+price of field feedback before the expensive client exists. The schema, the Supabase backend,
+the tide/moon enrichment and the sync rules are written **once** and shared — only the view
+layer is duplicated. Anything that would be expensive to write twice belongs on the server.
+
+**D22 — The quick mark is a fish by default, resolvable later, and an unresolved mark does
+not count.** SETTLED 2026-08-28
+Founder's framing: it works like the **man-overboard button on a boat**. One tap, no
+questions, the position is saved. Details are added later, or set in advance (D21a below).
+- A mark is created as a Catch with `species_id` null and a resolution state of `unresolved`.
+- It can later be confirmed, corrected to a lost fish / missed bite, or dismissed as a
+  mis-tap or a non-fish waypoint.
+- **Unresolved marks are excluded from every catch rate and every pooled statistic** until a
+  human confirms them. An accidental tap must never become a phantom fish in the denominator.
+  This is R1's discipline applied to the fastest button in the app.
+- The mark is never blocked by a missing GPS fix, a missing network, or a missing species.
+  It writes locally with whatever accuracy it has and enriches later (`enrichment_status`).
+
+**D21a — Attributes can be set before, not just after.** SETTLED 2026-08-28
+The angler can set a rig once — spot, platform, lure, bait, depth, target species — and every
+subsequent quick mark inherits it until it is changed. This is what makes a one-tap mark carry
+real data instead of an empty row. Sticky per trip, editable mid-trip, and each mark stores the
+values it inherited so that changing the rig later never rewrites history.
+
+**D23 — The calendar is the history surface, and the notebook is a day-level journal.**
+SETTLED 2026-08-28
+The app opens onto a month calendar. Tapping a day opens that day's page.
+- **One freeform journal entry per calendar day** — the notebook page. A day can hold two
+  trips, or none, and still have something written on it.
+- Individual catches keep their own short notes. Trip notes stay as the ontology has them.
+- **If the day is today, the day page offers Start Fishing** and the live logging surface.
+  Past days open in read/write history mode (D24).
+- Journal text is for the angler's own memory and search. Per the ontology it is **never
+  parsed for statistics** and never pooled across users. If a pattern in the prose turns out
+  to matter, it graduates into a canonical field — it does not get mined out of free text.
+
+**D24 — Any past day can be written to, and backfilled rows are flagged as such.**
+SETTLED 2026-08-28
+Full backfill: trips, catches and journal entries can be added to any past date, so paper
+logs can be typed in. Two rules that make this safe rather than corrosive:
+- Every backfilled row records that it was entered after the fact, and when. A row the app
+  witnessed live and a row typed in from memory are **different facts** and must be
+  distinguishable forever.
+- Conditions for a backfilled day come from historical sources, not live capture. NWS
+  `api.weather.gov` cannot reach back past roughly two days — NOAA NCEI covers the rest, and
+  where nothing covers it the fields stay **null, never zero** (biostat rule 1).
+
 ---
 
 ## 3. Proposed — awaiting the founder's call
