@@ -230,6 +230,7 @@ No jargon. No ticket numbers. Honest times. Always say what is still broken.
 - Files: docs/product/ux-calendar-notebook.md (new)
 - Next: architect still owes a yes/no on Trip.platform, which now feeds the rig sheet
   directly, not just the trip form.
+
 ### 2026-08-28 | architect | 3h
 - The founder's four answers (calendar, notebook, quick mark, backfill) are now designed
   and written as database tables. This is the first real database work in the project —
