@@ -211,3 +211,9 @@ must be served from the database with a version stamp and cached on device — n
 compiled into each client as an enum. Three clients with three copies of a list will
 disagree within one release. Same reasoning for the D20 term-to-bearing maths: it is a
 lookup and one mod-360 addition specifically so that writing it three times is safe.
+
+### 2026-08-28 | ux-ui -> architect
+Calendar/notebook/man-overboard design is in `docs/product/ux-calendar-notebook.md`
+(D21-D24). One dependency on you: `Trip.platform` is still an open yes/no and now
+feeds the pre-trip rig sheet (D21a) directly, not just the trip form — worth settling
+before build rather than after.

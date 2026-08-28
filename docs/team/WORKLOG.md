@@ -165,3 +165,16 @@ No jargon. No ticket numbers. Honest times. Always say what is still broken.
   fishing needs its own current field for dams and river inflows, and whether the two
   fields I proposed last session (how you were fishing, and whether a fish was landed or
   lost) are approved. Still no code and no database migration.
+
+### 2026-08-28 | ux-ui | 55m
+- Designed the calendar/notebook/man-overboard screens the founder asked for this
+  morning (D21-D24), extending my earlier cold-start doc rather than replacing it.
+- Key calls: a caught day and a confirmed-zero day render as the identical dot on the
+  month grid (no color/count reward for catching, per ROADMAP Part 3's anti-streak
+  rule); the man-overboard mark is the existing Log a Catch button, not a new one; an
+  unresolved mark surfaces through the existing needs-details queue plus a calendar
+  flag, not a second inbox; the rig-editing sheet never covers the log button so a
+  mid-trip lure change can't cost the fish in hand.
+- Files: docs/product/ux-calendar-notebook.md (new)
+- Next: architect still owes a yes/no on Trip.platform, which now feeds the rig sheet
+  directly, not just the trip form.
