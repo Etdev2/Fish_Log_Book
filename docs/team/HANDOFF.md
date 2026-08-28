@@ -106,9 +106,17 @@ Ordered. Each item says enough to act on without re-deriving context.
 - **Eight screen mockups** exist — `docs/design/`.
 - **`ROADMAP.md`** — feature candidates and anti-features.
 
-### In progress at time of writing
-8. **`coo`** is sequencing the two products (risk R11) into `docs/team/PLAN.md` and
-   refreshing `BACKLOG.md`. Branch `coo/plan`. Check whether it landed.
+### Landed — all branches merged to main
+- **`coo`** — `docs/team/PLAN.md`, five phases with real exit criteria, plus a refreshed
+  `BACKLOG.md`. **Read this before planning anything.**
+- **`architect`** — D20 finalised in the ontology, plus ADR 002 on how current direction
+  is stored. Nothing is left blocked on the founder except the vocabulary red-pen.
+
+### The risk to worry about
+**Offline sync has no design.** D3 makes it a hard requirement, Phase 1's exit criterion
+depends on a write made in airplane mode syncing correctly, and the local store, sync
+protocol and conflict rules do not exist. Assigned to `architect`. This is larger than any
+open product question in this repo.
 
 ### Not started, needed before code
 9. Supabase schema and migrations, from the ontology — owner `architect`.
