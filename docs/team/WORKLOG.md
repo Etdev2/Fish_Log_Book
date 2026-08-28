@@ -262,3 +262,53 @@ No jargon. No ticket numbers. Honest times. Always say what is still broken.
   before trusting it. No app code was written and nothing was looked at in a browser.
   The species and lure lists are seeded from my earlier guesses; every guess is flagged
   in the data so the founder's corrections are a small job, not a rewrite.
+
+### 2026-08-28 | head-dev | 90m
+- Reviewed and merged all three morning branches into `main`, in the order asked:
+  `coo/web-slice-resequence`, `ux/calendar-notebook`, `architect/calendar-notebook`. All
+  three were doc/design/schema only — no application code — so build and lint were
+  expected to stay clean, and they did: `npm run build`, `npm run lint`, and
+  `npx tsc --noEmit` all pass with nothing new. Every append-only conflict in
+  `docs/team/WORKLOG.md` and `docs/team/CHANNEL.md` was a union of both sides, nothing
+  dropped. Deleted the three merged branches and the now-stale worktrees that held them.
+- Read the schema and the two new ADRs closely before merging, since the SQL had never
+  been run by anyone. This machine has no Docker and no `psql`, and the Supabase CLI
+  needs a database password this box does not have (and I did not go hunting for one in
+  credential stores — that is a `founder`-owned secret, not something to dig for). I did
+  find real, working network egress to the linked Supabase project's connection pooler,
+  so the machine could reach a real database if a password existed; it just doesn't have
+  one available to this session.
+- **What I could still verify, honestly:** I ran all four migration files, in order,
+  against a real (WASM-compiled) Postgres engine in a throwaway scratch directory —
+  `@electric-sql/pglite`, not the linked Supabase project, and nothing here touched or
+  reset any real project. All four applied cleanly with no syntax or dependency errors.
+  I also exercised the RLS and the analytics-isolation design directly: a second angler
+  reading `trip`/`catch` sees zero rows; `pooled_analyst` is denied on the base `catch`
+  table but can read `analytics.catch_event`. Both behave exactly as ADR 004/§5.1 claim.
+- **Two real bugs found by actually running it, not just reading it.** (1) The
+  `tg_catch_resolution` trigger that auto-sets `resolved_at`/`resolved_by` only fires
+  `BEFORE UPDATE`, never `BEFORE INSERT` — so inserting a catch directly as `confirmed`
+  (the "full catch form" path in D22's own lifecycle diagram, not just the quick-mark
+  path) fails the `catch_unresolved_is_unresolved` check unless the client also sets
+  `resolved_at` itself on that insert, which is undocumented anywhere. (2)
+  `journal_entry`'s `unique (angler_id, entry_date)` is a plain constraint, not
+  `where deleted_at is null` — once a day's journal entry is soft-deleted, no new entry
+  for that date can ever be inserted again, permanently. Confirmed both by triggering
+  them for real, not by inspection alone. Neither blocks the merge (no app code depends
+  on the schema yet) but both need a follow-up migration before `architect`/`head-dev`
+  build the day-page or the confirm-catch flow against this schema.
+- **Say the honest state of the SQL plainly: it has now been run once, against a
+  throwaway local engine that is not the project's real Postgres.** It has never touched
+  the actual Supabase project named in `.env.local`, has never been exercised through
+  PostgREST/supabase-js the way the app will actually call it, and the two bugs above are
+  proof there was real value in doing even this much — architect's document review alone
+  would not have caught either one. Running it for real against the linked project still
+  needs a database password nobody has handed this session.
+- Files: docs/team/WORKLOG.md, docs/team/CHANNEL.md (conflict resolution only — union of
+  every branch's appended entries). No other file content changed; the merge commits
+  carry the rest.
+- Next: (a) fix the two schema bugs above in a new migration before any logging UI is
+  built against `catch`/`journal_entry`; (b) get this machine, or a machine that has one,
+  a real Supabase DB password so the migrations can be pushed and verified against the
+  actual project, not just a stand-in engine; (c) `architect`'s own open questions in
+  `ontology.md` §8 (items 6-9) are still open.
