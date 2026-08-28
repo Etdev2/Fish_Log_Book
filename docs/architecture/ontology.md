@@ -1,8 +1,9 @@
 # Canonical Ontology
 
-**Status:** draft. Resolves O5; implements D11, D13, D18, D20.
+**Status:** draft. Resolves O5; implements D11, D13, D18, D20, D21a, D22, D23, D24.
 **Owner:** `architect`. Corrections to the vocabularies belong to the founder.
-**Not** a migration. Species and tackle lists still need the founder's red pen.
+Built as SQL in `supabase/migrations/` (ADR 003). Species and tackle lists still need the
+founder’s red pen — the seed marks every guess `needs_review = true`.
 
 ## How to read this
 
@@ -24,9 +25,12 @@ erDiagram
     ANGLER ||--o{ TRIP : "logs"
     ANGLER ||--o{ TACKLE_ITEM : "owns"
     ANGLER ||--o{ CUSTOM_FIELD_DEF : "defines"
+    ANGLER ||--o{ JOURNAL_ENTRY : "writes 0..1 per day"
     SPOT ||--o{ TRIP : "hosts"
     TRIP ||--o{ CATCH : "yields 0..n"
     TRIP ||--o{ CONDITION_SNAPSHOT : "has 1..n"
+    TRIP ||--o{ TRIP_RIG : "has 1..n revisions"
+    TRIP_RIG ||--o{ CATCH : "is inherited by"
     CATCH ||--o| CONDITION_SNAPSHOT : "has 0..1"
     CATCH }o--|| SPECIES : "identified as"
     CATCH }o--o| TACKLE_ITEM : "taken on"
@@ -56,6 +60,10 @@ Six things hang together and the rest is vocabulary:
   reason: keep client-side derivations arithmetic — logic written three times must be
   too simple to drift.
 - **CustomField\* is a separate, physically isolated island.** §5.
+- **JournalEntry hangs off the angler and a date, not off a Trip.** The calendar is the
+  history surface (D23) and a day is writable whether or not anybody went fishing. §2.1.
+- **TripRig is append-only.** A rig revision is a fact about a moment, and a Catch that
+  inherited it keeps a copy plus a pointer. Editing the rig cannot rewrite history. §2.3.
 
 ### Blank trips, and the honesty problem underneath them
 
@@ -110,7 +118,11 @@ station silently changes has an incoherent history.
 | `target_species_ids[]` | USER | What they went for, not what they got. Cheap, and it makes a blank trip interpretable. |
 | `hours_fished` | DERIV | From start/end. Not typed. |
 | `zero_catch_confirmed_at`, `catch_log_confidence` | USER | Above. |
-| `notes` | USER | Free text. Never parsed for statistics. |
+| `notes` | USER | Free text about *this trip*. Never parsed for statistics. Distinct from the day journal — §2.1. |
+| `local_date` | DERIV | The calendar day this trip belongs to. Trigger-set, not generated. §2.1 |
+| `started_tz`, `ended_tz` | AUTO | IANA zone captured from the device at each end. |
+| `capture_mode` | AUTO | `live` \| `backfill`. Immutable after insert. §2.4 |
+| `client_created_at` | AUTO | Device clock at the moment the row was created. §2.4 |
 
 `platform` is the highest-value stratifier in the model and costs one tap. Surf catch
 rates and party-boat catch rates are not the same population and must never be pooled.
@@ -132,7 +144,17 @@ rates and party-boat catch rates are not the same population and must never be p
 | `bottom_depth_m` | USER | Nullable. No API gives this at a useful resolution. |
 | `structure_type_id`, `cover_type_id` | USER | §7. Both nullable, both settable. |
 | `photo_id` | USER | V2. EXIF stripped on ingest (§6). |
-| `notes` | USER | |
+| `notes` | USER | Short, about this fish. Not the day journal. |
+| `resolution_state` | USER | `unresolved` \| `confirmed` \| `dismissed`. A quick mark starts `unresolved`. §2.2 |
+| `dismissed_reason` | USER | `mistap` \| `not_a_fish_waypoint` \| `duplicate`. Null unless dismissed. |
+| `resolved_at`, `resolved_by` | AUTO | When and by whom. Only a human moves this. §2.2 |
+| `resolution_source` | AUTO | `live` \| `needs_details_queue` \| `backfill_edit`. How the resolution was made. |
+| `spot_id` | USER | Nullable. Inherited from the rig. A roaming trip changes spot mid-trip; the Spot's D20 axes resolve per-catch. |
+| `platform` | USER | Nullable. Inherited from the rig; falls back to `trip.platform`. Surf then jetty in one trip is one trip. |
+| `rig_id`, `rig_revision` | AUTO | Which rig revision this mark inherited. §2.3 |
+| `inherited_fields` | AUTO | `text[]` — which of the above the rig supplied rather than the angler typing. §2.3 |
+| `capture_mode` | AUTO | `live` \| `backfill`. Immutable after insert. §2.4 |
+| `client_created_at` | AUTO | Device clock at the tap. §2.4 |
 
 ### ConditionSnapshot
 One row per moment we care about. `kind` = `trip_start` \| `trip_end` \| `catch` \|
@@ -141,9 +163,14 @@ each way, no polymorphic column. Also denormalises `water_class` so that "tide i
 because this is a lake" and "tide is null because the fetch failed" are distinguishable.
 Fields are grouped in §3. Two columns that must exist from day one:
 
-- `enrichment_status` — `pending` \| `complete` \| `partial` \| `failed`. Offline logging
-  (D3) means the snapshot is written before the APIs are reachable. This is not an edge
-  case; it is the normal path.
+- `enrichment_status` — `pending` \| `complete` \| `partial` \| `failed` \| `unavailable`.
+  Offline logging (D3) means the snapshot is written before the APIs are reachable. This
+  is not an edge case; it is the normal path. `failed` is transient and gets retried.
+  **`unavailable` is terminal**: no source covers this place and date, the fields stay
+  null forever, and the retry job must stop asking. D24's backfill makes this a routine
+  outcome rather than a rarity — see §2.4.
+- `snapshot_basis` — `observed` \| `historical_reconstruction`. Whether the numbers were
+  captured near the moment or reassembled from an archive afterwards. §2.4.
 - `provenance` jsonb, keyed by field name: `{source, station_id, distance_m, fetched_at}`.
   Biostat's rule 2. A water temp from 100 km away is a different fact from one at the
   pier and the UI has to be able to say which it has.
@@ -151,6 +178,196 @@ Fields are grouped in §3. Two columns that must exist from day one:
   We will change that maths, and without this we cannot tell recomputed rows apart.
 
 **Missing is null. Never zero.** (biostat rule 1.)
+
+
+### JournalEntry (D23)
+| field | mark | notes |
+|---|---|---|
+| `angler_id` | AUTO | |
+| `entry_date` | USER | A `date`, not a timestamp. **Identity**, with `angler_id`. §2.1 |
+| `entry_tz` | AUTO | IANA zone the device was in when the page was first written. Provenance, *not* part of the key. |
+| `body` | USER | Freeform. Never parsed for statistics, never pooled. §2.1 |
+| `capture_mode` | AUTO | `live` \| `backfill`. §2.4 |
+| `client_updated_at`, `updated_at` | AUTO | Device clock and server clock. Both, for sync. ADR 004 |
+
+`unique (angler_id, entry_date)`. No foreign key to Trip in either direction.
+
+### TripRig (D21a)
+| field | mark | notes |
+|---|---|---|
+| `trip_id`, `revision` | AUTO | `unique (trip_id, revision)`. Revision starts at 1 and only goes up. |
+| `effective_from` | AUTO | When this revision became the standing rig. |
+| `spot_id`, `platform`, `tackle_item_id`, `bait_type_id`, `depth_fished_m` | USER | The sticky values. All nullable — a half-set rig is normal. |
+| `target_species_ids[]` | USER | Intent. Not copied onto each Catch; the pointer covers it. §2.3 |
+
+**Append-only.** `UPDATE` and `DELETE` are not granted on this table. Changing the rig
+means inserting revision *n+1*. §2.3 explains why that is the whole mechanism.
+
+### 2.1 The calendar day is a local date, not an instant (D23)
+
+The app opens onto a month grid, so the model needs a thing that is exactly one cell. An
+instant is not that: `2026-08-28T07:00Z` is one date in San Diego and another in Auckland,
+and an angler who flies to Cabo does not want two August 28ths.
+
+**The call.** A journal entry is keyed `(angler_id, entry_date)` where `entry_date` is a
+plain `date`. The zone the angler was standing in is stored beside it as `entry_tz`, as
+provenance, and is deliberately **not** part of the key. One calendar, one cell per day,
+forever. If the angler crosses a date line mid-trip they get one page for the 28th and one
+for the 29th; both are writable, nothing is lost and nothing is duplicated.
+
+**Which day a Trip belongs to.** `trip.local_date = (started_at AT TIME ZONE started_tz)::date`.
+A trip that starts at 22:00 and lands a halibut at 01:30 is **one trip, on the day it
+started**. One rule, applied everywhere, no exception for night fishing. It is wrong some
+of the time and legible all of the time, which beats a rule nobody can predict.
+
+`AT TIME ZONE <text>` is STABLE, not IMMUTABLE — it reads the tz database, and that gets
+updated. So `local_date` cannot be a generated column; a `BEFORE INSERT OR UPDATE` trigger
+sets it. Same for `catch.local_date`. Worth knowing before someone spends an afternoon on it.
+
+**A Catch also carries its own `local_date`,** and it can differ from its trip's. The day
+page groups catches under their **trip**, so the 01:30 halibut appears on the 28th with the
+rest of its trip. Date-range *queries* use the catch's own `local_date`. Both are true
+answers to different questions; storing both is cheaper than arguing about it.
+
+**Cardinality.** A day has zero, one, or many trips. A day has zero or one journal entry. A
+journal entry needs no trip and a trip needs no journal entry. The day page is a *view* over
+three independent things — journal, trips, catches — that happen to share a date.
+
+**What happens to `Trip.notes`.** It stays, unchanged, and is not migrated. Trip notes and
+the day journal answer different questions: "the wind switched at three and it died" belongs
+to the trip; "first time out since the shoulder" belongs to the day. Two text boxes on one
+screen is a bad screen, so the *UI* resolves it — the day page shows only the journal, and
+trip notes live inside the trip detail view. If a season of real use shows nobody fills
+both, a later ADR deprecates one. We do not drop a text column on a hunch.
+
+**Journal text is never analysed.** Not sentiment, not keywords, not "we noticed you wrote
+'red tide'." Enforced the way §5 enforces custom fields — the pooled-analysis role holds no
+grant on the table at all (§5.1). If something in the prose matters it graduates into a
+canonical field, by ADR and migration, like any other promotion.
+
+### 2.2 The mark resolution lifecycle (D22)
+
+A quick mark is a man-overboard button: one tap, position saved, no questions. That speed is
+bought by writing a row that is *not yet a fact*. The lifecycle is what stops the speed from
+contaminating the statistics.
+
+```mermaid
+stateDiagram-v2
+    [*] --> unresolved : quick mark (one tap)
+    [*] --> confirmed : full catch form (the angler said what it was)
+    unresolved --> confirmed : angler confirms, sets outcome
+    unresolved --> dismissed : mistap / waypoint / duplicate
+    confirmed --> dismissed : angler corrects themselves
+    dismissed --> confirmed : angler corrects themselves
+    note right of unresolved
+        Counts toward nothing.
+        No rate, no pooled query, no bite score.
+        Stays here forever if never resolved.
+    end note
+```
+
+Three states and nothing else. `landed` vs `lost` vs `missed_bite` is `outcome`, not a
+resolution state — "it was a fish and I lost it" is a **confirmed** mark. A dismissal
+carries a reason: `mistap`, `not_a_fish_waypoint`, `duplicate`. A waypoint is kept, with its
+coordinates, because a saved position is useful; it simply is not a fish.
+
+**Only a human moves a mark.** No job auto-confirms, no age threshold auto-dismisses, no
+model guesses. A 2023 mark still sitting at `unresolved` is excluded from every rate in
+2027, and that is correct — nobody ever established that it happened. `resolved_at`,
+`resolved_by` and `resolution_source` record the act.
+
+**Confirming means saying what happened:** a `confirmed` row must have a non-null `outcome`
+(CHECK constraint). Species may stay null — "a fish, no idea what" is honest, and the
+needs-details queue exists for exactly that. Outcome is the field that makes it countable.
+
+**The exclusion is structural, not a rule to remember.** Following §5's principle:
+
+- Nothing that computes a rate reads the `catch` table. The app reads
+  `public.catch_countable` — a `security_invoker` view, RLS intact, filtered to
+  `resolution_state = 'confirmed' AND deleted_at IS NULL`. Pooled analysis reads
+  `analytics.catch_event`, under a role with **no grant on `public.catch` at all** (§5.1).
+- A trigger enforces the state machine. Nothing returns to `unresolved` once resolved.
+- **A trip holding an unresolved mark is not a valid denominator either.** Its numerator is
+  unknown, so `analytics.trip_effort` excludes it alongside the `catch_log_confidence`
+  filter. This is the strict reading and it is deliberate: it turns "resolve your marks"
+  from a nag into the thing that makes your own numbers appear. *Cost, stated:* one
+  forgotten tap silently withholds an entire trip from your stats, so the UI must surface
+  the unresolved count prominently. Reversible — it is one line in a view.
+
+### 2.3 The sticky rig (D21a)
+
+Set spot, platform, lure, bait, depth and target once; every subsequent mark inherits it.
+The only hard requirement is that changing the rig at 3pm must not retroactively change what
+the 11am fish was caught on.
+
+**Two mechanisms, both required:**
+
+1. **`trip_rig` is append-only.** Editing the rig inserts revision *n+1* with a new
+   `effective_from`. `UPDATE`/`DELETE` are not granted to `authenticated`, so history cannot
+   be rewritten even by a buggy client. Revision *n* stays a permanent record of what the
+   angler had on at that hour.
+2. **Each Catch copies the hot fields at insert.** `spot_id`, `platform`, `tackle_item_id`,
+   `bait_type_id` and `depth_fished_m` are written onto the Catch row from the standing rig,
+   along with `rig_id`, `rig_revision`, and `inherited_fields text[]` recording which of them
+   came from the rig rather than from the angler's thumb.
+
+Why both. The copy is what queries filter on — "every fish on a chartreuse swimbait" has to
+be an index scan on `catch`, not a temporal join across rig revisions at 100k rows. The
+pointer preserves everything *not* copied (`target_species_ids`, and whatever the rig grows
+later) without denormalising an array onto every mark.
+
+`inherited_fields` earns its place twice. The UI can honestly label a value "from your rig"
+rather than implying the angler asserted it, and analysis can tell an inherited depth from a
+measured one. An inherited value is a weaker claim than a typed one.
+
+**Editing an inherited field on one mark** removes that field name from `inherited_fields`
+and leaves the rig alone. Editing the rig affects marks taken after `effective_from` and
+nothing before it. There is no "apply to previous catches" button and there should not be one.
+
+### 2.4 Live versus backfilled, and where the conditions come from (D24)
+
+Any past day is writable, so paper logs can be typed in. A row the app witnessed and a row
+recalled at a kitchen table are different evidence and must stay distinguishable forever.
+
+**On every angler-authored row** (`trip`, `catch`, `journal_entry`):
+
+| column | meaning |
+|---|---|
+| `capture_mode` | `live` \| `backfill`. Asserted by the client at insert. **Immutable** — a trigger rejects any UPDATE that changes it. |
+| `client_created_at` | Device clock at the moment of creation. |
+| `created_at` | Server clock at the moment the row landed. |
+
+`capture_mode` cannot be derived from the clocks, and code that tries is a bug: offline (D3)
+means a genuinely live mark can reach the server six hours later, and D24 means a backfilled
+row can be typed the same evening. The client asserts it; the database pins it. A CHECK
+constrains the assertion — a `live` row requires `client_created_at`, and its event time must
+fall between `client_created_at - 12 hours` and `client_created_at + 5 minutes`. Logging from
+the truck at the end of a session is still live; typing in last April is not.
+
+**Conditions for a backfilled day.** `condition_snapshot.snapshot_basis =
+'historical_reconstruction'`, and the source ladder is:
+
+| age of the day | source | notes |
+|---|---|---|
+| now → ~2 days | NWS `api.weather.gov` | the live path; `snapshot_basis = 'observed'` |
+| older | NOAA NCEI (LCD / ISD) | archive; lags roughly 1–3 days behind real time |
+| tide, any age | NOAA CO-OPS predictions | predictions are computed, so past dates are as available as future ones |
+| moon, sun | computed on device | no API, no age limit, always available |
+| nothing covers it | **null** | `enrichment_status = 'unavailable'`, terminal |
+
+There is a real gap between NWS's ~2-day horizon and NCEI's ingest lag — a day can be too old
+for one and too new for the other. That resolves itself within days, so those snapshots stay
+`pending` and get retried rather than being written off as `unavailable`.
+
+**Missing stays null. Never zero.** (biostat rule 1, and it is under the most pressure right
+here — an archive gap is far more common than a live fetch failure.) `provenance` gains
+`backfill: true` and `lag_days` per field, so a water temperature reconstructed 400 days
+later is visibly a different fact from one read off a pier.
+
+**For analysis:** `capture_mode` is a NOT NULL column on `analytics.catch_event` and
+`analytics.trip_effort`. Base tables are not granted, so there is no way to pull a pooled
+dataset without the column in front of you. Whether to stratify on it is `biostat`'s call,
+not the schema's — but the schema makes ignoring it a decision rather than an oversight.
 
 ## 3. Two vocabularies, one engine (D13)
 
@@ -326,6 +543,34 @@ When many users independently invent the same field, it graduates.
 **The real defence against R5 is not this mechanism** — it is §7 being right in the
 first place. Every field a user has to invent is data we lose permanently.
 
+### 5.1 The same mechanism, three more uses
+
+§5 established the principle for custom fields: exclusion is a permission, not a flag.
+Three later decisions need exactly the same guarantee, so they get the same mechanism
+rather than three new ones.
+
+| must never be pooled | why | mechanism |
+|---|---|---|
+| Custom field values (D11) | one user's private vocabulary | `private` schema, no grant *(V2 — deferred per `PLAN.md` §1)* |
+| Unresolved marks (D22) | never established as a fish | not in `analytics.catch_event` |
+| Journal text (D23) | prose is not data | no grant on `journal_entry` at all |
+| Free-text notes (`trip.notes`, `catch.notes`) | same reason | not in any analytics view's select list |
+
+**How.** A schema `analytics` holds one view per analysable thing — `trip_effort`,
+`catch_event`, `condition_observation`. A `NOLOGIN` role `pooled_analyst` is granted
+`USAGE` on that schema and `SELECT` on those views, and nothing else in the database.
+The views are `security_invoker = false` on purpose: cross-user pooling is the point, so
+they run with their owner's rights and bypass RLS. That makes it critical that they are
+revoked from `anon` and `authenticated` — a pooled view reachable from a browser is a
+data breach, and it is one `GRANT` away at all times. This is the sharpest edge in the
+schema and it is called out here so nobody rediscovers it by accident.
+
+The views also drop the columns §6 names as leaks: no spot names, no `tide_station_id`,
+no `buoy_id`, no raw lat/lng. `geo_cell_10km` is the only geography that crosses.
+
+The server-side engine (P6) connects as `pooled_analyst`. It is not able to write the
+offending query, so no reviewer has to catch it.
+
 ## 6. Precision and privacy
 
 Anglers do not share spots, and the schema should make leaking one hard rather than
@@ -459,3 +704,16 @@ What remains, in order of how much it costs to get wrong:
 4. **Red tide** — colour, clarity, or its own flag (§7).
 5. **Coastline datasets** (§3.1) are unverified for licence, resolution and size. The
    manual path does not depend on them, so this blocks nothing yet.
+
+Added by D21–D24 (2026-08-28), in the same order:
+
+6. **Does the day journal make `Trip.notes` redundant?** (§2.1.) Both stay for now; a
+   season of real use answers it. Do not pre-empt it with a migration.
+7. **Is excluding a whole trip because one mark is unresolved too harsh?** (§2.2.) It is
+   the honest reading and it is one line in a view, so it is cheap to soften. Watch
+   whether the founder's own trips start disappearing from his stats.
+8. **The 12-hour `live` window** (§2.4) is a policy number I picked, not a measured one.
+   If a real trip trips the constraint, widen it — but keep the constraint.
+9. **Backfilled tide accuracy.** CO-OPS *predictions* backfill perfectly; verified
+   *water levels* for a past date are a different and better dataset we are not using.
+   `biostat` should say whether that is worth the second fetch.

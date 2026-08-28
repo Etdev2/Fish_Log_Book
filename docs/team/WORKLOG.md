@@ -165,3 +165,35 @@ No jargon. No ticket numbers. Honest times. Always say what is still broken.
   fishing needs its own current field for dams and river inflows, and whether the two
   fields I proposed last session (how you were fishing, and whether a fish was landed or
   lost) are approved. Still no code and no database migration.
+
+### 2026-08-28 | architect | 3h
+- The founder's four answers (calendar, notebook, quick mark, backfill) are now designed
+  and written as database tables. This is the first real database work in the project —
+  everything before it was a document.
+- The calendar day is stored as a plain date, not a moment in time, so an angler who
+  travels still sees one August 28th and not two. A trip that runs past midnight belongs
+  to the day it started. One rule, no exceptions for night fishing.
+- The one-tap mark is saved as "not confirmed yet". Nothing that is unconfirmed can ever
+  reach a catch rate — not because someone remembers to filter it out, but because the
+  part of the system that does statistics has no permission to see those rows at all.
+  Same trick already used for private notes and the day journal.
+- The rig you set before a trip (spot, lure, bait, depth) is copied onto each fish as it
+  is logged, and rig history cannot be edited afterwards. Changing your lure at 3pm
+  cannot rewrite what the 11am fish was caught on.
+- Rows typed in from a paper log are permanently marked as such and cannot later be
+  passed off as live. Weather for old days comes from an archive; where nothing covers a
+  day, the fields stay empty rather than being filled with zeroes.
+- Wrote the offline design that nobody owned and that the plan called the biggest risk:
+  where writes are stored on the phone, how they queue up with no signal, and what
+  happens if two devices disagree. Designed so the future iPhone app uses the same rules.
+- Decided the iPhone project will live in this same repository. A second repository is
+  how the two apps quietly drift apart.
+- Files: docs/architecture/ontology.md, docs/architecture/sync-protocol.md (new),
+  docs/architecture/decisions/003-web-prototype-boundary.md (new),
+  docs/architecture/decisions/004-offline-store-and-sync.md (new),
+  supabase/migrations/ (four new SQL files: schema, security, analytics, vocabulary lists)
+- Honest notes: **I have not run the SQL.** There is no Postgres or Docker on this
+  machine, so it is unexecuted and someone must run it against a real Supabase project
+  before trusting it. No app code was written and nothing was looked at in a browser.
+  The species and lure lists are seeded from my earlier guesses; every guess is flagged
+  in the data so the founder's corrections are a small job, not a rewrite.
