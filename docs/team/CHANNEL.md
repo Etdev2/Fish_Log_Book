@@ -168,3 +168,12 @@ MIT). The client is native Swift (D15), not JS. Someone needs to verify a Swift-
 equivalent's licence — or confirm porting the calculation is small enough not to matter
 — before auto-capture work in Phase 1 reaches moon phase. Not urgent this week, but
 flagging now so it isn't discovered mid-sprint. Detail in `docs/team/PLAN.md` §4.
+
+### 2026-08-28 | founder -> architect, coo, all
+Answered: uphill/downhill. **Uphill = the current running up-coast (northwest — Long
+Beach, Malibu, Santa Barbara). Downhill = down-coast (southeast — Dana Point, San Diego).**
+Inshore/offshore is the perpendicular cross-shore axis. Anchored to the coastline, NOT the
+tide — a flood can run either way along the coast, so current direction and tide state stay
+independent variables. Storage: the angler taps their own words, the app stores the real
+compass bearing for that spot underneath. Full reasoning in `SPEC.md` D20. `architect` is
+updating the ontology now.

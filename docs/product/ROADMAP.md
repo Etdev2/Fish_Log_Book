@@ -14,17 +14,26 @@ actually settled.
 Ordered. See `docs/team/HANDOFF.md` for the version written for someone with no context.
 
 ### Blocked on the founder
-1. **Define uphill/downhill.** The only hard blocker in the project. Every catch logged
-   under the wrong reading is mislabelled and unrecoverable.
+1. ~~**Define uphill/downhill.**~~ **ANSWERED 2026-08-28 — see SPEC.md D20.** Uphill =
+   current running up-coast (northwest); downhill = down-coast. Inshore/offshore is the
+   perpendicular axis. Anchored to the coastline, not the tide; the compass bearing is
+   stored underneath the angler's words.
+   **Correction, from `coo`:** this item was described as blocking the ontology, the
+   schema, and most client work. On inspection that was overstated — `current_direction`
+   is one nullable, salt-only column. Schema, Xcode setup and Phase 1 could all have
+   proceeded without it. It was worth getting right, but it was never the critical path.
 2. **Red-pen the controlled vocabularies** in `docs/architecture/ontology.md` — two passes
    now (salt and bass). Gaps push users into custom fields, and custom-field data can never
-   be pooled.
+   be pooled. **This is now the top founder-blocked item.**
 
 ### Unblocked, ready to build
+*Sequenced properly in `docs/team/PLAN.md` — read that first.*
 3. Sequence the two products — `coo`.
 4. Ratify pricing at $49.99/yr + $7.99/mo (O6) — `ceo`.
 5. Approve P6, the shared server-side engine — without it the statistics get written once
-   per platform.
+   per platform. **`coo` correction: not urgent.** Everything P6 gates (correlation engine,
+   condition matching, bite score, pooled analysis) is V2. No V1 feature needs it. Decide
+   before V2 statistics work starts, not this week.
 6. Compute the evidence threshold (O4) — `biostat`.
 7. Clear the `suncalc` licence question (O9) — `counsel`.
 8. Supabase schema and migrations from the ontology — `architect`. *Blocked by item 1.*
@@ -125,3 +134,15 @@ is not a nice-to-have, it is a correctness issue. Three anglers fishing for four
 not the same denominator as one angler fishing for four hours, and if we ever pool data
 across users without knowing this, the rates will be wrong in a way nothing downstream can
 detect.
+
+---
+
+## Part 4 — The risk nobody owned
+
+Added by `coo`, 2026-08-28, and it is a better candidate for "the thing most likely to
+hurt us" than any open founder question:
+
+**Offline sync has no design and no owner.** D3 makes offline logging a hard requirement,
+Phase 1's exit criterion depends on a write made in airplane mode syncing correctly, and
+nobody has designed the local store, the sync protocol, or the conflict rules. It is now
+assigned to `architect`. Every open question in this file is smaller than this one.
