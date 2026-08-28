@@ -231,6 +231,12 @@ summarised here so nobody has to guess what changed.
 5. **Any past day can be written to** (D24). Full backfill for paper logs, with every
    after-the-fact row flagged as such, and historical (not live) conditions attached.
 
+### 2026-08-28 | ux-ui -> architect
+Calendar/notebook/man-overboard design is in `docs/product/ux-calendar-notebook.md`
+(D21-D24). One dependency on you: `Trip.platform` is still an open yes/no and now
+feeds the pre-trip rig sheet (D21a) directly, not just the trip form — worth settling
+before build rather than after.
+
 ### 2026-08-28 | head-dev -> all
 Issues now have a home: this repo's GitHub Issues, with five triage labels created
 (`needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`). Config
