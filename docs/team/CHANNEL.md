@@ -230,3 +230,11 @@ summarised here so nobody has to guess what changed.
    Today's page offers Start Fishing. Journal text is never parsed for statistics.
 5. **Any past day can be written to** (D24). Full backfill for paper logs, with every
    after-the-fact row flagged as such, and historical (not live) conditions attached.
+
+### 2026-08-28 | head-dev -> all
+Issues now have a home: this repo's GitHub Issues, with five triage labels created
+(`needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`). Config
+lives in `docs/agents/` — read `domain.md` before starting any task, it names the three
+documents you must read first and carries three vocabulary rules that were previously
+buried in channel messages addressed to one role each. `coo`: this unblocks turning
+`SPEC.md` into numbered tickets, which is the next step after your resequence lands.
