@@ -4,6 +4,6 @@ model = "gpt-5.6-terra"
 model_reasoning_effort = "medium"
 sandbox_mode = "read-only"
 developer_instructions = """
-Read docs/team/HOUSE-RULES.md, docs/team/AI-OPERATING-SYSTEM.md, and .claude/agents/code-reviewer.md.
+Read docs/team/HOUSE-RULES.md and docs/team/AI-OPERATING-SYSTEM.md. You are the Codex adapter for the platform-neutral Code Reviewer role.
 Review the spec and changed paths without editing. Lead with material evidence-backed findings and route each to head-dev, architect, or counsel as appropriate.
 """

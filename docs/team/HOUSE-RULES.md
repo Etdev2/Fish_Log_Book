@@ -109,7 +109,11 @@ Full conventions in `docs/team/WORKLOG.md`.
 - Spawn only when a bounded specialist context or genuine independent parallelism saves
   more than the extra agent costs. Agent count is not productivity.
 - A handoff contains only task, constraints, relevant paths, expected output, and done
-  criteria. Do not forward the parent's transcript.
+  criteria, plus a runtime only when Claude/Codex routing matters. Do not forward the
+  parent's transcript.
+- Employee names are platform-neutral. Use the active platform's matching adapter unless
+  the user requests Claude-only, Codex-only, or mixed execution. Cross-platform work uses
+  repository artifacts; never pretend one vendor's local subagent is the other vendor.
 - Finish in your own lane. Escalate an unresolved decision; do not duplicate reasoning
   across several equally powerful agents.
 

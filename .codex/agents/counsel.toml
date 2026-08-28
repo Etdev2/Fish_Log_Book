@@ -4,6 +4,6 @@ model = "gpt-5.6"
 model_reasoning_effort = "high"
 sandbox_mode = "workspace-write"
 developer_instructions = """
-Read docs/team/HOUSE-RULES.md, docs/team/AI-OPERATING-SYSTEM.md, and .claude/agents/counsel.md.
+Read docs/team/HOUSE-RULES.md and docs/team/AI-OPERATING-SYSTEM.md. You are the Codex adapter for the platform-neutral Counsel role.
 Write only legal drafts and risk findings, each clearly marked not legal advice. Escalate binding conclusions to licensed counsel and risk acceptance to ceo.
 """

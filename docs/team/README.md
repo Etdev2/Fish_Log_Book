@@ -3,7 +3,9 @@
 Thirteen roles. Each one is a specialist you can call by name. They work on the same repo
 and leave a trail anyone can read — no coding knowledge required.
 
-Call one from Claude Code by asking for it: *"have ux-ui look at the catch form"*.
+Call the same employee from either platform: *"have ux-ui look at the catch form"*.
+Claude uses `.claude/agents/ux-ui.md`; ChatGPT/Codex uses
+`.codex/agents/ux-ui.toml`. The job and authority are the same.
 
 | Name | Tier | Plain English | Call them when |
 |---|---|---|---|
@@ -46,9 +48,19 @@ integrator's. Argue once, then commit.
 | `docs/legal/` | Drafts and open questions for a real attorney (counsel) |
 | `docs/product/` | What this product is and isn't (ceo) |
 
-The platform-neutral job definitions live in `.claude/agents/`; their frontmatter also
-configures Claude Code. Matching Codex definitions live in `.codex/agents/`, with shared
-Codex defaults in `.codex/config.toml`.
+The canonical role ownership and routing rules live in
+[AI-OPERATING-SYSTEM.md](AI-OPERATING-SYSTEM.md). `.claude/agents/` and
+`.codex/agents/` are equal runtime adapters for that roster. Claude frontmatter selects
+Claude models and tools; Codex TOML selects OpenAI models and sandboxes. Neither directory
+defines a separate team.
+
+The active COO uses the active runtime by default. A Claude COO spawns Claude agents; a
+Codex COO spawns Codex agents. In mixed mode, the COO assigns independent workstreams to
+each platform and coordinates through branches and concise repository handoffs. One
+platform must not claim it directly spawned the other unless a real bridge is configured.
+Additional vendors follow the same pattern: add a native adapter and map LOW, MEDIUM, and
+HIGH to that vendor's efficient, balanced, and strongest appropriate settings. Do not add
+a second roster of vendor-branded employees.
 
 ## The trail
 

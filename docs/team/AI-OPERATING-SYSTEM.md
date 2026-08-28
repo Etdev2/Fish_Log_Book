@@ -29,6 +29,41 @@ These are defaults, not prestige levels. An agent returns `ESCALATION_REQUIRED` 
 specific ambiguity or failure when its assigned tier is no longer adequate. The parent
 may relaunch the same responsibility at a higher tier or route it to the named owner.
 
+## One team, multiple runtimes
+
+`ceo`, `coo`, `architect`, and every other name in this document identify an employee
+role, not a model vendor. The currently configured adapters are:
+
+- Claude Code: `.claude/agents/<role>.md`
+- ChatGPT/Codex: `.codex/agents/<role>.toml`
+
+The active runtime supplies the implementation of the role. A Claude COO normally spawns
+Claude specialists; a Codex COO normally spawns Codex specialists. User platform choices
+are authoritative.
+
+Other vendors use the same contract: add a vendor-native adapter for each needed role,
+map LOW/MEDIUM/HIGH to that vendor's cheapest adequate model and effort settings, and
+keep the canonical responsibility unchanged. Never put a vendor-specific model name in
+the role's authority or create `claude-architect` and `codex-architect` as separate jobs.
+
+| Requested mode | COO behavior |
+|---|---|
+| Claude only | Use Claude adapters and models only. Do not invoke Codex. |
+| ChatGPT/Codex only | Use Codex adapters and models only. Do not invoke Claude. |
+| Either / no preference | Stay on the current runtime unless switching has a clear benefit. |
+| Claude and Codex | Split only independent workstreams, name the runtime for each, and synthesize once. |
+| Another vendor | Use its native adapter if configured; otherwise create `AWAITING_<RUNTIME>` handoff. |
+
+Native subagent spawning stays inside the active product. Do not claim that a Claude
+subagent is a Codex agent, or that Codex directly launched Claude. When the other runtime
+is requested but no explicit bridge/tool is configured, create a bounded repository
+handoff, mark it `AWAITING_<RUNTIME>`, and tell the user that the other runtime still has
+to be launched. The receiving COO continues from the artifact instead of rereading the
+originating conversation.
+
+Mixed mode is load balancing, not duplicate review. Never give Claude and Codex the same
+task merely to compare answers unless the user explicitly requests independent opinions.
+
 ## Spawn decision
 
 Before spawning, answer:
@@ -51,6 +86,7 @@ Every delegated task contains only:
 ```text
 TASK:
 MODEL TIER:
+RUNTIME: CURRENT | CLAUDE | CODEX | <OTHER>
 SOURCE / RELEVANT PATHS:
 ALLOWED WRITES:
 CONSTRAINTS / DO NOT:
