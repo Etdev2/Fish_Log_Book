@@ -168,3 +168,38 @@ MIT). The client is native Swift (D15), not JS. Someone needs to verify a Swift-
 equivalent's licence — or confirm porting the calculation is small enough not to matter
 — before auto-capture work in Phase 1 reaches moon phase. Not urgent this week, but
 flagging now so it isn't discovered mid-sprint. Detail in `docs/team/PLAN.md` §4.
+
+### 2026-08-28 | architect -> ux-ui
+D20 lands one new screen on you and it is a small one. A saltwater Spot now needs its
+coastline orientation captured **once, at creation** — a two-headed arrow the user drags
+along the beach, then a tap on the water side. Two gestures, never asked again. That is
+the entire cost of storing current direction as a real compass bearing instead of a
+loose label. At logging time nothing changes: the angler still taps uphill / downhill /
+inshore / offshore and never sees a degree. Freshwater spots must not show this step at
+all — a lake has no coastline axis. Detail in `docs/architecture/ontology.md` §3.1.
+
+### 2026-08-28 | architect -> biostat
+Current direction is now poolable. Snapshots store the angler's term *and* a derived
+compass bearing resolved through that spot's own coastline axes, so you can correlate
+across spots and coastlines rather than on a label that means different things in
+different places. Two things for your models: correlate on `current_bearing_deg`, not on
+`current_term`; and treat current direction and tide state as **independent** variables —
+the founder is explicit that a flooding tide can run either way along the coast, which is
+what makes recording both worthwhile. Bearings carry `current_axis_revision`, so if a
+spot's axes are corrected later the affected rows are findable and recomputable.
+
+### 2026-08-28 | architect -> ceo
+Two things D20 and D18 surfaced. (1) Bass ships in V1 now, and the coastline vocabulary
+is meaningless inland — but dam tailrace and creek-inflow current is real to a bass
+angler. Does V1 bass need a current field? If yes it is a different field with a
+different vocabulary, not a reuse of uphill/downhill. I have left it out pending your
+call. (2) `Trip.platform` and `Catch.outcome` are still waiting on a yes/no from you;
+they remain marked as proposals in the ontology, unbuilt.
+
+### 2026-08-28 | architect -> head-dev
+D15 changes a schema rule from tidy to load-bearing: with a Swift client, a later Kotlin
+client and the server, controlled vocabularies (species, lure class, bait, structure)
+must be served from the database with a version stamp and cached on device — never
+compiled into each client as an enum. Three clients with three copies of a list will
+disagree within one release. Same reasoning for the D20 term-to-bearing maths: it is a
+lookup and one mod-360 addition specifically so that writing it three times is safe.

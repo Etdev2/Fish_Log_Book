@@ -3,6 +3,15 @@
 **Date:** 2026-08-28 · **Status:** proposed (needs the founder's domain session)
 **Implements:** D11, D13 · **Resolves:** O5 (draft) · **Detail:** `docs/architecture/ontology.md`
 
+> **Amended 2026-08-28** (metadata only, substance unchanged). Current direction is now
+> settled and modelled in `002-current-direction-storage.md`. Two later decisions touch
+> the reasoning below without changing any call in it: **D18** makes bass a V1 product,
+> so the "Two schemas" rejection no longer rests on bass having zero users — it now rests
+> on both products shipping together, which is a stronger argument for one schema, not a
+> weaker one. **D15** (native Swift, later native Kotlin) makes point 3's
+> vocabulary-tables-not-enums decision load-bearing rather than merely tidy: three
+> clients cannot share a compiled enum.
+
 ## Context
 
 Custom fields cannot be pooled across users (D11). Pooling is the only escape from
