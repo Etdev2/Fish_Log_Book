@@ -1,0 +1,263 @@
+{
+ "rule": "moon-and-sun",
+ "algo_version": 1,
+ "spec": "docs/analysis/moon-and-tide.md §6 and §7",
+ "generated_utc": "2026-08-28T17:37:19.649Z",
+ "source": "astronomy-engine 2.1.19 (MIT, zero runtime dependencies). Computed locally; no API, no key, no outage mode.",
+ "constants": {
+  "phase_angle_convention": "MoonPhase(): geocentric ecliptic elongation of the Moon from the Sun, degrees, 0 = new, 90 = first quarter, 180 = full, 270 = last quarter, increasing monotonically through the cycle.",
+  "do_not_use": "Illumination().phase_angle is the Sun-Moon-Earth phase angle (180 minus elongation). It is symmetric about full moon and is NOT what moon_phase_angle_deg means.",
+  "signed_days_tie_break": "If the previous and next occurrences are exactly equidistant, choose the previous one, so the value is >= 0.",
+  "minutes_rounding": "Round half away from zero to the nearest whole minute.",
+  "day_boundary": "sunrise/sunset/twilight/moonrise/moonset are the first such event at or after local civil midnight of the observation date in the location IANA timezone.",
+  "nearest_event": "minutes_from_sunrise / minutes_from_sunset are measured to the NEAREST event, searched from the observation instant, and are independent of the day-boundary rule."
+ },
+ "tolerances": {
+  "moon_phase_angle_deg": 0.1,
+  "moon_illumination_fraction": 0.005,
+  "days_from_full": 0.01,
+  "days_from_new": 0.01,
+  "rise_set_and_twilight_utc_seconds": 60,
+  "minutes_from_sunrise": 1,
+  "minutes_from_sunset": 1,
+  "rationale": "The Swift client will not necessarily use the same ephemeris, so these are agreement tolerances between two good implementations, not the accuracy of either. They are far tighter than any effect a fish could show us. If a Swift library cannot hold them, port astronomy-engine C rather than loosening the vector."
+ },
+ "notes": [
+  "moon_phase_angle_deg, moon_illumination_fraction, days_from_full and days_from_new are four columns describing ONE underlying variable. They are near-deterministic functions of each other. Treat the moon as ONE hypothesis in any multiple-comparison correction, never as four.",
+  "Illumination is symmetric: waxing and waning gibbous both read about 0.8. Correlate on the angle. Illumination is for the icon and the sentence, nothing else.",
+  "Phase fields are geocentric and need no observer, so they survive a missing GPS fix. Rise, set and twilight need coordinates and do not.",
+  "moonrise_utc or moonset_utc being null is NORMAL, not a failure. The lunar day is about 24 h 50 min, so roughly once a month the moon does not rise, or does not set, on a given local date.",
+  "Moon phase has a 29.5 day period and season has a 365 day period. Over one or two years of one angler data they are not independent. Any full-moon finding must control for season or say plainly that it cannot separate the two."
+ ],
+ "location_default": {
+  "lat": 33.6031,
+  "lon": -117.8831,
+  "tz": "America/Los_Angeles",
+  "label": "Newport Bay Entrance / Balboa Peninsula, CA"
+ },
+ "phase_cases": [
+  {
+   "name": "waxing-gibbous-0.799",
+   "observed_at_utc": "2026-08-23T11:23:00Z",
+   "note": "PAIRED with waning-gibbous-0.799. Same illuminated fraction, opposite half of the cycle. Any implementation that stores illumination, or that stores Illumination().phase_angle instead of MoonPhase(), collapses these two rows into one condition. That is the bug this vector exists to catch.",
+   "expected": {
+    "moon_phase_angle_deg": 126.7672891415776,
+    "moon_illumination_fraction": 0.7993344449444335,
+    "days_from_full": -4.705625983796296,
+    "days_from_new": 10.740146493055555
+   }
+  },
+  {
+   "name": "waning-gibbous-0.799",
+   "observed_at_utc": "2026-09-01T12:00:00Z",
+   "note": "PAIRED with waxing-gibbous-0.799.",
+   "expected": {
+    "moon_phase_angle_deg": 233.19532386469325,
+    "moon_illumination_fraction": 0.7993470021373537,
+    "days_from_full": 4.320068460648148,
+    "days_from_new": -9.644079479166667
+   }
+  },
+  {
+   "name": "new-moon-2026-09-11",
+   "observed_at_utc": "2026-09-11T00:00:00Z",
+   "expected": {
+    "moon_phase_angle_deg": 358.16061481122006,
+    "moon_illumination_fraction": 0.00043290072883189756,
+    "days_from_full": 13.820068460648148,
+    "days_from_new": -0.14407947916666666
+   }
+  },
+  {
+   "name": "first-quarter-2026-09-18",
+   "observed_at_utc": "2026-09-18T12:00:00Z",
+   "expected": {
+    "moon_phase_angle_deg": 86.0302482771977,
+    "moon_illumination_fraction": 0.46684663092687,
+    "days_from_full": -8.201067511574074,
+    "days_from_new": 7.355920520833333
+   }
+  },
+  {
+   "name": "full-moon-2026-09-26",
+   "observed_at_utc": "2026-09-26T16:49:32Z",
+   "note": "Within a second of an exact full moon. days_from_full must be ~0 and days_from_new ~ -14.8 or +14.8, not NaN.",
+   "expected": {
+    "moon_phase_angle_deg": 179.99996596451794,
+    "moon_illumination_fraction": 0.9993572910255961,
+    "days_from_full": -0.0000026967592592592593,
+    "days_from_new": -13.959082453703704
+   }
+  },
+  {
+   "name": "last-quarter-2026-10-03",
+   "observed_at_utc": "2026-10-03T12:00:00Z",
+   "expected": {
+    "moon_phase_angle_deg": 269.21723422541265,
+    "moon_illumination_fraction": 0.5080503958655549,
+    "days_from_full": 6.798932488425926,
+    "days_from_new": -7.160147268518519
+   }
+  },
+  {
+   "name": "three-days-before-full",
+   "observed_at_utc": "2026-09-23T16:49:32Z",
+   "expected": {
+    "moon_phase_angle_deg": 143.7418870950043,
+    "moon_illumination_fraction": 0.9036227267959193,
+    "days_from_full": -3.0000026967592595,
+    "days_from_new": 12.556985335648148
+   }
+  },
+  {
+   "name": "three-days-after-full",
+   "observed_at_utc": "2026-09-29T16:49:32Z",
+   "note": "PAIRED with three-days-before-full: days_from_full must be -3 and +3, never 3 and 3.",
+   "expected": {
+    "moon_phase_angle_deg": 218.82774222231333,
+    "moon_illumination_fraction": 0.8885149787447495,
+    "days_from_full": 2.9999973032407405,
+    "days_from_new": -10.959082453703704
+   }
+  }
+ ],
+ "event_cases": [
+  {
+   "name": "newport-dawn-bite",
+   "observed_at_utc": "2026-09-01T13:15:00Z",
+   "lat": 33.6031,
+   "lon": -117.8831,
+   "tz": "America/Los_Angeles",
+   "label": "Newport Bay Entrance / Balboa Peninsula, CA",
+   "note": "06:15 local, a few minutes before sunrise. minutes_from_sunrise must be negative.",
+   "expected": {
+    "moon_phase_angle_deg": 233.86137567600733,
+    "moon_illumination_fraction": 0.7946894493608005,
+    "days_from_full": 4.372151793981481,
+    "days_from_new": -9.591996145833333,
+    "sunrise_utc": "2026-09-01T13:25:39.119Z",
+    "sunset_utc": "2026-09-02T02:16:41.000Z",
+    "civil_twilight_begin_utc": "2026-09-01T13:00:14.513Z",
+    "civil_twilight_end_utc": "2026-09-02T02:42:02.056Z",
+    "moonrise_utc": "2026-09-02T04:41:35.524Z",
+    "moonset_utc": "2026-09-01T18:04:03.147Z",
+    "minutes_from_sunrise": -11,
+    "minutes_from_sunset": 657
+   }
+  },
+  {
+   "name": "newport-dusk-bite",
+   "observed_at_utc": "2026-09-02T02:30:00Z",
+   "lat": 33.6031,
+   "lon": -117.8831,
+   "tz": "America/Los_Angeles",
+   "label": "Newport Bay Entrance / Balboa Peninsula, CA",
+   "note": "19:30 local on 1 Sep. minutes_from_sunset must be negative and small.",
+   "expected": {
+    "moon_phase_angle_deg": 240.95226836560477,
+    "moon_illumination_fraction": 0.7428019600059347,
+    "days_from_full": 4.924235127314815,
+    "days_from_new": -9.0399128125,
+    "sunrise_utc": "2026-09-01T13:25:39.119Z",
+    "sunset_utc": "2026-09-02T02:16:41.000Z",
+    "civil_twilight_begin_utc": "2026-09-01T13:00:14.513Z",
+    "civil_twilight_end_utc": "2026-09-02T02:42:02.056Z",
+    "moonrise_utc": "2026-09-02T04:41:35.524Z",
+    "moonset_utc": "2026-09-01T18:04:03.147Z",
+    "minutes_from_sunrise": -656,
+    "minutes_from_sunset": 13
+   }
+  },
+  {
+   "name": "newport-midday",
+   "observed_at_utc": "2026-09-01T20:00:00Z",
+   "lat": 33.6031,
+   "lon": -117.8831,
+   "tz": "America/Los_Angeles",
+   "label": "Newport Bay Entrance / Balboa Peninsula, CA",
+   "expected": {
+    "moon_phase_angle_deg": 237.46680153594124,
+    "moon_illumination_fraction": 0.7688133768214257,
+    "days_from_full": 4.653401793981481,
+    "days_from_new": -9.310746145833333,
+    "sunrise_utc": "2026-09-01T13:25:39.119Z",
+    "sunset_utc": "2026-09-02T02:16:41.000Z",
+    "civil_twilight_begin_utc": "2026-09-01T13:00:14.513Z",
+    "civil_twilight_end_utc": "2026-09-02T02:42:02.056Z",
+    "moonrise_utc": "2026-09-02T04:41:35.524Z",
+    "moonset_utc": "2026-09-01T18:04:03.147Z",
+    "minutes_from_sunrise": 394,
+    "minutes_from_sunset": -377
+   }
+  },
+  {
+   "name": "newport-after-midnight-local",
+   "observed_at_utc": "2026-09-02T08:30:00Z",
+   "lat": 33.6031,
+   "lon": -117.8831,
+   "tz": "America/Los_Angeles",
+   "label": "Newport Bay Entrance / Balboa Peninsula, CA",
+   "note": "01:30 local on 2 Sep. The local-day rule must resolve to 2 Sep local, not 1 Sep, and not to the UTC date.",
+   "expected": {
+    "moon_phase_angle_deg": 244.1810002475069,
+    "moon_illumination_fraction": 0.7179158474796667,
+    "days_from_full": 5.174235127314815,
+    "days_from_new": -8.7899128125,
+    "sunrise_utc": "2026-09-02T13:26:19.640Z",
+    "sunset_utc": "2026-09-03T02:15:21.722Z",
+    "civil_twilight_begin_utc": "2026-09-02T13:00:57.546Z",
+    "civil_twilight_end_utc": "2026-09-03T02:40:40.314Z",
+    "moonrise_utc": "2026-09-03T05:22:57.356Z",
+    "moonset_utc": "2026-09-02T19:13:25.388Z",
+    "minutes_from_sunrise": -296,
+    "minutes_from_sunset": 373
+   }
+  },
+  {
+   "name": "no-fix-phase-only",
+   "observed_at_utc": "2026-09-01T13:15:00Z",
+   "lat": null,
+   "lon": null,
+   "tz": null,
+   "label": "quick mark saved before the GPS returned a fix",
+   "note": "Phase fields still resolve; every rise/set/twilight field is null. This snapshot is enrichment_status = partial, not failed.",
+   "expected": {
+    "moon_phase_angle_deg": 233.86137567600733,
+    "moon_illumination_fraction": 0.7946894493608005,
+    "days_from_full": 4.372151793981481,
+    "days_from_new": -9.591996145833333,
+    "sunrise_utc": null,
+    "sunset_utc": null,
+    "civil_twilight_begin_utc": null,
+    "civil_twilight_end_utc": null,
+    "moonrise_utc": null,
+    "moonset_utc": null,
+    "minutes_from_sunrise": null,
+    "minutes_from_sunset": null
+   }
+  },
+  {
+   "name": "utqiagvik-polar-day",
+   "observed_at_utc": "2026-06-21T12:00:00Z",
+   "lat": 71.2906,
+   "lon": -156.7886,
+   "tz": "America/Anchorage",
+   "label": "Utqiagvik, Alaska - midnight sun",
+   "note": "Out of product scope, in scope for the code. The sun neither rises nor sets, so the search returns nothing and the fields are null. A client that throws here is wrong.",
+   "expected": {
+    "moon_phase_angle_deg": 85.06955564088135,
+    "moon_illumination_fraction": 0.45831424801030923,
+    "days_from_full": -8.498122037037037,
+    "days_from_new": 6.378715196759259,
+    "sunrise_utc": null,
+    "sunset_utc": null,
+    "civil_twilight_begin_utc": null,
+    "civil_twilight_end_utc": null,
+    "moonrise_utc": "2026-06-21T23:00:26.414Z",
+    "moonset_utc": "2026-06-21T10:08:59.893Z",
+    "minutes_from_sunrise": null,
+    "minutes_from_sunset": null
+   }
+  }
+ ]
+}
