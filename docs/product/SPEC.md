@@ -130,24 +130,67 @@ matching, alerts, bite score, forecast overlays, multi-location, export.
 Rationale: paywalling logging starves the app of the data that makes it worth paying for.
 Annual pricing likely fits the season better than monthly (O6).
 
+**D15 — Native Apple first, native Android second.** SETTLED *(overrides P1)*
+Founder's call, made after the Expo case was argued: build native Swift/SwiftUI for
+iOS **and Apple Watch**, then native Android later. Rationale: Apple Watch matters, and
+one-tap logging from the wrist — wet hands, fish in the other hand — is the best
+expression of this product. Expo does not do watchOS.
+Accepted costs, stated plainly: a Swift learning curve on top of an ontology problem and
+a statistics problem; two codebases eventually; the existing Next.js repo becomes backend
+and admin rather than product. See P6 for how the correlation engine survives this.
+**Apple Watch is now a V1 target, not a someday** — it is the reason for the decision.
+
+**D16 — Bad conditions are logged explicitly, not left blank.** SETTLED
+Founder: *"you wanna click 'these conditions suck'."* A trip that produced nothing gets a
+positive, expressive record rather than an absence. This is a better answer than a neutral
+blank trip: it is faster, it is emotionally satisfying to tap when you are irritated, and
+it captures the angler's own read of the conditions as data.
+Implication for R2: the denominator is collected through a button people *want* to press.
+*(The capture mechanism — manual vs a retroactive "how'd it go?" prompt — is O11.)*
+
+**D17 — The bite score describes conditions, not species.** SETTLED *(Q14 = option d)*
+The score reads the conditions themselves — "big fast outgoing tide near a full moon" —
+and the angler decides what that means for their target. It does **not** claim to know
+what a halibut wants.
+Founder also gated it: the feature ships **after there is enough data**, not in V1.
+Later evolution is per-species pooled across similar locations (Q14 option c), which is
+where the real magic lives, once pooling makes the sample size honest.
+
+**D18 — Two products, built together: saltwater and bass.** SETTLED *(overrides D13's sequencing)*
+Founder's call, made after the focus concern was raised: bass is likely the bigger market
+and both matter, so both get built rather than salt-first-bass-later.
+Architecture is unchanged and already supports it — two vocabularies, one engine,
+divergence living in nullability and `water_class`-scoped vocabulary tables (see
+`docs/architecture/ontology.md`). What changes is **scope and sequencing**, not structure.
+**Consequence:** P6 (shared server-side engine) is no longer optional. Two products across
+iOS + Watch, with Android later, is up to six client implementations. One person cannot
+maintain the statistics six times.
+See R11 for the risk this carries.
+
+**D19 — Empty-state and below-threshold UX delegated to `ux-ui`.** SETTLED *(Q16)*
+Founder's call: the designer decides. Constraints that stand regardless — the bite score
+refuses to render below threshold (D12a), and generic fishing advice not derived from the
+user's own data is out of scope (it competes with every blog on the internet and trades
+away the differentiator).
+
 ---
 
 ## 3. Proposed — awaiting the founder's call
 
-**P1 — Platform.** PROPOSED, and the recommendation has changed.
-**Now recommending Expo / React Native in a monorepo with this Next.js repo**, not
-native Swift. Correcting an earlier argument: the barometer objection killed the *PWA*,
-but Expo has full barometer, GPS, background location, SQLite and StoreKit access — every
-hard requirement in D3 and D9 is met.
-The deciding factor is **the correlation engine**. The tide maths, moon offsets,
-condition matching and the D12a scoring are pure logic with no UI. In a TypeScript
-monorepo that is written **once** and runs in the phone app, a web dashboard, and
-server-side alert jobs. Native means writing it twice, in two languages, and watching
-them drift.
-Cost is near-identical either way: ~$99/yr Apple + Supabase. The real cost of Swift is
-months of learning tax on top of an ontology problem, a statistics problem and offline
-sync.
-**Blocked on O7 (Android) and O10 (Apple Watch).**
+**P6 — If we go native (D15), the correlation engine must live server-side.** PROPOSED
+D15 costs us the write-once TypeScript engine that motivated the Expo recommendation.
+There is a clean way to get it back: **thin native clients, one shared engine on the
+server**, written in TypeScript in this repo alongside Supabase.
+- **Server-side (write once, TS):** correlation engine, condition matching, evidence
+  thresholds (O4), bite-score computation (D12a/D17), pooled cross-user analysis (D11).
+  This is the hard, valuable, frequently-changed code. It must never be written twice.
+- **On-device (per platform):** UI, offline capture, local cache, moon maths (pure
+  computation, trivially portable), and rendering cached tide curves.
+- **The offline constraint (D3) bites here.** Logging must work with no signal, so the
+  client caches tide predictions and computes basic state locally. Anything requiring the
+  engine degrades gracefully to "will update when you're back in signal."
+Without this split, D15 means writing the statistics twice — Swift now, Kotlin later —
+and watching them drift. That is the single biggest risk the native decision introduces.
 
 ---
 
@@ -186,17 +229,40 @@ computed, not picked round. Owner: `biostat`.
 Two ontologies now, per D13: saltwater and bass. Needs a domain-modeling session with
 the founder to validate against real angler vocabulary.
 
-**O6 — Pricing.** Owner: `cfo` + `ceo`. Blocked on P5.
+**O6 — Pricing. `cfo` recommendation in (2026-08-28); `ceo` to ratify.**
+Comparables (FishAngler, Fishbrain, Tide Alert verified from the App Store; Navionics and
+ANGLR partly third-party-sourced) cluster at **$40–80/yr effective**.
+Recommendation: **$49.99/yr + $7.99/mo**, annual pushed hard given seasonality.
+**The finding that matters more than the price:** infrastructure cost is never the binding
+constraint — conversion rate is. See R9.
 
 **O7 — Does Android matter within 12 months?** Blocks the final form of P1.
 
-**O10 — Does Apple Watch matter in year one?**
+**O11 — How is a bad-conditions trip actually captured?**
+D16 settles *what* is recorded. Not settled: whether the angler taps it in the moment, or
+answers a retroactive prompt on the drive home ("you were at Balboa 6–10am, how'd it
+go?"). R2 says human discipline is unreliable — the retroactive prompt is the mitigation.
+Likely the most-designed screen in the app. Owner: `ux-ui`.
+
+**O12 — When does bass mode get built? RESOLVED: alongside salt, see D18.**
+
+**O10 — Apple Watch. RESOLVED: yes, it matters. See D15.**
+*Original question retained:*
 One-tap logging from the wrist, hands wet, holding a fish, is the single best UX this
 product could have. Expo does not do watchOS; bolting on a native watch target is
 genuinely painful. If the watch is central rather than someday, P1 flips to Swift.
 **This is the last thing blocking the platform decision.**
 
-**O8 — Weather data licensing. NEW, and it has teeth.**
+**O8 — Weather data licensing. RESOLVED by `cfo` (2026-08-28): build on the free path.**
+Real prices, cross-checked against two sources: Open-Meteo **Standard $29/mo** (1M calls)
+**excludes the Historical API**; **Professional $99/mo** is the tier we would actually
+need for backfill. Verdict: build on **NWS + NOAA NCEI** (free, public domain). Call
+volume never approaches even Standard's cap at 10,000 users, so we would be paying $99/mo
+purely for convenience. The free path costs ~3–5 dev-days once. Revisit only if the
+product goes international, or if NCEI's data quirks burn more engineer-time than $99/mo
+buys back.
+
+*Original finding, retained for context:*
 Open-Meteo's free tier **forbids commercial use** — their own example of what is not
 allowed is "apps that have subscriptions", which is exactly D1. Historical backfill
 (pressure at the moment of a catch) needs their *Professional* tier, not Standard.
@@ -217,6 +283,8 @@ unless `counsel` clears it. Everything NOAA/NWS/USGS is US public domain and cle
 
 ### Logging
 - `[V1]` One-tap catch log — writes timestamp + GPS instantly, no forms, no blocking
+- `[V1]` **Apple Watch one-tap logging** — the reason for D15. Wet hands, fish in hand
+- `[V1]` **"Conditions suck" quick-log** (D16) — one tap records a bad session
 - `[V1]` Silent auto-capture at log time: tide state, tide %, tide speed, moon, pressure
 - `[V1]` Offline-first write; syncs when signal returns
 - `[V1]` Trip start/stop, with blank trips recorded as first-class records
@@ -226,6 +294,7 @@ unless `counsel` clears it. Everything NOAA/NWS/USGS is US public domain and cle
 - `[V1]` Saved locations / fishing spots
 - `[V1]` Favourite lures list, for fast repeat entry
 - `[V2]` User-defined custom parameters (per D11)
+- `[V1]` Bass/freshwater logging flow — its own vocabulary and its own UX (D18)
 - `[V2]` Photo attached to a catch
 - `[LATER]` Garmin / sensor integration for automatic water temp
 
@@ -254,8 +323,8 @@ unless `counsel` clears it. Everything NOAA/NWS/USGS is US public domain and cle
 - `[V2]` Condition matching — how today compares to your history
 - `[V2]` Species × condition breakdowns
 - `[V2 / gated]` Alerts when conditions match your productive days (per D12, O4)
-- `[V2 / gated]` **Bite score** — 1–10 heat index for current conditions. Explainable and
-  decomposable; refuses to render below threshold (D12a)
+- `[V2 / gated]` **Bite score** — 1–10 heat index describing *conditions*, not species
+  (D17). Explainable and decomposable; refuses to render below threshold (D12a)
 - `[LATER]` Machine-learned correlations, on pooled cross-user data only (D12b)
 - `[LATER]` Cross-user pooled patterns (per D11)
 
@@ -280,8 +349,8 @@ Recorded so nobody rebuilds them by accident:
   swell/wind/comparison charts is months of work for a worse version of an app the
   founder already owns. The app needs tide *data*, not a competing tide *viewer*.
 - **Social features.** Anglers do not share spots. Feed, following, public catches — no.
-- **Android**, pending O7.
-- **Bass / lake mode features**, pending D13. Schema-ready only in V1.
+- **Android** — planned as a *native* app after iOS ships (D15), not in V1.
+- ~~Bass / lake mode deferral~~ — **reversed by D18.** Bass is now a V1 product.
 - **Hardware/sensors**, pending Garmin `[LATER]`.
 - **Fish identification from photos.**
 
@@ -321,3 +390,26 @@ persuasive thing the app can say and the easiest thing to get wrong. Users will 
 far past what the data supports, and a wrong score on a wasted Saturday costs more trust
 than ten wrong list items. D12a's constraints are not decoration — they are what makes
 the feature shippable at all.
+
+**R9 — This is a 10,000-user product or it is a hobby.** `cfo`'s modelling: infrastructure
+runs $9–10/mo at one user, $33–52/mo at 1,000, $60–260/mo at 10,000 — i.e. $0.006–0.05 per
+user per month. Infra will never be what kills this. But 1,000 users would need an
+implausible **85% conversion** to fund a living; the realistic planning target is
+**10,000 users at 5–10% conversion**. Every product decision should be read against
+whether it plausibly reaches ten thousand anglers. This is also the strongest argument yet
+for D11's poolable canonical ontology — at 10,000 users, pooled data is a real dataset.
+
+**R10 — Photo storage is the one cost line that scales badly.** It is cumulative and never
+deleted. Compressing before upload is roughly a 10x lever; client-side caching is the
+biggest lever on egress. Worth designing in from the first photo, not retrofitting.
+
+**R11 — Two products at once is the founder's accepted risk.** D18 doubles every design
+surface: two controlled vocabularies to validate with real anglers, two logging flows, two
+empty states, two onboarding paths, two sets of species and tackle lists. The classic
+failure mode is two half-products that neither saltwater nor bass anglers find good enough.
+It is sharpened by an asymmetry: **bass is the harder UX problem.** Saltwater auto-fills
+tide state, tide movement and station data; on a lake the automatic set is barometric
+pressure and moon phase only, so bass leans hard on manual entry — water colour, clarity,
+cover, structure, depth — which is exactly the friction the one-tap promise (D9) exists to
+avoid. Mitigation: the shared engine (P6), and a genuinely sequenced plan from `coo` rather
+than building both in parallel by feel.

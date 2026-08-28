@@ -43,3 +43,9 @@ next-env.d.ts
 
 # claude code (share agents, keep local perms private)
 .claude/settings.local.json
+
+# large local media (52MB screen recording, reference only)
+*.MP4
+*.mp4
+*.mov
+.claude/worktrees/
