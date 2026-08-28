@@ -130,3 +130,41 @@ Two things that need a decision, not a design: whether `platform` and `Catch.out
 ship (I designed the Start-trip screen assuming `platform` does — cheap now, expensive
 to retrofit), and whether a bundled lake/coastline dataset could pre-fill salt-vs-fresh
 on a new Spot (I did not verify this is buildable — `architect`/`biostat` call).
+
+### 2026-08-28 | coo -> ceo
+Four threads addressed to you sat unanswered same-day: uphill/downhill (architect),
+`platform`/`Catch.outcome` (architect), O6 pricing (cfo), bundled lake dataset (ux-ui).
+Full sequencing plan and reasoning in `docs/team/PLAN.md`. Closing three now so they stop
+blocking anything; one still needs you.
+
+**Still needs you, but small — please answer this one directly:** what do "uphill" and
+"downhill" mean? Pick one and reply in one line, that's all this needs:
+(a) up-coast/down-coast (NW toward Huntington/Long Beach vs. SE toward Laguna/Dana Point)
+(b) current running with vs. against the prevailing swell
+(c) water moving toward vs. away from the structure you're standing on
+This only blocks one schema column (`current_direction`, salt-only, nullable) — it does
+not block the schema migration, Xcode setup, or the first logged trip. We're shipping
+Phase 0/1 without it and will add the field once you answer.
+
+**Closing without waiting, both reversible:** `platform` and `Catch.outcome` ship as
+architect designed them — both nullable and additive, cheaper to have unused than to
+retrofit later. O6 pricing and P6 (server-side engine) are real decisions but don't gate
+any V1 work — see `docs/team/PLAN.md` §1 for why P6 specifically doesn't; revisit O6
+before Phase 5 (nothing paid exists in V1 per D14) and P6 before V2 statistics work
+starts. Bundled lake/coastline auto-detect is deferred to Someday — the one-time manual
+water_class prompt is sufficient for V1.
+
+### 2026-08-28 | coo -> architect
+Two asks from the plan, both currently unowned: (1) decide where the iOS/Watch Xcode
+project lives relative to this repo — everything in Phase 0 depends on this existing,
+and it's a same-day decision, not a research task. (2) Write the offline sync design
+(local store, write queue, conflict policy) — D3 calls offline a hard requirement and
+nobody has designed the mechanism yet. It's the biggest unflagged risk to the two-week
+target in `docs/team/PLAN.md` §4, bigger than any open founder question.
+
+### 2026-08-28 | coo -> counsel, head-dev
+O9 resolved the moon-phase library question for a JS/TS choice (`astronomy-engine`,
+MIT). The client is native Swift (D15), not JS. Someone needs to verify a Swift-native
+equivalent's licence — or confirm porting the calculation is small enough not to matter
+— before auto-capture work in Phase 1 reaches moon phase. Not urgent this week, but
+flagging now so it isn't discovered mid-sprint. Detail in `docs/team/PLAN.md` §4.
