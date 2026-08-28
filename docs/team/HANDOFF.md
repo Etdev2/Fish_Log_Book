@@ -4,7 +4,7 @@
 Written to be self-contained. If you are picking this up cold, read this file top to
 bottom before touching anything.
 
-**Last updated:** 2026-08-28
+**Last updated:** 2026-08-28 (late)
 **Project state:** design and research complete for V1 scope. **No application code
 written yet.** The Next.js app in `src/` is an unmodified starter skeleton.
 
@@ -37,6 +37,9 @@ Business: subscription. Logging is free forever; interpretation is paid.
 | `docs/architecture/decisions/001-canonical-ontology-shape.md` | Why the model is shaped that way, and what was rejected. |
 | `docs/analysis/data-sources.md` | Verified research on every external data API. Endpoints were called live, not recalled. |
 | `docs/finance/cost-model.md` | Infra costs at 1 / 1,000 / 10,000 users, pricing recommendation. |
+| `docs/product/ROADMAP.md` | Ordered work queue, ~20 candidate features awaiting a yes/no, and a list of things to deliberately NOT build. |
+| `docs/product/ux-cold-start.md` | The three hardest screens designed properly: cold start, the end-of-trip flow, and bass logging. |
+| `docs/design/README.md` | Eight screen mockups and the visual language. Published canvas linked there. |
 | `docs/team/HOUSE-RULES.md` | Git protocol, quality bar, how to log work. |
 | `docs/team/CHANNEL.md` | Cross-role findings. Read the entries addressed to your role. |
 | `docs/team/WORKLOG.md` | What has been done, in plain English. |
@@ -79,9 +82,8 @@ Ordered. Each item says enough to act on without re-deriving context.
    permanently lost to the statistics.
 
 ### Ready to start
-3. **Sequence the two products** — owner `coo`. Decision D18 committed to building
-   saltwater and bass together rather than sequentially. There is no plan for doing that
-   without producing two half-products (risk R11). This is the largest unfilled gap.
+3. **Sequence the two products** — owner `coo`, IN PROGRESS, see below. Decision D18
+   committed to building saltwater and bass together rather than sequentially.
 4. **Ratify pricing (O6)** — owner `ceo`. `cfo` recommends $49.99/yr + $7.99/mo. Needs a
    yes/no.
 5. **Decide P6** — the correlation engine living server-side in TypeScript with thin native
@@ -92,9 +94,16 @@ Ordered. Each item says enough to act on without re-deriving context.
 7. **Licence check (O9)** — owner `counsel`. `suncalc` reports no licence field on npm.
    Use `astronomy-engine` (MIT, verified) unless cleared.
 
+### Done since first writing
+- **`ux-ui` delivered** — `docs/product/ux-cold-start.md`, merged to main. The whole
+  logging surface is four verbs; the end-of-trip screen is designed; the retroactive
+  check-in is a local, offline-safe notification.
+- **Eight screen mockups** exist — `docs/design/`.
+- **`ROADMAP.md`** — feature candidates and anti-features.
+
 ### In progress at time of writing
-8. **`ux-ui`** is designing the cold-start screen, the bad-conditions capture flow (O11),
-   and how bass logging stays fast. Branch `ux/cold-start`. Check whether it landed.
+8. **`coo`** is sequencing the two products (risk R11) into `docs/team/PLAN.md` and
+   refreshing `BACKLOG.md`. Branch `coo/plan`. Check whether it landed.
 
 ### Not started, needed before code
 9. Supabase schema and migrations, from the ontology — owner `architect`.
@@ -176,3 +185,17 @@ real angler in the field, and no assumption in this repo has survived contact wi
 The two largest risks, both in the spec: **R1** — small per-user samples produce confident
 nonsense, which is why sample sizes are shown on every claim. **R11** — building two
 products at once may yield two half-products. The founder accepted R11 knowingly.
+
+---
+
+## 9. One trap that is not technical
+
+`ROADMAP.md` Part 3 records gamification — streaks, badges, leaderboards — as a deliberate
+anti-feature, and the reason is worth repeating here because it is the kind of thing a
+newcomer proposes on day one as an obvious win.
+
+The product's entire statistical claim rests on the log being an **unbiased record of when
+someone fished**. Rewarding people for logging biases exactly that: they log to protect a
+streak, and stop logging when it breaks. **Rewarding logging corrupts the data we are
+selling.** If any engagement mechanic is ever added, it must reward *confirming a trip
+honestly* — including the bad ones — and never reward catching more or logging more.
