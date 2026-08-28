@@ -36,7 +36,12 @@ erDiagram
     CATCH }o--o| TACKLE_ITEM : "taken on"
     TACKLE_ITEM }o--|| LURE_CLASS : "classified as"
     CATCH }o--o| BAIT_TYPE : "taken on"
-    CONDITION_SNAPSHOT }o--o| STATION : "sourced from"
+    TRIP }o--o| PLATFORM : "fished from"
+    CATCH }o--o| PLATFORM : "fished from (rig snapshot)"
+    SPOT }o--o| TIDE_STATION : "reads tide from"
+    TIDE_STATION ||--o{ TIDE_SERIES : "has cached points"
+    TIDE_STATION ||--o{ TIDE_COVERAGE : "has cached days"
+    CONDITION_SNAPSHOT }o--o| TIDE_STATION : "sourced from"
     CUSTOM_FIELD_DEF ||--o{ CUSTOM_FIELD_VALUE : "instantiates"
 ```
 
@@ -113,7 +118,7 @@ station silently changes has an incoherent history.
 | `spot_id` | USER | Nullable — a boat trip may roam. Catches still carry coordinates. |
 | `water_class` | DERIV | Denormalised from Spot. Every pooled query filters on it first. |
 | `started_at`, `ended_at` | AUTO/USER | Start is auto on tap; end is user. Both UTC + IANA tz. |
-| `platform` | USER | shore / surf / pier / jetty / kayak / private_boat / party_boat / float_tube / belly_boat `?` |
+| `platform` | USER | shore / surf / pier / jetty / kayak / private_boat / party_boat / float_tube / belly_boat. **D26, settled.** A vocabulary table, FK-constrained on trip, rig and catch. Nullable in the column, required by the UI. |
 | `angler_count` | USER | Defaults 1. Effort scales with it. |
 | `target_species_ids[]` | USER | What they went for, not what they got. Cheap, and it makes a blank trip interpretable. |
 | `hours_fished` | DERIV | From start/end. Not typed. |
@@ -126,6 +131,9 @@ station silently changes has an incoherent history.
 
 `platform` is the highest-value stratifier in the model and costs one tap. Surf catch
 rates and party-boat catch rates are not the same population and must never be pooled.
+D26 settled it on 2026-08-28; it is no longer a proposal. It lives in `public.platform`
+with a `label`, a `sort_order` and an `is_vessel` rollup for when one platform has too
+few trips to stand alone. ADR 005.
 
 ### Catch
 | field | mark | notes |
@@ -134,7 +142,7 @@ rates and party-boat catch rates are not the same population and must never be p
 | `caught_at` | AUTO | Device clock, UTC, plus captured IANA timezone. |
 | `lat`, `lng`, `gps_accuracy_m` | AUTO | Correctable by map tap (D4). Store the accuracy — a 60 m fix is a different fact from a 4 m fix. |
 | `species_id` | USER | Nullable. "Needs details" queue exists precisely so this can be filled later. |
-| `outcome` | USER | `landed` \| `lost` \| `missed_bite` \| `short_bite` `?` — **include this.** A lost fish is a bite, and bites are the signal. If we omit it the user invents a custom field for it. |
+| `outcome` | USER | `landed` \| `lost` \| `missed_bite` \| `short_bite`. **Settled** (blessed proceed-don't-wait, 2026-08-28). A lost fish is a bite, and bites are the signal. A `confirmed` mark must have one — it is the field that makes a row countable. |
 | `disposition` | USER | `released` \| `kept` \| `n/a`. |
 | `length_mm`, `weight_g` | USER | SI in the column, imperial at the glass. `size_estimated` boolean beside them. |
 | `tackle_item_id` | USER | The user's own lure (§4). |
@@ -150,7 +158,7 @@ rates and party-boat catch rates are not the same population and must never be p
 | `resolved_at`, `resolved_by` | AUTO | When and by whom. Only a human moves this. §2.2 |
 | `resolution_source` | AUTO | `live` \| `needs_details_queue` \| `backfill_edit`. How the resolution was made. |
 | `spot_id` | USER | Nullable. Inherited from the rig. A roaming trip changes spot mid-trip; the Spot's D20 axes resolve per-catch. |
-| `platform` | USER | Nullable. Inherited from the rig; falls back to `trip.platform`. Surf then jetty in one trip is one trip. |
+| `platform` | USER | Nullable, FK to `platform` (D26). Inherited from the rig; falls back to `trip.platform` in the client. Surf then jetty in one trip is one trip. |
 | `rig_id`, `rig_revision` | AUTO | Which rig revision this mark inherited. §2.3 |
 | `inherited_fields` | AUTO | `text[]` — which of the above the rig supplied rather than the angler typing. §2.3 |
 | `capture_mode` | AUTO | `live` \| `backfill`. Immutable after insert. §2.4 |
@@ -290,9 +298,18 @@ needs-details queue exists for exactly that. Outcome is the field that makes it 
 - **A trip holding an unresolved mark is not a valid denominator either.** Its numerator is
   unknown, so `analytics.trip_effort` excludes it alongside the `catch_log_confidence`
   filter. This is the strict reading and it is deliberate: it turns "resolve your marks"
-  from a nag into the thing that makes your own numbers appear. *Cost, stated:* one
-  forgotten tap silently withholds an entire trip from your stats, so the UI must surface
-  the unresolved count prominently. Reversible — it is one line in a view.
+  from a nag into the thing that makes your own numbers appear. **D27 settled this on
+  2026-08-28 and confirmed the strict form** — the whole trip, not merely the mark. It is
+  no longer "one line to soften"; softening it now needs a new decision.
+
+  *The cost, stated and accepted:* one forgotten tap silently withholds an entire trip.
+  D27 accepts that **only on the condition that the exclusion is visible and fixable**.
+  Unresolved marks surface at End Trip and carry the calendar's amber flag
+  (`docs/product/ux-calendar-notebook.md`, `ux-ui`'s design, already done). A muted trip
+  must never be a silent hole. **That UI is a dependency of this rule, not a nicety** — if
+  the surfacing is ever dropped, the exclusion has to be revisited in the same breath. If
+  marks go unresolved in the field anyway, the answer is better prompting, not a looser
+  rule.
 
 ### 2.3 The sticky rig (D21a)
 
@@ -341,8 +358,15 @@ recalled at a kitchen table are different evidence and must stay distinguishable
 means a genuinely live mark can reach the server six hours later, and D24 means a backfilled
 row can be typed the same evening. The client asserts it; the database pins it. A CHECK
 constrains the assertion — a `live` row requires `client_created_at`, and its event time must
-fall between `client_created_at - 12 hours` and `client_created_at + 5 minutes`. Logging from
+fall between `client_created_at - 18 hours` and `client_created_at + 5 minutes`. Logging from
 the truck at the end of a session is still live; typing in last April is not.
+
+The window was 12 hours until 2026-08-28 and 12 was wrong for this fishery: a full-day SoCal
+party boat runs 12–14 hours, and logging the whole session in the car park afterwards is the
+normal case, not the edge. Under 12h the hour-one fish was rejected, which pushed the client
+into calling a witnessed row `backfill` — the exact lie the column exists to prevent. 18h
+covers a full-day boat plus the drive home and still puts a kitchen table the next morning
+outside. ADR 007.
 
 **Conditions for a backfilled day.** `condition_snapshot.snapshot_basis =
 'historical_reconstruction'`, and the source ladder is:
@@ -683,6 +707,12 @@ SoCal to deserve a decision.
 prespawn · spawn · postspawn · summer · fall transition `?` · winter
 
 ### Fixed vocabularies I am confident about
+- `platform`: shore · surf · pier · jetty · kayak · private_boat · party_boat ·
+  float_tube · belly_boat (D26, USER). A table, not a CHECK — the UI needs labels and an
+  order, and `is_vessel` gives analysis a rollup. `float_tube` and `belly_boat` carry
+  `needs_review`: they are the same craft under two names in most of California, and
+  merging them later is a vocabulary edit while splitting them later is not.
+- `outcome`: landed · lost · missed_bite · short_bite (USER)
 - `tide_state`: flood · ebb · slack (DERIV)
 - `current_term`: uphill · downhill · inshore · offshore (D10/D20, USER; stored
   alongside a derived compass bearing — §3.1)
