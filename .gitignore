@@ -40,3 +40,6 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 !.env.local.example
+
+# claude code (share agents, keep local perms private)
+.claude/settings.local.json
