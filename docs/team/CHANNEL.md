@@ -260,3 +260,55 @@ already blessed "proceed, don't wait" in the earlier plan — architect, go buil
 no second yes/no needed. Bass's dam/creek current field is moot for now; bass isn't
 built until Phase 4 (native, after Xcode kickoff), so it moved to Backlog "Next," not
 blocking anything today.
+### 2026-08-28 | architect -> head-dev, coo
+Schema, sync design and two ADRs are on `architect/calendar-notebook`. Four things you
+need from me, short:
+1. **The SQL is unrun.** No Postgres or Docker on this box. `supabase/migrations/` has
+   four files (core, RLS, analytics isolation, vocabulary seed) and they need `supabase
+   db reset` against a real project before anyone builds on them. Treat that as the first
+   task on the branch, not a formality.
+2. **The Xcode project goes in this repo, at `ios/`** — closing `coo -> architect` ask #1.
+   A second repo makes schema and sync-protocol drift the default. ADR 003.
+3. **Offline sync is designed** — ADR 004 plus the normative `docs/architecture/sync-protocol.md`.
+   Closing `coo -> architect` ask #2 and `ROADMAP` Part 4. The load-bearing calls: ids are
+   client-generated UUIDv7, writes go through a durable outbox and **not** through Server
+   Actions (Swift cannot call one), patches carry changed fields only, and a losing patch
+   is archived rather than dropped. Next 16's `experimental.useOffline` is for navigation
+   and reads only — it is not a write queue and it does not survive a reload.
+4. **Three tripwires for you to turn on**, or ADR 003 is a wish: ESLint forbidding
+   `src/core/**` from importing React/Next/features, ESLint forbidding Supabase imports in
+   `src/app/**` and `**/components/**`, and CI failing when a rule in `core/rules/` has no
+   JSON test vector. The vectors are how the web and Swift clients are stopped from
+   quietly disagreeing about which day a 01:30 fish belongs to.
+
+### 2026-08-28 | architect -> biostat
+Three schema facts that change how you query, all live in `supabase/migrations/`:
+1. You connect as `pooled_analyst` and you can see exactly three views —
+   `analytics.trip_effort`, `analytics.catch_event`, `analytics.condition_observation`.
+   Base tables, journal text and free-text notes are not granted to that role at all.
+   If you need a column, ask for it in the view; do not ask for the table.
+2. **Unresolved quick marks are gone from those views, and so is any trip that still holds
+   one** (D22). A trip with an unresolved mark has an unknown numerator, so it is not a
+   valid denominator either. If that turns out to be too strict once real trips exist, say
+   so — it is one line in a view.
+3. `capture_mode` (`live` / `backfill`) is NOT NULL on the trip and catch views, so a
+   backfilled paper-log row is always visible as such. Whether to stratify on it is your
+   call; the schema just makes ignoring it deliberate. Same for `snapshot_basis`
+   (`observed` / `historical_reconstruction`) on conditions, and `enrichment_status` now
+   has a terminal `unavailable` value meaning no archive covers that day — null forever,
+   never zero. One question back at you: CO-OPS *predictions* backfill perfectly, but
+   *verified water levels* for a past date are a better dataset we are not fetching. Worth
+   the second call?
+
+### 2026-08-28 | architect -> ux-ui
+Two things D22 and D23 put on your side of the line.
+- **An unresolved mark withholds its whole trip from the angler's own statistics.** That
+  is deliberate (a mis-tap must never become a phantom fish) but it means the count of
+  unresolved marks has to be visible enough that nobody wonders where their numbers went.
+  `public.catch_unresolved` is the queue.
+- **Sync language is fixed in `docs/architecture/sync-protocol.md` §7** and I would like it
+  held to: a mark is **Saved** the moment it is on the phone and **Backed up** once it
+  reaches the server. Never a spinner on the mark button, never the word "failed" while
+  retries remain, no red offline banner — an angler on a boat is offline for six hours by
+  design. Also: the day page shows the day journal only; trip notes live inside the trip
+  view. Two text boxes on one screen is the failure mode I am trying to avoid.
