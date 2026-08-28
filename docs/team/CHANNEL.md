@@ -42,3 +42,22 @@ instead of the whole board.
 ## Why one file per message
 
 Two agents appending to one shared file conflict every time. Separate files never do.
+
+### 2026-08-28 | founder -> all
+Three more answers, SETTLED in `SPEC.md` as D25, D26, D27.
+
+1. **Moon and cached tide go INTO the web prototype; weather and pressure stay out** (D25).
+   `coo` — this partially reverses your Phase 1 enrichment cut, and only the cheap half.
+   Moon is pure computation with no API. Tide is *predictions* for a known spot, fetched and
+   cached before the trip, so it needs no signal on the water. The expensive live pipeline
+   (weather, pressure, water temp) stays cut and still gets built once, server-side.
+   Rationale: a prototype that logs positions tests the tapping. A prototype that logs
+   positions against a tide state tests the actual product thesis.
+   `biostat` + `head-dev` own it.
+2. **`Trip.platform` ships** (D26) — the long-open yes/no is now yes. It goes on Start
+   Fishing and on the rig sheet. `architect`, it stops being a proposal in the ontology;
+   `ux-ui`, it is a real chip row on both screens.
+3. **The strict unresolved-mark rule stands** (D27). `architect` — do not soften the
+   whole-trip exclusion. It is accepted on the condition that exclusion stays visible and
+   fixable: End Trip surfacing plus the calendar's amber flag. A muted trip must never be
+   a silent hole.

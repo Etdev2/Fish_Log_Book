@@ -250,6 +250,46 @@ logs can be typed in. Two rules that make this safe rather than corrosive:
   `api.weather.gov` cannot reach back past roughly two days — NOAA NCEI covers the rest, and
   where nothing covers it the fields stay **null, never zero** (biostat rule 1).
 
+**D25 — Moon phase and cached tide ship in the web prototype. Weather and pressure do
+not.** SETTLED 2026-08-28
+Partially reverses `coo`'s cut of live enrichment from Phase 1 (`docs/team/PLAN.md` §1).
+The cut was right about the expensive half and wrong about the cheap half.
+- **Moon phase** is pure computation — no API, no key, no network, no cost. It works
+  offline by construction, which is the one enrichment that can make that claim.
+- **Tide** for a known spot is fetched from NOAA station 9410580 and **cached ahead of a
+  trip**, not called live. Predictions, not observations — they are computed in advance
+  and do not need signal on the water.
+- **Weather, pressure and water temperature stay cut.** Those need live calls, a station
+  picker, and a backfill path. They are the pipeline that must be built once, server-side.
+*Why this is worth the exception:* a prototype that logs positions tests whether the app
+is pleasant to tap. A prototype that logs positions **against a tide state** tests the
+product's actual thesis. D6 and D9 make tide the differentiator; carrying a notebook to
+the water without it would field-test the wrong thing. Enrichment still lands as
+`pending` wherever the cache misses — the offline path is unchanged and is still the
+normal path, not the edge case.
+
+**D26 — `Trip.platform` ships in V1.** SETTLED 2026-08-28 *(was a standing proposal)*
+shore / surf / pier / jetty / kayak / private_boat / party_boat / float_tube / belly_boat.
+One tap, on the Start Fishing screen and on the sticky rig sheet (D21a).
+*Why it stops being optional:* it is the highest-value stratifier in the model. Surf catch
+rates and party-boat catch rates are different populations, and pooling them produces
+confidently wrong numbers that nothing downstream can detect — R1's failure mode with no
+warning attached. Nullable and additive was the cheap answer, but every trip logged before
+it renders carries a null that cannot be recovered from memory.
+
+**D27 — An unresolved mark excludes its whole trip from effort statistics.** SETTLED
+2026-08-28
+Confirms `architect`'s strict reading rather than softening it. A trip holding any
+unresolved mark is held out of `trip_effort` entirely — not merely the mark.
+*Why:* an unknown numerator invalidates the denominator it sits over. A trip reporting
+"4 hours, 2 fish" when a third mark might also be a fish is not a conservative estimate,
+it is a wrong one, and it is wrong in the direction that flatters the log.
+*The cost, stated:* forgotten taps silently mute real history. That is accepted **on the
+condition that exclusion is visible and temporary** — unresolved marks surface at End Trip
+and carry the calendar's amber flag (`docs/product/ux-calendar-notebook.md`), so a muted
+trip is a thing the angler can see and fix, never a silent hole. If field use shows marks
+going unresolved anyway, the answer is better prompting, not a looser rule.
+
 ---
 
 ## 3. Proposed — awaiting the founder's call
