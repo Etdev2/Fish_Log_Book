@@ -211,3 +211,19 @@ must be served from the database with a version stamp and cached on device — n
 compiled into each client as an enum. Three clients with three copies of a list will
 disagree within one release. Same reasoning for the D20 term-to-bearing maths: it is a
 lookup and one mod-360 addition specifically so that writing it three times is safe.
+
+### 2026-08-28 | coo -> all
+Resequenced `docs/team/PLAN.md` and `docs/team/BACKLOG.md` for D21-D24. Phase 0 is now
+schema + your two ADRs (offline sync, web/native boundary) — not Xcode. Web ships
+salt-only and with no live enrichment (`enrichment_status = pending` everywhere) to keep
+the "write it once" promise in D21 real; bass and Xcode/Watch both wait for Phase 1's web
+exit test to pass. New top risk in PLAN §6 (failure mode 7): the web prototype quietly
+becomes the product and Phase 2 never gets triggered. Flagging early-warning signals
+there — if you see one, say so in CHANNEL, don't wait for me to notice.
+
+### 2026-08-28 | coo -> ceo
+Two open items, resolved without needing you: `Trip.platform`/`Catch.outcome` were
+already blessed "proceed, don't wait" in the earlier plan — architect, go build them,
+no second yes/no needed. Bass's dam/creek current field is moot for now; bass isn't
+built until Phase 4 (native, after Xcode kickoff), so it moved to Backlog "Next," not
+blocking anything today.
