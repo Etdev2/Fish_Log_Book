@@ -191,3 +191,29 @@ No jargon. No ticket numbers. Honest times. Always say what is still broken.
   actually reads it. Still no database and still no first screen.
 - Next: the specification can now be turned into real numbered tickets. Nobody has done
   that yet.
+
+### 2026-08-28 | coo | 50m
+- The founder decided this morning to build a calendar, a day journal and a one-tap
+  "man overboard" mark right now, as a web app anyone can use in a browser this week,
+  rather than waiting for the iPhone app to be built. Native iPhone and Apple Watch are
+  still the real product; the web version is a fast prototype and the spec the iPhone
+  build gets made from.
+- Reworked the sequencing plan around that: the very first phase is no longer "start the
+  iPhone project," it's "get the calendar/journal/mark working in the browser." The
+  iPhone project now starts right after that web version gets used on a real fishing
+  trip — not on a guessed date.
+- Said plainly what this costs: it's more work piled onto a first release that was
+  already too big, plus a second version of the screens to maintain. To make room:
+  bass fishing stays out of the web version entirely (it still gets built, just once,
+  natively, later) and the web version won't try to fetch real tide/weather data live —
+  it saves the position and fills that in afterward, same as it already does when there's
+  no phone signal.
+- Named a new risk that wasn't on the list before: the web version might quietly become
+  "the app" by default, because it'll actually work and be in the founder's hand, and the
+  Apple Watch — the whole reason for going native — could keep getting pushed off without
+  anyone deciding that out loud. Wrote down exactly what to watch for so this gets caught
+  early instead of six weeks from now.
+- Files: docs/team/PLAN.md, docs/team/BACKLOG.md
+- Next: `architect` is finishing the two design documents (how offline saving works, and
+  what's shared between the web and iPhone versions) that the web build actually depends
+  on — nobody should start building logging screens before those land.
