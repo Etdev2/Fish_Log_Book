@@ -50,20 +50,25 @@ Do not silently promote a proposal into a decision.
 
 ---
 
-## 3. The single blocking question
+## 3. The blocking question — RESOLVED 2026-08-28
 
-**Nobody has defined what "uphill" and "downhill" mean.**
+Recorded here because it is the single most load-bearing definition in the data model.
 
-The founder uses these to describe current direction, with "inshore" and "offshore" as the
-other two vectors — four directions total (spec D10). But *relative to what* is unresolved.
-There are at least three defensible readings.
+**Uphill = the current running UP-COAST (northwest — Long Beach, Malibu, Santa Barbara).
+Downhill = down-coast (southeast — Dana Point, San Diego).** That is the along-shore axis.
+**Inshore / offshore** is the perpendicular, cross-shore axis. Four directions, two axes.
 
-This blocks the ontology from being finalised, and it cannot be deferred: **every catch
-logged under the wrong reading is mislabelled and unrecoverable**, because you cannot
-reconstruct what the angler meant. Everything else in the ontology can be migrated later.
-This cannot.
+It is anchored to the **coastline, not the tide** — a flooding tide can run either way
+along the coast, which is exactly why current direction and tide state are worth recording
+as independent variables.
 
-**Do not guess. Ask the founder.**
+**The storage rule matters as much as the definition:** the angler sees and taps their own
+words; the app stores the **real compass bearing for that spot** underneath, derived from
+that spot's coastline orientation. A label with no physical anchor cannot be pooled across
+users, cannot survive a spot whose coastline runs a different way (a bay, a jetty, the East
+Coast), and cannot be re-labelled later without invalidating every catch already logged.
+
+Full reasoning in `SPEC.md` D20.
 
 ---
 

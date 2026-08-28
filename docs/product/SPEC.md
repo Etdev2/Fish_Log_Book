@@ -78,9 +78,31 @@ No sensor required. Garmin integration is `[LATER]`, not a V1 concern.
 The user should never type something the phone or an API already knows. Time, GPS,
 tide, moon, and pressure are captured silently at the moment of logging.
 
-**D10 — Current direction vocabulary.** SETTLED
+**D10 — Current direction vocabulary.** SETTLED, and fully defined by D20.
 "Uphill" and "downhill" describe the direction the current is running. "Inshore" and
 "offshore" are the other two vectors. Four directions total. This is a canonical field.
+
+**D20 — What uphill and downhill actually mean. SETTLED 2026-08-28. Was the project's
+one hard blocker.**
+Two perpendicular axes, four directions:
+- **Along-shore axis:** **uphill = the current running UP-COAST**, i.e. toward the
+  northwest (Long Beach, Malibu, Santa Barbara). **Downhill = down-coast**, toward the
+  southeast (Dana Point, San Diego).
+- **Cross-shore axis:** **inshore** = toward the beach, **offshore** = away from it.
+
+Anchored to the **coastline, not the tide.** A flooding tide can run either way along the
+coast, so current direction and tide state are independent variables — which is precisely
+what makes recording both worthwhile.
+
+**Storage rule, and it is not optional:** the angler always sees and taps their own words
+(uphill / downhill / inshore / offshore). Underneath, the app stores the **actual compass
+bearing for that spot**, derived from the spot's own coastline orientation. The words are
+a display layer over a physical direction.
+*Why:* a global compass mapping breaks the moment a spot's coastline runs a different way
+— a bay, a jetty, a harbour mouth, the East Coast — and a label with no physical anchor
+cannot be pooled across users or corrected later. Storing the bearing means the vocabulary
+can change, spread to new coastlines, or be re-labelled entirely without invalidating a
+single catch already logged.
 
 **D11 — Canonical core ontology + non-poolable custom fields.** SETTLED *(was P2)*
 A shared, well-designed canonical vocabulary (species, tide state, current direction,
@@ -225,7 +247,7 @@ Never prefill it.
 P3 says alerts unlock "once there is enough data." Enough is a number, and it must be
 computed, not picked round. Owner: `biostat`.
 
-**O5 — The canonical ontology itself.** IN PROGRESS — `architect` drafting.
+**O5 — The canonical ontology itself.** Drafted; being finalised now that D20 unblocks it.
 Two ontologies now, per D13: saltwater and bass. Needs a domain-modeling session with
 the founder to validate against real angler vocabulary.
 
