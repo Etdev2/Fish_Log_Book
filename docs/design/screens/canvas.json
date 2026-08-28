@@ -1,0 +1,19 @@
+{
+  "artboards": [
+    { "file": "Main.dc.html",       "x": 0,    "y": 0,   "w": 390, "h": 844, "title": "Home — saltwater, day one" },
+    { "file": "HomeLake.dc.html",   "x": 490,  "y": 0,   "w": 390, "h": 844, "title": "Home — lake / bass mode" },
+    { "file": "ActiveTrip.dc.html", "x": 980,  "y": 0,   "w": 390, "h": 844, "title": "Active trip" },
+    { "file": "EndTrip.dc.html",    "x": 1470, "y": 0,   "w": 390, "h": 844, "title": "End trip — zero catches" },
+    { "file": "LockScreen.dc.html", "x": 0,    "y": 1010, "w": 390, "h": 844, "title": "Lock screen check-in" },
+    { "file": "BassSheet.dc.html",  "x": 490,  "y": 1010, "w": 390, "h": 844, "title": "Bass — post-catch sheet" },
+    { "file": "BiteScore.dc.html",  "x": 980,  "y": 1010, "w": 390, "h": 844, "title": "Bite score — below threshold" },
+    { "file": "Watch.dc.html",      "x": 1470, "y": 1010, "w": 198, "h": 242, "title": "Apple Watch" }
+  ],
+  "annotations": [
+    { "id": "note-four-verbs", "x": 0, "y": -150, "w": 880, "text": "The entire logging surface is four verbs: Start Fishing · Log a Catch · These conditions suck · End Trip.\nNo trip ever needs all four. Tapping Log a Catch or These conditions suck with no open trip silently opens one behind the angler." },
+    { "id": "note-endtrip", "x": 1470, "y": -150, "w": 390, "text": "The most important screen in the app.\nOne tap sets zero_catch_confirmed_at AND catch_log_confidence = complete — the deliberate act that makes a trip countable in a rate." },
+    { "id": "note-bass", "x": 490, "y": 1900, "w": 390, "text": "Salt defers details to the leisure queue — tide is reconstructable later. Bass can't: water colour and structure live only in the angler's memory, so they're offered once, immediately, skippable." },
+    { "id": "note-watch", "x": 1470, "y": 1310, "w": 390, "text": "Wet hands, one glance. Log a Catch dominates; Start and End Trip are the small pair, because they're the taps you make while the phone is still in your pocket." }
+  ],
+  "launch": { "view": "canvas" }
+}

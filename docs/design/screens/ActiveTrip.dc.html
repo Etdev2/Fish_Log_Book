@@ -1,0 +1,56 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+  <style>
+    body { margin: 0; font-family: 'Archivo', 'Helvetica Neue', sans-serif; }
+    a { color: #FF7A18; } a:hover { color: #FF9445; }
+  </style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; background: #0A1014; color: #EEF4F7; display: flex; flex-direction: column; padding: 64px 24px 40px 24px; gap: 16px;">
+
+  <div style="display: flex; align-items: baseline; justify-content: space-between; gap: 12px;">
+    <div style="font-size: 22px; font-weight: 700; letter-spacing: -0.01em;">Balboa Pier</div>
+    <div style="font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 19px; font-weight: 500; color: #FF7A18;">1:42:10</div>
+  </div>
+
+  <div style="display: flex; align-items: center; justify-content: space-between; padding: 14px 16px; background: #121A20; border-radius: 12px;">
+    <span style="font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 15px; color: #3FC7E0;">Tide: rising, 62%</span>
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#8CA0AC" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+  </div>
+
+  <div style="position: relative; flex-grow: 1; border-radius: 14px; background: #101A21; overflow: hidden;">
+    <svg width="100%" height="100%" viewBox="0 0 342 320" preserveAspectRatio="xMidYMid slice" fill="none">
+      <rect width="342" height="320" fill="#0D161C"/>
+      <path d="M-20 190 C60 176 120 200 190 188 C250 178 300 196 362 186 L362 340 L-20 340 Z" fill="#131F27"/>
+      <path d="M-20 190 C60 176 120 200 190 188 C250 178 300 196 362 186" stroke="#25333D" stroke-width="2"/>
+      <path d="M-20 232 C70 220 140 244 210 232 C270 222 320 238 362 230" stroke="#1B2830" stroke-width="1.5"/>
+      <rect x="140" y="120" width="9" height="150" rx="2" fill="#1E2A33"/>
+      <rect x="96" y="116" width="100" height="8" rx="3" fill="#22303A"/>
+      <circle cx="120" cy="150" r="13" fill="#FF7A18" fill-opacity="0.18"/>
+      <circle cx="120" cy="150" r="6" fill="#FF7A18"/>
+      <circle cx="208" cy="212" r="13" fill="#FF7A18" fill-opacity="0.18"/>
+      <circle cx="208" cy="212" r="6" fill="#FF7A18"/>
+    </svg>
+    <div style="position: absolute; left: 14px; bottom: 14px; display: flex; align-items: center; gap: 8px; padding: 7px 12px; background: rgba(10,16,20,0.82); border-radius: 999px;">
+      <span style="width: 7px; height: 7px; border-radius: 999px; background: #FF7A18;"></span>
+      <span style="font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 12px; color: #EEF4F7;">2 this trip</span>
+    </div>
+  </div>
+
+  <div style="display: flex; align-items: center; justify-content: center; height: 54px; border-radius: 12px; border: 1.5px solid #33454F; color: #C3D2DA; font-size: 16px; font-weight: 600;">These conditions suck</div>
+
+  <div style="display: flex; align-items: center; justify-content: center; height: 88px; border-radius: 16px; background: #FF7A18; color: #140800; font-size: 25px; font-weight: 800; letter-spacing: 0.02em;">LOG A CATCH</div>
+
+  <div style="display: flex; align-items: center; justify-content: center; height: 44px; color: #8CA0AC; font-size: 15px; font-weight: 500;">End Trip</div>
+
+</div>
+</x-dc>
+</body>
+</html>

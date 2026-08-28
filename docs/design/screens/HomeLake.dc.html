@@ -1,0 +1,57 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+  <style>
+    body { margin: 0; font-family: 'Archivo', 'Helvetica Neue', sans-serif; }
+    a { color: #FF7A18; } a:hover { color: #FF9445; }
+  </style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; background: #0A1014; color: #EEF4F7; display: flex; flex-direction: column; padding: 64px 24px 40px 24px; gap: 28px;">
+
+  <div style="display: flex; flex-direction: column; gap: 6px;">
+    <div style="display: flex; align-items: center; gap: 8px;">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8CA0AC" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
+      <span style="font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 11px; letter-spacing: 0.14em; color: #8CA0AC; text-transform: uppercase;">Fresh water</span>
+    </div>
+    <div style="font-size: 27px; font-weight: 700; letter-spacing: -0.02em; line-height: 1.15;">Big Bear Lake</div>
+  </div>
+
+  <div style="display: flex; align-items: flex-start; gap: 12px; padding: 18px; border: 1px dashed #26333C; border-radius: 12px;">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#8CA0AC" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0; margin-top: 1px;"><circle cx="12" cy="12" r="9"/><path d="M12 8v5"/><path d="M12 16h.01"/></svg>
+    <div style="display: flex; flex-direction: column; gap: 5px;">
+      <span style="font-size: 15px; font-weight: 600; color: #EEF4F7;">No tide here &#8212; it&#39;s a lake.</span>
+      <span style="font-size: 13px; line-height: 1.45; color: #8CA0AC;">Nothing is being measured, so nothing is drawn.</span>
+    </div>
+  </div>
+
+  <div style="height: 1px; background: #1B252C;"></div>
+
+  <div style="display: flex; flex-direction: column; gap: 18px;">
+    <div style="display: flex; align-items: center; gap: 14px;">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#8CA0AC" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 12 15.5 8.5"/><path d="M12 12h.01"/></svg>
+      <span style="font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 15px; color: #EEF4F7;">Pressure: 1013 hPa, rising</span>
+    </div>
+    <div style="display: flex; align-items: center; gap: 14px;">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#E8D9A8" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 3a9 9 0 0 0 0 18 6.5 6.5 0 0 1 0-18Z" fill="#E8D9A8" stroke="none"/></svg>
+      <span style="font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 15px; color: #EEF4F7;">Moon: waning gibbous, 62%</span>
+    </div>
+  </div>
+
+  <div style="flex-grow: 1;"></div>
+
+  <div style="display: flex; flex-direction: column; gap: 18px;">
+    <div style="display: flex; align-items: center; justify-content: center; height: 68px; border-radius: 14px; background: #FF7A18; color: #140800; font-size: 20px; font-weight: 800; letter-spacing: 0.01em;">Start Fishing</div>
+    <div style="font-size: 14px; line-height: 1.5; color: #8CA0AC; text-wrap: pretty;">Your log is empty. Every trip &#8212; even a slow one &#8212; teaches the app what your water does.</div>
+  </div>
+
+</div>
+</x-dc>
+</body>
+</html>

@@ -49,3 +49,6 @@ next-env.d.ts
 *.mp4
 *.mov
 .claude/worktrees/
+
+# design canvas build output (2MB seeded payload; sources live in docs/design/screens)
+.design/
