@@ -9,7 +9,8 @@ export type TidePoint = readonly [minutes: number, millimeters: number, mark: ""
 
 export const TIDE_STATION = "9410580";
 export const TIDE_STATION_NAME = "Newport Bay Entrance";
-export const TIDE_BASE_UTC = Date.UTC(2026, 7, 31, 17, 0, 0);
+/** Aug 31, 2026 5:00pm at the station (PDT), stored as its real UTC instant. */
+export const TIDE_BASE_UTC = Date.UTC(2026, 8, 1, 0, 0, 0);
 /** The fixture instant used to anchor the summary and marker: 2026-09-01 09:40 PDT. */
 export const TIDE_SELECTED_MINUTES = 1000;
 

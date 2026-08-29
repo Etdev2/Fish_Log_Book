@@ -20,6 +20,8 @@ const PLOT_BOTTOM = 48;
 const PLOT_HEIGHT = CHART_HEIGHT - PLOT_TOP - PLOT_BOTTOM;
 const TOTAL_MINUTES = TIDE_POINTS.at(-1)?.[0] ?? 0;
 const CHART_WIDTH = Math.round(TOTAL_MINUTES / MINUTES_PER_PIXEL) + LEFT_PADDING + RIGHT_PADDING;
+const STATION_TIME_ZONE = "America/Los_Angeles";
+const STATION_TIME_ZONE_LABEL = "PDT";
 
 function dateAt(minutes: number) {
   return new Date(TIDE_BASE_UTC + minutes * 60_000);
@@ -57,22 +59,29 @@ function meters(millimeters: number) {
 }
 
 function clock(minutes: number) {
-  return new Intl.DateTimeFormat("en-US", { hour: "numeric", minute: "2-digit", hour12: true, timeZone: "UTC" })
+  return new Intl.DateTimeFormat("en-US", { hour: "numeric", minute: "2-digit", hour12: true, timeZone: STATION_TIME_ZONE })
     .format(dateAt(minutes))
     .replace(" ", "")
     .toLowerCase();
 }
 
 function dayLabel(minutes: number) {
-  return new Intl.DateTimeFormat("en-US", { weekday: "long", day: "numeric", month: "long", timeZone: "UTC" }).format(dateAt(minutes));
+  return new Intl.DateTimeFormat("en-US", { weekday: "long", day: "numeric", month: "long", timeZone: STATION_TIME_ZONE }).format(dateAt(minutes));
 }
 
 function shortDay(minutes: number) {
-  return new Intl.DateTimeFormat("en-US", { weekday: "short", day: "numeric", timeZone: "UTC" }).format(dateAt(minutes));
+  return new Intl.DateTimeFormat("en-US", { weekday: "short", day: "numeric", timeZone: STATION_TIME_ZONE }).format(dateAt(minutes));
 }
 
 function monthDay(minutes: number) {
-  return new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", timeZone: "UTC" }).format(dateAt(minutes));
+  return new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", timeZone: STATION_TIME_ZONE }).format(dateAt(minutes));
+}
+
+function stationHour(minutes: number) {
+  const hour = new Intl.DateTimeFormat("en-US", { hour: "2-digit", hourCycle: "h23", timeZone: STATION_TIME_ZONE })
+    .formatToParts(dateAt(minutes))
+    .find((part) => part.type === "hour")?.value;
+  return Number(hour ?? "0");
 }
 
 function dayIndex(minutes: number) {
@@ -164,7 +173,7 @@ export function TideChart() {
       <header className="flex flex-col gap-1 pb-4 pt-3">
         <p className="font-mono text-sm font-medium uppercase tracking-[.14em] text-text-muted">Station {TIDE_STATION} · {TIDE_STATION_NAME}</p>
         <h1 className="text-h1">Tide</h1>
-        <p className="text-caption text-text-muted">Predicted height above MLLW · selected fixture instant: {dayLabel(TIDE_SELECTED_MINUTES)}, {clock(TIDE_SELECTED_MINUTES)}</p>
+        <p className="text-caption text-text-muted">Predicted height above MLLW · station-local time ({STATION_TIME_ZONE_LABEL}) · selected fixture instant: {dayLabel(TIDE_SELECTED_MINUTES)}, {clock(TIDE_SELECTED_MINUTES)}</p>
         <span className="mt-2 inline-flex w-fit items-center gap-2 rounded-full border border-hairline bg-surface-raised px-3 py-1.5 font-mono text-[13px] tracking-wide text-text-muted before:size-2 before:rounded-full before:bg-text-muted">Cached fixture — not a live reading</span>
       </header>
 
@@ -172,7 +181,7 @@ export function TideChart() {
         <StatusCell label="Selected"><span>{meters(heightAt(TIDE_SELECTED_MINUTES))}</span></StatusCell>
         <StatusCell label="State" cyan>
           <span aria-hidden="true">{slack ? "—" : rising ? "▲" : "▼"} </span>{slack ? "Slack" : rising ? "Flooding" : "Ebbing"}
-          {slack ? <><small>At the turn</small><small>Movement: 0.00 m/h · Rule: turning</small></> : <><small>{selectedLeg?.percentage ?? 0}% through {rising ? "flood" : "ebb"}</small><small>Movement: {rising ? "+" : ""}{(rate / 1000).toFixed(2)} m/h · Rule: ~{selectedLeg?.twelfths ?? 0}/12 range / tide hour</small></>}
+          {slack ? <><small>At the turn</small><small>Movement: 0.00 m/h</small><small>Rule: turning</small></> : <><small>{selectedLeg?.percentage ?? 0}% through {rising ? "flood" : "ebb"}</small><small>Movement: {rising ? "+" : ""}{(rate / 1000).toFixed(2)} m/h</small><small aria-label={`Rule of twelfths: approximately ${selectedLeg?.twelfths ?? 0} twelfths of the tidal range this tide hour`}>Rule: ~{selectedLeg?.twelfths ?? 0}/12</small></>}
         </StatusCell>
         <StatusCell label="Next high">{nextHigh ? <><span>{clock(nextHigh[0])}</span><small>in {Math.floor((nextHigh[0] - TIDE_SELECTED_MINUTES) / 60)}h {(nextHigh[0] - TIDE_SELECTED_MINUTES) % 60}m</small></> : "—"}</StatusCell>
         <StatusCell label={`${monthDay(TIDE_SELECTED_MINUTES)} range`}>{meters(Math.max(...todayPoints) - Math.min(...todayPoints))}</StatusCell>
@@ -202,7 +211,7 @@ export function TideChart() {
             aria-valuemin={0}
             aria-valuemax={TOTAL_MINUTES}
             aria-valuenow={Math.round(cursor)}
-            aria-valuetext={`${meters(cursorHeight)} at ${clock(cursor)}, ${dayLabel(cursor)}`}
+            aria-valuetext={`${meters(cursorHeight)} at ${clock(cursor)} ${STATION_TIME_ZONE_LABEL}, ${dayLabel(cursor)}`}
             onScroll={updateCenter}
             onFocus={() => setReading(true)}
             onBlur={() => setReading(false)}
@@ -224,7 +233,7 @@ export function TideChart() {
               <defs><linearGradient id="tide-area" x1="0" y1="0" x2="0" y2="1"><stop stopColor="var(--color-tide-cyan)" stopOpacity=".3"/><stop offset="1" stopColor="var(--color-tide-cyan)" stopOpacity="0"/></linearGradient></defs>
               {gridValues().map((value) => <line key={value} x1="0" x2={CHART_WIDTH} y1={yFor(value)} y2={yFor(value)} stroke="var(--color-hairline)" />)}
               {midnights().map((minute) => <g key={minute}><line x1={xFor(minute)} x2={xFor(minute)} y1={PLOT_TOP - 14} y2={PLOT_TOP + PLOT_HEIGHT + 30} stroke="var(--color-border-interactive)" strokeDasharray="2 5"/><text x={xFor(minute) + 8} y={PLOT_TOP - 6} className="fill-text-muted font-mono text-[11px] font-semibold tracking-widest">{shortDay(minute).toUpperCase()}</text></g>)}
-              {timeLabels().map((minute) => <text key={minute} x={xFor(minute)} y={PLOT_TOP + PLOT_HEIGHT + 24} textAnchor="middle" className="fill-text-muted font-mono text-[12px]">{String(dateAt(minute).getUTCHours()).padStart(2, "0")}:00</text>)}
+              {timeLabels().map((minute) => <text key={minute} x={xFor(minute)} y={PLOT_TOP + PLOT_HEIGHT + 24} textAnchor="middle" className="fill-text-muted font-mono text-[12px]">{String(stationHour(minute)).padStart(2, "0")}:00</text>)}
               <path d={`${path}L${xFor(TOTAL_MINUTES)},${PLOT_TOP + PLOT_HEIGHT}L${xFor(0)},${PLOT_TOP + PLOT_HEIGHT}Z`} fill="url(#tide-area)"/>
               <path d={path} fill="none" stroke="var(--color-tide-cyan)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
               {TIDE_POINTS.filter(([, , mark]) => mark).map(([minute, millimeters, mark]) => <g key={minute}><circle cx={xFor(minute)} cy={yFor(millimeters)} r="5" fill="var(--color-tide-cyan)" stroke="var(--color-surface)" strokeWidth="2"/><text x={xFor(minute)} y={yFor(millimeters) + (mark === "H" ? -14 : 22)} textAnchor="middle" className="fill-text-primary font-mono text-[12px] font-semibold">{meters(millimeters)} <tspan className="fill-text-muted font-normal">{clock(minute)}</tspan></text></g>)}
@@ -238,8 +247,8 @@ export function TideChart() {
       </div>
 
       <button className="mt-4 min-h-[68px] w-full rounded-lg border border-border-interactive bg-surface-raised px-5 text-lg font-semibold hover:border-tide-cyan" type="button" aria-expanded={tableOpen} aria-controls="tide-table" onClick={() => setTableOpen((open) => !open)}>{tableOpen ? "Hide the numbers" : "Show the numbers instead"}</button>
-      {tableOpen && <div id="tide-table" className="mt-3 overflow-x-auto rounded-lg border border-hairline"><table className="w-full border-collapse font-mono text-[15px]"><caption className="p-3 text-left text-sm text-text-muted">Predicted height above MLLW, hourly, with the exact highs and lows.</caption><thead><tr className="border-t border-hairline text-left text-[13px] uppercase tracking-wider text-text-muted"><th className="px-3.5 py-2 font-medium">Time</th><th className="px-3.5 py-2 font-medium">Height</th><th className="px-3.5 py-2 font-medium">Mark</th></tr></thead><tbody>{tableRows()}</tbody></table></div>}
-      <p className="mt-6 border-t border-hairline pt-4 text-[15px] text-text-muted">78 renderable points across a 71-hour window, with every exact turning point kept. Embedded NOAA CO-OPS prediction fixture from the approved prototype; retrieval timestamp was not recorded. Window: Aug 31, 2026 5:00pm–Sep 3, 2026 4:00pm PDT. Station <code className="font-mono text-[13px] text-text-primary">{TIDE_STATION}</code>, datum <code className="font-mono text-[13px] text-text-primary">MLLW</code>, metric.</p>
+      {tableOpen && <div id="tide-table" className="mt-3 overflow-x-auto rounded-lg border border-hairline"><table className="w-full border-collapse font-mono text-[15px]"><caption className="p-3 text-left text-sm text-text-muted">Predicted height above MLLW, hourly, with the exact highs and lows. Station-local time ({STATION_TIME_ZONE_LABEL}).</caption><thead><tr className="border-t border-hairline text-left text-[13px] uppercase tracking-wider text-text-muted"><th className="px-3.5 py-2 font-medium">Time</th><th className="px-3.5 py-2 font-medium">Height</th><th className="px-3.5 py-2 font-medium">Mark</th></tr></thead><tbody>{tableRows()}</tbody></table></div>}
+      <p className="mt-6 border-t border-hairline pt-4 text-[15px] text-text-muted">78 renderable points across a 71-hour window, with every exact turning point kept. Embedded NOAA CO-OPS prediction fixture from the approved prototype; retrieval timestamp was not recorded. Window: Aug 31, 2026 5:00pm–Sep 3, 2026 4:00pm {STATION_TIME_ZONE_LABEL}. Station <code className="font-mono text-[13px] text-text-primary">{TIDE_STATION}</code>, datum <code className="font-mono text-[13px] text-text-primary">MLLW</code>, metric.</p>
     </section>
   );
 }
@@ -250,7 +259,7 @@ function StatusCell({ label, cyan = false, children }: { label: string; cyan?: b
 
 function gridValues() { const values: number[] = []; for (let value = Math.ceil(yMinimum / 500) * 500; value <= yMaximum; value += 500) values.push(value); return values; }
 function midnights() { const minutes: number[] = []; for (let minute = 420; minute < TOTAL_MINUTES; minute += 1440) minutes.push(minute); return minutes; }
-function timeLabels() { const minutes: number[] = []; for (let minute = 0; minute <= TOTAL_MINUTES; minute += 180) if (dateAt(minute).getUTCHours() !== 0) minutes.push(minute); return minutes; }
+function timeLabels() { const minutes: number[] = []; for (let minute = 0; minute <= TOTAL_MINUTES; minute += 180) if (stationHour(minute) !== 0) minutes.push(minute); return minutes; }
 function tableRows() {
   let previousDay = -1;
   return TIDE_POINTS.filter(([minute, , mark]) => minute % 60 === 0 || Boolean(mark)).flatMap(([minute, millimeters, mark]) => {
