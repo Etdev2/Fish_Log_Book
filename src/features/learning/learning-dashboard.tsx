@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   type FormEvent,
   type KeyboardEvent as ReactKeyboardEvent,
@@ -157,10 +158,10 @@ const BUILDER_ITEMS: BuilderItem[] = [
 const GUIDE_STEPS: GuideStep[] = [
   {
     itemId: "entry",
-    eyebrow: "Tour representation · real route available at /",
+    eyebrow: "Working now · real route /",
     title: "Open the app",
     copy: "Fish Log Book is meant to make fishing memory useful: record activity quickly, then connect honest trip history with conditions over time.",
-    note: "This is a simplified representation, not a live status result. Open the real / route to see its current connection check. Catch, conditions, and history screens are not built yet.",
+    note: "This guide is running over the real app entry. The highlighted card behind it contains the current server-rendered connection result. Catch, conditions, and history screens are not built yet.",
   },
   {
     itemId: "catch",
@@ -579,12 +580,14 @@ function GuideDialog({
   onClose,
   onSkip,
   onComplete,
+  realEntryBehind = false,
 }: {
   stepIndex: number;
   onStepChange: (step: number) => void;
   onClose: () => void;
   onSkip: () => void;
   onComplete: () => void;
+  realEntryBehind?: boolean;
 }) {
   const step = GUIDE_STEPS[stepIndex];
   const isLast = stepIndex === GUIDE_STEPS.length - 1;
@@ -626,7 +629,18 @@ function GuideDialog({
       <div className={styles.guideBody}>
         <div className={styles.guideVisual}>
           <span className={styles.targetHint}>Highlighted target</span>
-          <ItemVisual itemId={step.itemId} highlight />
+          {stepIndex === 0 && realEntryBehind ? (
+            <div className={styles.realScreenGuideHint}>
+              <span className={`${styles.status} ${styles.statusWorking}`}>Working now</span>
+              <strong>The real app entry is behind this guide</strong>
+              <p>
+                Its highlighted connection card is using the live server-rendered
+                result—not fictional tutorial data.
+              </p>
+            </div>
+          ) : (
+            <ItemVisual itemId={step.itemId} highlight />
+          )}
         </div>
         <div className={styles.guideCopy}>
           <p className={styles.cardEyebrow}>{step.eyebrow}</p>
@@ -636,7 +650,7 @@ function GuideDialog({
             <strong>What is true here</strong>
             <span>{step.note}</span>
           </div>
-          {stepIndex === 0 ? (
+          {stepIndex === 0 && !realEntryBehind ? (
             <Link className={styles.guideRouteLink} href="/">
               Open the real app route <span aria-hidden="true">↗</span>
             </Link>
@@ -668,6 +682,34 @@ function GuideDialog({
         </div>
       </div>
     </AccessibleDialog>
+  );
+}
+
+export function LearningGuideOverlay() {
+  const [stepIndex, setStepIndex] = useState(0);
+  const [open, setOpen] = useState(true);
+
+  const closeGuide = useCallback(() => {
+    setOpen(false);
+    window.history.replaceState(null, "", "/");
+    window.requestAnimationFrame(() => {
+      document.getElementById("app-entry-title")?.focus();
+    });
+  }, []);
+
+  if (!open) {
+    return null;
+  }
+
+  return (
+    <GuideDialog
+      stepIndex={stepIndex}
+      onStepChange={setStepIndex}
+      onClose={closeGuide}
+      onSkip={closeGuide}
+      onComplete={closeGuide}
+      realEntryBehind
+    />
   );
 }
 
@@ -1019,8 +1061,8 @@ function loadFeedback(): { feedback: FeedbackStore; error: string } {
 }
 
 export function LearningDashboard() {
-  const [mode, setMode] = useState<"dashboard" | "guide" | "builder">("dashboard");
-  const [guideStep, setGuideStep] = useState(0);
+  const router = useRouter();
+  const [mode, setMode] = useState<"dashboard" | "builder">("dashboard");
   const [previewItem, setPreviewItem] = useState<BuilderItem | null>(null);
   const [feedback, setFeedback] = useState<FeedbackStore>({});
   const [announcement, setAnnouncement] = useState("");
@@ -1035,24 +1077,6 @@ export function LearningDashboard() {
     });
     return () => window.cancelAnimationFrame(frame);
   }, []);
-
-  const returnToDashboard = useCallback((message: string) => {
-    setMode("dashboard");
-    setAnnouncement(message);
-    window.requestAnimationFrame(() => guideOpenerRef.current?.focus());
-  }, []);
-
-  const closeGuide = useCallback(() => {
-    returnToDashboard("Guide closed. You can replay it at any time.");
-  }, [returnToDashboard]);
-
-  const skipGuide = useCallback(() => {
-    returnToDashboard("Guide skipped. No product data was changed.");
-  }, [returnToDashboard]);
-
-  const completeGuide = useCallback(() => {
-    returnToDashboard("Four-step guide complete. You can replay it at any time.");
-  }, [returnToDashboard]);
 
   const closePreview = useCallback(() => setPreviewItem(null), []);
 
@@ -1075,53 +1099,56 @@ export function LearningDashboard() {
   }
 
   function startGuide() {
-    setGuideStep(0);
-    setMode("guide");
+    router.push("/?guide=1");
   }
 
   return (
     <main className={styles.page}>
       <div className={styles.shell}>
-        {mode === "dashboard" ? (
+        <div hidden={mode !== "dashboard"}>
           <ModeChooser
             onStartGuide={startGuide}
             onOpenBuilder={() => setMode("builder")}
             announcement={announcement}
+            guideButtonRef={guideOpenerRef}
           />
-        ) : null}
+        </div>
 
-        {mode === "builder" ? (
+        <div hidden={mode !== "builder"}>
           <BuilderView
             onBack={() => setMode("dashboard")}
             feedback={feedback}
             onSaveFeedback={(itemId, value) => {
-              persistFeedback({ ...feedback, [itemId]: value });
-              setAnnouncement(`Feedback saved for ${itemId} on this device only.`);
+              const result = persistFeedback({ ...feedback, [itemId]: value });
+              if (result.ok) {
+                setAnnouncement(`Feedback saved for ${itemId} on this device only.`);
+              } else {
+                setStorageError(result.error);
+              }
             }}
             onResetFeedback={(itemId) => {
               const next = { ...feedback };
               delete next[itemId];
-              persistFeedback(next);
-              setAnnouncement(`Device feedback reset for ${itemId}.`);
+              const result = persistFeedback(next);
+              if (result.ok) {
+                setAnnouncement(`Device feedback reset for ${itemId}.`);
+              } else {
+                setStorageError(result.error);
+              }
             }}
             onResetAll={() => {
-              persistFeedback({});
-              setAnnouncement("All Learning Dashboard feedback was reset on this device.");
+              const result = persistFeedback({});
+              if (result.ok) {
+                setAnnouncement("All Learning Dashboard feedback was reset on this device.");
+              } else {
+                setStorageError(result.error);
+              }
             }}
             onOpenPreview={setPreviewItem}
+            storageError={storageError}
           />
-        ) : null}
+        </div>
       </div>
-
-      {mode === "guide" ? (
-        <GuideDialog
-          stepIndex={guideStep}
-          onStepChange={setGuideStep}
-          onClose={closeGuide}
-          onSkip={skipGuide}
-          onComplete={completeGuide}
-        />
-      ) : null}
 
       {previewItem ? <PreviewDialog item={previewItem} onClose={closePreview} /> : null}
     </main>

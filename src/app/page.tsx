@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { LearningGuideOverlay } from "@/features/learning/learning-dashboard";
 
 export const dynamic = "force-dynamic";
 
@@ -29,19 +30,33 @@ async function checkSupabase(): Promise<Status> {
   return { ok: true, detail: `${new URL(url).hostname} — ${count ?? 0} catches logged` };
 }
 
-export default async function Home() {
+export default async function Home({ searchParams }: PageProps<"/">) {
+  const { guide } = await searchParams;
   const status = await checkSupabase();
+  const guideActive = guide === "1";
 
   return (
     <main className="flex min-h-[calc(100dvh-68px)] flex-col items-center justify-center gap-8 bg-[#0A1014] p-8 text-[#EEF4F7]">
       <div className="text-center">
-        <h1 className="text-4xl font-semibold tracking-tight">Fish Log Book</h1>
+        <h1
+          id="app-entry-title"
+          className="text-4xl font-semibold tracking-tight outline-none"
+          tabIndex={-1}
+        >
+          Fish Log Book
+        </h1>
         <p className="mt-2 text-sm text-[#8CA0AC]">
           Working app entry · Next.js + Supabase
         </p>
       </div>
 
-      <div className="w-full max-w-md rounded-xl border border-[#26333C] bg-[#121A20] p-5">
+      <div
+        className={`w-full max-w-md rounded-xl border bg-[#121A20] p-5 ${
+          guideActive
+            ? "border-[#FF7A18] ring-4 ring-[#FF7A18]/30"
+            : "border-[#26333C]"
+        }`}
+      >
         <div className="flex items-center gap-3">
           <span
             className={`h-3 w-3 rounded-full ${status.ok ? "bg-green-500" : "bg-red-500"}`}
@@ -55,6 +70,7 @@ export default async function Home() {
           {status.detail}
         </p>
       </div>
+      {guideActive ? <LearningGuideOverlay /> : null}
     </main>
   );
 }

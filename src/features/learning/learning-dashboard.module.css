@@ -230,6 +230,7 @@
 .primaryButton:focus-visible,
 .secondaryButton:focus-visible,
 .textButton:focus-visible,
+.guideRouteLink:focus-visible,
 .backLink:focus-visible,
 .resetAll:focus-visible,
 .catchButton:focus-visible,
@@ -373,6 +374,29 @@
   background: #090f13;
 }
 
+.realScreenGuideHint {
+  display: flex;
+  width: min(100%, 330px);
+  padding: 28px;
+  border: 1px solid #455762;
+  border-radius: 18px;
+  background: #121a20;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 14px;
+}
+
+.realScreenGuideHint strong {
+  font-size: clamp(24px, 4vw, 34px);
+  line-height: 1.1;
+}
+
+.realScreenGuideHint p {
+  margin: 0;
+  color: #9eb0ba;
+  line-height: 1.55;
+}
+
 .targetHint {
   position: absolute;
   z-index: 3;
@@ -430,6 +454,27 @@
   color: #9eb0ba;
   font-size: 13px;
   line-height: 1.55;
+}
+
+.guideRouteLink {
+  display: inline-flex;
+  min-height: 48px;
+  width: fit-content;
+  margin-top: 18px;
+  padding: 0 14px;
+  border: 1px solid #455762;
+  border-radius: 12px;
+  align-items: center;
+  gap: 10px;
+  color: #eef4f7;
+  font-size: 13px;
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.guideRouteLink:hover {
+  border-color: #ff7a18;
+  background: #1b2830;
 }
 
 .guideActions > div {
@@ -550,9 +595,9 @@
 .connectionDot {
   width: 12px;
   height: 12px;
+  border: 2px solid #8ca0ac;
   border-radius: 50%;
-  background: #48ce8a;
-  box-shadow: 0 0 0 5px rgb(72 206 138 / 11%);
+  background: transparent;
 }
 
 .connectionCard div {
@@ -914,6 +959,21 @@
   grid-template-columns: minmax(300px, 0.78fr) minmax(0, 1.35fr);
   align-items: start;
   gap: 18px;
+}
+
+.storageError {
+  margin: -20px 0 24px;
+  padding: 14px 16px;
+  border: 1px solid #b96f49;
+  border-radius: 12px;
+  background: rgb(185 78 40 / 14%);
+  color: #ffc5a2;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.storageError:empty {
+  display: none;
 }
 
 .mapColumn,
