@@ -60,15 +60,22 @@
   --spacing-space-10: 40px;
   --spacing-space-12: 48px;
   --spacing-space-16: 64px;
+  --spacing-axis-gutter: 46px;
   --spacing-touch-floor: 48px;
   --spacing-touch-primary-standard: 68px;
   --spacing-touch-primary-quick-mark: 88px;
+  --spacing-touch-nav-day: 52px;
 
   --radius-sm: 8px;
   --radius-md: 12px;
   --radius-lg: 16px;
   --radius-xl: 20px;
   --radius-full: 999px;
+
+  --tracking-station: .14em;
+  --tracking-chart-pill: .08em;
+
+  --container-reading: 820px;
 
   --opacity-disabled: 0.45;
 }

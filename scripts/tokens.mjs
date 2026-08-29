@@ -137,6 +137,29 @@ function resolveBorder(border) {
 }
 
 /**
+ * tracking: { station: ".14em" } -> Tailwind's letter-spacing namespace is `--tracking-*`,
+ * so `--tracking-station: .14em;` -> utility `tracking-station`. These sit beside
+ * Tailwind's built-in `tracking-wide`/`tracking-widest` rather than replacing them.
+ */
+function buildTrackingLines(tracking) {
+  return Object.entries(tracking).map(
+    ([name, value]) => `  --tracking-${name}: ${value};`,
+  );
+}
+
+/**
+ * container: { reading: "820px" } -> Tailwind's max-width namespace is `--container-*`,
+ * so `--container-reading: 820px;` -> utility `max-w-reading`. This is the measure a
+ * column of content is allowed to reach, which is a different concern from the
+ * `spacing` step scale even though both are lengths.
+ */
+function buildContainerLines(container) {
+  return Object.entries(container).map(
+    ([name, value]) => `  --container-${name}: ${value};`,
+  );
+}
+
+/**
  * opacity: { "disabled": "0.45" } -> plain scalar tokens under Tailwind's `--opacity-*`
  * namespace, e.g. `--opacity-disabled: 0.45;`. Used for the global disabled treatment
  * (docs/design/06-accessibility-baseline.md); see src/core/design/tokens.test.ts.
@@ -146,8 +169,8 @@ function buildOpacityLines(opacity) {
 }
 
 function generate(tokens) {
-  const { color, fontSize, fontFamily, spacing, radius, touchTarget, elevation, opacity } =
-    tokens;
+  const { color, fontSize, fontFamily, spacing, radius, touchTarget, elevation, opacity,
+    tracking, container } = tokens;
 
   const { light: colorLight, dark: colorDark } = buildColorLines(color);
 
@@ -162,6 +185,8 @@ function generate(tokens) {
     ...buildTouchTargetLines(touchTarget),
     "",
     ...buildRadiusLines(radius),
+    ...(tracking ? ["", ...buildTrackingLines(tracking)] : []),
+    ...(container ? ["", ...buildContainerLines(container)] : []),
     ...(opacity ? ["", ...buildOpacityLines(opacity)] : []),
   ];
 
