@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
@@ -33,27 +34,32 @@ export default async function Home() {
   const status = await checkSupabase();
 
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center gap-8 p-8">
+    <main className="flex min-h-screen flex-col items-center justify-center gap-8 bg-background p-8 font-ui text-text-primary">
       <div className="text-center">
-        <h1 className="text-4xl font-semibold tracking-tight">Fish Log Book</h1>
-        <p className="mt-2 text-sm text-black/60 dark:text-white/60">
-          Next.js + Supabase
+        <h1 className="text-h1 font-bold tracking-tight">Fish Log Book</h1>
+        <p className="mt-2 text-caption text-text-muted">
+          Read the tide, then build an honest fishing history.
         </p>
       </div>
 
-      <div className="w-full max-w-md rounded-lg border border-black/10 p-5 dark:border-white/15">
+      <Link
+        href="/tides"
+        className="inline-flex min-h-touch-floor items-center justify-center rounded-md border border-signal-orange bg-signal-orange px-6 py-3 text-label font-semibold text-ink-on-orange transition-colors hover:bg-signal-orange-pressed focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-3 focus-visible:outline-focus-ring"
+      >
+        Open tide chart
+      </Link>
+
+      <div className="w-full max-w-md rounded-md border border-hairline bg-surface p-5">
         <div className="flex items-center gap-3">
           <span
-            className={`h-3 w-3 rounded-full ${status.ok ? "bg-green-500" : "bg-red-500"}`}
+            className={`h-3 w-3 rounded-full ${status.ok ? "bg-success-green" : "bg-error-red"}`}
             aria-hidden
           />
-          <span className="font-medium">
+          <span className="text-label">
             Supabase: {status.ok ? "connected" : "not connected"}
           </span>
         </div>
-        <p className="mt-2 break-words text-sm text-black/60 dark:text-white/60">
-          {status.detail}
-        </p>
+        <p className="mt-2 break-words text-caption text-text-muted">{status.detail}</p>
       </div>
     </main>
   );
