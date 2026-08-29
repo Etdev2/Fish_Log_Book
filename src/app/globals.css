@@ -1,26 +1,45 @@
 @import "tailwindcss";
+@import "./tokens.generated.css";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+/*
+ * Base layer only. Component styling is Tailwind utilities in `className` (ADR 005 §1).
+ * No *.module.css is ever created. Anything a utility genuinely cannot express —
+ * keyframes, ::-webkit-scrollbar, a print sheet — is declared here or under src/styles/
+ * with @utility / @layer components, and then used from className like any other utility.
+ */
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
+@layer base {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    /* The V1 palette is marine-dark only; ux-ui has not specified light values yet. */
+    color-scheme: dark;
   }
-}
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  html {
+    /* 18px body floor (docs/design/01-foundations.md §2). Never tuned down. */
+    font-size: 100%;
+  }
+
+  body {
+    background-color: var(--color-background);
+    color: var(--color-text-primary);
+    font-family: var(--font-sans), system-ui, sans-serif;
+    font-size: var(--text-body);
+    line-height: var(--text-body--line-height);
+  }
+
+  /*
+   * Focus ring: tide-cyan, 3px, offset — on every focusable element without exception.
+   * docs/design/06-accessibility-baseline.md §2. Never suppressed, never conditional.
+   */
+  :focus-visible {
+    outline: 3px solid var(--color-focus-ring);
+    outline-offset: 2px;
+  }
+
+  /* Disabled is a treatment, not a colour: 45% opacity, still in the tab order. */
+  [aria-disabled="true"],
+  :disabled {
+    opacity: var(--opacity-disabled);
+    cursor: not-allowed;
+  }
 }
