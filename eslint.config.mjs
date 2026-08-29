@@ -19,6 +19,17 @@ import { ESLintUtils } from "@typescript-eslint/utils";
  * rule: it only fires when the object being read has the actual shape of `Sourced<T>`
  * (`value`, `certainty`, and `basis` all present), which a DOM input or an
  * `Intl.DateTimeFormatPart` does not have.
+ *
+ * Three access shapes are covered, each checked against the same structural test:
+ *   - `reading.rate.value`               (MemberExpression, dot access)
+ *   - `reading.rate["value"]`            (MemberExpression, literal computed access)
+ *   - `const { value } = reading.rate;`  (ObjectPattern destructuring, incl. nested and
+ *                                          function-parameter destructuring)
+ * Known, accepted gap: a *dynamic* computed access — `const key = "value"; x[key]` — cannot
+ * be caught. Which property is being read is not known until runtime, so there is nothing
+ * for static analysis to check. This is rare enough for a fixed key name like `value` that
+ * it is not worth chasing further; if it turns out to matter in practice, tighten this rule
+ * rather than reach for `no-restricted-syntax` again.
  */
 const noRawSourcedValue = ESLintUtils.RuleCreator.withoutDocs({
   meta: {
@@ -38,17 +49,40 @@ const noRawSourcedValue = ESLintUtils.RuleCreator.withoutDocs({
   create(context) {
     const services = ESLintUtils.getParserServices(context, /* allowWithoutFullTypeInformation */ true);
     if (!services.program) return {};
-    return {
-      MemberExpression(node) {
-        if (node.property.type !== "Identifier" || node.property.name !== "value") return;
-        if (node.computed) return;
 
-        const type = services.getTypeAtLocation(node.object);
-        const propertyNames = new Set(type.getProperties().map((symbol) => symbol.getName()));
-        const looksSourced =
-          propertyNames.has("value") && propertyNames.has("certainty") && propertyNames.has("basis");
-        if (looksSourced) {
+    const looksSourced = (type) => {
+      const propertyNames = new Set(type.getProperties().map((symbol) => symbol.getName()));
+      return propertyNames.has("value") && propertyNames.has("certainty") && propertyNames.has("basis");
+    };
+
+    return {
+      // `reading.rate.value` and the literal-computed form `reading.rate["value"]`.
+      MemberExpression(node) {
+        const isDotValue = !node.computed && node.property.type === "Identifier" && node.property.name === "value";
+        const isLiteralComputedValue =
+          node.computed && node.property.type === "Literal" && node.property.value === "value";
+        if (!isDotValue && !isLiteralComputedValue) return;
+
+        if (looksSourced(services.getTypeAtLocation(node.object))) {
           context.report({ node: node.property, messageId: "rawValue" });
+        }
+      },
+
+      // `const { value } = reading.rate;` — including nested and function-parameter
+      // destructuring, since ESLint visits every ObjectPattern regardless of position.
+      ObjectPattern(node) {
+        const hasValueKey = node.properties.some(
+          (prop) =>
+            prop.type === "Property" && !prop.computed && prop.key.type === "Identifier" && prop.key.name === "value",
+        );
+        if (!hasValueKey) return;
+
+        if (looksSourced(services.getTypeAtLocation(node))) {
+          const valueProp = node.properties.find(
+            (prop) =>
+              prop.type === "Property" && !prop.computed && prop.key.type === "Identifier" && prop.key.name === "value",
+          );
+          context.report({ node: valueProp ?? node, messageId: "rawValue" });
         }
       },
     };
