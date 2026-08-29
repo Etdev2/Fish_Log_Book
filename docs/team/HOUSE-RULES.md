@@ -14,7 +14,8 @@ There IS a chain of command for *decisions*:
 - Scope / "are we building this at all" -> CEO
 - Sequencing / "what happens this week" -> COO
 - Code structure / "where does this file live" -> Architect
-- Merge to `main` -> Head Developer
+- Implementation behavior -> Head Developer
+- Merge order and merge to `main` -> Git Integration Agent
 
 Disagree, state it once in the channel, then commit to the decision.
 
@@ -29,11 +30,17 @@ Do not write App Router code from memory. This overrides your training data.
   `ux-ui/catch-form-a11y`.
 - Branches belong to independent write workstreams, not to agent identities. Read-only
   work needs no branch. Helpers in the same workstream normally share its branch.
+- Every initiative has one coordinating COO. Every active write lane has one assigned
+  runtime, role, branch, worktree, and exclusive file set. The durable assignment format
+  and cross-runtime protocol are in `AI-OPERATING-SYSTEM.md`.
 - **Create and push a write-workstream branch when work starts, not when it finishes.**
   An empty pushed branch is a public claim on the work.
 - One concern per branch. Small PRs integrate; big PRs rot.
 - Simultaneous write workstreams use separate worktrees. Never switch branches inside
   another active agent's worktree, and never assign concurrent edits to the same file.
+- Never stage, commit, revert, restore, push, or otherwise preserve another lane's work.
+  On unexpected foreign changes, stop touching the affected paths and notify the
+  coordinating COO. Read-only inspection may be shared.
 - PR body = what changed, why, how it was checked. Three bullets are enough.
 - Workers may commit and push only their assigned branch. They do not merge into `main`.
 - `code-reviewer` reviews, `test-agent` verifies, and `git-integrator` alone owns rebase,
@@ -108,12 +115,14 @@ Full conventions in `docs/team/WORKLOG.md`.
   changes the outcome. Full routing rules are in `AI-OPERATING-SYSTEM.md`.
 - Spawn only when a bounded specialist context or genuine independent parallelism saves
   more than the extra agent costs. Agent count is not productivity.
-- A handoff contains only task, constraints, relevant paths, expected output, and done
-  criteria, plus a runtime only when Claude/Codex routing matters. Do not forward the
-  parent's transcript.
+- Assignments and handoffs use only the compact record in `AI-OPERATING-SYSTEM.md`.
+  Do not forward the parent's transcript.
 - Employee names are platform-neutral. Use the active platform's matching adapter unless
   the user requests Claude-only, Codex-only, or mixed execution. Cross-platform work uses
   repository artifacts; never pretend one vendor's local subagent is the other vendor.
+- One COO coordinates each initiative across runtimes. Agents stay inside their recorded
+  write lanes; the architect decides structure and the Git Integration Agent alone
+  integrates completed lanes.
 - Finish in your own lane. Escalate an unresolved decision; do not duplicate reasoning
   across several equally powerful agents.
 

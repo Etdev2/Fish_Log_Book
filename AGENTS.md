@@ -25,4 +25,6 @@ employees; no vendor owns the role. In Codex, spawn the `.codex` specialist. If 
 requests another runtime that is not actually callable, leave a precise repository
 handoff rather than pretending it was launched. Future vendors add adapters and native
 LOW/MEDIUM/HIGH mappings; they do not create a duplicate team. Do not duplicate work
-across runtimes.
+across runtimes. Each initiative has one coordinating COO and exclusive write lanes;
+follow the assignment protocol in `docs/team/AI-OPERATING-SYSTEM.md`. Never touch,
+stage, commit, revert, or push another lane's work.

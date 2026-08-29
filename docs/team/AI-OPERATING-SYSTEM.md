@@ -64,6 +64,37 @@ originating conversation.
 Mixed mode is load balancing, not duplicate review. Never give Claude and Codex the same
 task merely to compare answers unless the user explicitly requests independent opinions.
 
+## One coordinator, separate lanes
+
+Every initiative has exactly one active coordinating COO, regardless of how many
+runtimes participate. That COO owns assignments, dependencies, sequencing, and status.
+It does not take over specialist decisions: `architect` owns structural decisions and
+`git-integrator` owns integration. A receiving runtime follows the recorded assignment;
+it does not create a second plan or a competing COO for the same initiative.
+
+Each write assignment has one runtime, one role, one branch, one worktree, and an
+exclusive allowed-write set. Two agents may inspect the same paths, but their write sets
+must not overlap while both assignments are active. Helpers that contribute to the same
+write lane work sequentially under its owner; they do not create an independent branch
+or edit concurrently.
+
+Lane rules apply equally to Claude, Codex/ChatGPT, and future vendor adapters:
+
+- Work only on the assigned branch, in the assigned worktree, and within `ALLOWED WRITES`.
+- Do not stage, commit, revert, restore, move, or delete another lane's changes.
+- Treat unrecognized modifications in an allowed path as foreign work. Stop touching
+  that path and notify the coordinating COO with the path and observed state.
+- Never preserve, push, or "help finish" another runtime's in-progress work unless the
+  coordinating COO explicitly transfers ownership after the original lane stops.
+- Share discoveries freely through read-only inspection and bounded repository handoffs.
+  A handoff transfers information, not write ownership.
+- Only `git-integrator` crosses completed lanes for ordered integration. It may resolve
+  mechanical conflicts; structural conflicts return to `architect`, and behavioral
+  conflicts return to the implementing owner.
+
+When no real cross-runtime bridge exists, `AWAITING_<RUNTIME>` is a status, not a claim
+that the vendor was launched. The user or external automation must start that runtime.
+
 ## Spawn decision
 
 Before spawning, answer:
@@ -79,24 +110,32 @@ Do not spawn for a tiny task the parent can finish immediately. Do not make two 
 derive the same answer. Parallelize read-heavy exploration, review specialties, or
 independent files; keep coupled edits sequential.
 
-## Minimum handoff
+## Assignment and handoff record
 
-Every delegated task contains only:
+The coordinating COO creates one compact record per assignment. Use `NONE (read-only)`
+for branch, worktree, and allowed writes when no mutation is authorized.
 
 ```text
-TASK:
-MODEL TIER:
-RUNTIME: CURRENT | CLAUDE | CODEX | <OTHER>
-SOURCE / RELEVANT PATHS:
+INITIATIVE:
+COORDINATOR: <coo runtime/session or durable channel artifact>
+RUNTIME: CLAUDE | CODEX | <OTHER>
+ROLE:
+MODEL TIER: LOW | MEDIUM | HIGH
+BRANCH:
+WORKTREE:
 ALLOWED WRITES:
-CONSTRAINTS / DO NOT:
-EXPECTED OUTPUT:
-DONE WHEN:
+DEPENDENCIES:
+STATUS: ASSIGNED | ACTIVE | BLOCKED | AWAITING_<RUNTIME> | READY_FOR_INTEGRATION | COMPLETE
+SOURCE / CONSTRAINTS:
+TASK / EXPECTED ARTIFACT:
+DONE CRITERIA:
 ```
 
-Do not forward the parent's full conversation. Durable decisions belong in the relevant
-spec, ADR, plan, channel message, or worklog file. Search first, read targeted sections
-second, reason third.
+`COORDINATOR` remains the same across runtime handoffs for the initiative. A transfer of
+write ownership must update the record, stop the prior writer, and identify the new lane
+before edits resume. Do not forward the parent's full conversation. Durable decisions
+belong in the relevant spec, ADR, plan, channel message, or worklog file. Search first,
+read targeted sections second, reason third.
 
 ## Role matrix
 
@@ -136,8 +175,11 @@ or test runner needs no branch when it makes no changes. A helper contributing t
 same workstream normally uses the owner's branch sequentially.
 
 Every simultaneously active write workstream has its own branch and worktree. Before
-parallel work, assign probable file ownership. If two tasks need the same core file, run
-them sequentially.
+parallel work, the coordinating COO assigns exclusive file ownership. If two tasks need
+the same core file, run them sequentially or record an explicit ownership transfer after
+the first writer stops. Agents never stage, commit, revert, or push foreign lane work.
+Unexpected foreign changes freeze only the affected paths: leave them untouched, notify
+the coordinating COO, and continue only on unaffected assigned paths when safe.
 
 ```text
 worker branch -> tests -> review -> git-integrator -> main
@@ -146,6 +188,8 @@ worker branch -> tests -> review -> git-integrator -> main
 Workers commit and push only their assigned branch. They never merge into `main`.
 `git-integrator` confirms relevant checks, reviews the changed-file set, updates the
 branch when necessary, merges approved work, and cleans completed branches/worktrees.
+It must verify that each lane is stopped or marked `READY_FOR_INTEGRATION` before
+touching it.
 
 ## Escalation and retries
 
