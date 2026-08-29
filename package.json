@@ -9,7 +9,11 @@
     "prebuild": "npm run tokens",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "tokens:check": "node scripts/tokens.mjs --check",
+    "tripwires": "node scripts/check-tripwires.mjs",
+    "test": "vitest run",
+    "verify": "npm run tokens:check && npm run tripwires && npm run lint && tsc --noEmit && npm run test"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.5",
@@ -27,6 +31,7 @@
     "eslint": "^9",
     "eslint-config-next": "16.3.3",
     "tailwindcss": "^4",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "^4.1.11"
   }
 }

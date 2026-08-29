@@ -136,8 +136,18 @@ function resolveBorder(border) {
   return `${width} solid var(--color-${colorName})`;
 }
 
+/**
+ * opacity: { "disabled": "0.45" } -> plain scalar tokens under Tailwind's `--opacity-*`
+ * namespace, e.g. `--opacity-disabled: 0.45;`. Used for the global disabled treatment
+ * (docs/design/06-accessibility-baseline.md); see src/core/design/tokens.test.ts.
+ */
+function buildOpacityLines(opacity) {
+  return Object.entries(opacity).map(([name, value]) => `  --opacity-${name}: ${value};`);
+}
+
 function generate(tokens) {
-  const { color, fontSize, fontFamily, spacing, radius, touchTarget, elevation } = tokens;
+  const { color, fontSize, fontFamily, spacing, radius, touchTarget, elevation, opacity } =
+    tokens;
 
   const { light: colorLight, dark: colorDark } = buildColorLines(color);
 
@@ -152,6 +162,7 @@ function generate(tokens) {
     ...buildTouchTargetLines(touchTarget),
     "",
     ...buildRadiusLines(radius),
+    ...(opacity ? ["", ...buildOpacityLines(opacity)] : []),
   ];
 
   const parts = [];

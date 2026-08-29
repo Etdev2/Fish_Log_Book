@@ -1,0 +1,83 @@
+#!/usr/bin/env node
+/**
+ * The tripwires that ESLint cannot express (ADR 003 §6, ADR 005 §1–§2).
+ *
+ * Conventions decay. These do not.
+ */
+import { execSync } from "node:child_process";
+import { readFileSync, existsSync, readdirSync } from "node:fs";
+import { join } from "node:path";
+
+const failures = [];
+
+const tracked = (pattern) =>
+  execSync(`git ls-files ${pattern}`, { encoding: "utf8" }).split("\n").filter(Boolean);
+
+/* ---- 1. No CSS Modules. Tailwind v4 is the one way to style a thing (ADR 005 §1). ---- */
+
+/**
+ * The last two of their kind. They belong to another workstream's tree and are converted
+ * in head-dev/tailwind-convergence. When that PR lands this list goes to zero and never
+ * grows again — a permitted exception is how this rule dies.
+ */
+const LEGACY_CSS_MODULES = [
+  "src/components/app-nav.module.css",
+  "src/features/learning/learning-dashboard.module.css",
+];
+
+const cssModules = tracked("'*.module.css'");
+const newCssModules = cssModules.filter((f) => !LEGACY_CSS_MODULES.includes(f));
+if (newCssModules.length > 0) {
+  failures.push(
+    `CSS Modules are not the convention (ADR 005 §1). Use Tailwind utilities:\n` +
+      newCssModules.map((f) => `    ${f}`).join("\n"),
+  );
+}
+const staleLegacy = LEGACY_CSS_MODULES.filter((f) => !cssModules.includes(f));
+if (staleLegacy.length > 0) {
+  failures.push(
+    `These are gone — remove them from LEGACY_CSS_MODULES in scripts/check-tripwires.mjs:\n` +
+      staleLegacy.map((f) => `    ${f}`).join("\n"),
+  );
+}
+
+/* ---- 2. No raw colour or size literals in components (ADR 005 §2). ---- */
+
+const LITERAL = /#[0-9a-fA-F]{3,8}\b|\brgba?\(|\bhsla?\(|\[\d+(?:\.\d+)?(?:px|rem|em)\]/;
+for (const file of tracked("'src/**/*.tsx'")) {
+  const lines = readFileSync(file, "utf8").split("\n");
+  lines.forEach((line, i) => {
+    if (LITERAL.test(line)) {
+      failures.push(
+        `Raw colour/size literal in a component (ADR 005 §2) — add a token to ` +
+          `src/core/design/tokens.json instead:\n    ${file}:${i + 1}  ${line.trim()}`,
+      );
+    }
+  });
+}
+
+/* ---- 3. Every rule in core/rules/ has a test vector (ADR 003 §4). ---- */
+
+const RULES_DIR = "src/core/rules";
+const VECTORS_DIR = join(RULES_DIR, "vectors");
+if (existsSync(RULES_DIR)) {
+  const vectors = existsSync(VECTORS_DIR) ? readdirSync(VECTORS_DIR) : [];
+  for (const file of readdirSync(RULES_DIR)) {
+    if (!file.endsWith(".ts") || file.endsWith(".test.ts")) continue;
+    const expected = `${file.replace(/\.ts$/, "")}.json`;
+    if (!vectors.includes(expected)) {
+      failures.push(
+        `${join(RULES_DIR, file)} has no test vector (ADR 003 §4). ` +
+          `The vectors are what let the Swift client be checked against this one. ` +
+          `Add ${join(VECTORS_DIR, expected)}.`,
+      );
+    }
+  }
+}
+
+if (failures.length > 0) {
+  console.error(`\ntripwires: ${failures.length} problem(s)\n`);
+  for (const f of failures) console.error(`  ${f}\n`);
+  process.exit(1);
+}
+console.log("tripwires: clean.");
