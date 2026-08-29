@@ -67,6 +67,12 @@ function build() {
     out.push(`  --spacing-touch-${name}: ${value};`);
   }
 
+  out.push("", "  /* Opacity */");
+  for (const [name, value] of Object.entries(tokens.opacity)) {
+    if (isMeta(name)) continue;
+    out.push(`  --opacity-${name}: ${value};`);
+  }
+
   out.push("", "  /* Corner radius */");
   for (const [name, value] of Object.entries(tokens.radius)) {
     if (isMeta(name)) continue;

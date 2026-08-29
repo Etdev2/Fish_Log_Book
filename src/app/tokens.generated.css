@@ -72,6 +72,9 @@
   --spacing-touch-primary-standard: 68px;
   --spacing-touch-primary-quick-mark: 88px;
 
+  /* Opacity */
+  --opacity-disabled: 0.45;
+
   /* Corner radius */
   --radius-sm: 8px;
   --radius-md: 12px;

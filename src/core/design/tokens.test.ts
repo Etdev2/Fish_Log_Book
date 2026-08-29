@@ -1,6 +1,13 @@
+import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 
 import tokens from "./tokens.json";
+
+const generatedTokens = readFileSync(
+  fileURLToPath(new URL("../../app/tokens.generated.css", import.meta.url)),
+  "utf8",
+);
 
 /*
  * These do not test the generator's plumbing. They test the properties the design system
@@ -30,6 +37,11 @@ describe("design tokens", () => {
 
   it("has a 12px step, the interactive-spacing floor", () => {
     expect(Object.values(tokens.spacing)).toContain("12px");
+  });
+
+  it("generates the disabled opacity token used by the global disabled treatment", () => {
+    expect(tokens.opacity.disabled).toBe("0.45");
+    expect(generatedTokens).toContain("--opacity-disabled: 0.45;");
   });
 
   it("gives every colour both a light and a dark value", () => {
