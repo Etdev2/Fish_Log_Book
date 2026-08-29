@@ -35,7 +35,7 @@ export default async function Home() {
   return (
     <main className="flex min-h-screen flex-col items-center justify-center gap-8 bg-background p-8 font-ui text-text-primary">
       <div className="text-center">
-        <h1 className="text-h1 font-bold tracking-tight">Fish Log Book</h1>
+        <h1 className="text-h1 tracking-tight">Fish Log Book</h1>
         <p className="mt-2 text-caption text-text-muted">Next.js + Supabase</p>
       </div>
 
