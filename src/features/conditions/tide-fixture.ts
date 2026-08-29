@@ -1,15 +1,17 @@
 /**
  * NOAA CO-OPS predictions for Newport Bay Entrance (9410580), MLLW, metric.
  *
- * The cache deliberately retains hourly samples plus the exact turning points.
- * It is a display fixture for the offline web prototype, not a client-side API call.
+ * The approved prototype embeds this fixture; its retrieval timestamp was not recorded.
+ * It covers 2026-08-31 17:00 through 2026-09-03 16:00 PDT. The cache deliberately
+ * retains hourly samples plus the exact turning points. It is not a client-side API call.
  */
 export type TidePoint = readonly [minutes: number, millimeters: number, mark: "" | "H" | "L"];
 
 export const TIDE_STATION = "9410580";
 export const TIDE_STATION_NAME = "Newport Bay Entrance";
 export const TIDE_BASE_UTC = Date.UTC(2026, 7, 31, 17, 0, 0);
-export const TIDE_NOW_MINUTES = 1000;
+/** The fixture instant used to anchor the summary and marker: 2026-09-01 09:40 PDT. */
+export const TIDE_SELECTED_MINUTES = 1000;
 
 export const TIDE_POINTS: readonly TidePoint[] = [
   [0, 376, ""], [62, 296, "L"], [120, 362, ""], [180, 545, ""], [240, 793, ""], [300, 1036, ""], [360, 1213, ""],

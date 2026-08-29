@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 
 import {
   TIDE_BASE_UTC,
-  TIDE_NOW_MINUTES,
+  TIDE_SELECTED_MINUTES,
   TIDE_POINTS,
   TIDE_STATION,
   TIDE_STATION_NAME,
@@ -37,6 +37,21 @@ function heightAt(minutes: number) {
   return TIDE_POINTS.at(-1)?.[1] ?? 0;
 }
 
+function tideLegAt(minutes: number) {
+  const turningPoints = TIDE_POINTS.filter(([, , mark]) => mark);
+  const start = [...turningPoints].reverse().find(([turningMinute]) => turningMinute <= minutes);
+  const end = turningPoints.find(([turningMinute]) => turningMinute > minutes);
+  if (!start || !end) return null;
+  const rising = end[2] === "H";
+  const height = heightAt(minutes);
+  const progress = rising
+    ? (height - start[1]) / (end[1] - start[1])
+    : (start[1] - height) / (start[1] - end[1]);
+  const tideHour = Math.min(6, Math.max(1, Math.ceil(((minutes - start[0]) / (end[0] - start[0])) * 6)));
+  const twelfths = [1, 2, 3, 3, 2, 1][tideHour - 1];
+  return { percentage: Math.round(progress * 100), tideHour, twelfths };
+}
+
 function meters(millimeters: number) {
   return `${(millimeters / 1000).toFixed(2)} m`;
 }
@@ -54,6 +69,10 @@ function dayLabel(minutes: number) {
 
 function shortDay(minutes: number) {
   return new Intl.DateTimeFormat("en-US", { weekday: "short", day: "numeric", timeZone: "UTC" }).format(dateAt(minutes));
+}
+
+function monthDay(minutes: number) {
+  return new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", timeZone: "UTC" }).format(dateAt(minutes));
 }
 
 function dayIndex(minutes: number) {
@@ -89,10 +108,10 @@ function curvePath() {
 export function TideChart() {
   const scrollerRef = useRef<HTMLDivElement>(null);
   const holdTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const [cursor, setCursor] = useState(TIDE_NOW_MINUTES);
+  const [cursor, setCursor] = useState(TIDE_SELECTED_MINUTES);
   const [reading, setReading] = useState(false);
   const [tableOpen, setTableOpen] = useState(false);
-  const [centerMinute, setCenterMinute] = useState(TIDE_NOW_MINUTES);
+  const [centerMinute, setCenterMinute] = useState(TIDE_SELECTED_MINUTES);
   const [tooltipX, setTooltipX] = useState(50);
   const path = useMemo(() => curvePath(), []);
 
@@ -104,7 +123,7 @@ export function TideChart() {
   };
 
   useEffect(() => {
-    const frame = requestAnimationFrame(() => scrollToMinute(TIDE_NOW_MINUTES, false));
+    const frame = requestAnimationFrame(() => scrollToMinute(TIDE_SELECTED_MINUTES, false));
     return () => cancelAnimationFrame(frame);
   }, []);
 
@@ -122,10 +141,11 @@ export function TideChart() {
     setTooltipX(Math.max(64, Math.min(bounds.width + 46 - 64, clientX - bounds.left + 46)));
   };
 
-  const rate = heightAt(TIDE_NOW_MINUTES + 30) - heightAt(TIDE_NOW_MINUTES - 30);
+  const rate = heightAt(TIDE_SELECTED_MINUTES + 30) - heightAt(TIDE_SELECTED_MINUTES - 30);
   const rising = rate > 0;
   const slack = Math.abs(rate) < 50;
-  const nextHigh = TIDE_POINTS.find(([minute, , mark]) => mark === "H" && minute > TIDE_NOW_MINUTES);
+  const selectedLeg = tideLegAt(TIDE_SELECTED_MINUTES);
+  const nextHigh = TIDE_POINTS.find(([minute, , mark]) => mark === "H" && minute > TIDE_SELECTED_MINUTES);
   const todayPoints = TIDE_POINTS.filter(([minute]) => minute >= 420 && minute <= 1860).map(([, millimeters]) => millimeters);
   const currentDay = dayIndex(centerMinute);
   const finalDay = dayIndex(TOTAL_MINUTES);
@@ -144,15 +164,18 @@ export function TideChart() {
       <header className="flex flex-col gap-1 pb-4 pt-3">
         <p className="font-mono text-sm font-medium uppercase tracking-[.14em] text-text-muted">Station {TIDE_STATION} · {TIDE_STATION_NAME}</p>
         <h1 className="text-h1">Tide</h1>
-        <p className="text-caption text-text-muted">Predicted height above MLLW · swipe the curve to move through days</p>
-        <span className="mt-2 inline-flex w-fit items-center gap-2 rounded-full border border-hairline bg-surface-raised px-3 py-1.5 font-mono text-[13px] tracking-wide text-text-muted before:size-2 before:rounded-full before:bg-text-muted">Cached prediction — not a live reading</span>
+        <p className="text-caption text-text-muted">Predicted height above MLLW · selected fixture instant: {dayLabel(TIDE_SELECTED_MINUTES)}, {clock(TIDE_SELECTED_MINUTES)}</p>
+        <span className="mt-2 inline-flex w-fit items-center gap-2 rounded-full border border-hairline bg-surface-raised px-3 py-1.5 font-mono text-[13px] tracking-wide text-text-muted before:size-2 before:rounded-full before:bg-text-muted">Cached fixture — not a live reading</span>
       </header>
 
       <dl className="mb-4 grid grid-cols-2 gap-px overflow-hidden rounded-lg border border-hairline bg-hairline sm:grid-cols-4">
-        <StatusCell label="Now"><span>{meters(heightAt(TIDE_NOW_MINUTES))}</span></StatusCell>
-        <StatusCell label="State" cyan><span aria-hidden="true">{slack ? "—" : rising ? "▲" : "▼"} </span>{slack ? "Slack" : rising ? "Flooding" : "Ebbing"}<small>{rising ? "+" : ""}{(rate / 1000).toFixed(2)} m/h</small></StatusCell>
-        <StatusCell label="Next high">{nextHigh ? <><span>{clock(nextHigh[0])}</span><small>in {Math.floor((nextHigh[0] - TIDE_NOW_MINUTES) / 60)}h {(nextHigh[0] - TIDE_NOW_MINUTES) % 60}m</small></> : "—"}</StatusCell>
-        <StatusCell label="Range today">{meters(Math.max(...todayPoints) - Math.min(...todayPoints))}</StatusCell>
+        <StatusCell label="Selected"><span>{meters(heightAt(TIDE_SELECTED_MINUTES))}</span></StatusCell>
+        <StatusCell label="State" cyan>
+          <span aria-hidden="true">{slack ? "—" : rising ? "▲" : "▼"} </span>{slack ? "Slack" : rising ? "Flooding" : "Ebbing"}
+          {slack ? <><small>At the turn</small><small>Movement: 0.00 m/h · Rule: turning</small></> : <><small>{selectedLeg?.percentage ?? 0}% through {rising ? "flood" : "ebb"}</small><small>Movement: {rising ? "+" : ""}{(rate / 1000).toFixed(2)} m/h · Rule: ~{selectedLeg?.twelfths ?? 0}/12 range / tide hour</small></>}
+        </StatusCell>
+        <StatusCell label="Next high">{nextHigh ? <><span>{clock(nextHigh[0])}</span><small>in {Math.floor((nextHigh[0] - TIDE_SELECTED_MINUTES) / 60)}h {(nextHigh[0] - TIDE_SELECTED_MINUTES) % 60}m</small></> : "—"}</StatusCell>
+        <StatusCell label={`${monthDay(TIDE_SELECTED_MINUTES)} range`}>{meters(Math.max(...todayPoints) - Math.min(...todayPoints))}</StatusCell>
       </dl>
 
       <div className="overflow-hidden rounded-lg border border-hairline bg-surface pb-1.5 pt-3.5">
@@ -160,7 +183,7 @@ export function TideChart() {
           <h2 className="min-w-0 truncate text-lg font-bold">{dayLabel(centerMinute)}</h2>
           <div className="flex shrink-0 gap-2">
             <button className="size-[52px] rounded-md border border-border-interactive bg-surface-raised text-xl hover:border-tide-cyan disabled:opacity-45" type="button" aria-label="Previous day" disabled={currentDay <= 0} onClick={() => scrollToMinute(Math.max(0, (currentDay - 1) * 1440 - 17 * 60 + 720))}>‹</button>
-            <button className="h-[52px] rounded-md border border-signal-orange bg-surface-raised px-4 font-mono text-sm font-semibold tracking-widest text-signal-orange hover:bg-signal-orange hover:text-ink-on-orange" type="button" onClick={() => { setCursor(TIDE_NOW_MINUTES); scrollToMinute(TIDE_NOW_MINUTES); }}>NOW</button>
+            <button className="h-[52px] rounded-md border border-signal-orange bg-surface-raised px-3 font-mono text-sm font-semibold tracking-widest text-signal-orange hover:bg-signal-orange hover:text-ink-on-orange" type="button" aria-label={`Jump to selected fixture time: ${dayLabel(TIDE_SELECTED_MINUTES)}, ${clock(TIDE_SELECTED_MINUTES)}`} onClick={() => { setCursor(TIDE_SELECTED_MINUTES); scrollToMinute(TIDE_SELECTED_MINUTES); }}>SEP 1</button>
             <button className="size-[52px] rounded-md border border-border-interactive bg-surface-raised text-xl hover:border-tide-cyan disabled:opacity-45" type="button" aria-label="Next day" disabled={currentDay >= finalDay} onClick={() => scrollToMinute(Math.min(TOTAL_MINUTES, (currentDay + 1) * 1440 - 17 * 60 + 720))}>›</button>
           </div>
         </div>
@@ -186,8 +209,8 @@ export function TideChart() {
             onPointerMove={(event) => { if (event.pointerType === "mouse") { readPointer(event.clientX); setReading(true); } }}
             onPointerLeave={() => setReading(false)}
             onPointerDown={(event) => { if (event.pointerType !== "mouse") holdTimeout.current = setTimeout(() => { readPointer(event.clientX); setReading(true); }, 260); }}
-            onPointerUp={() => { if (holdTimeout.current) clearTimeout(holdTimeout.current); holdTimeout.current = null; }}
-            onPointerCancel={() => { if (holdTimeout.current) clearTimeout(holdTimeout.current); holdTimeout.current = null; }}
+            onPointerUp={(event) => { if (holdTimeout.current) clearTimeout(holdTimeout.current); holdTimeout.current = null; if (event.pointerType !== "mouse") setReading(false); }}
+            onPointerCancel={(event) => { if (holdTimeout.current) clearTimeout(holdTimeout.current); holdTimeout.current = null; if (event.pointerType !== "mouse") setReading(false); }}
             onPointerMoveCapture={() => { if (holdTimeout.current) { clearTimeout(holdTimeout.current); holdTimeout.current = null; } }}
             onKeyDown={(event) => {
               const step = event.shiftKey ? 180 : 15;
@@ -205,24 +228,24 @@ export function TideChart() {
               <path d={`${path}L${xFor(TOTAL_MINUTES)},${PLOT_TOP + PLOT_HEIGHT}L${xFor(0)},${PLOT_TOP + PLOT_HEIGHT}Z`} fill="url(#tide-area)"/>
               <path d={path} fill="none" stroke="var(--color-tide-cyan)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
               {TIDE_POINTS.filter(([, , mark]) => mark).map(([minute, millimeters, mark]) => <g key={minute}><circle cx={xFor(minute)} cy={yFor(millimeters)} r="5" fill="var(--color-tide-cyan)" stroke="var(--color-surface)" strokeWidth="2"/><text x={xFor(minute)} y={yFor(millimeters) + (mark === "H" ? -14 : 22)} textAnchor="middle" className="fill-text-primary font-mono text-[12px] font-semibold">{meters(millimeters)} <tspan className="fill-text-muted font-normal">{clock(minute)}</tspan></text></g>)}
-              <line x1={xFor(TIDE_NOW_MINUTES)} x2={xFor(TIDE_NOW_MINUTES)} y1={PLOT_TOP - 14} y2={PLOT_TOP + PLOT_HEIGHT} stroke="var(--color-signal-orange)" strokeWidth="2" strokeDasharray="3 4"/><rect x={xFor(TIDE_NOW_MINUTES) - 21} y={PLOT_TOP - 30} width="42" height="17" rx="8.5" fill="var(--color-signal-orange)"/><text x={xFor(TIDE_NOW_MINUTES)} y={PLOT_TOP - 17.5} textAnchor="middle" className="fill-ink-on-orange font-mono text-[11px] font-semibold tracking-widest">NOW</text><circle cx={xFor(TIDE_NOW_MINUTES)} cy={yFor(heightAt(TIDE_NOW_MINUTES))} r="6.5" fill="var(--color-signal-orange)" stroke="var(--color-surface)" strokeWidth="2.5"/>
+              <line x1={xFor(TIDE_SELECTED_MINUTES)} x2={xFor(TIDE_SELECTED_MINUTES)} y1={PLOT_TOP - 8} y2={PLOT_TOP + PLOT_HEIGHT} stroke="var(--color-signal-orange)" strokeWidth="2" strokeDasharray="3 4"/><rect x={xFor(TIDE_SELECTED_MINUTES) - 30} y={PLOT_TOP - 20} width="60" height="17" rx="8.5" fill="var(--color-signal-orange)"/><text x={xFor(TIDE_SELECTED_MINUTES)} y={PLOT_TOP - 7.5} textAnchor="middle" className="fill-ink-on-orange font-mono text-[10px] font-semibold tracking-[.08em]">FIXTURE</text><circle cx={xFor(TIDE_SELECTED_MINUTES)} cy={yFor(heightAt(TIDE_SELECTED_MINUTES))} r="6.5" fill="var(--color-signal-orange)" stroke="var(--color-surface)" strokeWidth="2.5"/>
               {reading && <><line x1={cursorX} x2={cursorX} y1="8" y2={PLOT_TOP + PLOT_HEIGHT} stroke="var(--color-border-interactive)"/><circle cx={cursorX} cy={cursorY} r="6" fill="var(--color-text-primary)" stroke="var(--color-surface)" strokeWidth="2"/></>}
             </svg>
           </div>
           {reading && <div className="pointer-events-none absolute top-1 z-20 rounded-md border border-border-interactive bg-surface-raised px-3 py-1.5 font-mono text-sm" style={{ left: tooltipX, transform: "translateX(-50%)" }}><b className="block text-[17px]">{meters(cursorHeight)}</b><span className="text-[13px] text-text-muted">{clock(cursor)} · {shortDay(cursor)}</span></div>}
         </div>
-        <div className="flex flex-wrap gap-x-4 gap-y-1 px-3.5 pt-2 font-mono text-[13px] text-text-muted"><span className="inline-flex items-center gap-2 before:h-[3px] before:w-4 before:rounded before:bg-tide-cyan">Tide height</span><span className="inline-flex items-center gap-2 before:h-[3px] before:w-4 before:rounded before:bg-signal-orange">Now</span><span>Drag the curve · ← → to read</span></div>
+        <div className="flex flex-wrap gap-x-4 gap-y-1 px-3.5 pt-2 font-mono text-[13px] text-text-muted"><span className="inline-flex items-center gap-2 before:h-[3px] before:w-4 before:rounded before:bg-tide-cyan">Tide height</span><span className="inline-flex items-center gap-2 before:h-[3px] before:w-4 before:rounded before:bg-signal-orange">Selected fixture time</span><span>Drag the curve · ← → to read</span></div>
       </div>
 
       <button className="mt-4 min-h-[68px] w-full rounded-lg border border-border-interactive bg-surface-raised px-5 text-lg font-semibold hover:border-tide-cyan" type="button" aria-expanded={tableOpen} aria-controls="tide-table" onClick={() => setTableOpen((open) => !open)}>{tableOpen ? "Hide the numbers" : "Show the numbers instead"}</button>
       {tableOpen && <div id="tide-table" className="mt-3 overflow-x-auto rounded-lg border border-hairline"><table className="w-full border-collapse font-mono text-[15px]"><caption className="p-3 text-left text-sm text-text-muted">Predicted height above MLLW, hourly, with the exact highs and lows.</caption><thead><tr className="border-t border-hairline text-left text-[13px] uppercase tracking-wider text-text-muted"><th className="px-3.5 py-2 font-medium">Time</th><th className="px-3.5 py-2 font-medium">Height</th><th className="px-3.5 py-2 font-medium">Mark</th></tr></thead><tbody>{tableRows()}</tbody></table></div>}
-      <p className="mt-6 border-t border-hairline pt-4 text-[15px] text-text-muted">71 continuous hours in 78 points, keeping every exact turning point — NOAA publishes 6-minute predictions, and all 720 of them would crawl on an older phone. Source: NOAA CO-OPS, station <code className="font-mono text-[13px] text-text-primary">{TIDE_STATION}</code>, datum <code className="font-mono text-[13px] text-text-primary">MLLW</code>, metric.</p>
+      <p className="mt-6 border-t border-hairline pt-4 text-[15px] text-text-muted">78 renderable points across a 71-hour window, with every exact turning point kept. Embedded NOAA CO-OPS prediction fixture from the approved prototype; retrieval timestamp was not recorded. Window: Aug 31, 2026 5:00pm–Sep 3, 2026 4:00pm PDT. Station <code className="font-mono text-[13px] text-text-primary">{TIDE_STATION}</code>, datum <code className="font-mono text-[13px] text-text-primary">MLLW</code>, metric.</p>
     </section>
   );
 }
 
 function StatusCell({ label, cyan = false, children }: { label: string; cyan?: boolean; children: React.ReactNode }) {
-  return <div className="flex min-w-0 flex-col gap-0.5 bg-surface p-3"><dt className="font-mono text-xs uppercase tracking-widest text-text-muted">{label}</dt><dd className={`m-0 font-mono text-xl font-semibold tabular-nums [&_small]:ml-1 [&_small]:text-[13px] [&_small]:font-normal [&_small]:text-text-muted ${cyan ? "text-tide-cyan" : ""}`}>{children}</dd></div>;
+  return <div className="flex min-w-0 flex-col gap-0.5 bg-surface p-3"><dt className="font-mono text-xs uppercase tracking-widest text-text-muted">{label}</dt><dd className={`m-0 font-mono text-xl font-semibold tabular-nums [&_small]:mt-1 [&_small]:block [&_small]:text-[13px] [&_small]:font-normal [&_small]:text-text-muted ${cyan ? "text-tide-cyan" : ""}`}>{children}</dd></div>;
 }
 
 function gridValues() { const values: number[] = []; for (let value = Math.ceil(yMinimum / 500) * 500; value <= yMaximum; value += 500) values.push(value); return values; }
