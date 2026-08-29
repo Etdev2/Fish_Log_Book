@@ -18,13 +18,16 @@ Use the cheapest adequate role. Spawn only bounded work with a minimal handoff. 
 handles deterministic work, MEDIUM handles ordinary implementation and judgment, and
 HIGH is reserved for architecture, difficult root-cause analysis, high-stakes math,
 privacy/legal risk, or arbitration after MEDIUM fails. Workers commit only their own
-assigned branch; only `git-integrator` merges into `main`.
+assigned branch; only `git-integrator` merges into `main`. Each initiative has one
+coordinating COO and exclusive write lanes. Follow the assignment protocol in
+`docs/team/AI-OPERATING-SYSTEM.md`; never stage, commit, revert, or push another lane's
+work.
 
 In a Claude-only session, spawn Claude specialists. If the user explicitly assigns a
 workstream to another vendor and no cross-runtime bridge is available, write a bounded
 repository handoff for that runtime and say that it still needs to be launched. Never
 claim to have spawned another vendor's runtime when you only created a local Claude
-subagent.
+subagent. Repository handoffs share information but do not transfer write ownership.
 
 ## Agent skills
 
