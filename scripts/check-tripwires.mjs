@@ -21,7 +21,6 @@ const tracked = (pattern) =>
  * grows again — a permitted exception is how this rule dies.
  */
 const LEGACY_CSS_MODULES = [
-  "src/components/app-nav.module.css",
   "src/features/learning/learning-dashboard.module.css",
 ];
 
