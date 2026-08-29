@@ -33,6 +33,7 @@ type BuilderItem = {
   reality: string;
   dataFlow: [string, string, string, string];
   actionLabel: string;
+  actionHref?: string;
 };
 
 type FeedbackStatus = "Approved" | "Needs changes" | "Idea";
@@ -61,20 +62,21 @@ const BUILDER_ITEMS: BuilderItem[] = [
     id: "entry",
     sequence: "01",
     journeyLabel: "Open the app",
-    title: "App entry and Supabase status",
+    title: "App entry and backend diagnostics",
     status: "Working now",
-    reason: "The / route exists and reports the current connection state.",
+    reason: "The / route is the app entry, and /settings reports the current backend connection state.",
     userView:
-      "A clear Fish Log Book entry screen and the current Supabase connection status. It gives the team one honest, working starting point.",
+      "The app opens at /, while Settings shows the current backend connection state. Together they give the team an honest, working starting point.",
     reality:
-      "Real route and real status check. The dashboard does not claim that catch logging exists there yet.",
+      "Both are real routes. The connection check runs in Settings; the dashboard does not claim that catch logging exists yet.",
     dataFlow: [
       "Open /",
-      "Next.js server route",
-      "Supabase status check",
+      "Open Settings",
+      "Backend status check",
       "Connection state shown",
     ],
-    actionLabel: "Open real app route",
+    actionLabel: "Open Settings diagnostics",
+    actionHref: "/settings",
   },
   {
     id: "catch",
@@ -157,10 +159,10 @@ const BUILDER_ITEMS: BuilderItem[] = [
 const GUIDE_STEPS: GuideStep[] = [
   {
     itemId: "entry",
-    eyebrow: "Working now · real route /",
+    eyebrow: "Working now · real routes / + /settings",
     title: "Open the app",
     copy: "Fish Log Book is meant to make fishing memory useful: record activity quickly, then connect honest trip history with conditions over time.",
-    note: "This guide is running over the real app entry. The highlighted card behind it contains the current server-rendered connection result. Catch, conditions, and history screens are not built yet.",
+    note: "This is a guide representation. / is the real app entry, while /settings contains the current backend connection result. Catch, conditions, and history screens are not built yet.",
   },
   {
     itemId: "catch",
@@ -312,7 +314,7 @@ function AppEntryVisual({ highlight = false }: { highlight?: boolean }) {
     <div className={styles.phoneSurface}>
       <div className={styles.surfaceTopline}>
         <StatusBadge status="Working now" />
-        <span>{highlight ? "Tour representation of /" : "Real route: /"}</span>
+        <span>{highlight ? "Guide representation · app entry /" : "App entry: /"}</span>
       </div>
       <div className={styles.entryHero}>
         <p>FISH LOG BOOK</p>
@@ -322,8 +324,8 @@ function AppEntryVisual({ highlight = false }: { highlight?: boolean }) {
       <div className={`${styles.connectionCard} ${highlight ? styles.guideTarget : ""}`}>
         <span className={styles.connectionDot} aria-hidden="true" />
         <div>
-          <strong>Connection status appears on the real route</strong>
-          <span>Open / to see its current result</span>
+          <strong>Backend diagnostics live in Settings</strong>
+          <span>Open /settings to see the current result</span>
         </div>
       </div>
     </div>
@@ -558,7 +560,7 @@ function ModeChooser({
       <section className={styles.truthStrip} aria-label="Prototype truths">
         <div>
           <span>REAL TODAY</span>
-          <strong>App entry + connection status</strong>
+          <strong>App entry + Settings diagnostics</strong>
         </div>
         <div>
           <span>SAFE SAMPLES</span>
@@ -633,8 +635,8 @@ function GuideDialog({
               <span className={`${styles.status} ${styles.statusWorking}`}>Working now</span>
               <strong>The real app entry is behind this guide</strong>
               <p>
-                Its highlighted connection card is using the live server-rendered
-                result—not fictional tutorial data.
+                Its backend connection check lives in Settings—not in this tutorial
+                representation.
               </p>
             </div>
           ) : (
@@ -950,8 +952,8 @@ function BuilderView({
           </div>
 
           <div className={styles.openAction}>
-            {selected.id === "entry" ? (
-              <Link className={styles.primaryButton} href="/">
+            {selected.actionHref ? (
+              <Link className={styles.primaryButton} href={selected.actionHref}>
                 {selected.actionLabel} <span aria-hidden="true">↗</span>
               </Link>
             ) : (
