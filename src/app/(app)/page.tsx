@@ -24,7 +24,7 @@ export default function CalendarPage() {
 
       <Link
         href="/tides"
-        className="mt-4 inline-flex min-h-touch-floor items-center justify-center rounded-md border border-signal-orange bg-signal-orange px-6 py-3 text-label font-semibold text-ink-on-orange transition-colors hover:bg-signal-orange-pressed focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-3 focus-visible:outline-focus-ring"
+        className="mt-4 inline-flex min-h-touch-floor items-center justify-center rounded-md border border-signal-orange bg-signal-orange px-6 py-3 text-label font-semibold text-ink-on-orange transition-colors hover:bg-signal-orange-pressed focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-3 focus-visible:outline-focus-ring"
       >
         Open tide chart
       </Link>

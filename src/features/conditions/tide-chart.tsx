@@ -181,12 +181,12 @@ export function TideChart() {
   };
 
   return (
-    <section className="mx-auto w-full max-w-[820px] overflow-x-hidden px-4 pb-14 pt-5 sm:px-5">
+    <section className="mx-auto w-full max-w-reading overflow-x-hidden px-4 pb-14 pt-5 sm:px-5">
       <header className="flex flex-col gap-1 pb-4 pt-3">
-        <p className="font-mono text-sm font-medium uppercase tracking-[.14em] text-text-muted">Station {TIDE_STATION} · {TIDE_STATION_NAME}</p>
+        <p className="font-mono text-caption font-medium uppercase tracking-station text-text-muted">Station {TIDE_STATION} · {TIDE_STATION_NAME}</p>
         <h1 className="text-h1">Tide</h1>
         <p className="text-caption text-text-muted">Predicted height above MLLW · station-local time ({STATION_TIME_ZONE_LABEL}) · selected: {dayLabel(selectedMinute)}, {clock(selectedMinute)}</p>
-        <span className="mt-2 inline-flex w-fit items-center gap-2 rounded-full border border-hairline bg-surface-raised px-3 py-1.5 font-mono text-[13px] tracking-wide text-text-muted before:size-2 before:rounded-full before:bg-text-muted">Cached fixture — not a live reading</span>
+        <span className="mt-2 inline-flex w-fit items-center gap-2 rounded-full border border-hairline bg-surface-raised px-3 py-1.5 font-mono text-caption tracking-wide text-text-muted before:size-2 before:rounded-full before:bg-text-muted">Cached fixture — not a live reading</span>
       </header>
 
       <dl className="mb-4 grid grid-cols-2 gap-px overflow-hidden rounded-lg border border-hairline bg-hairline sm:grid-cols-4">
@@ -203,14 +203,14 @@ export function TideChart() {
         <div className="flex items-center justify-between gap-2 px-3.5 pb-3">
           <h2 className="min-w-0 truncate text-lg font-bold">{dayLabel(centerMinute)}</h2>
           <div className="flex shrink-0 gap-2">
-            <button className="size-[52px] rounded-md border border-border-interactive bg-surface-raised text-xl hover:border-tide-cyan disabled:opacity-45" type="button" aria-label="Previous day" disabled={currentDay <= 0} onClick={() => scrollToMinute(Math.max(0, (currentDay - 1) * 1440 - 17 * 60 + 720))}>‹</button>
-            <button className="h-[52px] rounded-md border border-signal-orange bg-surface-raised px-3 font-mono text-sm font-semibold tracking-widest text-signal-orange hover:bg-signal-orange hover:text-ink-on-orange" type="button" aria-label={`Return to initial fixture time: ${dayLabel(TIDE_SELECTED_MINUTES)}, ${clock(TIDE_SELECTED_MINUTES)}`} onClick={() => { selectMinute(TIDE_SELECTED_MINUTES); scrollToMinute(TIDE_SELECTED_MINUTES); }}>SEP 1</button>
-            <button className="size-[52px] rounded-md border border-border-interactive bg-surface-raised text-xl hover:border-tide-cyan disabled:opacity-45" type="button" aria-label="Next day" disabled={currentDay >= finalDay} onClick={() => scrollToMinute(Math.min(TOTAL_MINUTES, (currentDay + 1) * 1440 - 17 * 60 + 720))}>›</button>
+            <button className="size-touch-nav-day rounded-md border border-border-interactive bg-surface-raised text-xl hover:border-tide-cyan disabled:opacity-45" type="button" aria-label="Previous day" disabled={currentDay <= 0} onClick={() => scrollToMinute(Math.max(0, (currentDay - 1) * 1440 - 17 * 60 + 720))}>‹</button>
+            <button className="h-touch-nav-day rounded-md border border-signal-orange bg-surface-raised px-3 font-mono text-label font-semibold tracking-widest text-signal-orange hover:bg-signal-orange hover:text-ink-on-orange" type="button" aria-label={`Return to initial fixture time: ${dayLabel(TIDE_SELECTED_MINUTES)}, ${clock(TIDE_SELECTED_MINUTES)}`} onClick={() => { selectMinute(TIDE_SELECTED_MINUTES); scrollToMinute(TIDE_SELECTED_MINUTES); }}>SEP 1</button>
+            <button className="size-touch-nav-day rounded-md border border-border-interactive bg-surface-raised text-xl hover:border-tide-cyan disabled:opacity-45" type="button" aria-label="Next day" disabled={currentDay >= finalDay} onClick={() => scrollToMinute(Math.min(TOTAL_MINUTES, (currentDay + 1) * 1440 - 17 * 60 + 720))}>›</button>
           </div>
         </div>
 
         <div className="relative flex">
-          <svg className="z-10 w-[46px] shrink-0 bg-surface" width="46" height={CHART_HEIGHT} aria-hidden="true">
+          <svg className="z-10 w-axis-gutter shrink-0 bg-surface" width="46" height={CHART_HEIGHT} aria-hidden="true">
             {gridValues().map((value) => <text className="fill-text-muted font-mono text-[11px]" key={value} x="36" y={yFor(value) + 4} textAnchor="end">{(value / 1000).toFixed(1)}</text>)}
             <text className="fill-text-muted font-mono text-[11px]" x="36" y={PLOT_TOP + PLOT_HEIGHT + 24} textAnchor="end">m</text>
           </svg>
@@ -258,23 +258,23 @@ export function TideChart() {
               <path d={`${path}L${xFor(TOTAL_MINUTES)},${PLOT_TOP + PLOT_HEIGHT}L${xFor(0)},${PLOT_TOP + PLOT_HEIGHT}Z`} fill="url(#tide-area)"/>
               <path d={path} fill="none" stroke="var(--color-tide-cyan)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
               {TIDE_POINTS.filter(([, , mark]) => mark).map(([minute, millimeters, mark]) => <g key={minute}><circle cx={xFor(minute)} cy={yFor(millimeters)} r="5" fill="var(--color-tide-cyan)" stroke="var(--color-surface)" strokeWidth="2"/><text x={xFor(minute)} y={yFor(millimeters) + (mark === "H" ? -14 : 22)} textAnchor="middle" className="fill-text-primary font-mono text-[12px] font-semibold">{meters(millimeters)} <tspan className="fill-text-muted font-normal">{clock(minute)}</tspan></text></g>)}
-              <line x1={selectedX} x2={selectedX} y1={PLOT_TOP - 8} y2={PLOT_TOP + PLOT_HEIGHT} stroke="var(--color-signal-orange)" strokeWidth="2" strokeDasharray="3 4"/><rect x={selectedX - 34} y={PLOT_TOP - 20} width="68" height="17" rx="8.5" fill="var(--color-signal-orange)"/><text x={selectedX} y={PLOT_TOP - 7.5} textAnchor="middle" className="fill-ink-on-orange font-mono text-[10px] font-semibold tracking-[.08em]">SELECTED</text><circle cx={selectedX} cy={selectedY} r="6.5" fill="var(--color-signal-orange)" stroke="var(--color-surface)" strokeWidth="2.5"/>
+              <line x1={selectedX} x2={selectedX} y1={PLOT_TOP - 8} y2={PLOT_TOP + PLOT_HEIGHT} stroke="var(--color-signal-orange)" strokeWidth="2" strokeDasharray="3 4"/><rect x={selectedX - 34} y={PLOT_TOP - 20} width="68" height="17" rx="8.5" fill="var(--color-signal-orange)"/><text x={selectedX} y={PLOT_TOP - 7.5} textAnchor="middle" className="fill-ink-on-orange font-mono text-[10px] font-semibold tracking-chart-pill">SELECTED</text><circle cx={selectedX} cy={selectedY} r="6.5" fill="var(--color-signal-orange)" stroke="var(--color-surface)" strokeWidth="2.5"/>
             </svg>
           </div>
-          <div className={`pointer-events-none absolute left-1/2 top-1 z-20 -translate-x-1/2 rounded-md border border-border-interactive bg-surface-raised px-3 py-1.5 font-mono text-sm ${dragging ? "" : "motion-reduce:transition-none"}`}><b className="block text-[17px]">{meters(selectedHeight)}</b><span className="text-[13px] text-text-muted">{clock(selectedMinute)} · {shortDay(selectedMinute)} {STATION_TIME_ZONE_LABEL}</span></div>
+          <div className={`pointer-events-none absolute left-1/2 top-1 z-20 -translate-x-1/2 rounded-md border border-border-interactive bg-surface-raised px-3 py-1.5 font-mono text-caption ${dragging ? "" : "motion-reduce:transition-none"}`}><b className="block text-body font-bold">{meters(selectedHeight)}</b><span className="text-caption text-text-muted">{clock(selectedMinute)} · {shortDay(selectedMinute)} {STATION_TIME_ZONE_LABEL}</span></div>
         </div>
-        <div className="flex flex-wrap gap-x-4 gap-y-1 px-3.5 pt-2 font-mono text-[13px] text-text-muted"><span className="inline-flex items-center gap-2 before:h-[3px] before:w-4 before:rounded before:bg-tide-cyan">Tide height</span><span className="inline-flex items-center gap-2 before:h-[3px] before:w-4 before:rounded before:bg-signal-orange">Selected time</span><span>Drag the curve · ← → to adjust</span></div>
+        <div className="flex flex-wrap gap-x-4 gap-y-1 px-3.5 pt-2 font-mono text-caption text-text-muted"><span className="inline-flex items-center gap-2 before:h-0.75 before:w-4 before:rounded before:bg-tide-cyan">Tide height</span><span className="inline-flex items-center gap-2 before:h-0.75 before:w-4 before:rounded before:bg-signal-orange">Selected time</span><span>Drag the curve · ← → to adjust</span></div>
       </div>
 
-      <button className="mt-4 min-h-[68px] w-full rounded-lg border border-border-interactive bg-surface-raised px-5 text-lg font-semibold hover:border-tide-cyan" type="button" aria-expanded={tableOpen} aria-controls="tide-table" onClick={() => setTableOpen((open) => !open)}>{tableOpen ? "Hide the numbers" : "Show the numbers instead"}</button>
-      {tableOpen && <div id="tide-table" className="mt-3 overflow-x-auto rounded-lg border border-hairline"><table className="w-full border-collapse font-mono text-[15px]"><caption className="p-3 text-left text-sm text-text-muted">Predicted height above MLLW, hourly, with the exact highs and lows. Station-local time ({STATION_TIME_ZONE_LABEL}).</caption><thead><tr className="border-t border-hairline text-left text-[13px] uppercase tracking-wider text-text-muted"><th className="px-3.5 py-2 font-medium">Time</th><th className="px-3.5 py-2 font-medium">Height</th><th className="px-3.5 py-2 font-medium">Mark</th></tr></thead><tbody>{tableRows()}</tbody></table></div>}
-      <p className="mt-6 border-t border-hairline pt-4 text-[15px] text-text-muted">78 renderable points across a 71-hour window, with every exact turning point kept. Embedded NOAA CO-OPS prediction fixture from the approved prototype; retrieval timestamp was not recorded. Window: Aug 31, 2026 5:00pm–Sep 3, 2026 4:00pm {STATION_TIME_ZONE_LABEL}. Station <code className="font-mono text-[13px] text-text-primary">{TIDE_STATION}</code>, datum <code className="font-mono text-[13px] text-text-primary">MLLW</code>, metric.</p>
+      <button className="mt-4 min-h-touch-primary-standard w-full rounded-lg border border-border-interactive bg-surface-raised px-5 text-lg font-semibold hover:border-tide-cyan" type="button" aria-expanded={tableOpen} aria-controls="tide-table" onClick={() => setTableOpen((open) => !open)}>{tableOpen ? "Hide the numbers" : "Show the numbers instead"}</button>
+      {tableOpen && <div id="tide-table" className="mt-3 overflow-x-auto rounded-lg border border-hairline"><table className="w-full border-collapse font-mono text-caption"><caption className="p-3 text-left text-caption text-text-muted">Predicted height above MLLW, hourly, with the exact highs and lows. Station-local time ({STATION_TIME_ZONE_LABEL}).</caption><thead><tr className="border-t border-hairline text-left text-caption uppercase tracking-wider text-text-muted"><th className="px-3.5 py-2 font-medium">Time</th><th className="px-3.5 py-2 font-medium">Height</th><th className="px-3.5 py-2 font-medium">Mark</th></tr></thead><tbody>{tableRows()}</tbody></table></div>}
+      <p className="mt-6 border-t border-hairline pt-4 text-caption text-text-muted">78 renderable points across a 71-hour window, with every exact turning point kept. Embedded NOAA CO-OPS prediction fixture from the approved prototype; retrieval timestamp was not recorded. Window: Aug 31, 2026 5:00pm–Sep 3, 2026 4:00pm {STATION_TIME_ZONE_LABEL}. Station <code className="font-mono text-caption text-text-primary">{TIDE_STATION}</code>, datum <code className="font-mono text-caption text-text-primary">MLLW</code>, metric.</p>
     </section>
   );
 }
 
 function StatusCell({ label, cyan = false, children }: { label: string; cyan?: boolean; children: React.ReactNode }) {
-  return <div className="flex min-w-0 flex-col gap-0.5 bg-surface p-3"><dt className="font-mono text-xs uppercase tracking-widest text-text-muted">{label}</dt><dd className={`m-0 font-mono text-xl font-semibold tabular-nums [&_small]:mt-1 [&_small]:block [&_small]:text-[13px] [&_small]:font-normal [&_small]:text-text-muted ${cyan ? "text-tide-cyan" : ""}`}>{children}</dd></div>;
+  return <div className="flex min-w-0 flex-col gap-0.5 bg-surface p-3"><dt className="font-mono text-caption uppercase tracking-widest text-text-muted">{label}</dt><dd className={`m-0 font-mono text-xl font-semibold tabular-nums [&_small]:mt-1 [&_small]:block [&_small]:text-caption [&_small]:font-normal [&_small]:text-text-muted ${cyan ? "text-tide-cyan" : ""}`}>{children}</dd></div>;
 }
 
 function gridValues() { const values: number[] = []; for (let value = Math.ceil(yMinimum / 500) * 500; value <= yMaximum; value += 500) values.push(value); return values; }
@@ -284,7 +284,7 @@ function tableRows() {
   let previousDay = -1;
   return TIDE_POINTS.filter(([minute, , mark]) => minute % 60 === 0 || Boolean(mark)).flatMap(([minute, millimeters, mark]) => {
     const rows: React.ReactNode[] = []; const current = dayIndex(minute);
-    if (current !== previousDay) { rows.push(<tr key={`day-${minute}`} className="border-t border-hairline bg-surface-raised text-[13px] font-semibold uppercase tracking-wider text-text-muted"><td colSpan={3} className="px-3.5 py-2">{dayLabel(minute)}</td></tr>); previousDay = current; }
+    if (current !== previousDay) { rows.push(<tr key={`day-${minute}`} className="border-t border-hairline bg-surface-raised text-caption font-semibold uppercase tracking-wider text-text-muted"><td colSpan={3} className="px-3.5 py-2">{dayLabel(minute)}</td></tr>); previousDay = current; }
     rows.push(<tr key={minute} className={`border-t border-hairline ${mark ? "font-semibold text-tide-cyan" : ""}`}><td className="px-3.5 py-2">{clock(minute)}</td><td className="px-3.5 py-2">{meters(millimeters)}</td><td className="px-3.5 py-2">{mark === "H" ? "High" : mark === "L" ? "Low" : ""}</td></tr>); return rows;
   });
 }

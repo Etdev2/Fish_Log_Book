@@ -137,6 +137,17 @@ absurd at two. Fifty lines of Node beats a dependency with a config format.
 **Consequence a future agent must live with.**
 - **No raw hex, rgb, px font-size, or arbitrary Tailwind bracket value in a `.tsx` file.**
   CI greps for it and fails. If a value is missing, add a token; do not inline one.
+- **One exception, and only one: a font-size literal on an SVG `<text>`/`<tspan>` line.**
+  Chart tick labels — axis heights, hour marks, the high/low callouts — plot below the
+  16px type floor that `docs/design/01-foundations.md` §2 otherwise states without an
+  escape hatch. They are permitted because a tick label is never the only carrier of its
+  value: a chart that plots one also renders the same numbers as real text at full scale
+  (the tide chart's "Show the numbers instead" table), which is the condition §1.2 sets
+  for relaxed treatment, and because chart geometry cannot absorb 16px labels without
+  dropping data points. The exemption covers **size only** — a raw colour on the same
+  line still fails, and a font-size literal one character outside the element still
+  fails. `scripts/check-tripwires.mjs` encodes it and its negative cases. Reaching for
+  this because prose feels cramped is always wrong; the answer there is the layout.
 - `tokens.generated.css` is build output that happens to be committed. A PR that
   hand-edits it is wrong even if it works.
 - ux-ui owns the *values* in `tokens.json` and the naming of the semantic layer. This ADR
