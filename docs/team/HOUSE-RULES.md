@@ -25,15 +25,22 @@ Do not write App Router code from memory. This overrides your training data.
 
 ## 3. Git
 
-- Never commit to `main`. Branch: `<role>/<short-slug>` e.g. `ux/catch-form-a11y`.
-- **Create and push your branch when you START, not when you finish.** An empty pushed
-  branch is a public claim on the work, so nobody duplicates it and nobody describes a
-  fix as "in progress" on a branch that does not exist.
-- One concern per branch. Small PRs merge; big PRs rot.
+- Never commit directly to `main`. Branch: `<role>/<short-slug>` e.g.
+  `ux-ui/catch-form-a11y`.
+- Branches belong to independent write workstreams, not to agent identities. Read-only
+  work needs no branch. Helpers in the same workstream normally share its branch.
+- **Create and push a write-workstream branch when work starts, not when it finishes.**
+  An empty pushed branch is a public claim on the work.
+- One concern per branch. Small PRs integrate; big PRs rot.
+- Simultaneous write workstreams use separate worktrees. Never switch branches inside
+  another active agent's worktree, and never assign concurrent edits to the same file.
 - PR body = what changed, why, how it was checked. Three bullets are enough.
-- **Merge your own work.** Merge when §4 passes — that is the gate, not another agent's
-  approval. A second agent re-reads the whole repo to rubber-stamp a diff, which costs
-  real money and catches less than the build does.
+- Workers may commit and push only their assigned branch. They do not merge into `main`.
+- `code-reviewer` reviews, `test-agent` verifies, and `git-integrator` alone owns rebase,
+  merge order, merge execution, and completed branch/worktree cleanup.
+- `git-integrator` may resolve mechanical conflicts such as imports, formatting, and
+  documentation. It must return semantic conflicts to `head-dev` or `architect`; it
+  never guesses which business logic is correct.
 - **Push before you stop, finished or not.** Committed is not saved. A session can end
   mid-sentence on a usage limit, and unpushed work exists on one machine only. Ending a
   session without pushing is the single most expensive mistake in this repo.
@@ -96,4 +103,23 @@ Full conventions in `docs/team/WORKLOG.md`.
   to store and cheap to grep; conversation context is paid for on every single turn.
 - `CLAUDE.md` and `AGENTS.md` load into *every* session. Keep them tiny. Point to
   paths, do not `@`-import docs.
-- Finish in your own lane. Handing work sideways re-reads the whole project.
+- Use the configured LOW agent for deterministic transformation and search, MEDIUM for
+  ordinary implementation and judgment, and HIGH only where deeper reasoning materially
+  changes the outcome. Full routing rules are in `AI-OPERATING-SYSTEM.md`.
+- Spawn only when a bounded specialist context or genuine independent parallelism saves
+  more than the extra agent costs. Agent count is not productivity.
+- A handoff contains only task, constraints, relevant paths, expected output, and done
+  criteria, plus a runtime only when Claude/Codex routing matters. Do not forward the
+  parent's transcript.
+- Employee names are platform-neutral. Use the active platform's matching adapter unless
+  the user requests Claude-only, Codex-only, or mixed execution. Cross-platform work uses
+  repository artifacts; never pretend one vendor's local subagent is the other vendor.
+- Finish in your own lane. Escalate an unresolved decision; do not duplicate reasoning
+  across several equally powerful agents.
+
+## 8. Agent escalation
+
+The default ladder is LOW -> MEDIUM -> HIGH. After one or two materially different
+failed attempts, escalate instead of retrying at the same tier. HIGH normally returns a
+decision or plan downward for execution. Role boundaries, permissions, and escalation
+targets are defined in `AI-OPERATING-SYSTEM.md` and `.claude/agents/`.

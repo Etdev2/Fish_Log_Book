@@ -176,13 +176,16 @@ open product question in this repo.
 
 ## 7. Working conventions
 
-Eight specialist roles are defined in `.claude/agents/` — architect, biostat, ceo, cfo,
-coo, counsel, head-dev, ux-ui. They are Claude Code subagents, but the role definitions
-are plain markdown and read perfectly well as job descriptions for a human or another AI.
+Thirteen specialist roles are defined in `.claude/agents/`; matching project-scoped
+Codex agents live in `.codex/agents/`. Read `docs/team/README.md` for the roster and
+`docs/team/AI-OPERATING-SYSTEM.md` for model routing, permissions, escalation, and
+worktree rules.
 
-Git: branch as `<role>/<short-slug>`, never commit to `main`, nobody merges their own work.
-Every session appends a plain-English entry to `docs/team/WORKLOG.md`. Findings another
-role needs go in `docs/team/CHANNEL.md`.
+Git: branch as `<role>/<short-slug>`, never commit directly to `main`, and use one branch
+per independent write workstream rather than per spawned agent. Workers may commit and
+push their assigned branches. `git-integrator` alone merges approved work into `main`.
+Every session creates a plain-English entry under `docs/team/worklog/`. Findings another
+role needs go under `docs/team/channel/`.
 
 **Never commit** `.env.local`, API keys, or a real user's fishing coordinates. Fishermen do
 not share spots — location precision is a privacy question, not just a schema one.
