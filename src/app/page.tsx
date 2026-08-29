@@ -33,15 +33,15 @@ export default async function Home() {
   const status = await checkSupabase();
 
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center gap-8 p-8">
+    <main className="flex min-h-[calc(100dvh-68px)] flex-col items-center justify-center gap-8 bg-[#0A1014] p-8 text-[#EEF4F7]">
       <div className="text-center">
         <h1 className="text-4xl font-semibold tracking-tight">Fish Log Book</h1>
-        <p className="mt-2 text-sm text-black/60 dark:text-white/60">
-          Next.js + Supabase
+        <p className="mt-2 text-sm text-[#8CA0AC]">
+          Working app entry · Next.js + Supabase
         </p>
       </div>
 
-      <div className="w-full max-w-md rounded-lg border border-black/10 p-5 dark:border-white/15">
+      <div className="w-full max-w-md rounded-xl border border-[#26333C] bg-[#121A20] p-5">
         <div className="flex items-center gap-3">
           <span
             className={`h-3 w-3 rounded-full ${status.ok ? "bg-green-500" : "bg-red-500"}`}
@@ -51,7 +51,7 @@ export default async function Home() {
             Supabase: {status.ok ? "connected" : "not connected"}
           </span>
         </div>
-        <p className="mt-2 break-words text-sm text-black/60 dark:text-white/60">
+        <p className="mt-2 break-words text-sm text-[#8CA0AC]">
           {status.detail}
         </p>
       </div>
