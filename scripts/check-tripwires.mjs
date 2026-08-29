@@ -44,10 +44,35 @@ if (staleLegacy.length > 0) {
 /* ---- 2. No raw colour or size literals in components (ADR 005 §2). ---- */
 
 const LITERAL = /#[0-9a-fA-F]{3,8}\b|\brgba?\(|\bhsla?\(|\[\d+(?:\.\d+)?(?:px|rem|em)\]/;
+
+/**
+ * The one exception to the 16px type floor (docs/design/01-foundations.md §2), and it is
+ * deliberately the narrowest one expressible: a font-size literal on a line that renders
+ * an SVG <text>/<tspan>, i.e. a tick label plotted inside a chart.
+ *
+ * Why this is allowed where the design doc says "no escape hatch": the floor exists so a
+ * reader is never forced to read something they cannot. A tick label is never the only
+ * carrier of its value — every chart that plots one also ships the same numbers as real
+ * text at the full scale (the tide chart's "Show the numbers instead" table), which is
+ * the condition §1.2 sets for relaxed treatment. Chart geometry, unlike prose, cannot
+ * absorb 16px labels without dropping data points.
+ *
+ * This exempts SIZE only. A raw colour on an SVG text line still fails, and a font-size
+ * literal one character outside an <text> element still fails. If you are reaching for
+ * this because a layout feels cramped, you want the layout changed, not this rule.
+ */
+const LITERAL_GLOBAL = new RegExp(LITERAL.source, "g");
+
+const isChartTickLabel = (line, match) =>
+  /<(text|tspan)\b/.test(line) && /^\[\d+(?:\.\d+)?(?:px|rem|em)\]$/.test(match);
+
 for (const file of tracked("'src/**/*.tsx'")) {
   const lines = readFileSync(file, "utf8").split("\n");
   lines.forEach((line, i) => {
-    if (LITERAL.test(line)) {
+    const offending = [...line.matchAll(LITERAL_GLOBAL)]
+      .map((m) => m[0])
+      .filter((literal) => !isChartTickLabel(line, literal));
+    if (offending.length > 0) {
       failures.push(
         `Raw colour/size literal in a component (ADR 005 §2) — add a token to ` +
           `src/core/design/tokens.json instead:\n    ${file}:${i + 1}  ${line.trim()}`,
