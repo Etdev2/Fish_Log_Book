@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import {
   type FormEvent,
   type KeyboardEvent as ReactKeyboardEvent,
@@ -1061,8 +1060,9 @@ function loadFeedback(): { feedback: FeedbackStore; error: string } {
 }
 
 export function LearningDashboard() {
-  const router = useRouter();
   const [mode, setMode] = useState<"dashboard" | "builder">("dashboard");
+  const [guideOpen, setGuideOpen] = useState(false);
+  const [guideStepIndex, setGuideStepIndex] = useState(0);
   const [previewItem, setPreviewItem] = useState<BuilderItem | null>(null);
   const [feedback, setFeedback] = useState<FeedbackStore>({});
   const [announcement, setAnnouncement] = useState("");
@@ -1099,7 +1099,8 @@ export function LearningDashboard() {
   }
 
   function startGuide() {
-    router.push("/?guide=1");
+    setGuideStepIndex(0);
+    setGuideOpen(true);
   }
 
   return (
@@ -1150,6 +1151,15 @@ export function LearningDashboard() {
         </div>
       </div>
 
+      {guideOpen ? (
+        <GuideDialog
+          stepIndex={guideStepIndex}
+          onStepChange={setGuideStepIndex}
+          onClose={() => setGuideOpen(false)}
+          onSkip={() => setGuideOpen(false)}
+          onComplete={() => setGuideOpen(false)}
+        />
+      ) : null}
       {previewItem ? <PreviewDialog item={previewItem} onClose={closePreview} /> : null}
     </main>
   );
