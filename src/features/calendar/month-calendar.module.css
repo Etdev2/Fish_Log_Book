@@ -1,0 +1,215 @@
+/*
+ * Marine palette + type scale from docs/design/01-foundations.md and 02-semantic-colors.md.
+ * Declared locally as custom properties on purpose: the generated token layer
+ * (src/app/tokens.generated.css) is still on head-dev/shell-and-tokens and not on main
+ * yet. When it merges, delete this block — every value below is already a token there.
+ */
+.calendar {
+  --surface: #0a1014;
+  --surface-raised: #121a20;
+  --line: #26333c;
+  --ink: #eef4f7;
+  --ink-muted: #c3d2da;
+  --ink-faint: #8ca0ac;
+  --accent: #ff7a18;
+  --record: #3fc7e0;
+  --flag: #e8b55f;
+
+  /* 01-foundations §2.2. 18px is the body floor; 16px is caption and the absolute
+     minimum anywhere in this app, including legends. Nothing here goes below it. */
+  --text-caption: 16px;
+  --text-body: 18px;
+  --text-h2: 26px;
+
+  /* Owns its own ground. globals.css on main is still the stock Next template, which
+     is light by default, so inheriting the page background put near-white type on
+     white. A surface this dark is not decoration here — 02-semantic-colors picks it
+     for glare on open water, and it has to hold regardless of what the shell does. */
+  min-height: 100dvh;
+  background: var(--surface);
+  color: var(--ink);
+  font-size: var(--text-body);
+  line-height: 1.55;
+}
+
+.inner {
+  max-width: 560px;
+  margin: 0 auto;
+  padding: 20px 16px 64px;
+}
+
+.monthBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.monthName {
+  margin: 0;
+  font-size: var(--text-h2);
+  font-weight: 800;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+}
+
+/* 03-touch-and-interaction: 48px is the floor for any target; month stepping is a
+   frequent one-handed action on a moving boat, so these get the full 68px. */
+.step {
+  display: flex;
+  min-width: 68px;
+  min-height: 68px;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: var(--surface-raised);
+  color: var(--ink);
+  font-size: var(--text-body);
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.step:focus-visible,
+.day:focus-visible,
+.todayLink:focus-visible {
+  outline: 3px solid var(--record);
+  outline-offset: 3px;
+}
+
+.spacer {
+  min-width: 68px;
+}
+
+.weekdays,
+.grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+}
+
+.weekdays {
+  margin-bottom: 6px;
+}
+
+.weekdays span {
+  padding: 4px 0;
+  color: var(--ink-faint);
+  font-size: var(--text-caption);
+  font-weight: 500;
+  text-align: center;
+}
+
+.blank {
+  min-height: 64px;
+}
+
+.day {
+  display: flex;
+  min-height: 64px;
+  padding: 8px 4px 6px;
+  align-items: center;
+  justify-content: flex-start;
+  flex-direction: column;
+  gap: 5px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--surface-raised);
+  color: var(--ink-muted);
+  font-size: var(--text-caption);
+  text-decoration: none;
+}
+
+.day.today {
+  border-color: var(--accent);
+  color: var(--ink);
+}
+
+.dayNumber {
+  font-size: var(--text-body);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+.marks {
+  display: flex;
+  min-height: 10px;
+  align-items: center;
+  gap: 4px;
+}
+
+.dotTrip {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--record);
+}
+
+.dotJournal {
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  background: var(--ink-faint);
+}
+
+.flag {
+  color: var(--flag);
+  font-size: var(--text-caption);
+  line-height: 1;
+}
+
+.legend {
+  display: flex;
+  margin-top: 22px;
+  flex-wrap: wrap;
+  gap: 8px 18px;
+  color: var(--ink-faint);
+  font-size: var(--text-caption);
+}
+
+.legend span {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.todayLink {
+  display: flex;
+  min-height: 68px;
+  margin-top: 24px;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: 16px;
+  background: var(--accent);
+  color: #140800;
+  font-size: var(--text-body);
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.notice {
+  padding: 16px;
+  margin-bottom: 20px;
+  border: 1px solid var(--line);
+  border-left: 4px solid var(--accent);
+  border-radius: 12px;
+  background: var(--surface-raised);
+  font-size: var(--text-caption);
+  line-height: 1.5;
+}
+
+.notice strong {
+  display: block;
+  margin-bottom: 6px;
+  color: var(--accent);
+  font-size: var(--text-body);
+}
+
+.notice code {
+  font-family: var(--font-geist-mono), ui-monospace, monospace;
+  font-size: var(--text-caption);
+  word-break: break-all;
+}
