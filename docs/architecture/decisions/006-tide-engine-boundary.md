@@ -27,7 +27,7 @@ src/core/rules/tide/
   height.ts     heightAt, rateAt, dailyRange
   turns.ts      turnsIn, nextTurnAfter, previousTurnBefore, nextSlackAfter
   state.ts      readTideAt — assembles the TideReading the UI consumes
-  pace.ts       paceAt — "fast for this station and cycle"
+  pace.ts       paceAt — percentile-banded "fast for this station and cycle" (§2a)
   index.ts      the only import path anything outside this folder may use
 src/core/rules/astro/index.ts        sunEventsFor, daylightSpans, moonPhaseAt (biostat)
 src/core/rules/conditions/           RESERVED. The scoring seam. Empty this round.
@@ -99,13 +99,25 @@ export interface SlackWindow {
   readonly centre: Instant; readonly from: Instant; readonly to: Instant;
   readonly turn: "high" | "low";
 }
-export type PaceClass = "slow" | "typical" | "fast";
-export interface TidePace {
-  readonly class: PaceClass;
-  readonly ratio: number;                        // |rate| / baseline.medianPeakRate
-  readonly baseline: { readonly source: "series"; readonly sampleCount: number;
-                       readonly medianPeakRate: MetresPerHour };
+export type PaceClass = "very-slow" | "slow" | "normal" | "fast" | "very-fast";
+export interface PaceBaseline {
+  readonly source: "series";                     // the LOADED window, not station climatology
+  readonly sampleInterval: Millis;               // fixed step the distribution was sampled at
+  readonly sampleCount: number;
+  readonly medianPeakRate: MetresPerHour;
 }
+export interface TidePace {
+  readonly class: PaceClass;                     // derived from `percentile`, never from `ratio`
+  readonly percentile: number;                   // 0..1. |rate| against the sampled distribution.
+  readonly ratio: number;                        // |rate| / baseline.medianPeakRate. Display only.
+  readonly baseline: PaceBaseline;
+}
+/** Upper percentile bound of each band. Tuning these is a vector change, not a type change. */
+export const PACE_BANDS: readonly { readonly upTo: number; readonly class: PaceClass }[] = [
+  { upTo: 0.10, class: "very-slow" }, { upTo: 0.30, class: "slow" },
+  { upTo: 0.70, class: "normal" },    { upTo: 0.90, class: "fast" },
+  { upTo: 1.00, class: "very-fast" },
+];
 export interface TideReading {
   readonly at: Instant;
   readonly height: Sourced<Metres>;
@@ -154,6 +166,28 @@ export function moonPhaseAt(at: Instant): MoonPhase;
 
 `daylightSpans` returns contiguous, sorted, gap-free spans covering `[from, to]`. The chart
 shades by iterating them and never computes a day boundary itself.
+
+## 2a. Pace is classified by percentile, not by ratio
+
+Five bands: `very-slow | slow | normal | fast | very-fast`, and the middle one is **normal**.
+
+**Classify on `percentile`, never on `ratio`.** `|rate|` over a tidal cycle is near-sinusoidal
+— zero at each turn, peak mid-leg, mean about 0.64 of peak. Five bands cut around a ratio of
+1.0 would therefore file most of the day as slow and almost nothing as fast, which is both
+useless and quietly wrong. Percentile against the actual sampled distribution puts the band
+boundaries where the data is. `ratio` stays on the type because "0.8× the usual peak" is a
+sentence an angler can read; it is a display number and nothing branches on it.
+
+The distribution is `|rate|` sampled at a **fixed interval** across the loaded series —
+fixed, so the result is reproducible and vector-testable rather than a function of how NOAA
+happened to space its samples. `baseline.sampleInterval` and `sampleCount` are on the type so
+the number can be audited later.
+
+**The honesty constraint holds.** The baseline is the loaded window, not station climatology:
+`baseline.source` is `"series"`, and on a three-day fixture "very-fast" means fast *for these
+three days*. That is why `pace` is `Sourced<TidePace>` with certainty `estimated` and a
+`basis` string the UI must render. When real climatology arrives, `source` gains a second
+member and the bands are re-derived — the type survives, the meaning improves.
 
 ## 3. Units and time — one rule each
 
@@ -231,6 +265,10 @@ are plain Vitest in the configured `node` environment with no jsdom; the four ve
   vector tests construct an object. Free functions over an explicit series read better.
 - **Plain `number` with a naming convention (`rateMph`).** Conventions do not fail the build,
   and the defect this ADR most wants to prevent is a height rate shown as a current speed.
+- **A three-band pace classifier cut on `ratio`.** Fewer bands and one less field, and it is
+  what this ADR originally said. It bands a near-sinusoidal quantity around its peak rather
+  than its distribution, so it reports "slow" for most of a normal day. See §2a before
+  simplifying it back.
 - **A timezone-aware engine.** Puts `Intl` in `core/`, which Swift cannot use, and makes every
   output locale-dependent.
 - **Designing the score now.** `core/rules/conditions/` is reserved and empty. Its input will
