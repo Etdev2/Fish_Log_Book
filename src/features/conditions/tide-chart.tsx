@@ -92,6 +92,13 @@ function xFor(minutes: number) {
   return LEFT_PADDING + minutes / MINUTES_PER_PIXEL;
 }
 
+function keepMinuteVisible(minutes: number, scroller: HTMLDivElement) {
+  const edge = 72;
+  const relativeX = xFor(minutes) - scroller.scrollLeft;
+  if (relativeX < edge) scroller.scrollLeft = Math.max(0, xFor(minutes) - edge);
+  if (relativeX > scroller.clientWidth - edge) scroller.scrollLeft = Math.min(scroller.scrollWidth - scroller.clientWidth, xFor(minutes) - scroller.clientWidth + edge);
+}
+
 const heights = TIDE_POINTS.map((point) => point[1]);
 const low = Math.min(...heights);
 const high = Math.max(...heights);
@@ -116,12 +123,11 @@ function curvePath() {
 
 export function TideChart() {
   const scrollerRef = useRef<HTMLDivElement>(null);
-  const holdTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const [cursor, setCursor] = useState(TIDE_SELECTED_MINUTES);
-  const [reading, setReading] = useState(false);
+  const dragRef = useRef<{ pointerId: number; startX: number; startY: number; startMinute: number; active: boolean } | null>(null);
+  const [selectedMinute, setSelectedMinute] = useState(TIDE_SELECTED_MINUTES);
+  const [dragging, setDragging] = useState(false);
   const [tableOpen, setTableOpen] = useState(false);
   const [centerMinute, setCenterMinute] = useState(TIDE_SELECTED_MINUTES);
-  const [tooltipX, setTooltipX] = useState(50);
   const path = useMemo(() => curvePath(), []);
 
   const scrollToMinute = (minute: number, smooth = true) => {
@@ -132,7 +138,12 @@ export function TideChart() {
   };
 
   useEffect(() => {
-    const frame = requestAnimationFrame(() => scrollToMinute(TIDE_SELECTED_MINUTES, false));
+    const frame = requestAnimationFrame(() => {
+      scrollToMinute(TIDE_SELECTED_MINUTES, false);
+      const scroller = scrollerRef.current;
+      if (!scroller) return;
+      setCenterMinute(Math.max(0, Math.min(TOTAL_MINUTES, (scroller.scrollLeft + scroller.clientWidth / 2 - LEFT_PADDING) * MINUTES_PER_PIXEL)));
+    });
     return () => cancelAnimationFrame(frame);
   }, []);
 
@@ -142,30 +153,31 @@ export function TideChart() {
     setCenterMinute(Math.max(0, Math.min(TOTAL_MINUTES, (scroller.scrollLeft + scroller.clientWidth / 2 - LEFT_PADDING) * MINUTES_PER_PIXEL)));
   };
 
-  const readPointer = (clientX: number) => {
+  const selectMinute = (minute: number, keepVisible = false) => {
     const scroller = scrollerRef.current;
+    const next = Math.round(Math.max(0, Math.min(TOTAL_MINUTES, minute)));
+    setSelectedMinute(next);
     if (!scroller) return;
-    const bounds = scroller.getBoundingClientRect();
-    setCursor(Math.max(0, Math.min(TOTAL_MINUTES, (clientX - bounds.left + scroller.scrollLeft - LEFT_PADDING) * MINUTES_PER_PIXEL)));
-    setTooltipX(Math.max(64, Math.min(bounds.width + 46 - 64, clientX - bounds.left + 46)));
+    if (keepVisible) keepMinuteVisible(next, scroller);
   };
 
-  const rate = heightAt(TIDE_SELECTED_MINUTES + 30) - heightAt(TIDE_SELECTED_MINUTES - 30);
+  const rate = heightAt(selectedMinute + 30) - heightAt(selectedMinute - 30);
   const rising = rate > 0;
   const slack = Math.abs(rate) < 50;
-  const selectedLeg = tideLegAt(TIDE_SELECTED_MINUTES);
-  const nextHigh = TIDE_POINTS.find(([minute, , mark]) => mark === "H" && minute > TIDE_SELECTED_MINUTES);
-  const todayPoints = TIDE_POINTS.filter(([minute]) => minute >= 420 && minute <= 1860).map(([, millimeters]) => millimeters);
+  const selectedLeg = tideLegAt(selectedMinute);
+  const nextTurn = TIDE_POINTS.find(([minute, , mark]) => Boolean(mark) && minute > selectedMinute);
+  const selectedDay = dayIndex(selectedMinute);
+  const selectedDayStart = selectedDay === 0 ? 0 : 420 + (selectedDay - 1) * 1440;
+  const selectedDayEnd = Math.min(TOTAL_MINUTES, selectedDayStart + 1440);
+  const selectedDayPoints = TIDE_POINTS.filter(([minute]) => minute >= selectedDayStart && minute <= selectedDayEnd).map(([, millimeters]) => millimeters);
   const currentDay = dayIndex(centerMinute);
   const finalDay = dayIndex(TOTAL_MINUTES);
-  const cursorHeight = heightAt(cursor);
-  const cursorX = xFor(cursor);
-  const cursorY = yFor(cursorHeight);
+  const selectedHeight = heightAt(selectedMinute);
+  const selectedX = xFor(selectedMinute);
+  const selectedY = yFor(selectedHeight);
 
   const moveReadHead = (amount: number) => {
-    const next = Math.max(0, Math.min(TOTAL_MINUTES, cursor + amount));
-    setCursor(next);
-    scrollToMinute(next);
+    selectMinute(selectedMinute + amount, true);
   };
 
   return (
@@ -173,18 +185,18 @@ export function TideChart() {
       <header className="flex flex-col gap-1 pb-4 pt-3">
         <p className="font-mono text-sm font-medium uppercase tracking-[.14em] text-text-muted">Station {TIDE_STATION} · {TIDE_STATION_NAME}</p>
         <h1 className="text-h1">Tide</h1>
-        <p className="text-caption text-text-muted">Predicted height above MLLW · station-local time ({STATION_TIME_ZONE_LABEL}) · selected fixture instant: {dayLabel(TIDE_SELECTED_MINUTES)}, {clock(TIDE_SELECTED_MINUTES)}</p>
+        <p className="text-caption text-text-muted">Predicted height above MLLW · station-local time ({STATION_TIME_ZONE_LABEL}) · selected: {dayLabel(selectedMinute)}, {clock(selectedMinute)}</p>
         <span className="mt-2 inline-flex w-fit items-center gap-2 rounded-full border border-hairline bg-surface-raised px-3 py-1.5 font-mono text-[13px] tracking-wide text-text-muted before:size-2 before:rounded-full before:bg-text-muted">Cached fixture — not a live reading</span>
       </header>
 
       <dl className="mb-4 grid grid-cols-2 gap-px overflow-hidden rounded-lg border border-hairline bg-hairline sm:grid-cols-4">
-        <StatusCell label="Selected"><span>{meters(heightAt(TIDE_SELECTED_MINUTES))}</span></StatusCell>
+        <StatusCell label="Selected"><span>{meters(selectedHeight)}</span></StatusCell>
         <StatusCell label="State" cyan>
           <span aria-hidden="true">{slack ? "—" : rising ? "▲" : "▼"} </span>{slack ? "Slack" : rising ? "Flooding" : "Ebbing"}
           {slack ? <><small>At the turn</small><small>Movement: 0.00 m/h</small><small>Rule: turning</small></> : <><small>{selectedLeg?.percentage ?? 0}% through {rising ? "flood" : "ebb"}</small><small>Movement: {rising ? "+" : ""}{(rate / 1000).toFixed(2)} m/h</small><small aria-label={`Rule of twelfths: approximately ${selectedLeg?.twelfths ?? 0} twelfths of the tidal range this tide hour`}>Rule: ~{selectedLeg?.twelfths ?? 0}/12</small></>}
         </StatusCell>
-        <StatusCell label="Next high">{nextHigh ? <><span>{clock(nextHigh[0])}</span><small>in {Math.floor((nextHigh[0] - TIDE_SELECTED_MINUTES) / 60)}h {(nextHigh[0] - TIDE_SELECTED_MINUTES) % 60}m</small></> : "—"}</StatusCell>
-        <StatusCell label={`${monthDay(TIDE_SELECTED_MINUTES)} range`}>{meters(Math.max(...todayPoints) - Math.min(...todayPoints))}</StatusCell>
+        <StatusCell label="Next turn">{nextTurn ? <><span>{clock(nextTurn[0])}</span><small>{nextTurn[2] === "H" ? "High" : "Low"} in {Math.floor((nextTurn[0] - selectedMinute) / 60)}h {(nextTurn[0] - selectedMinute) % 60}m</small></> : "—"}</StatusCell>
+        <StatusCell label={`${monthDay(selectedMinute)} range`}>{meters(Math.max(...selectedDayPoints) - Math.min(...selectedDayPoints))}</StatusCell>
       </dl>
 
       <div className="overflow-hidden rounded-lg border border-hairline bg-surface pb-1.5 pt-3.5">
@@ -192,7 +204,7 @@ export function TideChart() {
           <h2 className="min-w-0 truncate text-lg font-bold">{dayLabel(centerMinute)}</h2>
           <div className="flex shrink-0 gap-2">
             <button className="size-[52px] rounded-md border border-border-interactive bg-surface-raised text-xl hover:border-tide-cyan disabled:opacity-45" type="button" aria-label="Previous day" disabled={currentDay <= 0} onClick={() => scrollToMinute(Math.max(0, (currentDay - 1) * 1440 - 17 * 60 + 720))}>‹</button>
-            <button className="h-[52px] rounded-md border border-signal-orange bg-surface-raised px-3 font-mono text-sm font-semibold tracking-widest text-signal-orange hover:bg-signal-orange hover:text-ink-on-orange" type="button" aria-label={`Jump to selected fixture time: ${dayLabel(TIDE_SELECTED_MINUTES)}, ${clock(TIDE_SELECTED_MINUTES)}`} onClick={() => { setCursor(TIDE_SELECTED_MINUTES); scrollToMinute(TIDE_SELECTED_MINUTES); }}>SEP 1</button>
+            <button className="h-[52px] rounded-md border border-signal-orange bg-surface-raised px-3 font-mono text-sm font-semibold tracking-widest text-signal-orange hover:bg-signal-orange hover:text-ink-on-orange" type="button" aria-label={`Return to initial fixture time: ${dayLabel(TIDE_SELECTED_MINUTES)}, ${clock(TIDE_SELECTED_MINUTES)}`} onClick={() => { selectMinute(TIDE_SELECTED_MINUTES); scrollToMinute(TIDE_SELECTED_MINUTES); }}>SEP 1</button>
             <button className="size-[52px] rounded-md border border-border-interactive bg-surface-raised text-xl hover:border-tide-cyan disabled:opacity-45" type="button" aria-label="Next day" disabled={currentDay >= finalDay} onClick={() => scrollToMinute(Math.min(TOTAL_MINUTES, (currentDay + 1) * 1440 - 17 * 60 + 720))}>›</button>
           </div>
         </div>
@@ -204,29 +216,38 @@ export function TideChart() {
           </svg>
           <div
             ref={scrollerRef}
-            className="min-w-0 flex-1 overflow-x-auto overscroll-x-contain [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+            className="min-w-0 flex-1 overflow-x-auto overscroll-x-contain [scrollbar-width:none] [touch-action:pan-y] [&::-webkit-scrollbar]:hidden"
             tabIndex={0}
             role="slider"
-            aria-label="Tide height by time. Use left and right arrows to read the curve."
+            aria-label="Tide height by time. Drag horizontally to select a point on the curve. Use left and right arrows to adjust the selected point."
             aria-valuemin={0}
             aria-valuemax={TOTAL_MINUTES}
-            aria-valuenow={Math.round(cursor)}
-            aria-valuetext={`${meters(cursorHeight)} at ${clock(cursor)} ${STATION_TIME_ZONE_LABEL}, ${dayLabel(cursor)}`}
+            aria-valuenow={Math.round(selectedMinute)}
+            aria-valuetext={`${meters(selectedHeight)} at ${clock(selectedMinute)} ${STATION_TIME_ZONE_LABEL}, ${dayLabel(selectedMinute)}`}
             onScroll={updateCenter}
-            onFocus={() => setReading(true)}
-            onBlur={() => setReading(false)}
-            onPointerMove={(event) => { if (event.pointerType === "mouse") { readPointer(event.clientX); setReading(true); } }}
-            onPointerLeave={() => setReading(false)}
-            onPointerDown={(event) => { if (event.pointerType !== "mouse") holdTimeout.current = setTimeout(() => { readPointer(event.clientX); setReading(true); }, 260); }}
-            onPointerUp={(event) => { if (holdTimeout.current) clearTimeout(holdTimeout.current); holdTimeout.current = null; if (event.pointerType !== "mouse") setReading(false); }}
-            onPointerCancel={(event) => { if (holdTimeout.current) clearTimeout(holdTimeout.current); holdTimeout.current = null; if (event.pointerType !== "mouse") setReading(false); }}
-            onPointerMoveCapture={() => { if (holdTimeout.current) { clearTimeout(holdTimeout.current); holdTimeout.current = null; } }}
+            onPointerDown={(event) => { dragRef.current = { pointerId: event.pointerId, startX: event.clientX, startY: event.clientY, startMinute: selectedMinute, active: false }; }}
+            onPointerMove={(event) => {
+              const drag = dragRef.current;
+              if (!drag || drag.pointerId !== event.pointerId) return;
+              const horizontalDistance = event.clientX - drag.startX;
+              const verticalDistance = event.clientY - drag.startY;
+              if (!drag.active) {
+                if (Math.abs(horizontalDistance) < 8 || Math.abs(horizontalDistance) <= Math.abs(verticalDistance)) return;
+                drag.active = true;
+                event.currentTarget.setPointerCapture(event.pointerId);
+                setDragging(true);
+              }
+              event.preventDefault();
+              selectMinute(drag.startMinute + horizontalDistance * MINUTES_PER_PIXEL, true);
+            }}
+            onPointerUp={(event) => { if (dragRef.current?.pointerId === event.pointerId) { dragRef.current = null; setDragging(false); } }}
+            onPointerCancel={(event) => { if (dragRef.current?.pointerId === event.pointerId) { dragRef.current = null; setDragging(false); } }}
             onKeyDown={(event) => {
               const step = event.shiftKey ? 180 : 15;
               if (event.key === "ArrowRight") { event.preventDefault(); moveReadHead(step); }
               else if (event.key === "ArrowLeft") { event.preventDefault(); moveReadHead(-step); }
-              else if (event.key === "Home") { event.preventDefault(); setCursor(0); scrollToMinute(0); }
-              else if (event.key === "End") { event.preventDefault(); setCursor(TOTAL_MINUTES); scrollToMinute(TOTAL_MINUTES); }
+              else if (event.key === "Home") { event.preventDefault(); selectMinute(0, true); }
+              else if (event.key === "End") { event.preventDefault(); selectMinute(TOTAL_MINUTES, true); }
             }}
           >
             <svg width={CHART_WIDTH} height={CHART_HEIGHT} role="img" aria-label="Continuous tide curve for Newport Bay Entrance across three days, with labelled highs and lows.">
@@ -237,13 +258,12 @@ export function TideChart() {
               <path d={`${path}L${xFor(TOTAL_MINUTES)},${PLOT_TOP + PLOT_HEIGHT}L${xFor(0)},${PLOT_TOP + PLOT_HEIGHT}Z`} fill="url(#tide-area)"/>
               <path d={path} fill="none" stroke="var(--color-tide-cyan)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
               {TIDE_POINTS.filter(([, , mark]) => mark).map(([minute, millimeters, mark]) => <g key={minute}><circle cx={xFor(minute)} cy={yFor(millimeters)} r="5" fill="var(--color-tide-cyan)" stroke="var(--color-surface)" strokeWidth="2"/><text x={xFor(minute)} y={yFor(millimeters) + (mark === "H" ? -14 : 22)} textAnchor="middle" className="fill-text-primary font-mono text-[12px] font-semibold">{meters(millimeters)} <tspan className="fill-text-muted font-normal">{clock(minute)}</tspan></text></g>)}
-              <line x1={xFor(TIDE_SELECTED_MINUTES)} x2={xFor(TIDE_SELECTED_MINUTES)} y1={PLOT_TOP - 8} y2={PLOT_TOP + PLOT_HEIGHT} stroke="var(--color-signal-orange)" strokeWidth="2" strokeDasharray="3 4"/><rect x={xFor(TIDE_SELECTED_MINUTES) - 30} y={PLOT_TOP - 20} width="60" height="17" rx="8.5" fill="var(--color-signal-orange)"/><text x={xFor(TIDE_SELECTED_MINUTES)} y={PLOT_TOP - 7.5} textAnchor="middle" className="fill-ink-on-orange font-mono text-[10px] font-semibold tracking-[.08em]">FIXTURE</text><circle cx={xFor(TIDE_SELECTED_MINUTES)} cy={yFor(heightAt(TIDE_SELECTED_MINUTES))} r="6.5" fill="var(--color-signal-orange)" stroke="var(--color-surface)" strokeWidth="2.5"/>
-              {reading && <><line x1={cursorX} x2={cursorX} y1="8" y2={PLOT_TOP + PLOT_HEIGHT} stroke="var(--color-border-interactive)"/><circle cx={cursorX} cy={cursorY} r="6" fill="var(--color-text-primary)" stroke="var(--color-surface)" strokeWidth="2"/></>}
+              <line x1={selectedX} x2={selectedX} y1={PLOT_TOP - 8} y2={PLOT_TOP + PLOT_HEIGHT} stroke="var(--color-signal-orange)" strokeWidth="2" strokeDasharray="3 4"/><rect x={selectedX - 34} y={PLOT_TOP - 20} width="68" height="17" rx="8.5" fill="var(--color-signal-orange)"/><text x={selectedX} y={PLOT_TOP - 7.5} textAnchor="middle" className="fill-ink-on-orange font-mono text-[10px] font-semibold tracking-[.08em]">SELECTED</text><circle cx={selectedX} cy={selectedY} r="6.5" fill="var(--color-signal-orange)" stroke="var(--color-surface)" strokeWidth="2.5"/>
             </svg>
           </div>
-          {reading && <div className="pointer-events-none absolute top-1 z-20 rounded-md border border-border-interactive bg-surface-raised px-3 py-1.5 font-mono text-sm" style={{ left: tooltipX, transform: "translateX(-50%)" }}><b className="block text-[17px]">{meters(cursorHeight)}</b><span className="text-[13px] text-text-muted">{clock(cursor)} · {shortDay(cursor)}</span></div>}
+          <div className={`pointer-events-none absolute left-1/2 top-1 z-20 -translate-x-1/2 rounded-md border border-border-interactive bg-surface-raised px-3 py-1.5 font-mono text-sm ${dragging ? "" : "motion-reduce:transition-none"}`}><b className="block text-[17px]">{meters(selectedHeight)}</b><span className="text-[13px] text-text-muted">{clock(selectedMinute)} · {shortDay(selectedMinute)} {STATION_TIME_ZONE_LABEL}</span></div>
         </div>
-        <div className="flex flex-wrap gap-x-4 gap-y-1 px-3.5 pt-2 font-mono text-[13px] text-text-muted"><span className="inline-flex items-center gap-2 before:h-[3px] before:w-4 before:rounded before:bg-tide-cyan">Tide height</span><span className="inline-flex items-center gap-2 before:h-[3px] before:w-4 before:rounded before:bg-signal-orange">Selected fixture time</span><span>Drag the curve · ← → to read</span></div>
+        <div className="flex flex-wrap gap-x-4 gap-y-1 px-3.5 pt-2 font-mono text-[13px] text-text-muted"><span className="inline-flex items-center gap-2 before:h-[3px] before:w-4 before:rounded before:bg-tide-cyan">Tide height</span><span className="inline-flex items-center gap-2 before:h-[3px] before:w-4 before:rounded before:bg-signal-orange">Selected time</span><span>Drag the curve · ← → to adjust</span></div>
       </div>
 
       <button className="mt-4 min-h-[68px] w-full rounded-lg border border-border-interactive bg-surface-raised px-5 text-lg font-semibold hover:border-tide-cyan" type="button" aria-expanded={tableOpen} aria-controls="tide-table" onClick={() => setTableOpen((open) => !open)}>{tableOpen ? "Hide the numbers" : "Show the numbers instead"}</button>
