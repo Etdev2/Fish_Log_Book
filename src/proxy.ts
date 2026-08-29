@@ -50,7 +50,34 @@ export async function proxy(request: NextRequest) {
   const isAuthRoute = pathname === "/sign-in" || pathname === "/callback";
   const isInternal = pathname.startsWith("/learn");
 
-  if (!user && !isAuthRoute && !isInternal) {
+  /*
+   * DEV_AUTH_BYPASS — local-only escape hatch so the founder can work in the product
+   * without a magic-link round trip on every reload.
+   *
+   * Server-only var (no NEXT_PUBLIC_ prefix): the proxy is the only consumer, and a
+   * NEXT_PUBLIC_ var gets inlined into client bundles for every build, dev or not, which
+   * is a strictly worse place for this to leak from. A server-only var is fine here
+   * because the proxy always runs on the server.
+   *
+   * Belt and braces against this ever reaching production:
+   *   1. `process.env.NODE_ENV !== "production"` — Next.js hard-codes NODE_ENV at build
+   *      time for a production build (`next build`); it is not a runtime env var an
+   *      operator could flip on a deployed instance.
+   *   2. The explicit opt-in `DEV_AUTH_BYPASS === "true"` — so plain `next dev` still
+   *      requires signing in, and nobody disables auth for the whole team by accident.
+   * Both conditions must hold. When either is false, behavior below is byte-identical
+   * to what it was before this bypass existed.
+   */
+  const devAuthBypass =
+    process.env.NODE_ENV !== "production" && process.env.DEV_AUTH_BYPASS === "true";
+
+  if (devAuthBypass) {
+    console.warn(
+      "[DEV_AUTH_BYPASS] Auth gate is disabled for local development. Unset DEV_AUTH_BYPASS (or leave it unset) to restore normal sign-in.",
+    );
+  }
+
+  if (!user && !isAuthRoute && !isInternal && !devAuthBypass) {
     const signIn = request.nextUrl.clone();
     signIn.pathname = "/sign-in";
     return NextResponse.redirect(signIn);
