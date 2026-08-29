@@ -217,7 +217,7 @@ src/app/
     layout.tsx                no product nav
     sign-in/page.tsx  callback/route.ts
   (internal)/
-    layout.tsx                no product nav, not linked from anywhere
+    layout.tsx                no product nav
     learn/page.tsx            the team prototype, moved here as-is
 src/proxy.ts                  Supabase session refresh (Next 16: `middleware` is renamed)
 ```
@@ -240,6 +240,12 @@ prototype must not inherit the product chrome, and `(auth)`/`(internal)` express
 with zero URL cost. One *root* layout is kept deliberately: per the route-groups
 reference, multiple root layouts force a full page reload when navigating between them,
 which is precisely wrong for an app that must keep working when the network does not.
+
+**Amendment — Learning Dashboard entry.** The founder-approved Learning Dashboard brief
+requires **Learn & Build** in the normal, mobile and desktop navigation. The shell links
+to `/learn`; the route remains in `(internal)` so it still inherits no product chrome.
+This is the explicit exception to the earlier provisional "not linked from anywhere"
+wording, not a move of the prototype into the product route group.
 
 **Why the quick-mark button is in the layout.** D22's quick mark is the man-overboard
 control. It has to be one thumb away from every product route, and a layout is the only
