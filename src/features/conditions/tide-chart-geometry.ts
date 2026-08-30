@@ -14,7 +14,12 @@ export const MS_PER_PIXEL = 86_400_000 / DAY_WIDTH;
 export const LEFT_PADDING = 10;
 export const RIGHT_PADDING = 24;
 export const CHART_HEIGHT = 300;
-export const PLOT_TOP = 22;
+// The floor here is the in-SVG orange "SELECTED" pill (drawn at PLOT_TOP - 20,
+// height 17), not the old HTML overlay readout that used to float above the plot in
+// this space — that overlay was `position: absolute` and never reserved layout height
+// (it moved into the card header row instead; see tide-chart.tsx). 20 is the smallest
+// value that keeps the pill's top edge at y=0 instead of clipping above the SVG.
+export const PLOT_TOP = 20;
 export const PLOT_BOTTOM = 48;
 export const PLOT_HEIGHT = CHART_HEIGHT - PLOT_TOP - PLOT_BOTTOM;
 

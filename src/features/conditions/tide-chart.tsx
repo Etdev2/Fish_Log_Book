@@ -85,7 +85,6 @@ export function TideChart() {
     null,
   );
   const [selectedAt, setSelectedAt] = useState<number>(initialSelectedAt);
-  const [dragging, setDragging] = useState(false);
   const [tableOpen, setTableOpen] = useState(false);
   const [centerAt, setCenterAt] = useState<number>(initialSelectedAt);
 
@@ -181,6 +180,16 @@ export function TideChart() {
     selectedPhase === "night" ? ", in darkness" : selectedPhase === "civil-twilight" ? ", near dawn or dusk" : "";
 
   const nowWithinRange = now !== null && Number(now) >= seriesStart && Number(now) <= seriesEnd;
+  // The "Now" nav button: honest about the two ways it can't act, rather than
+  // scrolling to a clamped edge and implying that edge is "now" (same rule as the
+  // live curve marker).
+  const nowButtonDisabledReason =
+    now === null
+      ? "Waiting for the clock."
+      : !nowWithinRange
+        ? "Now falls outside this cached window."
+        : null;
+  const atNow = nowWithinRange && now !== null && Math.abs(selectedAt - Number(now)) < 60_000;
   const nowHeightValue = useMemo(() => {
     if (!nowWithinRange || now === null) return null;
     const h = heightAt(series, now);
@@ -253,9 +262,25 @@ export function TideChart() {
       </header>
 
       <div className="overflow-hidden rounded-lg border border-hairline bg-surface pb-1.5 pt-3.5">
-        <div className="flex items-center justify-between gap-2 px-3.5 pb-3">
-          <h2 className="min-w-0 truncate text-lg font-bold">{dayLabel(instant(centerAt), displayTimeZone)}</h2>
-          <div className="flex shrink-0 gap-2">
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-1 px-3.5 pb-3">
+          <h2 className="order-1 min-w-0 shrink truncate text-lg font-bold">
+            {dayLabel(instant(centerAt), displayTimeZone)}
+          </h2>
+          {reading && (
+            <span className="order-3 mt-1 min-w-0 shrink basis-full truncate font-mono text-caption text-text-muted sm:order-2 sm:mt-0 sm:basis-0 sm:flex-1">
+              <b className="font-mono font-bold text-text-primary">{formatHeight(selectedHeight, unit)}</b>
+              {" · "}
+              {clock(instant(selectedAt), displayTimeZone)}
+              {" · "}
+              <span className="font-semibold text-tide-cyan">
+                <span aria-hidden="true">
+                  {reading.motion === "slack" || reading.motion === "near-slack" ? "—" : reading.motion === "rising" ? "▲" : "▼"}
+                </span>{" "}
+                {formatMotion(reading.motion)}
+              </span>
+            </span>
+          )}
+          <div className="order-2 ml-auto flex shrink-0 gap-2 sm:order-3">
             <button
               className="size-touch-nav-day rounded-md border border-border-interactive bg-surface-raised text-xl hover:border-tide-cyan disabled:opacity-45"
               type="button"
@@ -266,15 +291,20 @@ export function TideChart() {
               ‹
             </button>
             <button
-              className="h-touch-nav-day rounded-md border border-signal-orange bg-surface-raised px-3 font-mono text-label font-semibold tracking-widest text-signal-orange hover:bg-signal-orange hover:text-ink-on-orange"
+              className="h-touch-nav-day rounded-md border border-signal-orange bg-surface-raised px-3 font-mono text-label font-semibold tracking-widest text-signal-orange hover:bg-signal-orange hover:text-ink-on-orange disabled:opacity-45"
               type="button"
-              aria-label={`Return to initial fixture time: ${dayLabel(instant(initialSelectedAt), displayTimeZone)}, ${clock(instant(initialSelectedAt), displayTimeZone)}`}
+              aria-label="Jump to now"
+              aria-pressed={atNow || undefined}
+              title={nowButtonDisabledReason ?? undefined}
+              aria-describedby={nowButtonDisabledReason ? "now-button-reason" : undefined}
+              disabled={!nowWithinRange}
               onClick={() => {
-                selectAt(initialSelectedAt);
-                scrollToAt(initialSelectedAt);
+                if (!nowWithinRange || now === null) return;
+                selectAt(Number(now));
+                scrollToAt(Number(now));
               }}
             >
-              {monthDay(instant(initialSelectedAt), displayTimeZone).toUpperCase()}
+              Now
             </button>
             <button
               className="size-touch-nav-day rounded-md border border-border-interactive bg-surface-raised text-xl hover:border-tide-cyan disabled:opacity-45"
@@ -286,9 +316,14 @@ export function TideChart() {
               ›
             </button>
           </div>
+          {nowButtonDisabledReason && (
+            <span id="now-button-reason" className="sr-only">
+              {nowButtonDisabledReason}
+            </span>
+          )}
         </div>
 
-        <div className="relative flex">
+        <div className="flex">
           <svg className="z-10 w-axis-gutter shrink-0 bg-surface" width="46" height={CHART_HEIGHT} aria-hidden="true">
             {gridValues(yMinimum, yMaximum).map((value) => (
               <text className="fill-text-muted font-mono text-[11px]" key={value} x="36" y={yFor(metres(value)) + 4} textAnchor="end">
@@ -322,7 +357,6 @@ export function TideChart() {
                 if (Math.abs(horizontalDistance) < 8 || Math.abs(horizontalDistance) <= Math.abs(verticalDistance)) return;
                 drag.active = true;
                 event.currentTarget.setPointerCapture(event.pointerId);
-                setDragging(true);
               }
               event.preventDefault();
               selectAt(drag.startAt + horizontalDistance * MS_PER_PIXEL, true);
@@ -330,13 +364,11 @@ export function TideChart() {
             onPointerUp={(event) => {
               if (dragRef.current?.pointerId === event.pointerId) {
                 dragRef.current = null;
-                setDragging(false);
               }
             }}
             onPointerCancel={(event) => {
               if (dragRef.current?.pointerId === event.pointerId) {
                 dragRef.current = null;
-                setDragging(false);
               }
             }}
             onKeyDown={(event) => {
@@ -525,18 +557,6 @@ export function TideChart() {
               </text>
               <circle cx={selectedX} cy={selectedY} r="6.5" fill="var(--color-signal-orange)" stroke="var(--color-surface)" strokeWidth="2.5" />
             </svg>
-          </div>
-          <div className={`pointer-events-none absolute left-1/2 top-1 z-20 -translate-x-1/2 rounded-md border border-border-interactive bg-surface-raised px-3 py-1.5 font-mono text-caption ${dragging ? "" : "motion-reduce:transition-none"}`}>
-            <b className="block text-body font-bold">{formatHeight(selectedHeight, unit)}</b>
-            <span className="text-caption text-text-muted">
-              {clock(instant(selectedAt), displayTimeZone)} · {shortDay(instant(selectedAt), displayTimeZone)}
-            </span>
-            {reading && (
-              <span className="mt-0.5 block text-caption font-semibold text-tide-cyan">
-                {reading.motion === "slack" || reading.motion === "near-slack" ? "—" : reading.motion === "rising" ? "▲" : "▼"}{" "}
-                {formatMotion(reading.motion)}
-              </span>
-            )}
           </div>
         </div>
         <div className="flex flex-wrap gap-x-4 gap-y-1 px-3.5 pt-2 font-mono text-caption text-text-muted">
