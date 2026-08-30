@@ -267,16 +267,24 @@ export function TideChart() {
             {dayLabel(instant(centerAt), displayTimeZone)}
           </h2>
           {reading && (
-            <span className="order-3 mt-1 min-w-0 shrink basis-full truncate font-mono text-caption text-text-muted sm:order-2 sm:mt-0 sm:basis-0 sm:flex-1">
-              <b className="font-mono font-bold text-text-primary">{formatHeight(selectedHeight, unit)}</b>
-              {" · "}
-              {clock(instant(selectedAt), displayTimeZone)}
-              {" · "}
-              <span className="font-semibold text-tide-cyan">
-                <span aria-hidden="true">
-                  {reading.motion === "slack" || reading.motion === "near-slack" ? "—" : reading.motion === "rising" ? "▲" : "▼"}
-                </span>{" "}
-                {formatMotion(reading.motion)}
+            <span className="order-3 mt-1 inline-flex min-w-0 shrink basis-full items-center gap-1.5 rounded-md border border-border-interactive border-l-2 border-l-signal-orange bg-surface-raised py-1 pl-2 pr-2.5 sm:order-2 sm:mt-0 sm:basis-0 sm:flex-1">
+              {/* A distinct surface (not just darker text) so this reads as live data next
+                  to the date heading, not as more heading text. The left edge ties it to
+                  the orange SELECTED read-head it tracks, as a border accent rather than
+                  coloured text — every word in here is required information and has to
+                  clear the 7:1 floor on its own, which text-text-primary/tide-cyan do and
+                  text-signal-orange itself (6.2:1 on this surface) would not. */}
+              <span className="min-w-0 truncate font-mono text-caption">
+                <b className="font-mono font-bold text-text-primary">{formatHeight(selectedHeight, unit)}</b>
+                <span className="text-text-muted"> · </span>
+                <span className="text-text-primary">{clock(instant(selectedAt), displayTimeZone)}</span>
+                <span className="text-text-muted"> · </span>
+                <span className="font-semibold text-tide-cyan">
+                  <span aria-hidden="true">
+                    {reading.motion === "slack" || reading.motion === "near-slack" ? "—" : reading.motion === "rising" ? "▲" : "▼"}
+                  </span>{" "}
+                  {formatMotion(reading.motion)}
+                </span>
               </span>
             </span>
           )}
@@ -494,13 +502,20 @@ export function TideChart() {
                     <circle cx={x} cy={y} r="4.5" fill="var(--color-amber-flag)" stroke="var(--color-surface)" strokeWidth="1.5" aria-hidden="true" />
                     {[0, 60, 120, 180, 240, 300].map((angle) => {
                       const rad = (angle * Math.PI) / 180;
+                      // Rounded to 2dp: Math.sin/cos are not guaranteed bit-identical
+                      // across JS engines (Node's V8 build for SSR vs. the browser's for
+                      // hydration can differ in the last ULP), which was producing a real,
+                      // if extremely rare, hydration mismatch on these exact coordinates.
+                      // Sub-hundredth-pixel differences are invisible; collapsing them to
+                      // the same rounded string removes the mismatch outright.
+                      const round2 = (n: number) => Math.round(n * 100) / 100;
                       return (
                         <line
                           key={angle}
-                          x1={x + Math.cos(rad) * 6.5}
-                          y1={y + Math.sin(rad) * 6.5}
-                          x2={x + Math.cos(rad) * 9.5}
-                          y2={y + Math.sin(rad) * 9.5}
+                          x1={round2(x + Math.cos(rad) * 6.5)}
+                          y1={round2(y + Math.sin(rad) * 6.5)}
+                          x2={round2(x + Math.cos(rad) * 9.5)}
+                          y2={round2(y + Math.sin(rad) * 9.5)}
                           stroke="var(--color-amber-flag)"
                           strokeWidth="1.25"
                           strokeLinecap="round"
