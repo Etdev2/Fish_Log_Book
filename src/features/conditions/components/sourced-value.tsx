@@ -19,6 +19,19 @@
  * marker reveals the full `basis` sentence below it; nothing is ever hidden from
  * assistive tech, only collapsed by default, which is the standard disclosure pattern.
  *
+ * Second founder round: `text-text-muted` read as inert caption text, not as something
+ * tappable, and there is no hover to discover it with on a phone. The marker is now
+ * `text-text-link` — the token the shell nav already uses for interactive text — with an
+ * explicit chevron, because a colour change alone is not a reliable "this opens" signal
+ * for the target user. `text-text-link` was picked over `tide-cyan` specifically so the
+ * marker never competes with the curve or the orange SELECTED read-head for attention;
+ * see the worklog for the measured contrast (this product has one theme, not two —
+ * `01-foundations.md`'s "$darkOnlyByDesign" note — so there is nothing separate to check
+ * in "light mode").
+ *
+ * No `open` attribute is ever set, and nothing here persists disclosure state anywhere —
+ * every `<details>` starts (and reloads) collapsed, on purpose.
+ *
  * `unwrapSourced()` is the narrow escape hatch for values that are consumed as numbers, not
  * presented as a fact on their own — chart geometry (where a height becomes a pixel
  * coordinate along a continuous curve) and non-JSX string attributes such as
@@ -46,10 +59,13 @@ export function SourcedValue<T>({
       {value.certainty !== "published" && (
         <details className="ml-1 inline-block align-baseline">
           <summary
-            className="inline cursor-pointer text-caption font-normal text-text-muted marker:text-text-muted hover:text-text-primary"
+            className="inline-flex cursor-pointer list-none items-center gap-0.5 text-caption font-semibold text-text-link [&::-webkit-details-marker]:hidden hover:text-text-primary"
             title={value.basis}
           >
             {CERTAINTY_TAG[value.certainty]}
+            <svg aria-hidden="true" width="8" height="8" viewBox="0 0 8 8" className="shrink-0">
+              <path d="M1 2.5l3 3 3-3" stroke="currentColor" strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
           </summary>
           <p className="mt-1 max-w-xs text-caption font-normal text-text-muted">{value.basis}</p>
         </details>
