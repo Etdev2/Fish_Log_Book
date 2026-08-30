@@ -11,7 +11,7 @@ import {
   readTideAt,
   turnsIn,
 } from "@/core/rules/tide";
-import { daylightSpans, moonPhaseAt, sunEventsFor } from "@/core/rules/astro";
+import { daylightSpans, moonPhaseAt, sunEventsFor, type DaylightSpan } from "@/core/rules/astro";
 import { useNow } from "@/lib/time/use-now";
 import { useUnitPreference } from "@/features/settings/units";
 
@@ -27,6 +27,7 @@ import {
   PLOT_TOP,
   chartWidthFor,
   curvePath,
+  labelPlate,
   localDayIndex,
   localMidnights,
   makeYFor,
@@ -49,10 +50,27 @@ import {
 } from "./format";
 
 const CURVE_STEP_MS = 15 * 60_000;
-// Founder-measured: the previous, more conservative shading read as invisible. These two
-// opacities are the ceiling that keeps every foreground colour drawn on top of the
-// lighter "day" band above the 4.5:1 text floor (see the worklog for the full table);
-// pushing DAY_SHADE_OPACITY higher starts failing that floor for muted caption text.
+// Founder-measured: the previous, more conservative shading read as invisible; these two
+// opacities are what the founder asked to keep. The comment that used to sit here claimed
+// they kept every foreground colour above "the 4.5:1 text floor" — that number is plain
+// WCAG AA, not this project's own 7:1 floor for required information
+// (`docs/design/06-accessibility-baseline.md` §1), and measuring against it was
+// papering over a real gap: text-muted over the day band alone measures 4.88:1.
+// Solved structurally instead of by dimming the band (which the founder explicitly
+// asked to keep strong) or lowering the standard (not this role's file to change):
+// no text sits directly on the shaded fill any more. The band itself (below) is now
+// clipped to exactly the plot's vertical span, so the day-of-week and hour-axis labels
+// above/below it fall on the card's plain, unshaded `surface` instead — where
+// `text-muted` already has a documented, accepted 6.48:1 exception for this exact
+// category of helper label (`01-foundations.md` §1.2). Every label that has to sit AT
+// the curve's own height — the H/L labels, the sunrise/sunset labels, NOW — gets an
+// opaque `labelPlate()` backing rect instead, so its real background is
+// `--color-background`, not the composited band; every colour used on that backing
+// (text-muted 7.05:1, text-primary 17.24:1, tide-cyan 9.53:1, amber-flag 10.21:1) clears
+// 7:1. This product is dark-only by design (`tokens.json`'s `$darkOnlyByDesign`; the
+// "dark-mode" media-query block in `tokens.generated.css` is byte-identical to the base
+// tokens) — there is one theme to measure, not two; see the worklog for the full ratio
+// table, including the composited band colours these numbers were checked against.
 const NIGHT_SHADE_OPACITY = 0.9;
 const DAY_SHADE_OPACITY = 0.12;
 // A sunrise/sunset marker this close (in pixels) to a turn marker suppresses its own
@@ -112,22 +130,41 @@ export function TideChart() {
     for (let t = seriesStart; t <= seriesEnd; t += CURVE_STEP_MS) instants.add(t);
     instants.add(seriesEnd);
     const sorted = [...instants].sort((a, b) => a - b);
-    const points = sorted.map((t) => {
+    // heightAt cannot actually return null for any `t` in this loop — every value here is
+    // `seriesStart <= t <= seriesEnd`, and heightAt's own range check is inclusive at both
+    // ends — but the point is dropped rather than plotted at a fabricated 0m if that
+    // invariant is ever wrong, instead of drawing a curve that silently dives to zero.
+    const points: (readonly [number, number])[] = [];
+    for (const t of sorted) {
       const height = heightAt(series, instant(t));
-      const value = height ? unwrapSourced(height) : metres(0);
-      return [xFor(t), yFor(value)] as const;
-    });
+      if (!height) continue;
+      points.push([xFor(t), yFor(unwrapSourced(height))]);
+    }
     return curvePath(points);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [series, seriesStart, seriesEnd, yFor]);
 
   const reading = readTideAt(series, instant(selectedAt));
-  const selectedHeight: Metres = reading ? unwrapSourced(reading.height) : metres(0);
+  // Genuinely nullable, not defaulted to 0m — `clampAt` keeps `selectedAt` inside the
+  // series today, so `reading` is never actually null in this build, but the SELECTED
+  // marker and its aria-valuetext both key off this null rather than assuming that
+  // holds forever (a live fetch with a real gap, or a future catch-marker click, could
+  // make it false) — see the worklog.
+  const selectedHeight: Metres | null = reading ? unwrapSourced(reading.height) : null;
   const selectedX = xFor(selectedAt);
-  const selectedY = yFor(selectedHeight);
+  const selectedY = selectedHeight !== null ? yFor(selectedHeight) : null;
 
-  const dayBoundaryStarts = useMemo(() => [seriesStart, ...localMidnights(seriesStart, seriesEnd)], [seriesStart, seriesEnd]);
-  const selectedDayIndex = localDayIndex(selectedAt, seriesStart);
+  // Day boundaries are anchored to the STATION's calendar day, not the viewer's — a tide
+  // table is about a place, the same way NOAA's own daily tables are dated by the
+  // station's day regardless of who reads them. Every label attached to one of these
+  // boundaries (the gridline weekday, the day-nav heading, the numbers table's sections)
+  // uses STATION_TIME_ZONE for exactly this reason; a specific instant's own clock time
+  // still converts to the viewer's zone everywhere else on this screen.
+  const dayBoundaryStarts = useMemo(
+    () => [seriesStart, ...localMidnights(seriesStart, seriesEnd, STATION_TIME_ZONE)],
+    [seriesStart, seriesEnd],
+  );
+  const selectedDayIndex = localDayIndex(selectedAt, seriesStart, STATION_TIME_ZONE);
   const selectedDayStart = dayBoundaryStarts[selectedDayIndex] ?? seriesStart;
   const selectedDayEnd = dayBoundaryStarts[selectedDayIndex + 1] ?? seriesEnd;
   const range = dailyRange(series, instant(selectedDayStart), instant(selectedDayEnd));
@@ -171,13 +208,26 @@ export function TideChart() {
   }, [spans]);
 
   // What the shading already says visually — needed as the non-visual equivalent on the
-  // scroller's aria-valuetext, per the brief.
-  const selectedPhase = useMemo(() => {
-    const found = spans.find((span) => selectedAt >= Number(span.from) && selectedAt <= Number(span.to));
-    return found?.phase ?? "day";
-  }, [spans, selectedAt]);
+  // scroller's aria-valuetext, per the brief, and also to answer the founder's own stated
+  // glance test directly on the "Next turn" cell ("is the next turn in daylight").
+  const selectedPhase = useMemo(() => phaseAtFrom(spans, selectedAt), [spans, selectedAt]);
   const selectedPhaseNote =
     selectedPhase === "night" ? ", in darkness" : selectedPhase === "civil-twilight" ? ", near dawn or dusk" : "";
+  // Not memoized — a handful-of-elements linear scan over `spans`, cheap enough to just
+  // compute on every render (the compiler itself declined to memoize this exact shape;
+  // see the worklog).
+  const nextTurnPhase = nextTurn ? phaseAtFrom(spans, Number(nextTurn.at)) : null;
+  const nextTurnPhaseLabel =
+    nextTurnPhase === "night" ? "after dark" : nextTurnPhase === "civil-twilight" ? "near dawn/dusk" : nextTurnPhase === "day" ? "in daylight" : null;
+
+  // The sighted view already gates its height display on `reading` (nothing renders in
+  // the header pill or the "Selected" status cell when it's null). aria-valuetext must be
+  // gated identically — reading a fabricated "0.00 ft" aloud as if it were real would be
+  // the same lie in a worse place: a screen-reader user would hear a reading a sighted
+  // user is never shown.
+  const selectedValueText = reading
+    ? `${formatHeight(selectedHeight as Metres, unit)} at ${clock(instant(selectedAt), displayTimeZone)}, ${dayLabel(instant(selectedAt), displayTimeZone)}${selectedPhaseNote}`
+    : `No tide prediction available at ${clock(instant(selectedAt), displayTimeZone)}, ${dayLabel(instant(selectedAt), displayTimeZone)}${selectedPhaseNote}`;
 
   const nowWithinRange = now !== null && Number(now) >= seriesStart && Number(now) <= seriesEnd;
   // The "Now" nav button: honest about the two ways it can't act, rather than
@@ -243,8 +293,8 @@ export function TideChart() {
 
   const moveReadHead = (deltaMs: number) => selectAt(selectedAt + deltaMs, true);
 
-  const currentDay = localDayIndex(centerAt, seriesStart);
-  const finalDay = localDayIndex(seriesEnd, seriesStart);
+  const currentDay = localDayIndex(centerAt, seriesStart, STATION_TIME_ZONE);
+  const finalDay = localDayIndex(seriesEnd, seriesStart, STATION_TIME_ZONE);
 
   // The next upcoming event (of turn vs. slack) gets slightly stronger emphasis, per brief.
   const soonestIsSlack = nextSlack !== null && (nextTurn === null || Number(unwrapSourced(nextSlack).centre) < Number(nextTurn.at));
@@ -264,28 +314,24 @@ export function TideChart() {
       <div className="overflow-hidden rounded-lg border border-hairline bg-surface pb-1.5 pt-3.5">
         <div className="flex flex-wrap items-center gap-x-2 gap-y-1 px-3.5 pb-3">
           <h2 className="order-1 min-w-0 shrink truncate text-lg font-bold">
-            {dayLabel(instant(centerAt), displayTimeZone)}
+            {/* Station-zone day — matches the day-nav buttons and gridlines below, which
+                are also computed against the station's calendar day (see dayBoundaryStarts). */}
+            {dayLabel(instant(centerAt), STATION_TIME_ZONE)}
           </h2>
           {reading && (
-            <span className="order-3 mt-1 inline-flex min-w-0 shrink basis-full items-center gap-1.5 rounded-md border border-border-interactive border-l-2 border-l-signal-orange bg-surface-raised py-1 pl-2 pr-2.5 sm:order-2 sm:mt-0 sm:basis-0 sm:flex-1">
-              {/* A distinct surface (not just darker text) so this reads as live data next
-                  to the date heading, not as more heading text. The left edge ties it to
-                  the orange SELECTED read-head it tracks, as a border accent rather than
-                  coloured text — every word in here is required information and has to
-                  clear the 7:1 floor on its own, which text-text-primary/tide-cyan do and
-                  text-signal-orange itself (6.2:1 on this surface) would not. */}
-              <span className="min-w-0 truncate font-mono text-caption">
-                <b className="font-mono font-bold text-text-primary">{formatHeight(selectedHeight, unit)}</b>
-                <span className="text-text-muted"> · </span>
-                <span className="text-text-primary">{clock(instant(selectedAt), displayTimeZone)}</span>
-                <span className="text-text-muted"> · </span>
-                <span className="font-semibold text-tide-cyan">
-                  <span aria-hidden="true">
-                    {reading.motion === "slack" || reading.motion === "near-slack" ? "—" : reading.motion === "rising" ? "▲" : "▼"}
-                  </span>{" "}
-                  {formatMotion(reading.motion)}
-                </span>
-              </span>
+            // Demoted from a bordered pill to plain header text: the motion word/arrow that
+            // used to live here is now the exact same information as the "State" cell in the
+            // status grid below (in a bigger, cyan, higher-contrast cell) — showing it twice,
+            // in the highest-visual-weight row on the screen, was the accreted-feature-by-
+            // feature problem this pass was asked to fix. Height + time stay, as the one
+            // thing worth glancing at while a thumb is still on the chart mid-drag, before
+            // the grid re-renders below. Plain text on the card's own `bg-surface` still
+            // clears 7:1 for both colours used (text-primary 15.84:1, tide-cyan 8.76:1) with
+            // no bordered surface needed to get there.
+            <span className="order-3 min-w-0 shrink basis-full truncate font-mono text-caption sm:order-2 sm:basis-0 sm:flex-1">
+              <b className="font-mono font-bold text-text-primary">{formatHeight(unwrapSourced(reading.height), unit)}</b>
+              <span className="text-text-muted"> · </span>
+              <span className="text-text-primary">{clock(instant(selectedAt), displayTimeZone)}</span>
             </span>
           )}
           <div className="order-2 ml-auto flex shrink-0 gap-2 sm:order-3">
@@ -351,7 +397,7 @@ export function TideChart() {
             aria-valuemin={0}
             aria-valuemax={totalMs}
             aria-valuenow={Math.round(selectedAt - seriesStart)}
-            aria-valuetext={`${formatHeight(selectedHeight, unit)} at ${clock(instant(selectedAt), displayTimeZone)}, ${dayLabel(instant(selectedAt), displayTimeZone)}${selectedPhaseNote}`}
+            aria-valuetext={selectedValueText}
             onScroll={updateCenter}
             onPointerDown={(event) => {
               dragRef.current = { pointerId: event.pointerId, startX: event.clientX, startY: event.clientY, startAt: selectedAt, active: false };
@@ -427,8 +473,10 @@ export function TideChart() {
                   darker one by night, with civil twilight as the gradient between them —
                   the founder's ask was to tell at a glance whether an event falls in daylight
                   or darkness, and a single flat "unshaded = day" look measured as too subtle
-                  to answer that. Both bands still leave every foreground colour above the
-                  4.5:1 text floor; see the worklog for the exact ratios measured. */}
+                  to answer that. Clipped to exactly the plot's vertical span (no more bleed
+                  into the day-of-week row above or the hour-axis row below) — see the
+                  NIGHT_SHADE_OPACITY comment above for why, and the worklog for every
+                  measured ratio. */}
               {spans.map((span) => {
                 const x1 = xFor(Number(span.from));
                 const x2 = xFor(Number(span.to));
@@ -444,9 +492,9 @@ export function TideChart() {
                   <rect
                     key={`${span.from}-${span.phase}`}
                     x={x1}
-                    y={PLOT_TOP - 14}
+                    y={PLOT_TOP}
                     width={width}
-                    height={PLOT_HEIGHT + 44}
+                    height={PLOT_HEIGHT}
                     fill={fill}
                     opacity={opacity}
                   />
@@ -460,7 +508,7 @@ export function TideChart() {
                 <g key={at}>
                   <line x1={xFor(at)} x2={xFor(at)} y1={PLOT_TOP - 14} y2={PLOT_TOP + PLOT_HEIGHT + 30} stroke="var(--color-border-interactive)" strokeDasharray="2 5" />
                   <text x={xFor(at) + 8} y={PLOT_TOP - 6} className="fill-text-muted font-mono text-[11px] font-semibold tracking-widest">
-                    {shortDay(instant(at), displayTimeZone).toUpperCase()}
+                    {shortDay(instant(at), STATION_TIME_ZONE).toUpperCase()}
                   </text>
                 </g>
               ))}
@@ -473,14 +521,25 @@ export function TideChart() {
               <path d={`${path}L${xFor(seriesEnd)},${PLOT_TOP + PLOT_HEIGHT}L${xFor(seriesStart)},${PLOT_TOP + PLOT_HEIGHT}Z`} fill="url(#tide-area)" />
               <path d={path} fill="none" stroke="var(--color-tide-cyan)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
 
-              {turns.map((turn) => (
-                <g key={String(turn.at)}>
-                  <circle cx={xFor(Number(turn.at))} cy={yFor(turn.height)} r="5" fill="var(--color-tide-cyan)" stroke="var(--color-surface)" strokeWidth="2" />
-                  <text x={xFor(Number(turn.at))} y={yFor(turn.height) + (turn.kind === "high" ? -14 : 22)} textAnchor="middle" className="fill-text-primary font-mono text-[12px] font-semibold">
-                    {formatHeight(turn.height, unit)} <tspan className="fill-text-muted font-normal">{clock(turn.at, displayTimeZone)}</tspan>
-                  </text>
-                </g>
-              ))}
+              {turns.map((turn) => {
+                const labelText = `${formatHeight(turn.height, unit)} ${clock(turn.at, displayTimeZone)}`;
+                const labelX = xFor(Number(turn.at));
+                const labelY = yFor(turn.height) + (turn.kind === "high" ? -14 : 22);
+                const plate = labelPlate(labelX, labelY, labelText, 12);
+                return (
+                  <g key={String(turn.at)}>
+                    <circle cx={labelX} cy={yFor(turn.height)} r="5" fill="var(--color-tide-cyan)" stroke="var(--color-surface)" strokeWidth="2" />
+                    {/* Opaque backing plate: this label sits at the curve's own height, which
+                        can fall anywhere inside the day or night band, so its real background
+                        has to be a solid colour rather than the composited band underneath —
+                        see the NIGHT_SHADE_OPACITY comment above. */}
+                    <rect x={plate.x} y={plate.y} width={plate.width} height={plate.height} rx="3" fill="var(--color-background)" />
+                    <text x={labelX} y={labelY} textAnchor="middle" className="fill-text-primary font-mono text-[12px] font-semibold">
+                      {formatHeight(turn.height, unit)} <tspan className="fill-text-muted font-normal">{clock(turn.at, displayTimeZone)}</tspan>
+                    </text>
+                  </g>
+                );
+              })}
 
               {/* Sunrise/sunset, ON the curve at its actual height — not floating above it —
                   so the chart answers "what is the tide doing at sunrise" without any mental
@@ -524,19 +583,28 @@ export function TideChart() {
                       );
                     })}
                     {!collidesWithTurn && (
-                      <text x={x} y={labelY} textAnchor="middle" className="fill-text-primary font-mono text-[11px] font-semibold">
-                        {label} <tspan className="fill-text-muted font-normal">{clock(instant(marker.at), displayTimeZone)}</tspan>
-                      </text>
+                      <>
+                        {(() => {
+                          const plate = labelPlate(x, labelY, `${label} ${clock(instant(marker.at), displayTimeZone)}`, 11);
+                          return <rect x={plate.x} y={plate.y} width={plate.width} height={plate.height} rx="3" fill="var(--color-background)" />;
+                        })()}
+                        <text x={x} y={labelY} textAnchor="middle" className="fill-text-primary font-mono text-[11px] font-semibold">
+                          {label} <tspan className="fill-text-muted font-normal">{clock(instant(marker.at), displayTimeZone)}</tspan>
+                        </text>
+                      </>
                     )}
                   </g>
                 );
               })}
 
-              {/* Slack markers — estimated, so a diamond rather than the turn's filled circle. */}
+              {/* Slack markers — estimated, so a diamond rather than the turn's filled circle.
+                  Skipped, not drawn at a fabricated 0m, if the height is unavailable — same
+                  pattern as the sun markers above and the NOW marker below. */}
               {slackWindows.map((window) => {
                 const centre = unwrapSourced(window).centre;
                 const h = heightAt(series, centre);
-                const value = h ? unwrapSourced(h) : metres(0);
+                if (!h) return null;
+                const value = unwrapSourced(h);
                 const x = xFor(Number(centre));
                 const y = yFor(value);
                 return (
@@ -559,33 +627,57 @@ export function TideChart() {
                 <g>
                   <line x1={xFor(Number(now))} x2={xFor(Number(now))} y1={PLOT_TOP - 8} y2={PLOT_TOP + PLOT_HEIGHT} stroke="var(--color-text-muted)" strokeWidth="2" strokeDasharray="1 3" />
                   <circle cx={xFor(Number(now))} cy={yFor(nowHeightValue)} r="5" fill="var(--color-surface)" stroke="var(--color-text-muted)" strokeWidth="2" />
+                  {(() => {
+                    const plate = labelPlate(xFor(Number(now)), PLOT_TOP - 12, "NOW", 10);
+                    return <rect x={plate.x - 3} y={plate.y} width={plate.width + 6} height={plate.height} rx="3" fill="var(--color-background)" />;
+                  })()}
                   <text x={xFor(Number(now))} y={PLOT_TOP - 12} textAnchor="middle" className="fill-text-muted font-mono text-[10px] font-semibold tracking-chart-pill">
                     NOW
                   </text>
                 </g>
               )}
 
-              <line x1={selectedX} x2={selectedX} y1={PLOT_TOP - 8} y2={PLOT_TOP + PLOT_HEIGHT} stroke="var(--color-signal-orange)" strokeWidth="2" strokeDasharray="3 4" />
-              <rect x={selectedX - 34} y={PLOT_TOP - 20} width="68" height="17" rx="8.5" fill="var(--color-signal-orange)" />
-              <text x={selectedX} y={PLOT_TOP - 7.5} textAnchor="middle" className="fill-ink-on-orange font-mono text-[10px] font-semibold tracking-chart-pill">
-                SELECTED
-              </text>
-              <circle cx={selectedX} cy={selectedY} r="6.5" fill="var(--color-signal-orange)" stroke="var(--color-surface)" strokeWidth="2.5" />
+              {/* Gated on a real reading rather than drawing the dot at a fabricated 0m — this
+                  cannot actually happen today (`clampAt` always keeps `selectedAt` inside the
+                  series), but the honest failure mode is no marker, not a marker in the wrong
+                  place implying a real reading exists. */}
+              {selectedY !== null && (
+                <>
+                  <line x1={selectedX} x2={selectedX} y1={PLOT_TOP - 8} y2={PLOT_TOP + PLOT_HEIGHT} stroke="var(--color-signal-orange)" strokeWidth="2" strokeDasharray="3 4" />
+                  <rect x={selectedX - 34} y={PLOT_TOP - 20} width="68" height="17" rx="8.5" fill="var(--color-signal-orange)" />
+                  <text x={selectedX} y={PLOT_TOP - 7.5} textAnchor="middle" className="fill-ink-on-orange font-mono text-[10px] font-semibold tracking-chart-pill">
+                    SELECTED
+                  </text>
+                  <circle cx={selectedX} cy={selectedY} r="6.5" fill="var(--color-signal-orange)" stroke="var(--color-surface)" strokeWidth="2.5" />
+                </>
+              )}
             </svg>
           </div>
         </div>
-        <div className="flex flex-wrap gap-x-4 gap-y-1 px-3.5 pt-2 font-mono text-caption text-text-muted">
-          <span className="inline-flex items-center gap-2 before:h-0.75 before:w-4 before:rounded before:bg-tide-cyan">Tide height</span>
-          <span className="inline-flex items-center gap-2 before:h-0.75 before:w-4 before:rounded before:bg-signal-orange">Selected time</span>
-          <span className="inline-flex items-center gap-1">
-            <svg width="10" height="10" aria-hidden="true">
-              <rect x="1.5" y="1.5" width="7" height="7" transform="rotate(45 5 5)" fill="none" stroke="var(--color-text-muted)" strokeWidth="1.5" />
+        {/* TERTIARY — what each mark on the chart means. Useful the first few times, not
+            something an angler who already knows this chart needs to see every glance;
+            folded behind a disclosure rather than removed, same idiom as the numbers
+            table below. */}
+        <details className="px-3.5 pb-3 pt-2">
+          <summary className="inline-flex min-h-touch-floor cursor-pointer list-none items-center gap-1 text-caption font-semibold text-text-link [&::-webkit-details-marker]:hidden hover:text-text-primary">
+            What do the marks mean?
+            <svg aria-hidden="true" width="10" height="10" viewBox="0 0 8 8" className="shrink-0">
+              <path d="M1 2.5l3 3 3-3" stroke="currentColor" strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
-            Estimated slack
-          </span>
-          <span className="inline-flex items-center gap-2 before:size-2 before:rounded-full before:bg-amber-flag">Sunrise / sunset</span>
-          <span>Shading: night to day · Drag the curve · ← → to adjust</span>
-        </div>
+          </summary>
+          <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 font-mono text-caption text-text-muted">
+            <span className="inline-flex items-center gap-2 before:h-0.75 before:w-4 before:rounded before:bg-tide-cyan">Tide height</span>
+            <span className="inline-flex items-center gap-2 before:h-0.75 before:w-4 before:rounded before:bg-signal-orange">Selected time</span>
+            <span className="inline-flex items-center gap-1">
+              <svg width="10" height="10" aria-hidden="true">
+                <rect x="1.5" y="1.5" width="7" height="7" transform="rotate(45 5 5)" fill="none" stroke="var(--color-text-muted)" strokeWidth="1.5" />
+              </svg>
+              Estimated slack
+            </span>
+            <span className="inline-flex items-center gap-2 before:size-2 before:rounded-full before:bg-amber-flag">Sunrise / sunset</span>
+            <span>Shading: night to day · Drag the curve · ← → to adjust</span>
+          </div>
+        </details>
       </div>
 
       <dl className="mt-4 mb-4 grid grid-cols-2 gap-px overflow-hidden rounded-lg border border-hairline bg-hairline sm:grid-cols-3">
@@ -625,6 +717,7 @@ export function TideChart() {
               <span>{clock(nextTurn.at, displayTimeZone)}</span>
               <small>
                 {nextTurn.kind === "high" ? "High" : "Low"} · {formatCountdown(Number(nextTurn.at) - selectedAt, nextTurn.kind)}
+                {nextTurnPhaseLabel && <> · {nextTurnPhaseLabel}</>}
               </small>
             </>
           ) : (
@@ -654,35 +747,60 @@ export function TideChart() {
           {range ? <SourcedValue value={range} render={(v) => <span>{formatHeight(v, unit)}</span>} /> : "—"}
         </StatusCell>
       </dl>
-      <div className="mb-4 flex flex-col gap-1">
+      {/* PRIMARY/SECONDARY info stays visible: what the numbers mean, and the two things
+          that are required disclosures (cached-fixture, and the aged-out-window warning
+          when it applies, which is a safety-relevant "don't trust this marker" notice, not
+          decoration). Everything else that used to sit here as its own paragraph — the
+          zone-difference explanation, the sun/moon-are-calculated disclaimer, and the raw
+          data-provenance footnote — is TERTIARY: true every time, useful rarely, and was
+          part of the wall of simultaneous caption text this pass was asked to fix. Folded
+          into one disclosure below rather than removed. */}
+      <div className="mb-4 flex flex-col gap-2">
         <p className="text-caption text-text-muted">
-          Predicted height above {series.station.datum} · times shown in{" "}
-          {zoneAbbreviation(instant(selectedAt), displayTimeZone)} · selected: {dayLabel(instant(selectedAt), displayTimeZone)},{" "}
-          {clock(instant(selectedAt), displayTimeZone)}
+          Predicted height above {series.station.datum} · times shown in {zoneAbbreviation(instant(selectedAt), displayTimeZone)}
         </p>
-        {zoneDiffersFromStation && (
-          <p className="text-caption text-text-muted">
-            Station {series.station.name} is in {zoneAbbreviation(instant(selectedAt), STATION_TIME_ZONE)}; every time on this
-            screen is converted to your local {zoneAbbreviation(instant(selectedAt), displayTimeZone)}.
-          </p>
-        )}
-        <p className="text-caption text-text-muted">
-          Sun and moon times are calculated, not measured.{" "}
-          {selectedDaySun.sunrise && selectedDaySun.sunset
-            ? `Sunrise ${clock(selectedDaySun.sunrise, displayTimeZone)} · Sunset ${clock(selectedDaySun.sunset, displayTimeZone)}.`
-            : "The sun does not rise or set here today."}
-        </p>
-        <span className="mt-1 inline-flex w-fit items-center gap-2 rounded-full border border-hairline bg-surface-raised px-3 py-1.5 font-mono text-caption tracking-wide text-text-muted before:size-2 before:rounded-full before:bg-text-muted">
+        <span className="inline-flex w-fit items-center gap-2 rounded-full border border-hairline bg-surface-raised px-3 py-1.5 font-mono text-caption tracking-wide text-text-muted before:size-2 before:rounded-full before:bg-text-muted">
           Cached fixture — not a live reading
         </span>
         {now !== null && !nowWithinRange && (
           <p className="text-caption text-text-muted">
             Live clock: {dayLabel(now, displayTimeZone)}, {clock(now, displayTimeZone)} —{" "}
-            {Number(now) < seriesStart ? "before" : "after"} this cached window, so there is no live marker on the chart today.
+            {Number(now) < seriesStart ? "before" : "after"} this cached window, so there is no live marker on the chart today,
+            and the cached data itself is aging out of date.
           </p>
         )}
+        <details>
+          <summary className="inline-flex min-h-touch-floor cursor-pointer list-none items-center gap-1 text-caption font-semibold text-text-link [&::-webkit-details-marker]:hidden hover:text-text-primary">
+            More about this chart
+            <svg aria-hidden="true" width="10" height="10" viewBox="0 0 8 8" className="shrink-0">
+              <path d="M1 2.5l3 3 3-3" stroke="currentColor" strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </summary>
+          <div className="mt-2 flex flex-col gap-2 text-caption text-text-muted">
+            {zoneDiffersFromStation && (
+              <p>
+                Station {series.station.name} is in {zoneAbbreviation(instant(selectedAt), STATION_TIME_ZONE)}; every clock
+                time on this screen is converted to your local{" "}
+                {zoneAbbreviation(instant(selectedAt), displayTimeZone)}. The day divisions (the day-nav buttons, the
+                gridlines, the numbers table) follow the station&rsquo;s own calendar day.
+              </p>
+            )}
+            <p>
+              Sun and moon times are calculated, not measured.{" "}
+              {selectedDaySun.sunrise && selectedDaySun.sunset
+                ? `Sunrise ${clock(selectedDaySun.sunrise, displayTimeZone)} · Sunset ${clock(selectedDaySun.sunset, displayTimeZone)}.`
+                : "The sun does not rise or set here today."}
+            </p>
+            <p>
+              {series.samples.length} renderable points across the loaded window, with every exact turning point kept. Real
+              NOAA CO-OPS predictions{series.retrievedAt !== null && (
+                <> retrieved {dayLabel(series.retrievedAt, displayTimeZone)}, {clock(series.retrievedAt, displayTimeZone)}</>
+              )}. Station <code className="font-mono text-caption text-text-primary">{series.station.id}</code>, datum{" "}
+              <code className="font-mono text-caption text-text-primary">{series.station.datum}</code>.
+            </p>
+          </div>
+        </details>
       </div>
-
 
       <button
         className="mt-4 min-h-touch-primary-standard w-full rounded-lg border border-border-interactive bg-surface-raised px-5 text-lg font-semibold hover:border-tide-cyan"
@@ -706,18 +824,10 @@ export function TideChart() {
                 <th className="px-3.5 py-2 font-medium">Mark</th>
               </tr>
             </thead>
-            <tbody>{tableRows(series, seriesStart, unit, displayTimeZone)}</tbody>
+            <tbody>{tableRows(series, seriesStart, unit, STATION_TIME_ZONE)}</tbody>
           </table>
         </div>
       )}
-      <p className="mt-6 border-t border-hairline pt-4 text-caption text-text-muted">
-        {series.samples.length} renderable points across the loaded window, with every exact turning point kept. Real NOAA
-        CO-OPS predictions{series.retrievedAt !== null && (
-          <> retrieved {dayLabel(series.retrievedAt, displayTimeZone)}, {clock(series.retrievedAt, displayTimeZone)}</>
-        )}. Station{" "}
-        <code className="font-mono text-caption text-text-primary">{series.station.id}</code>, datum{" "}
-        <code className="font-mono text-caption text-text-primary">{series.station.datum}</code>.
-      </p>
 
       <div className="sr-only">
         <label>
@@ -765,6 +875,10 @@ function StatusCell({
   );
 }
 
+function phaseAtFrom(spans: readonly DaylightSpan[], at: number): DaylightSpan["phase"] {
+  return spans.find((span) => at >= Number(span.from) && at <= Number(span.to))?.phase ?? "day";
+}
+
 function gridValues(yMinimum: number, yMaximum: number): number[] {
   const values: number[] = [];
   const stepMetres = 0.5;
@@ -782,6 +896,9 @@ function timeLabels(seriesStart: number, seriesEnd: number, timeZone: string): n
   return result;
 }
 
+// Station-zone throughout, deliberately — the caption says "station-local time" and this
+// keeps that literally true, and keeps each row filed under the same station-day section
+// header that the day-nav and gridlines above use (see the note on `dayBoundaryStarts`).
 function tableRows(series: ReturnType<typeof loadTideSeriesFixture>, seriesStart: number, unit: "ft" | "m", timeZone: string) {
   let previousDay = -1;
   const rows: React.ReactNode[] = [];
@@ -789,7 +906,7 @@ function tableRows(series: ReturnType<typeof loadTideSeriesFixture>, seriesStart
     const minutesSinceStart = Math.round((Number(sample.at) - seriesStart) / 60_000);
     const isHour = minutesSinceStart % 60 === 0;
     if (!isHour && sample.turn === null) continue;
-    const day = localDayIndex(Number(sample.at), seriesStart);
+    const day = localDayIndex(Number(sample.at), seriesStart, timeZone);
     if (day !== previousDay) {
       rows.push(
         <tr key={`day-${sample.at}`} className="border-t border-hairline bg-surface-raised text-caption font-semibold uppercase tracking-wider text-text-muted">
