@@ -2,217 +2,342 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 
+import { instant, metres, type Metres } from "@/core/units";
 import {
-  TIDE_BASE_UTC,
-  TIDE_SELECTED_MINUTES,
-  TIDE_POINTS,
-  TIDE_STATION,
-  TIDE_STATION_NAME,
-} from "./tide-fixture";
+  dailyRange,
+  heightAt,
+  nextSlackAfter,
+  nextTurnAfter,
+  readTideAt,
+  turnsIn,
+} from "@/core/rules/tide";
+import { daylightSpans, moonPhaseAt, sunEventsFor } from "@/core/rules/astro";
+import { useNow } from "@/lib/time/use-now";
+import { useUnitPreference } from "@/features/settings/units";
 
-const DAY_WIDTH = 560;
-const MINUTES_PER_PIXEL = 1440 / DAY_WIDTH;
-const LEFT_PADDING = 10;
-const RIGHT_PADDING = 24;
-const CHART_HEIGHT = 300;
-const PLOT_TOP = 22;
-const PLOT_BOTTOM = 48;
-const PLOT_HEIGHT = CHART_HEIGHT - PLOT_TOP - PLOT_BOTTOM;
-const TOTAL_MINUTES = TIDE_POINTS.at(-1)?.[0] ?? 0;
-const CHART_WIDTH = Math.round(TOTAL_MINUTES / MINUTES_PER_PIXEL) + LEFT_PADDING + RIGHT_PADDING;
-const STATION_TIME_ZONE = "America/Los_Angeles";
-const STATION_TIME_ZONE_LABEL = "PDT";
+import { loadTideSeriesFixture, STATION_LOCATION, STATION_TIME_ZONE } from "./queries/tide-series";
+import { SourcedValue, unwrapSourced } from "./components/sourced-value";
+import type { MoonPhaseName } from "./types";
+import {
+  CHART_HEIGHT,
+  LEFT_PADDING,
+  MS_PER_PIXEL,
+  PLOT_HEIGHT,
+  PLOT_TOP,
+  chartWidthFor,
+  curvePath,
+  localDayIndex,
+  localMidnights,
+  makeYFor,
+  xFor as xForAt,
+} from "./tide-chart-geometry";
+import {
+  clock,
+  dayLabel,
+  formatCountdown,
+  formatHeight,
+  formatMoonIllumination,
+  formatMoonPhaseName,
+  formatMotion,
+  formatPace,
+  formatRate,
+  monthDay,
+  shortDay,
+  stationHour,
+} from "./format";
 
-function dateAt(minutes: number) {
-  return new Date(TIDE_BASE_UTC + minutes * 60_000);
-}
-
-function heightAt(minutes: number) {
-  if (minutes <= TIDE_POINTS[0][0]) return TIDE_POINTS[0][1];
-  for (let index = 1; index < TIDE_POINTS.length; index += 1) {
-    const previous = TIDE_POINTS[index - 1];
-    const next = TIDE_POINTS[index];
-    if (minutes <= next[0]) {
-      return previous[1] + ((minutes - previous[0]) / (next[0] - previous[0])) * (next[1] - previous[1]);
-    }
-  }
-  return TIDE_POINTS.at(-1)?.[1] ?? 0;
-}
-
-function tideLegAt(minutes: number) {
-  const turningPoints = TIDE_POINTS.filter(([, , mark]) => mark);
-  const start = [...turningPoints].reverse().find(([turningMinute]) => turningMinute <= minutes);
-  const end = turningPoints.find(([turningMinute]) => turningMinute > minutes);
-  if (!start || !end) return null;
-  const rising = end[2] === "H";
-  const height = heightAt(minutes);
-  const progress = rising
-    ? (height - start[1]) / (end[1] - start[1])
-    : (start[1] - height) / (start[1] - end[1]);
-  const tideHour = Math.min(6, Math.max(1, Math.ceil(((minutes - start[0]) / (end[0] - start[0])) * 6)));
-  const twelfths = [1, 2, 3, 3, 2, 1][tideHour - 1];
-  return { percentage: Math.round(progress * 100), tideHour, twelfths };
-}
-
-function meters(millimeters: number) {
-  return `${(millimeters / 1000).toFixed(2)} m`;
-}
-
-function clock(minutes: number) {
-  return new Intl.DateTimeFormat("en-US", { hour: "numeric", minute: "2-digit", hour12: true, timeZone: STATION_TIME_ZONE })
-    .format(dateAt(minutes))
-    .replace(" ", "")
-    .toLowerCase();
-}
-
-function dayLabel(minutes: number) {
-  return new Intl.DateTimeFormat("en-US", { weekday: "long", day: "numeric", month: "long", timeZone: STATION_TIME_ZONE }).format(dateAt(minutes));
-}
-
-function shortDay(minutes: number) {
-  return new Intl.DateTimeFormat("en-US", { weekday: "short", day: "numeric", timeZone: STATION_TIME_ZONE }).format(dateAt(minutes));
-}
-
-function monthDay(minutes: number) {
-  return new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", timeZone: STATION_TIME_ZONE }).format(dateAt(minutes));
-}
-
-function stationHour(minutes: number) {
-  const hour = new Intl.DateTimeFormat("en-US", { hour: "2-digit", hourCycle: "h23", timeZone: STATION_TIME_ZONE })
-    .formatToParts(dateAt(minutes))
-    .find((part) => part.type === "hour")?.value;
-  return Number(hour ?? "0");
-}
-
-function dayIndex(minutes: number) {
-  return Math.floor((17 * 60 + minutes) / 1440);
-}
-
-function xFor(minutes: number) {
-  return LEFT_PADDING + minutes / MINUTES_PER_PIXEL;
-}
-
-function keepMinuteVisible(minutes: number, scroller: HTMLDivElement) {
-  const edge = 72;
-  const relativeX = xFor(minutes) - scroller.scrollLeft;
-  if (relativeX < edge) scroller.scrollLeft = Math.max(0, xFor(minutes) - edge);
-  if (relativeX > scroller.clientWidth - edge) scroller.scrollLeft = Math.min(scroller.scrollWidth - scroller.clientWidth, xFor(minutes) - scroller.clientWidth + edge);
-}
-
-const heights = TIDE_POINTS.map((point) => point[1]);
-const low = Math.min(...heights);
-const high = Math.max(...heights);
-const yMinimum = low - (high - low) * 0.2;
-const yMaximum = high + (high - low) * 0.2;
-function yFor(millimeters: number) {
-  return PLOT_TOP + PLOT_HEIGHT - ((millimeters - yMinimum) / (yMaximum - yMinimum)) * PLOT_HEIGHT;
-}
-
-function curvePath() {
-  const points = TIDE_POINTS.map(([minute, millimeters]) => [xFor(minute), yFor(millimeters)] as const);
-  let path = `M${points[0][0].toFixed(2)},${points[0][1].toFixed(2)}`;
-  for (let index = 0; index < points.length - 1; index += 1) {
-    const p0 = points[index - 1] ?? points[index];
-    const p1 = points[index];
-    const p2 = points[index + 1];
-    const p3 = points[index + 2] ?? p2;
-    path += `C${(p1[0] + (p2[0] - p0[0]) / 6).toFixed(2)},${(p1[1] + (p2[1] - p0[1]) / 6).toFixed(2)} ${(p2[0] - (p3[0] - p1[0]) / 6).toFixed(2)},${(p2[1] - (p3[1] - p1[1]) / 6).toFixed(2)} ${p2[0].toFixed(2)},${p2[1].toFixed(2)}`;
-  }
-  return path;
-}
+const CURVE_STEP_MS = 15 * 60_000;
+const KEY_STEP_MS = 15 * 60_000;
+const KEY_STEP_MS_FAST = 180 * 60_000;
+const DRAG_EDGE_PX = 72;
 
 export function TideChart() {
+  const series = useMemo(() => loadTideSeriesFixture(), []);
+  const seriesStart = Number(series.samples[0].at);
+  const seriesEnd = Number(series.samples[series.samples.length - 1].at);
+  const totalMs = seriesEnd - seriesStart;
+  // The fixture's own anchor for the demo: roughly a third into the loaded window. Not
+  // tide maths — a starting point for the read-head.
+  const initialSelectedAt = seriesStart + Math.round(totalMs * 0.14);
+
+  const [unit, setUnit] = useUnitPreference();
+  const now = useNow();
+
   const scrollerRef = useRef<HTMLDivElement>(null);
-  const dragRef = useRef<{ pointerId: number; startX: number; startY: number; startMinute: number; active: boolean } | null>(null);
-  const [selectedMinute, setSelectedMinute] = useState(TIDE_SELECTED_MINUTES);
+  const dragRef = useRef<{ pointerId: number; startX: number; startY: number; startAt: number; active: boolean } | null>(
+    null,
+  );
+  const [selectedAt, setSelectedAt] = useState<number>(initialSelectedAt);
   const [dragging, setDragging] = useState(false);
   const [tableOpen, setTableOpen] = useState(false);
-  const [centerMinute, setCenterMinute] = useState(TIDE_SELECTED_MINUTES);
-  const path = useMemo(() => curvePath(), []);
+  const [centerAt, setCenterAt] = useState<number>(initialSelectedAt);
 
-  const scrollToMinute = (minute: number, smooth = true) => {
+  const xFor = (at: number) => xForAt(at, seriesStart);
+  const chartWidth = chartWidthFor(seriesStart, seriesEnd);
+
+  const { yMinimum, yMaximum } = useMemo(() => {
+    const heights = series.samples.map((s) => Number(s.height));
+    const low = Math.min(...heights);
+    const high = Math.max(...heights);
+    const pad = (high - low) * 0.2;
+    return { yMinimum: low - pad, yMaximum: high + pad };
+  }, [series]);
+  const yFor = useMemo(() => makeYFor(yMinimum, yMaximum), [yMinimum, yMaximum]);
+
+  // The plotted curve reads heights from the engine's monotone-cubic heightAt, not the raw
+  // sample tuples. Dense uniform sampling (plus every published sample instant, so the
+  // curve still passes exactly through each one) means the shape between turns follows the
+  // engine's monotone Hermite curve — which cannot overshoot a published high/low — rather
+  // than whatever the Catmull-Rom smoothing pass below would invent between coarse points.
+  // Catmull-Rom stays as presentation, drawn through these engine-sourced points.
+  const path = useMemo(() => {
+    const instants = new Set<number>();
+    for (const sample of series.samples) instants.add(Number(sample.at));
+    for (let t = seriesStart; t <= seriesEnd; t += CURVE_STEP_MS) instants.add(t);
+    instants.add(seriesEnd);
+    const sorted = [...instants].sort((a, b) => a - b);
+    const points = sorted.map((t) => {
+      const height = heightAt(series, instant(t));
+      const value = height ? unwrapSourced(height) : metres(0);
+      return [xFor(t), yFor(value)] as const;
+    });
+    return curvePath(points);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [series, seriesStart, seriesEnd, yFor]);
+
+  const reading = readTideAt(series, instant(selectedAt));
+  const selectedHeight: Metres = reading ? unwrapSourced(reading.height) : metres(0);
+  const selectedX = xFor(selectedAt);
+  const selectedY = yFor(selectedHeight);
+
+  const dayBoundaryStarts = useMemo(() => [seriesStart, ...localMidnights(seriesStart, seriesEnd)], [seriesStart, seriesEnd]);
+  const selectedDayIndex = localDayIndex(selectedAt, seriesStart);
+  const selectedDayStart = dayBoundaryStarts[selectedDayIndex] ?? seriesStart;
+  const selectedDayEnd = dayBoundaryStarts[selectedDayIndex + 1] ?? seriesEnd;
+  const range = dailyRange(series, instant(selectedDayStart), instant(selectedDayEnd));
+
+  const nextSlack = nextSlackAfter(series, instant(selectedAt));
+  const nextTurn = reading?.nextTurn ?? nextTurnAfter(series, instant(selectedAt));
+
+  // All turns' slack windows in the loaded range, for the on-curve markers.
+  const slackWindows = useMemo(() => {
+    const turns = turnsIn(series, instant(seriesStart), instant(seriesEnd));
+    return turns
+      .map((turn) => nextSlackAfter(series, instant(Number(turn.at) - 1)))
+      .filter((window): window is NonNullable<typeof window> => window !== null);
+  }, [series, seriesStart, seriesEnd]);
+
+  // Day/night shading, the real astro engine (ADR 006 §2). Iterate and paint — no date
+  // arithmetic here, per biostat's note: the spans are already contiguous and gap-free.
+  const spans = useMemo(
+    () => daylightSpans(instant(seriesStart), instant(seriesEnd), STATION_LOCATION),
+    [seriesStart, seriesEnd],
+  );
+  const moon = useMemo(() => moonPhaseAt(instant(selectedAt)), [selectedAt]);
+  const selectedDaySun = useMemo(() => sunEventsFor(instant(selectedAt), STATION_LOCATION), [selectedAt]);
+
+  const nowWithinRange = now !== null && Number(now) >= seriesStart && Number(now) <= seriesEnd;
+  const nowHeightValue = useMemo(() => {
+    if (!nowWithinRange || now === null) return null;
+    const h = heightAt(series, now);
+    return h ? unwrapSourced(h) : null;
+  }, [nowWithinRange, now, series]);
+
+  const scrollToAt = (at: number, smooth = true) => {
     const scroller = scrollerRef.current;
     if (!scroller) return;
     const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    scroller.scrollTo({ left: Math.max(0, xFor(minute) - scroller.clientWidth / 2), behavior: smooth && !reducedMotion ? "smooth" : "auto" });
+    scroller.scrollTo({
+      left: Math.max(0, xFor(at) - scroller.clientWidth / 2),
+      behavior: smooth && !reducedMotion ? "smooth" : "auto",
+    });
   };
 
-  useEffect(() => {
-    const frame = requestAnimationFrame(() => {
-      scrollToMinute(TIDE_SELECTED_MINUTES, false);
-      const scroller = scrollerRef.current;
-      if (!scroller) return;
-      setCenterMinute(Math.max(0, Math.min(TOTAL_MINUTES, (scroller.scrollLeft + scroller.clientWidth / 2 - LEFT_PADDING) * MINUTES_PER_PIXEL)));
-    });
-    return () => cancelAnimationFrame(frame);
-  }, []);
+  const clampAt = (at: number) => Math.round(Math.max(seriesStart, Math.min(seriesEnd, at)));
 
   const updateCenter = () => {
     const scroller = scrollerRef.current;
     if (!scroller) return;
-    setCenterMinute(Math.max(0, Math.min(TOTAL_MINUTES, (scroller.scrollLeft + scroller.clientWidth / 2 - LEFT_PADDING) * MINUTES_PER_PIXEL)));
+    setCenterAt(clampAt(seriesStart + (scroller.scrollLeft + scroller.clientWidth / 2 - LEFT_PADDING) * MS_PER_PIXEL));
   };
 
-  const selectMinute = (minute: number, keepVisible = false) => {
+  useEffect(() => {
+    const frame = requestAnimationFrame(() => {
+      scrollToAt(initialSelectedAt, false);
+      updateCenter();
+    });
+    return () => cancelAnimationFrame(frame);
+    // Runs once, to center the initial read-head after layout — scrollToAt/updateCenter
+    // intentionally excluded, same as the original chart's mount-only effect.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialSelectedAt]);
+
+  const keepVisible = (at: number, scroller: HTMLDivElement) => {
+    const relativeX = xFor(at) - scroller.scrollLeft;
+    if (relativeX < DRAG_EDGE_PX) scroller.scrollLeft = Math.max(0, xFor(at) - DRAG_EDGE_PX);
+    if (relativeX > scroller.clientWidth - DRAG_EDGE_PX) {
+      scroller.scrollLeft = Math.min(scroller.scrollWidth - scroller.clientWidth, xFor(at) - scroller.clientWidth + DRAG_EDGE_PX);
+    }
+  };
+
+  const selectAt = (at: number, keepInView = false) => {
     const scroller = scrollerRef.current;
-    const next = Math.round(Math.max(0, Math.min(TOTAL_MINUTES, minute)));
-    setSelectedMinute(next);
+    const next = clampAt(at);
+    setSelectedAt(next);
     if (!scroller) return;
-    if (keepVisible) keepMinuteVisible(next, scroller);
+    if (keepInView) keepVisible(next, scroller);
   };
 
-  const rate = heightAt(selectedMinute + 30) - heightAt(selectedMinute - 30);
-  const rising = rate > 0;
-  const slack = Math.abs(rate) < 50;
-  const selectedLeg = tideLegAt(selectedMinute);
-  const nextTurn = TIDE_POINTS.find(([minute, , mark]) => Boolean(mark) && minute > selectedMinute);
-  const selectedDay = dayIndex(selectedMinute);
-  const selectedDayStart = selectedDay === 0 ? 0 : 420 + (selectedDay - 1) * 1440;
-  const selectedDayEnd = Math.min(TOTAL_MINUTES, selectedDayStart + 1440);
-  const selectedDayPoints = TIDE_POINTS.filter(([minute]) => minute >= selectedDayStart && minute <= selectedDayEnd).map(([, millimeters]) => millimeters);
-  const currentDay = dayIndex(centerMinute);
-  const finalDay = dayIndex(TOTAL_MINUTES);
-  const selectedHeight = heightAt(selectedMinute);
-  const selectedX = xFor(selectedMinute);
-  const selectedY = yFor(selectedHeight);
+  const moveReadHead = (deltaMs: number) => selectAt(selectedAt + deltaMs, true);
 
-  const moveReadHead = (amount: number) => {
-    selectMinute(selectedMinute + amount, true);
-  };
+  const currentDay = localDayIndex(centerAt, seriesStart);
+  const finalDay = localDayIndex(seriesEnd, seriesStart);
+
+  // The next upcoming event (of turn vs. slack) gets slightly stronger emphasis, per brief.
+  const soonestIsSlack = nextSlack !== null && (nextTurn === null || Number(unwrapSourced(nextSlack).centre) < Number(nextTurn.at));
 
   return (
     <section className="mx-auto w-full max-w-reading overflow-x-hidden px-4 pb-14 pt-5 sm:px-5">
       <header className="flex flex-col gap-1 pb-4 pt-3">
-        <p className="font-mono text-caption font-medium uppercase tracking-station text-text-muted">Station {TIDE_STATION} · {TIDE_STATION_NAME}</p>
+        <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+          <p className="font-mono text-caption font-medium uppercase tracking-station text-text-muted">
+            Station {series.station.id} · {series.station.name}
+          </p>
+          <MoonBadge illumination={moon.illumination} name={moon.name} />
+        </div>
         <h1 className="text-h1">Tide</h1>
-        <p className="text-caption text-text-muted">Predicted height above MLLW · station-local time ({STATION_TIME_ZONE_LABEL}) · selected: {dayLabel(selectedMinute)}, {clock(selectedMinute)}</p>
-        <span className="mt-2 inline-flex w-fit items-center gap-2 rounded-full border border-hairline bg-surface-raised px-3 py-1.5 font-mono text-caption tracking-wide text-text-muted before:size-2 before:rounded-full before:bg-text-muted">Cached fixture — not a live reading</span>
+        <p className="text-caption text-text-muted">
+          Predicted height above {series.station.datum} · station-local time · selected: {dayLabel(instant(selectedAt), STATION_TIME_ZONE)},{" "}
+          {clock(instant(selectedAt), STATION_TIME_ZONE)}
+        </p>
+        <p className="text-caption text-text-muted">
+          Sun and moon times are calculated, not measured.{" "}
+          {selectedDaySun.sunrise && selectedDaySun.sunset
+            ? `Sunrise ${clock(selectedDaySun.sunrise, STATION_TIME_ZONE)} · Sunset ${clock(selectedDaySun.sunset, STATION_TIME_ZONE)}.`
+            : "The sun does not rise or set here today."}
+        </p>
+        <span className="mt-1 inline-flex w-fit items-center gap-2 rounded-full border border-hairline bg-surface-raised px-3 py-1.5 font-mono text-caption tracking-wide text-text-muted before:size-2 before:rounded-full before:bg-text-muted">
+          Cached fixture — not a live reading
+        </span>
+        {now !== null && !nowWithinRange && (
+          <p className="text-caption text-text-muted">
+            Live clock: {dayLabel(now, STATION_TIME_ZONE)}, {clock(now, STATION_TIME_ZONE)} —{" "}
+            {Number(now) < seriesStart ? "before" : "after"} this cached window, so there is no live marker on the chart today.
+          </p>
+        )}
       </header>
 
-      <dl className="mb-4 grid grid-cols-2 gap-px overflow-hidden rounded-lg border border-hairline bg-hairline sm:grid-cols-4">
-        <StatusCell label="Selected"><span>{meters(selectedHeight)}</span></StatusCell>
-        <StatusCell label="State" cyan>
-          <span aria-hidden="true">{slack ? "—" : rising ? "▲" : "▼"} </span>{slack ? "Slack" : rising ? "Flooding" : "Ebbing"}
-          {slack ? <><small>At the turn</small><small>Movement: 0.00 m/h</small><small>Rule: turning</small></> : <><small>{selectedLeg?.percentage ?? 0}% through {rising ? "flood" : "ebb"}</small><small>Movement: {rising ? "+" : ""}{(rate / 1000).toFixed(2)} m/h</small><small aria-label={`Rule of twelfths: approximately ${selectedLeg?.twelfths ?? 0} twelfths of the tidal range this tide hour`}>Rule: ~{selectedLeg?.twelfths ?? 0}/12</small></>}
+      <dl className="mb-4 grid grid-cols-2 gap-px overflow-hidden rounded-lg border border-hairline bg-hairline sm:grid-cols-3">
+        <StatusCell label="Selected">
+          {reading ? <SourcedValue value={reading.height} render={(v) => <span>{formatHeight(v, unit)}</span>} /> : "—"}
         </StatusCell>
-        <StatusCell label="Next turn">{nextTurn ? <><span>{clock(nextTurn[0])}</span><small>{nextTurn[2] === "H" ? "High" : "Low"} in {Math.floor((nextTurn[0] - selectedMinute) / 60)}h {(nextTurn[0] - selectedMinute) % 60}m</small></> : "—"}</StatusCell>
-        <StatusCell label={`${monthDay(selectedMinute)} range`}>{meters(Math.max(...selectedDayPoints) - Math.min(...selectedDayPoints))}</StatusCell>
+
+        <StatusCell label="State" cyan>
+          {reading && (
+            <>
+              <span aria-hidden="true">
+                {reading.motion === "slack" || reading.motion === "near-slack" ? "—" : reading.motion === "rising" ? "▲" : "▼"}{" "}
+              </span>
+              {formatMotion(reading.motion)}
+              <SourcedValue
+                className="mt-1 block text-caption font-normal text-text-muted"
+                value={reading.rate}
+                render={(v) => <>Rate: {formatRate(v, unit)}</>}
+              />
+              <SourcedValue
+                className="mt-1 block text-caption font-normal text-text-muted"
+                value={reading.pace}
+                render={(v) => <>Pace: {formatPace(v.class)}</>}
+              />
+              {reading.twelfths !== null && (
+                <small aria-label={`Rule of twelfths: approximately ${reading.twelfths} twelfths of the tidal range this tide hour`}>
+                  Rule: ~{reading.twelfths}/12
+                </small>
+              )}
+            </>
+          )}
+        </StatusCell>
+
+        <StatusCell label="Next turn" emphasis={!soonestIsSlack && nextTurn !== null}>
+          {nextTurn ? (
+            <>
+              <span>{clock(nextTurn.at, STATION_TIME_ZONE)}</span>
+              <small>
+                {nextTurn.kind === "high" ? "High" : "Low"} · {formatCountdown(Number(nextTurn.at) - selectedAt, nextTurn.kind)}
+              </small>
+            </>
+          ) : (
+            "—"
+          )}
+        </StatusCell>
+
+        <StatusCell label="Next slack" emphasis={soonestIsSlack}>
+          {nextSlack ? (
+            <SourcedValue
+              value={nextSlack}
+              render={(v) => (
+                <>
+                  <span>{clock(v.centre, STATION_TIME_ZONE)}</span>
+                  <small>{formatCountdown(Number(v.centre) - selectedAt, "slack")}</small>
+                </>
+              )}
+            />
+          ) : (
+            "—"
+          )}
+        </StatusCell>
+
+        <StatusCell label={`${monthDay(instant(selectedAt), STATION_TIME_ZONE)} range`}>
+          {range ? <SourcedValue value={range} render={(v) => <span>{formatHeight(v, unit)}</span>} /> : "—"}
+        </StatusCell>
       </dl>
 
       <div className="overflow-hidden rounded-lg border border-hairline bg-surface pb-1.5 pt-3.5">
         <div className="flex items-center justify-between gap-2 px-3.5 pb-3">
-          <h2 className="min-w-0 truncate text-lg font-bold">{dayLabel(centerMinute)}</h2>
+          <h2 className="min-w-0 truncate text-lg font-bold">{dayLabel(instant(centerAt), STATION_TIME_ZONE)}</h2>
           <div className="flex shrink-0 gap-2">
-            <button className="size-touch-nav-day rounded-md border border-border-interactive bg-surface-raised text-xl hover:border-tide-cyan disabled:opacity-45" type="button" aria-label="Previous day" disabled={currentDay <= 0} onClick={() => scrollToMinute(Math.max(0, (currentDay - 1) * 1440 - 17 * 60 + 720))}>‹</button>
-            <button className="h-touch-nav-day rounded-md border border-signal-orange bg-surface-raised px-3 font-mono text-label font-semibold tracking-widest text-signal-orange hover:bg-signal-orange hover:text-ink-on-orange" type="button" aria-label={`Return to initial fixture time: ${dayLabel(TIDE_SELECTED_MINUTES)}, ${clock(TIDE_SELECTED_MINUTES)}`} onClick={() => { selectMinute(TIDE_SELECTED_MINUTES); scrollToMinute(TIDE_SELECTED_MINUTES); }}>SEP 1</button>
-            <button className="size-touch-nav-day rounded-md border border-border-interactive bg-surface-raised text-xl hover:border-tide-cyan disabled:opacity-45" type="button" aria-label="Next day" disabled={currentDay >= finalDay} onClick={() => scrollToMinute(Math.min(TOTAL_MINUTES, (currentDay + 1) * 1440 - 17 * 60 + 720))}>›</button>
+            <button
+              className="size-touch-nav-day rounded-md border border-border-interactive bg-surface-raised text-xl hover:border-tide-cyan disabled:opacity-45"
+              type="button"
+              aria-label="Previous day"
+              disabled={currentDay <= 0}
+              onClick={() => scrollToAt(dayBoundaryStarts[currentDay - 1] ?? seriesStart)}
+            >
+              ‹
+            </button>
+            <button
+              className="h-touch-nav-day rounded-md border border-signal-orange bg-surface-raised px-3 font-mono text-label font-semibold tracking-widest text-signal-orange hover:bg-signal-orange hover:text-ink-on-orange"
+              type="button"
+              aria-label={`Return to initial fixture time: ${dayLabel(instant(initialSelectedAt), STATION_TIME_ZONE)}, ${clock(instant(initialSelectedAt), STATION_TIME_ZONE)}`}
+              onClick={() => {
+                selectAt(initialSelectedAt);
+                scrollToAt(initialSelectedAt);
+              }}
+            >
+              SEP 1
+            </button>
+            <button
+              className="size-touch-nav-day rounded-md border border-border-interactive bg-surface-raised text-xl hover:border-tide-cyan disabled:opacity-45"
+              type="button"
+              aria-label="Next day"
+              disabled={currentDay >= finalDay}
+              onClick={() => scrollToAt(dayBoundaryStarts[currentDay + 1] ?? seriesEnd)}
+            >
+              ›
+            </button>
           </div>
         </div>
 
         <div className="relative flex">
           <svg className="z-10 w-axis-gutter shrink-0 bg-surface" width="46" height={CHART_HEIGHT} aria-hidden="true">
-            {gridValues().map((value) => <text className="fill-text-muted font-mono text-[11px]" key={value} x="36" y={yFor(value) + 4} textAnchor="end">{(value / 1000).toFixed(1)}</text>)}
-            <text className="fill-text-muted font-mono text-[11px]" x="36" y={PLOT_TOP + PLOT_HEIGHT + 24} textAnchor="end">m</text>
+            {gridValues(yMinimum, yMaximum).map((value) => (
+              <text className="fill-text-muted font-mono text-[11px]" key={value} x="36" y={yFor(metres(value)) + 4} textAnchor="end">
+                {formatHeight(metres(value), unit).replace(` ${unit}`, "")}
+              </text>
+            ))}
+            <text className="fill-text-muted font-mono text-[11px]" x="36" y={PLOT_TOP + PLOT_HEIGHT + 24} textAnchor="end">
+              {unit}
+            </text>
           </svg>
           <div
             ref={scrollerRef}
@@ -221,11 +346,13 @@ export function TideChart() {
             role="slider"
             aria-label="Tide height by time. Drag horizontally to select a point on the curve. Use left and right arrows to adjust the selected point."
             aria-valuemin={0}
-            aria-valuemax={TOTAL_MINUTES}
-            aria-valuenow={Math.round(selectedMinute)}
-            aria-valuetext={`${meters(selectedHeight)} at ${clock(selectedMinute)} ${STATION_TIME_ZONE_LABEL}, ${dayLabel(selectedMinute)}`}
+            aria-valuemax={totalMs}
+            aria-valuenow={Math.round(selectedAt - seriesStart)}
+            aria-valuetext={`${formatHeight(selectedHeight, unit)} at ${clock(instant(selectedAt), STATION_TIME_ZONE)}, ${dayLabel(instant(selectedAt), STATION_TIME_ZONE)}`}
             onScroll={updateCenter}
-            onPointerDown={(event) => { dragRef.current = { pointerId: event.pointerId, startX: event.clientX, startY: event.clientY, startMinute: selectedMinute, active: false }; }}
+            onPointerDown={(event) => {
+              dragRef.current = { pointerId: event.pointerId, startX: event.clientX, startY: event.clientY, startAt: selectedAt, active: false };
+            }}
             onPointerMove={(event) => {
               const drag = dragRef.current;
               if (!drag || drag.pointerId !== event.pointerId) return;
@@ -238,53 +365,294 @@ export function TideChart() {
                 setDragging(true);
               }
               event.preventDefault();
-              selectMinute(drag.startMinute + horizontalDistance * MINUTES_PER_PIXEL, true);
+              selectAt(drag.startAt + horizontalDistance * MS_PER_PIXEL, true);
             }}
-            onPointerUp={(event) => { if (dragRef.current?.pointerId === event.pointerId) { dragRef.current = null; setDragging(false); } }}
-            onPointerCancel={(event) => { if (dragRef.current?.pointerId === event.pointerId) { dragRef.current = null; setDragging(false); } }}
+            onPointerUp={(event) => {
+              if (dragRef.current?.pointerId === event.pointerId) {
+                dragRef.current = null;
+                setDragging(false);
+              }
+            }}
+            onPointerCancel={(event) => {
+              if (dragRef.current?.pointerId === event.pointerId) {
+                dragRef.current = null;
+                setDragging(false);
+              }
+            }}
             onKeyDown={(event) => {
-              const step = event.shiftKey ? 180 : 15;
-              if (event.key === "ArrowRight") { event.preventDefault(); moveReadHead(step); }
-              else if (event.key === "ArrowLeft") { event.preventDefault(); moveReadHead(-step); }
-              else if (event.key === "Home") { event.preventDefault(); selectMinute(0, true); }
-              else if (event.key === "End") { event.preventDefault(); selectMinute(TOTAL_MINUTES, true); }
+              const step = event.shiftKey ? KEY_STEP_MS_FAST : KEY_STEP_MS;
+              if (event.key === "ArrowRight") {
+                event.preventDefault();
+                moveReadHead(step);
+              } else if (event.key === "ArrowLeft") {
+                event.preventDefault();
+                moveReadHead(-step);
+              } else if (event.key === "Home") {
+                event.preventDefault();
+                selectAt(seriesStart, true);
+              } else if (event.key === "End") {
+                event.preventDefault();
+                selectAt(seriesEnd, true);
+              }
             }}
           >
-            <svg width={CHART_WIDTH} height={CHART_HEIGHT} role="img" aria-label="Continuous tide curve for Newport Bay Entrance across three days, with labelled highs and lows.">
-              <defs><linearGradient id="tide-area" x1="0" y1="0" x2="0" y2="1"><stop stopColor="var(--color-tide-cyan)" stopOpacity=".3"/><stop offset="1" stopColor="var(--color-tide-cyan)" stopOpacity="0"/></linearGradient></defs>
-              {gridValues().map((value) => <line key={value} x1="0" x2={CHART_WIDTH} y1={yFor(value)} y2={yFor(value)} stroke="var(--color-hairline)" />)}
-              {midnights().map((minute) => <g key={minute}><line x1={xFor(minute)} x2={xFor(minute)} y1={PLOT_TOP - 14} y2={PLOT_TOP + PLOT_HEIGHT + 30} stroke="var(--color-border-interactive)" strokeDasharray="2 5"/><text x={xFor(minute) + 8} y={PLOT_TOP - 6} className="fill-text-muted font-mono text-[11px] font-semibold tracking-widest">{shortDay(minute).toUpperCase()}</text></g>)}
-              {timeLabels().map((minute) => <text key={minute} x={xFor(minute)} y={PLOT_TOP + PLOT_HEIGHT + 24} textAnchor="middle" className="fill-text-muted font-mono text-[12px]">{String(stationHour(minute)).padStart(2, "0")}:00</text>)}
-              <path d={`${path}L${xFor(TOTAL_MINUTES)},${PLOT_TOP + PLOT_HEIGHT}L${xFor(0)},${PLOT_TOP + PLOT_HEIGHT}Z`} fill="url(#tide-area)"/>
-              <path d={path} fill="none" stroke="var(--color-tide-cyan)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-              {TIDE_POINTS.filter(([, , mark]) => mark).map(([minute, millimeters, mark]) => <g key={minute}><circle cx={xFor(minute)} cy={yFor(millimeters)} r="5" fill="var(--color-tide-cyan)" stroke="var(--color-surface)" strokeWidth="2"/><text x={xFor(minute)} y={yFor(millimeters) + (mark === "H" ? -14 : 22)} textAnchor="middle" className="fill-text-primary font-mono text-[12px] font-semibold">{meters(millimeters)} <tspan className="fill-text-muted font-normal">{clock(minute)}</tspan></text></g>)}
-              <line x1={selectedX} x2={selectedX} y1={PLOT_TOP - 8} y2={PLOT_TOP + PLOT_HEIGHT} stroke="var(--color-signal-orange)" strokeWidth="2" strokeDasharray="3 4"/><rect x={selectedX - 34} y={PLOT_TOP - 20} width="68" height="17" rx="8.5" fill="var(--color-signal-orange)"/><text x={selectedX} y={PLOT_TOP - 7.5} textAnchor="middle" className="fill-ink-on-orange font-mono text-[10px] font-semibold tracking-chart-pill">SELECTED</text><circle cx={selectedX} cy={selectedY} r="6.5" fill="var(--color-signal-orange)" stroke="var(--color-surface)" strokeWidth="2.5"/>
+            <svg
+              width={chartWidth}
+              height={CHART_HEIGHT}
+              role="img"
+              aria-label="Continuous tide curve for Newport Bay Entrance across three days, with labelled highs and lows, shaded for daylight, and marked for slack water."
+            >
+              <defs>
+                <linearGradient id="tide-area" x1="0" y1="0" x2="0" y2="1">
+                  <stop stopColor="var(--color-tide-cyan)" stopOpacity=".3" />
+                  <stop offset="1" stopColor="var(--color-tide-cyan)" stopOpacity="0" />
+                </linearGradient>
+              </defs>
+
+              {/* Day/night shading. Day itself is unshaded (the chart's existing look);
+                  twilight and night lay a dark scrim over it, which only ever improves
+                  the contrast of the light-on-dark text and curve drawn on top. */}
+              {spans.map((span) => {
+                const opacity = span.phase === "night" ? 0.55 : span.phase === "civil-twilight" ? 0.28 : 0;
+                if (opacity === 0) return null;
+                const x1 = xFor(Number(span.from));
+                const x2 = xFor(Number(span.to));
+                return (
+                  <rect
+                    key={`${span.from}-${span.phase}`}
+                    x={x1}
+                    y={PLOT_TOP - 14}
+                    width={Math.max(0, x2 - x1)}
+                    height={PLOT_HEIGHT + 44}
+                    fill="var(--color-background)"
+                    opacity={opacity}
+                  />
+                );
+              })}
+              {/* Sunrise/sunset ticks at the day <-> twilight boundary. */}
+              {spans.map((span, index) => {
+                const previous = spans[index - 1];
+                if (!previous) return null;
+                const isTransitionToDay = previous.phase !== "day" && span.phase === "day";
+                const isTransitionFromDay = previous.phase === "day" && span.phase !== "day";
+                if (!isTransitionToDay && !isTransitionFromDay) return null;
+                return (
+                  <circle key={`sun-${span.from}`} cx={xFor(Number(span.from))} cy={PLOT_TOP - 8} r="3.5" fill="var(--color-amber-flag)" aria-hidden="true" />
+                );
+              })}
+
+              {gridValues(yMinimum, yMaximum).map((value) => (
+                <line key={value} x1="0" x2={chartWidth} y1={yFor(metres(value))} y2={yFor(metres(value))} stroke="var(--color-hairline)" />
+              ))}
+              {dayBoundaryStarts.slice(1).map((at) => (
+                <g key={at}>
+                  <line x1={xFor(at)} x2={xFor(at)} y1={PLOT_TOP - 14} y2={PLOT_TOP + PLOT_HEIGHT + 30} stroke="var(--color-border-interactive)" strokeDasharray="2 5" />
+                  <text x={xFor(at) + 8} y={PLOT_TOP - 6} className="fill-text-muted font-mono text-[11px] font-semibold tracking-widest">
+                    {shortDay(instant(at), STATION_TIME_ZONE).toUpperCase()}
+                  </text>
+                </g>
+              ))}
+              {timeLabels(seriesStart, seriesEnd).map((at) => (
+                <text key={at} x={xFor(at)} y={PLOT_TOP + PLOT_HEIGHT + 24} textAnchor="middle" className="fill-text-muted font-mono text-[12px]">
+                  {String(stationHour(instant(at), STATION_TIME_ZONE)).padStart(2, "0")}:00
+                </text>
+              ))}
+
+              <path d={`${path}L${xFor(seriesEnd)},${PLOT_TOP + PLOT_HEIGHT}L${xFor(seriesStart)},${PLOT_TOP + PLOT_HEIGHT}Z`} fill="url(#tide-area)" />
+              <path d={path} fill="none" stroke="var(--color-tide-cyan)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+
+              {turnsIn(series, instant(seriesStart), instant(seriesEnd)).map((turn) => (
+                <g key={String(turn.at)}>
+                  <circle cx={xFor(Number(turn.at))} cy={yFor(turn.height)} r="5" fill="var(--color-tide-cyan)" stroke="var(--color-surface)" strokeWidth="2" />
+                  <text x={xFor(Number(turn.at))} y={yFor(turn.height) + (turn.kind === "high" ? -14 : 22)} textAnchor="middle" className="fill-text-primary font-mono text-[12px] font-semibold">
+                    {formatHeight(turn.height, unit)} <tspan className="fill-text-muted font-normal">{clock(turn.at, STATION_TIME_ZONE)}</tspan>
+                  </text>
+                </g>
+              ))}
+
+              {/* Slack markers — estimated, so a diamond rather than the turn's filled circle. */}
+              {slackWindows.map((window) => {
+                const centre = unwrapSourced(window).centre;
+                const h = heightAt(series, centre);
+                const value = h ? unwrapSourced(h) : metres(0);
+                const x = xFor(Number(centre));
+                const y = yFor(value);
+                return (
+                  <rect
+                    key={`slack-${centre}`}
+                    aria-hidden="true"
+                    x={x - 4.5}
+                    y={y - 4.5}
+                    width="9"
+                    height="9"
+                    transform={`rotate(45 ${x} ${y})`}
+                    fill="none"
+                    stroke="var(--color-text-muted)"
+                    strokeWidth="2"
+                  />
+                );
+              })}
+
+              {nowWithinRange && now !== null && nowHeightValue !== null && (
+                <g>
+                  <line x1={xFor(Number(now))} x2={xFor(Number(now))} y1={PLOT_TOP - 8} y2={PLOT_TOP + PLOT_HEIGHT} stroke="var(--color-text-muted)" strokeWidth="2" strokeDasharray="1 3" />
+                  <circle cx={xFor(Number(now))} cy={yFor(nowHeightValue)} r="5" fill="var(--color-surface)" stroke="var(--color-text-muted)" strokeWidth="2" />
+                  <text x={xFor(Number(now))} y={PLOT_TOP - 12} textAnchor="middle" className="fill-text-muted font-mono text-[10px] font-semibold tracking-chart-pill">
+                    NOW
+                  </text>
+                </g>
+              )}
+
+              <line x1={selectedX} x2={selectedX} y1={PLOT_TOP - 8} y2={PLOT_TOP + PLOT_HEIGHT} stroke="var(--color-signal-orange)" strokeWidth="2" strokeDasharray="3 4" />
+              <rect x={selectedX - 34} y={PLOT_TOP - 20} width="68" height="17" rx="8.5" fill="var(--color-signal-orange)" />
+              <text x={selectedX} y={PLOT_TOP - 7.5} textAnchor="middle" className="fill-ink-on-orange font-mono text-[10px] font-semibold tracking-chart-pill">
+                SELECTED
+              </text>
+              <circle cx={selectedX} cy={selectedY} r="6.5" fill="var(--color-signal-orange)" stroke="var(--color-surface)" strokeWidth="2.5" />
             </svg>
           </div>
-          <div className={`pointer-events-none absolute left-1/2 top-1 z-20 -translate-x-1/2 rounded-md border border-border-interactive bg-surface-raised px-3 py-1.5 font-mono text-caption ${dragging ? "" : "motion-reduce:transition-none"}`}><b className="block text-body font-bold">{meters(selectedHeight)}</b><span className="text-caption text-text-muted">{clock(selectedMinute)} · {shortDay(selectedMinute)} {STATION_TIME_ZONE_LABEL}</span></div>
+          <div className={`pointer-events-none absolute left-1/2 top-1 z-20 -translate-x-1/2 rounded-md border border-border-interactive bg-surface-raised px-3 py-1.5 font-mono text-caption ${dragging ? "" : "motion-reduce:transition-none"}`}>
+            <b className="block text-body font-bold">{formatHeight(selectedHeight, unit)}</b>
+            <span className="text-caption text-text-muted">
+              {clock(instant(selectedAt), STATION_TIME_ZONE)} · {shortDay(instant(selectedAt), STATION_TIME_ZONE)}
+            </span>
+          </div>
         </div>
-        <div className="flex flex-wrap gap-x-4 gap-y-1 px-3.5 pt-2 font-mono text-caption text-text-muted"><span className="inline-flex items-center gap-2 before:h-0.75 before:w-4 before:rounded before:bg-tide-cyan">Tide height</span><span className="inline-flex items-center gap-2 before:h-0.75 before:w-4 before:rounded before:bg-signal-orange">Selected time</span><span>Drag the curve · ← → to adjust</span></div>
+        <div className="flex flex-wrap gap-x-4 gap-y-1 px-3.5 pt-2 font-mono text-caption text-text-muted">
+          <span className="inline-flex items-center gap-2 before:h-0.75 before:w-4 before:rounded before:bg-tide-cyan">Tide height</span>
+          <span className="inline-flex items-center gap-2 before:h-0.75 before:w-4 before:rounded before:bg-signal-orange">Selected time</span>
+          <span className="inline-flex items-center gap-1">
+            <svg width="10" height="10" aria-hidden="true">
+              <rect x="1.5" y="1.5" width="7" height="7" transform="rotate(45 5 5)" fill="none" stroke="var(--color-text-muted)" strokeWidth="1.5" />
+            </svg>
+            Estimated slack
+          </span>
+          <span className="inline-flex items-center gap-2 before:size-2 before:rounded-full before:bg-amber-flag">Sunrise / sunset</span>
+          <span>Shading: night to day · Drag the curve · ← → to adjust</span>
+        </div>
       </div>
 
-      <button className="mt-4 min-h-touch-primary-standard w-full rounded-lg border border-border-interactive bg-surface-raised px-5 text-lg font-semibold hover:border-tide-cyan" type="button" aria-expanded={tableOpen} aria-controls="tide-table" onClick={() => setTableOpen((open) => !open)}>{tableOpen ? "Hide the numbers" : "Show the numbers instead"}</button>
-      {tableOpen && <div id="tide-table" className="mt-3 overflow-x-auto rounded-lg border border-hairline"><table className="w-full border-collapse font-mono text-caption"><caption className="p-3 text-left text-caption text-text-muted">Predicted height above MLLW, hourly, with the exact highs and lows. Station-local time ({STATION_TIME_ZONE_LABEL}).</caption><thead><tr className="border-t border-hairline text-left text-caption uppercase tracking-wider text-text-muted"><th className="px-3.5 py-2 font-medium">Time</th><th className="px-3.5 py-2 font-medium">Height</th><th className="px-3.5 py-2 font-medium">Mark</th></tr></thead><tbody>{tableRows()}</tbody></table></div>}
-      <p className="mt-6 border-t border-hairline pt-4 text-caption text-text-muted">78 renderable points across a 71-hour window, with every exact turning point kept. Embedded NOAA CO-OPS prediction fixture from the approved prototype; retrieval timestamp was not recorded. Window: Aug 31, 2026 5:00pm–Sep 3, 2026 4:00pm {STATION_TIME_ZONE_LABEL}. Station <code className="font-mono text-caption text-text-primary">{TIDE_STATION}</code>, datum <code className="font-mono text-caption text-text-primary">MLLW</code>, metric.</p>
+      <button
+        className="mt-4 min-h-touch-primary-standard w-full rounded-lg border border-border-interactive bg-surface-raised px-5 text-lg font-semibold hover:border-tide-cyan"
+        type="button"
+        aria-expanded={tableOpen}
+        aria-controls="tide-table"
+        onClick={() => setTableOpen((open) => !open)}
+      >
+        {tableOpen ? "Hide the numbers" : "Show the numbers instead"}
+      </button>
+      {tableOpen && (
+        <div id="tide-table" className="mt-3 overflow-x-auto rounded-lg border border-hairline">
+          <table className="w-full border-collapse font-mono text-caption">
+            <caption className="p-3 text-left text-caption text-text-muted">
+              Predicted height above {series.station.datum}, hourly, with the exact highs and lows. Station-local time.
+            </caption>
+            <thead>
+              <tr className="border-t border-hairline text-left text-caption uppercase tracking-wider text-text-muted">
+                <th className="px-3.5 py-2 font-medium">Time</th>
+                <th className="px-3.5 py-2 font-medium">Height</th>
+                <th className="px-3.5 py-2 font-medium">Mark</th>
+              </tr>
+            </thead>
+            <tbody>{tableRows(series, seriesStart, unit)}</tbody>
+          </table>
+        </div>
+      )}
+      <p className="mt-6 border-t border-hairline pt-4 text-caption text-text-muted">
+        {series.samples.length} renderable points across the loaded window, with every exact turning point kept. Embedded NOAA
+        CO-OPS prediction fixture from the approved prototype; retrieval timestamp was not recorded. Station{" "}
+        <code className="font-mono text-caption text-text-primary">{series.station.id}</code>, datum{" "}
+        <code className="font-mono text-caption text-text-primary">{series.station.datum}</code>.
+      </p>
+
+      <div className="sr-only">
+        <label>
+          Height units
+          <select value={unit} onChange={(event) => setUnit(event.target.value === "m" ? "m" : "ft")}>
+            <option value="ft">Feet</option>
+            <option value="m">Metres</option>
+          </select>
+        </label>
+      </div>
     </section>
   );
 }
 
-function StatusCell({ label, cyan = false, children }: { label: string; cyan?: boolean; children: React.ReactNode }) {
-  return <div className="flex min-w-0 flex-col gap-0.5 bg-surface p-3"><dt className="font-mono text-caption uppercase tracking-widest text-text-muted">{label}</dt><dd className={`m-0 font-mono text-xl font-semibold tabular-nums [&_small]:mt-1 [&_small]:block [&_small]:text-caption [&_small]:font-normal [&_small]:text-text-muted ${cyan ? "text-tide-cyan" : ""}`}>{children}</dd></div>;
+function MoonBadge({ illumination, name }: { illumination: number; name: MoonPhaseName }) {
+  return (
+    <p className="font-mono text-caption font-medium uppercase tracking-station text-text-muted">
+      {formatMoonPhaseName(name)} · {formatMoonIllumination(illumination)}
+    </p>
+  );
 }
 
-function gridValues() { const values: number[] = []; for (let value = Math.ceil(yMinimum / 500) * 500; value <= yMaximum; value += 500) values.push(value); return values; }
-function midnights() { const minutes: number[] = []; for (let minute = 420; minute < TOTAL_MINUTES; minute += 1440) minutes.push(minute); return minutes; }
-function timeLabels() { const minutes: number[] = []; for (let minute = 0; minute <= TOTAL_MINUTES; minute += 180) if (stationHour(minute) !== 0) minutes.push(minute); return minutes; }
-function tableRows() {
+function StatusCell({
+  label,
+  cyan = false,
+  emphasis = false,
+  children,
+}: {
+  label: string;
+  cyan?: boolean;
+  emphasis?: boolean;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className={`flex min-w-0 flex-col gap-0.5 bg-surface p-3 ${emphasis ? "ring-2 ring-inset ring-signal-orange" : ""}`}>
+      <dt className="font-mono text-caption uppercase tracking-widest text-text-muted">{label}</dt>
+      <dd
+        className={`m-0 font-mono text-xl font-semibold tabular-nums [&_small]:mt-1 [&_small]:block [&_small]:text-caption [&_small]:font-normal [&_small]:text-text-muted ${
+          cyan ? "text-tide-cyan" : ""
+        }`}
+      >
+        {children}
+      </dd>
+    </div>
+  );
+}
+
+function gridValues(yMinimum: number, yMaximum: number): number[] {
+  const values: number[] = [];
+  const stepMetres = 0.5;
+  for (let value = Math.ceil(yMinimum / stepMetres) * stepMetres; value <= yMaximum; value += stepMetres) {
+    values.push(Math.round(value * 1000) / 1000);
+  }
+  return values;
+}
+
+function timeLabels(seriesStart: number, seriesEnd: number): number[] {
+  const result: number[] = [];
+  for (let t = seriesStart; t <= seriesEnd; t += 3 * 3_600_000) {
+    if (stationHour(instant(t), STATION_TIME_ZONE) !== 0) result.push(t);
+  }
+  return result;
+}
+
+function tableRows(series: ReturnType<typeof loadTideSeriesFixture>, seriesStart: number, unit: "ft" | "m") {
   let previousDay = -1;
-  return TIDE_POINTS.filter(([minute, , mark]) => minute % 60 === 0 || Boolean(mark)).flatMap(([minute, millimeters, mark]) => {
-    const rows: React.ReactNode[] = []; const current = dayIndex(minute);
-    if (current !== previousDay) { rows.push(<tr key={`day-${minute}`} className="border-t border-hairline bg-surface-raised text-caption font-semibold uppercase tracking-wider text-text-muted"><td colSpan={3} className="px-3.5 py-2">{dayLabel(minute)}</td></tr>); previousDay = current; }
-    rows.push(<tr key={minute} className={`border-t border-hairline ${mark ? "font-semibold text-tide-cyan" : ""}`}><td className="px-3.5 py-2">{clock(minute)}</td><td className="px-3.5 py-2">{meters(millimeters)}</td><td className="px-3.5 py-2">{mark === "H" ? "High" : mark === "L" ? "Low" : ""}</td></tr>); return rows;
-  });
+  const rows: React.ReactNode[] = [];
+  for (const sample of series.samples) {
+    const minutesSinceStart = Math.round((Number(sample.at) - seriesStart) / 60_000);
+    const isHour = minutesSinceStart % 60 === 0;
+    if (!isHour && sample.turn === null) continue;
+    const day = localDayIndex(Number(sample.at), seriesStart);
+    if (day !== previousDay) {
+      rows.push(
+        <tr key={`day-${sample.at}`} className="border-t border-hairline bg-surface-raised text-caption font-semibold uppercase tracking-wider text-text-muted">
+          <td colSpan={3} className="px-3.5 py-2">
+            {dayLabel(sample.at, STATION_TIME_ZONE)}
+          </td>
+        </tr>,
+      );
+      previousDay = day;
+    }
+    rows.push(
+      <tr key={String(sample.at)} className={`border-t border-hairline ${sample.turn ? "font-semibold text-tide-cyan" : ""}`}>
+        <td className="px-3.5 py-2">{clock(sample.at, STATION_TIME_ZONE)}</td>
+        <td className="px-3.5 py-2">{formatHeight(sample.height, unit)}</td>
+        <td className="px-3.5 py-2">{sample.turn === "high" ? "High" : sample.turn === "low" ? "Low" : ""}</td>
+      </tr>,
+    );
+  }
+  return rows;
 }

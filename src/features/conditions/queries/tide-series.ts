@@ -6,12 +6,16 @@
  * The fixture's millimetres are wire data; they are converted to `Metres` here and never
  * seen again (ADR 006 §3).
  */
-import { instant, metresFromMillimetres } from "@/core/units";
+import { degrees, instant, metresFromMillimetres } from "@/core/units";
 import { tideSeries, type TidePredictionSeries } from "@/core/rules/tide";
+import type { GeoPoint } from "@/core/rules/astro";
 import { TIDE_BASE_UTC, TIDE_POINTS, TIDE_STATION, TIDE_STATION_NAME } from "../tide-fixture";
 
 /** Presentation metadata only — never read inside `core/rules/tide/` maths (ADR 006 §2). */
 export const STATION_TIME_ZONE = "America/Los_Angeles";
+
+/** Newport Bay Entrance, CA — for `sunEventsFor`/`daylightSpans`, not part of the engine's `TideStation`. */
+export const STATION_LOCATION: GeoPoint = { latitude: degrees(33.6047), longitude: degrees(-117.883) };
 
 let cached: TidePredictionSeries | null = null;
 

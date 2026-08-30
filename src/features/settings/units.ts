@@ -7,12 +7,14 @@
  * (IndexedDB via `idb`), so it survives reload the same way the sticky rig and the
  * platform selector will. That store does not exist in this worktree yet (`src/lib/`
  * is out of bounds for this branch — it belongs to the offline-storage lane), so this
- * is a deliberate stopgap: `localStorage`, read once on mount and written on change,
- * behind the same hook shape a future `meta`-backed implementation would have. When the
- * real store lands, only this file's internals change — every caller already goes
- * through `useUnitPreference()` / `setUnitPreference()`, never `localStorage` directly.
+ * is a deliberate stopgap: `localStorage`, treated as an external store via
+ * `useSyncExternalStore` — the same pattern `useNow()` uses for the wall clock, and for
+ * the same reason: it gives SSR safety for free (`getServerSnapshot` always returns the
+ * default) instead of a `setState` inside an effect. When the real store lands, only
+ * this file's internals change — every caller already goes through
+ * `useUnitPreference()` / `setUnitPreference()`, never `localStorage` directly.
  */
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useSyncExternalStore } from "react";
 
 export type UnitPreference = "ft" | "m";
 
@@ -25,7 +27,6 @@ function isUnitPreference(value: string | null): value is UnitPreference {
 }
 
 function readStored(): UnitPreference {
-  if (typeof window === "undefined") return DEFAULT_UNIT;
   const raw = window.localStorage.getItem(STORAGE_KEY);
   return isUnitPreference(raw) ? raw : DEFAULT_UNIT;
 }
@@ -37,31 +38,31 @@ export function setUnitPreference(unit: UnitPreference): void {
   window.dispatchEvent(new CustomEvent<UnitPreference>(CHANGE_EVENT, { detail: unit }));
 }
 
+function subscribe(onStoreChange: () => void): () => void {
+  window.addEventListener(CHANGE_EVENT, onStoreChange);
+  window.addEventListener("storage", onStoreChange);
+  return () => {
+    window.removeEventListener(CHANGE_EVENT, onStoreChange);
+    window.removeEventListener("storage", onStoreChange);
+  };
+}
+
+function getSnapshot(): UnitPreference {
+  return readStored();
+}
+
+function getServerSnapshot(): UnitPreference {
+  return DEFAULT_UNIT;
+}
+
 /**
  * Reads the unit preference and re-renders on change, including changes made from another
- * component in the same tab (a `storage` event alone only fires cross-tab). Always starts
- * at the default on the server and the first client render, so there is nothing for React
- * to flag as a hydration mismatch — the real stored value (if different) applies a moment
- * later, exactly like `useNow()`'s SSR-safe `null`.
+ * component in the same tab (a `storage` event alone only fires cross-tab). Returns the
+ * default on the server and the first client render, so there is nothing for React to flag
+ * as a hydration mismatch — the real stored value (if different) applies a moment later.
  */
 export function useUnitPreference(): readonly [UnitPreference, (unit: UnitPreference) => void] {
-  const [unit, setUnit] = useState<UnitPreference>(DEFAULT_UNIT);
-
-  useEffect(() => {
-    setUnit(readStored());
-    const onChange = (event: Event) => {
-      const detail = (event as CustomEvent<UnitPreference>).detail;
-      setUnit(isUnitPreference(detail ?? null) ? (detail as UnitPreference) : readStored());
-    };
-    window.addEventListener(CHANGE_EVENT, onChange);
-    window.addEventListener("storage", onChange);
-    return () => {
-      window.removeEventListener(CHANGE_EVENT, onChange);
-      window.removeEventListener("storage", onChange);
-    };
-  }, []);
-
+  const unit = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
   const update = useCallback((next: UnitPreference) => setUnitPreference(next), []);
-
   return [unit, update] as const;
 }
