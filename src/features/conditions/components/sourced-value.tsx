@@ -33,9 +33,9 @@ export function SourcedValue<T>({
     <span className={className}>
       {render(value.value)}
       {value.certainty !== "published" && (
-        <small className="mt-0.5 block text-caption font-normal text-text-muted">
-          {value.certainty === "estimated" ? `Estimated — ${value.basis}` : value.basis}
-        </small>
+        // The engine's own basis strings already say "Estimated ..." / "Interpolated ..."
+        // (see height.ts, pace.ts, turns.ts) — no separate prefix needed here.
+        <small className="mt-0.5 block text-caption font-normal text-text-muted">{value.basis}</small>
       )}
     </span>
   );

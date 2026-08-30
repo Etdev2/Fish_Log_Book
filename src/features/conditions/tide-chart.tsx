@@ -277,7 +277,9 @@ export function TideChart() {
               value={nextSlack}
               render={(v) => (
                 <>
-                  <span>{clock(v.centre, STATION_TIME_ZONE)}</span>
+                  <span>
+                    {clock(v.from, STATION_TIME_ZONE)}–{clock(v.to, STATION_TIME_ZONE)}
+                  </span>
                   <small>{formatCountdown(Number(v.centre) - selectedAt, "slack")}</small>
                 </>
               )}
