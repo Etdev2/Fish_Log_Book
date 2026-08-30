@@ -9,7 +9,7 @@ export { turnsIn, nextTurnAfter, previousTurnBefore, nextSlackAfter } from "./tu
 export type { TideTurn, SlackWindow } from "./turns";
 export { dailyRange, readTideAt } from "./state";
 export type { TideMotion, TideReading } from "./index-types";
-export { paceAt } from "./pace";
-export type { PaceClass, TidePace } from "./pace";
+export { paceAt, PACE_BANDS } from "./pace";
+export type { PaceClass, PaceBand, PaceBaseline, TidePace } from "./pace";
 export type { TideReadOptions } from "./constants";
 export { RATE_WINDOW, SLACK_BELOW, NEAR_SLACK_BELOW } from "./constants";

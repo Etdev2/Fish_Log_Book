@@ -10,17 +10,25 @@
  * type because it is still a useful, differently-shaped number a UI may want, but it does
  * not drive the classification.
  *
- * The distribution is sampled at a fixed wall-clock interval (`DISTRIBUTION_STEP`, 10 min)
- * rather than at the raw prediction samples, because the fixture (and any live NOAA feed)
- * mixes hourly samples with extra points inserted exactly at turns — sampling the raw
- * points would over-weight slack water in the distribution.
+ * The distribution is sampled at a fixed wall-clock interval (`PaceBaseline.sampleInterval`,
+ * 10 min) rather than at the raw prediction samples, because the fixture (and any live NOAA
+ * feed) mixes hourly samples with extra points inserted exactly at turns — sampling the raw
+ * points would over-weight slack water in the distribution. `sampleInterval` and
+ * `sampleCount` are carried on the baseline precisely so this is auditable later: they
+ * describe the size and shape of the SAME fixed-interval distribution `percentile` was
+ * computed from — not the (much smaller, single-digit) count of flood/ebb legs used only
+ * for `medianPeakRate`, which gets its own field (`legCount`) rather than overloading
+ * `sampleCount`.
+ *
+ * `PACE_BANDS` is exported and public so the percentile cut points are a tunable, vector-
+ * testable constant rather than buried inside `classify`.
  *
  * This normalises against the loaded prediction window only, not the station's long-run
  * climatology — see the `basis` string on the returned `Sourced<TidePace>`. It cannot yet
  * say "fast for this station in September".
  */
 import type { Instant, Millis, MetresPerHour, Sourced } from "@/core/units";
-import { metresPerHour, sourced } from "@/core/units";
+import { metresPerHour, millis, sourced } from "@/core/units";
 import type { TidePredictionSeries } from "./source";
 import { turnsIn } from "./turns";
 import { rateAt } from "./height";
@@ -28,20 +36,42 @@ import { RATE_WINDOW } from "./constants";
 
 export type PaceClass = "very-slow" | "slow" | "normal" | "fast" | "very-fast";
 
+export interface PaceBand {
+  readonly class: PaceClass;
+  /** Exclusive upper bound on percentile (0..100) for this band; the last band is a catch-all. */
+  readonly maxPercentile: number;
+}
+
+/** Public, vector-tunable percentile cut points. Ordered ascending; the last entry catches the rest. */
+export const PACE_BANDS: readonly PaceBand[] = [
+  { class: "very-slow", maxPercentile: 10 },
+  { class: "slow", maxPercentile: 30 },
+  { class: "normal", maxPercentile: 70 },
+  { class: "fast", maxPercentile: 90 },
+  { class: "very-fast", maxPercentile: 100 },
+];
+
+export interface PaceBaseline {
+  readonly source: "series";
+  /** Size of the fixed-interval |rate| distribution `percentile` was ranked against. */
+  readonly sampleCount: number;
+  /** The fixed wall-clock step the distribution above was sampled at. */
+  readonly sampleInterval: Millis;
+  /** Number of flood/ebb legs used to compute `medianPeakRate` — typically single digits. */
+  readonly legCount: number;
+  readonly medianPeakRate: MetresPerHour;
+}
+
 export interface TidePace {
   readonly class: PaceClass;
   /** |rate| / baseline.medianPeakRate. Informational — NOT what `class` is derived from. */
   readonly ratio: number;
   /** Percentile (0..100) of |rate| within the distribution sampled across the series. */
   readonly percentile: number;
-  readonly baseline: {
-    readonly source: "series";
-    readonly sampleCount: number;
-    readonly medianPeakRate: MetresPerHour;
-  };
+  readonly baseline: PaceBaseline;
 }
 
-const DISTRIBUTION_STEP: Millis = (10 * 60_000) as Millis;
+const DISTRIBUTION_STEP: Millis = millis(10 * 60_000);
 
 function median(nums: readonly number[]): number {
   if (nums.length === 0) return 0;
@@ -85,11 +115,10 @@ function percentileRank(distribution: readonly number[], value: number): number 
 }
 
 function classify(percentile: number): PaceClass {
-  if (percentile < 10) return "very-slow";
-  if (percentile < 30) return "slow";
-  if (percentile < 70) return "normal";
-  if (percentile < 90) return "fast";
-  return "very-fast";
+  for (const band of PACE_BANDS) {
+    if (percentile < band.maxPercentile) return band.class;
+  }
+  return PACE_BANDS[PACE_BANDS.length - 1].class;
 }
 
 export function paceAt(
@@ -114,7 +143,9 @@ export function paceAt(
       percentile,
       baseline: {
         source: "series",
-        sampleCount: peaks.length,
+        sampleCount: distribution.length,
+        sampleInterval: DISTRIBUTION_STEP,
+        legCount: peaks.length,
         medianPeakRate: metresPerHour(medianPeak),
       },
     },

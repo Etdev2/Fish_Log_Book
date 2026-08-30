@@ -10,8 +10,9 @@ export const metadata: Metadata = { title: "Calendar | Fish Log Book" };
  * The calendar itself is the next round's work (ADR 005 scope note: this round is the
  * design system and the shell, and nothing in features/* beyond shell/ should exist).
  *
- * The tide chart link carries over from the pre-shell homepage (see PR #4/#5) — it is
- * the only way in from the calendar until the month grid itself surfaces conditions.
+ * The tide chart link carries over from the pre-shell homepage (see PR #4/#5). The Tide
+ * tab in the primary nav also reaches it now, but this stays as a direct shortcut until
+ * the month grid itself surfaces conditions inline.
  */
 export default function CalendarPage() {
   return (

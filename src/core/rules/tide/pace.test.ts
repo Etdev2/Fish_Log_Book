@@ -40,4 +40,15 @@ describe("paceAt", () => {
     expect(typeof pace.value.ratio).toBe("number");
     expect(typeof pace.value.percentile).toBe("number");
   });
+
+  it("baseline.sampleCount describes the fixed-interval distribution, not the leg count", () => {
+    const { baseline } = paceAt(series, anyInstant, metresPerHour(0)).value;
+    // The test fixture spans ~13 hours across 2 legs, so legCount is tiny while the
+    // 10-minute distribution over that span is an order of magnitude larger. A regression
+    // that conflates the two (sampleCount === legCount) would fail this.
+    expect(baseline.legCount).toBeGreaterThan(0);
+    expect(baseline.legCount).toBeLessThan(20);
+    expect(baseline.sampleCount).toBeGreaterThan(baseline.legCount * 10);
+    expect(baseline.sampleInterval).toBe(10 * 60_000);
+  });
 });
