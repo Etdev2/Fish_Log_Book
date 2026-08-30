@@ -15,7 +15,8 @@ import { daylightSpans, moonPhaseAt, sunEventsFor } from "@/core/rules/astro";
 import { useNow } from "@/lib/time/use-now";
 import { useUnitPreference } from "@/features/settings/units";
 
-import { loadTideSeriesFixture, STATION_LOCATION, STATION_TIME_ZONE } from "./queries/tide-series";
+import { TIDE_SELECTED_AT, loadTideSeriesFixture, STATION_LOCATION, STATION_TIME_ZONE } from "./queries/tide-series";
+import { useLocalTimeZone } from "./use-local-time-zone";
 import { SourcedValue, unwrapSourced } from "./components/sourced-value";
 import type { MoonPhaseName } from "./types";
 import {
@@ -44,6 +45,7 @@ import {
   monthDay,
   shortDay,
   stationHour,
+  zoneAbbreviation,
 } from "./format";
 
 const CURVE_STEP_MS = 15 * 60_000;
@@ -56,12 +58,17 @@ export function TideChart() {
   const seriesStart = Number(series.samples[0].at);
   const seriesEnd = Number(series.samples[series.samples.length - 1].at);
   const totalMs = seriesEnd - seriesStart;
-  // The fixture's own anchor for the demo: roughly a third into the loaded window. Not
-  // tide maths — a starting point for the read-head.
-  const initialSelectedAt = seriesStart + Math.round(totalMs * 0.14);
+  // The fixture's own anchor for the demo read-head — chosen at fetch time to sit near
+  // "now", clamped into the loaded window in case the snapshot has since aged past it.
+  const initialSelectedAt = Math.max(seriesStart, Math.min(seriesEnd, Number(TIDE_SELECTED_AT)));
 
   const [unit, setUnit] = useUnitPreference();
   const now = useNow();
+  // The viewer's own zone, resolved after hydration; the station's zone is the
+  // SSR-safe fallback so server and first-client-render markup match exactly.
+  const localTimeZone = useLocalTimeZone();
+  const displayTimeZone = localTimeZone ?? STATION_TIME_ZONE;
+  const zoneDiffersFromStation = localTimeZone !== null && localTimeZone !== STATION_TIME_ZONE;
 
   const scrollerRef = useRef<HTMLDivElement>(null);
   const dragRef = useRef<{ pointerId: number; startX: number; startY: number; startAt: number; active: boolean } | null>(
@@ -207,13 +214,20 @@ export function TideChart() {
         </div>
         <h1 className="text-h1">Tide</h1>
         <p className="text-caption text-text-muted">
-          Predicted height above {series.station.datum} · station-local time · selected: {dayLabel(instant(selectedAt), STATION_TIME_ZONE)},{" "}
-          {clock(instant(selectedAt), STATION_TIME_ZONE)}
+          Predicted height above {series.station.datum} · times shown in{" "}
+          {zoneAbbreviation(instant(selectedAt), displayTimeZone)} · selected: {dayLabel(instant(selectedAt), displayTimeZone)},{" "}
+          {clock(instant(selectedAt), displayTimeZone)}
         </p>
+        {zoneDiffersFromStation && (
+          <p className="text-caption text-text-muted">
+            Station {series.station.name} is in {zoneAbbreviation(instant(selectedAt), STATION_TIME_ZONE)}; every time on this
+            screen is converted to your local {zoneAbbreviation(instant(selectedAt), displayTimeZone)}.
+          </p>
+        )}
         <p className="text-caption text-text-muted">
           Sun and moon times are calculated, not measured.{" "}
           {selectedDaySun.sunrise && selectedDaySun.sunset
-            ? `Sunrise ${clock(selectedDaySun.sunrise, STATION_TIME_ZONE)} · Sunset ${clock(selectedDaySun.sunset, STATION_TIME_ZONE)}.`
+            ? `Sunrise ${clock(selectedDaySun.sunrise, displayTimeZone)} · Sunset ${clock(selectedDaySun.sunset, displayTimeZone)}.`
             : "The sun does not rise or set here today."}
         </p>
         <span className="mt-1 inline-flex w-fit items-center gap-2 rounded-full border border-hairline bg-surface-raised px-3 py-1.5 font-mono text-caption tracking-wide text-text-muted before:size-2 before:rounded-full before:bg-text-muted">
@@ -221,7 +235,7 @@ export function TideChart() {
         </span>
         {now !== null && !nowWithinRange && (
           <p className="text-caption text-text-muted">
-            Live clock: {dayLabel(now, STATION_TIME_ZONE)}, {clock(now, STATION_TIME_ZONE)} —{" "}
+            Live clock: {dayLabel(now, displayTimeZone)}, {clock(now, displayTimeZone)} —{" "}
             {Number(now) < seriesStart ? "before" : "after"} this cached window, so there is no live marker on the chart today.
           </p>
         )}
@@ -261,7 +275,7 @@ export function TideChart() {
         <StatusCell label="Next turn" emphasis={!soonestIsSlack && nextTurn !== null}>
           {nextTurn ? (
             <>
-              <span>{clock(nextTurn.at, STATION_TIME_ZONE)}</span>
+              <span>{clock(nextTurn.at, displayTimeZone)}</span>
               <small>
                 {nextTurn.kind === "high" ? "High" : "Low"} · {formatCountdown(Number(nextTurn.at) - selectedAt, nextTurn.kind)}
               </small>
@@ -278,7 +292,7 @@ export function TideChart() {
               render={(v) => (
                 <>
                   <span>
-                    {clock(v.from, STATION_TIME_ZONE)}–{clock(v.to, STATION_TIME_ZONE)}
+                    {clock(v.from, displayTimeZone)}–{clock(v.to, displayTimeZone)}
                   </span>
                   <small>{formatCountdown(Number(v.centre) - selectedAt, "slack")}</small>
                 </>
@@ -289,14 +303,14 @@ export function TideChart() {
           )}
         </StatusCell>
 
-        <StatusCell label={`${monthDay(instant(selectedAt), STATION_TIME_ZONE)} range`}>
+        <StatusCell label={`${monthDay(instant(selectedAt), displayTimeZone)} range`}>
           {range ? <SourcedValue value={range} render={(v) => <span>{formatHeight(v, unit)}</span>} /> : "—"}
         </StatusCell>
       </dl>
 
       <div className="overflow-hidden rounded-lg border border-hairline bg-surface pb-1.5 pt-3.5">
         <div className="flex items-center justify-between gap-2 px-3.5 pb-3">
-          <h2 className="min-w-0 truncate text-lg font-bold">{dayLabel(instant(centerAt), STATION_TIME_ZONE)}</h2>
+          <h2 className="min-w-0 truncate text-lg font-bold">{dayLabel(instant(centerAt), displayTimeZone)}</h2>
           <div className="flex shrink-0 gap-2">
             <button
               className="size-touch-nav-day rounded-md border border-border-interactive bg-surface-raised text-xl hover:border-tide-cyan disabled:opacity-45"
@@ -310,13 +324,13 @@ export function TideChart() {
             <button
               className="h-touch-nav-day rounded-md border border-signal-orange bg-surface-raised px-3 font-mono text-label font-semibold tracking-widest text-signal-orange hover:bg-signal-orange hover:text-ink-on-orange"
               type="button"
-              aria-label={`Return to initial fixture time: ${dayLabel(instant(initialSelectedAt), STATION_TIME_ZONE)}, ${clock(instant(initialSelectedAt), STATION_TIME_ZONE)}`}
+              aria-label={`Return to initial fixture time: ${dayLabel(instant(initialSelectedAt), displayTimeZone)}, ${clock(instant(initialSelectedAt), displayTimeZone)}`}
               onClick={() => {
                 selectAt(initialSelectedAt);
                 scrollToAt(initialSelectedAt);
               }}
             >
-              SEP 1
+              {monthDay(instant(initialSelectedAt), displayTimeZone).toUpperCase()}
             </button>
             <button
               className="size-touch-nav-day rounded-md border border-border-interactive bg-surface-raised text-xl hover:border-tide-cyan disabled:opacity-45"
@@ -350,7 +364,7 @@ export function TideChart() {
             aria-valuemin={0}
             aria-valuemax={totalMs}
             aria-valuenow={Math.round(selectedAt - seriesStart)}
-            aria-valuetext={`${formatHeight(selectedHeight, unit)} at ${clock(instant(selectedAt), STATION_TIME_ZONE)}, ${dayLabel(instant(selectedAt), STATION_TIME_ZONE)}`}
+            aria-valuetext={`${formatHeight(selectedHeight, unit)} at ${clock(instant(selectedAt), displayTimeZone)}, ${dayLabel(instant(selectedAt), displayTimeZone)}`}
             onScroll={updateCenter}
             onPointerDown={(event) => {
               dragRef.current = { pointerId: event.pointerId, startX: event.clientX, startY: event.clientY, startAt: selectedAt, active: false };
@@ -450,13 +464,13 @@ export function TideChart() {
                 <g key={at}>
                   <line x1={xFor(at)} x2={xFor(at)} y1={PLOT_TOP - 14} y2={PLOT_TOP + PLOT_HEIGHT + 30} stroke="var(--color-border-interactive)" strokeDasharray="2 5" />
                   <text x={xFor(at) + 8} y={PLOT_TOP - 6} className="fill-text-muted font-mono text-[11px] font-semibold tracking-widest">
-                    {shortDay(instant(at), STATION_TIME_ZONE).toUpperCase()}
+                    {shortDay(instant(at), displayTimeZone).toUpperCase()}
                   </text>
                 </g>
               ))}
-              {timeLabels(seriesStart, seriesEnd).map((at) => (
+              {timeLabels(seriesStart, seriesEnd, displayTimeZone).map((at) => (
                 <text key={at} x={xFor(at)} y={PLOT_TOP + PLOT_HEIGHT + 24} textAnchor="middle" className="fill-text-muted font-mono text-[12px]">
-                  {String(stationHour(instant(at), STATION_TIME_ZONE)).padStart(2, "0")}:00
+                  {String(stationHour(instant(at), displayTimeZone)).padStart(2, "0")}:00
                 </text>
               ))}
 
@@ -467,7 +481,7 @@ export function TideChart() {
                 <g key={String(turn.at)}>
                   <circle cx={xFor(Number(turn.at))} cy={yFor(turn.height)} r="5" fill="var(--color-tide-cyan)" stroke="var(--color-surface)" strokeWidth="2" />
                   <text x={xFor(Number(turn.at))} y={yFor(turn.height) + (turn.kind === "high" ? -14 : 22)} textAnchor="middle" className="fill-text-primary font-mono text-[12px] font-semibold">
-                    {formatHeight(turn.height, unit)} <tspan className="fill-text-muted font-normal">{clock(turn.at, STATION_TIME_ZONE)}</tspan>
+                    {formatHeight(turn.height, unit)} <tspan className="fill-text-muted font-normal">{clock(turn.at, displayTimeZone)}</tspan>
                   </text>
                 </g>
               ))}
@@ -516,7 +530,7 @@ export function TideChart() {
           <div className={`pointer-events-none absolute left-1/2 top-1 z-20 -translate-x-1/2 rounded-md border border-border-interactive bg-surface-raised px-3 py-1.5 font-mono text-caption ${dragging ? "" : "motion-reduce:transition-none"}`}>
             <b className="block text-body font-bold">{formatHeight(selectedHeight, unit)}</b>
             <span className="text-caption text-text-muted">
-              {clock(instant(selectedAt), STATION_TIME_ZONE)} · {shortDay(instant(selectedAt), STATION_TIME_ZONE)}
+              {clock(instant(selectedAt), displayTimeZone)} · {shortDay(instant(selectedAt), displayTimeZone)}
             </span>
           </div>
         </div>
@@ -556,13 +570,15 @@ export function TideChart() {
                 <th className="px-3.5 py-2 font-medium">Mark</th>
               </tr>
             </thead>
-            <tbody>{tableRows(series, seriesStart, unit)}</tbody>
+            <tbody>{tableRows(series, seriesStart, unit, displayTimeZone)}</tbody>
           </table>
         </div>
       )}
       <p className="mt-6 border-t border-hairline pt-4 text-caption text-text-muted">
-        {series.samples.length} renderable points across the loaded window, with every exact turning point kept. Embedded NOAA
-        CO-OPS prediction fixture from the approved prototype; retrieval timestamp was not recorded. Station{" "}
+        {series.samples.length} renderable points across the loaded window, with every exact turning point kept. Real NOAA
+        CO-OPS predictions{series.retrievedAt !== null && (
+          <> retrieved {dayLabel(series.retrievedAt, displayTimeZone)}, {clock(series.retrievedAt, displayTimeZone)}</>
+        )}. Station{" "}
         <code className="font-mono text-caption text-text-primary">{series.station.id}</code>, datum{" "}
         <code className="font-mono text-caption text-text-primary">{series.station.datum}</code>.
       </p>
@@ -622,15 +638,15 @@ function gridValues(yMinimum: number, yMaximum: number): number[] {
   return values;
 }
 
-function timeLabels(seriesStart: number, seriesEnd: number): number[] {
+function timeLabels(seriesStart: number, seriesEnd: number, timeZone: string): number[] {
   const result: number[] = [];
   for (let t = seriesStart; t <= seriesEnd; t += 3 * 3_600_000) {
-    if (stationHour(instant(t), STATION_TIME_ZONE) !== 0) result.push(t);
+    if (stationHour(instant(t), timeZone) !== 0) result.push(t);
   }
   return result;
 }
 
-function tableRows(series: ReturnType<typeof loadTideSeriesFixture>, seriesStart: number, unit: "ft" | "m") {
+function tableRows(series: ReturnType<typeof loadTideSeriesFixture>, seriesStart: number, unit: "ft" | "m", timeZone: string) {
   let previousDay = -1;
   const rows: React.ReactNode[] = [];
   for (const sample of series.samples) {
@@ -642,7 +658,7 @@ function tableRows(series: ReturnType<typeof loadTideSeriesFixture>, seriesStart
       rows.push(
         <tr key={`day-${sample.at}`} className="border-t border-hairline bg-surface-raised text-caption font-semibold uppercase tracking-wider text-text-muted">
           <td colSpan={3} className="px-3.5 py-2">
-            {dayLabel(sample.at, STATION_TIME_ZONE)}
+            {dayLabel(sample.at, timeZone)}
           </td>
         </tr>,
       );
@@ -650,7 +666,7 @@ function tableRows(series: ReturnType<typeof loadTideSeriesFixture>, seriesStart
     }
     rows.push(
       <tr key={String(sample.at)} className={`border-t border-hairline ${sample.turn ? "font-semibold text-tide-cyan" : ""}`}>
-        <td className="px-3.5 py-2">{clock(sample.at, STATION_TIME_ZONE)}</td>
+        <td className="px-3.5 py-2">{clock(sample.at, timeZone)}</td>
         <td className="px-3.5 py-2">{formatHeight(sample.height, unit)}</td>
         <td className="px-3.5 py-2">{sample.turn === "high" ? "High" : sample.turn === "low" ? "Low" : ""}</td>
       </tr>,

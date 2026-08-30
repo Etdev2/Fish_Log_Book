@@ -86,6 +86,14 @@ export function clock(at: Instant, timeZone: string): string {
     .toLowerCase();
 }
 
+/** "PDT", "EDT", "GMT+2" — a short zone label to sit next to a clock reading. */
+export function zoneAbbreviation(at: Instant, timeZone: string): string {
+  const part = new Intl.DateTimeFormat("en-US", { timeZoneName: "short", timeZone })
+    .formatToParts(new Date(at))
+    .find((p) => p.type === "timeZoneName");
+  return part?.value ?? timeZone;
+}
+
 export function dayLabel(at: Instant, timeZone: string): string {
   return new Intl.DateTimeFormat("en-US", { weekday: "long", day: "numeric", month: "long", timeZone }).format(
     new Date(at),

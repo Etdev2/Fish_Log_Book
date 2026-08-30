@@ -9,13 +9,16 @@
 import { degrees, instant, metresFromMillimetres } from "@/core/units";
 import { tideSeries, type TidePredictionSeries } from "@/core/rules/tide";
 import type { GeoPoint } from "@/core/rules/astro";
-import { TIDE_BASE_UTC, TIDE_POINTS, TIDE_STATION, TIDE_STATION_NAME } from "../tide-fixture";
+import { TIDE_BASE_UTC, TIDE_POINTS, TIDE_RETRIEVED_AT_UTC, TIDE_SELECTED_MINUTES, TIDE_STATION, TIDE_STATION_NAME } from "../tide-fixture";
 
 /** Presentation metadata only — never read inside `core/rules/tide/` maths (ADR 006 §2). */
 export const STATION_TIME_ZONE = "America/Los_Angeles";
 
 /** Newport Bay Entrance, CA — for `sunEventsFor`/`daylightSpans`, not part of the engine's `TideStation`. */
 export const STATION_LOCATION: GeoPoint = { latitude: degrees(33.6047), longitude: degrees(-117.883) };
+
+/** The fixture's own anchor for the demo read-head, chosen at fetch time to sit near "now". */
+export const TIDE_SELECTED_AT = instant(TIDE_BASE_UTC + TIDE_SELECTED_MINUTES * 60_000);
 
 let cached: TidePredictionSeries | null = null;
 
@@ -35,7 +38,7 @@ export function loadTideSeriesFixture(): TidePredictionSeries {
       turn: mark === "H" ? "high" : mark === "L" ? "low" : null,
     })),
     provider: "fixture",
-    retrievedAt: null,
+    retrievedAt: instant(TIDE_RETRIEVED_AT_UTC),
   });
   return cached;
 }
