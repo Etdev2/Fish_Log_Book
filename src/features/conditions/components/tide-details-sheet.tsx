@@ -14,7 +14,7 @@ import {
 import type { SunEvents } from "@/core/rules/astro";
 import type { UnitPreference } from "@/features/settings/units";
 
-import { ConditionsSheet, SheetRow } from "./conditions-sheet";
+import { BottomSheet, SheetRow } from "@/components/bottom-sheet";
 import { SourcedValue } from "./sourced-value";
 import { clock, dayLabel, formatHeight, formatMotion, formatPace, formatRate } from "../format";
 
@@ -73,13 +73,13 @@ export function TideDetailsSheet({
   }, [series, dayFrom, dayTo]);
 
   return (
-    <ConditionsSheet
+    <BottomSheet
       open={open}
       onClose={onClose}
       eyebrow="Tide detail"
       title={dayLabel(instant(dayFrom), stationTimeZone)}
     >
-      <ul className="tide-sheet-turns">
+      <ul className="app-sheet-turns">
         {turns.map((turn) => (
           <li key={String(turn.at)} data-turn={turn.kind}>
             <span>{turn.kind === "high" ? "High" : "Low"}</span>
@@ -87,10 +87,10 @@ export function TideDetailsSheet({
             <span>{clock(turn.at, displayTimeZone)}</span>
           </li>
         ))}
-        {turns.length === 0 && <li className="tide-sheet-note">No turning point falls inside this day.</li>}
+        {turns.length === 0 && <li className="app-sheet-note">No turning point falls inside this day.</li>}
       </ul>
 
-      <dl className="tide-sheet-rows">
+      <dl className="app-sheet-rows">
         <SheetRow label="Range this day">
           {range ? <SourcedValue value={range} render={(value) => <>{formatHeight(value, unit)}</>} /> : "—"}
         </SheetRow>
@@ -100,7 +100,7 @@ export function TideDetailsSheet({
               <SourcedValue value={reading.height} render={(value) => <>{formatHeight(value, unit)}</>} /> ·{" "}
               {formatMotion(reading.motion)}{" "}
               <SourcedValue value={reading.rate} render={(value) => <>{formatRate(value, unit)}</>} />
-              <span className="tide-sheet-note">
+              <span className="app-sheet-note">
                 <SourcedValue value={reading.pace} render={(value) => <>{formatPace(value.class)} movement</>} />
                 {reading.twelfths !== null && <> · about {reading.twelfths}/12 through this tide hour</>}
               </span>
@@ -111,7 +111,7 @@ export function TideDetailsSheet({
         </SheetRow>
         <SheetRow label="Slack windows">
           {slacks.length > 0 ? (
-            <ul className="tide-sheet-slacks">
+            <ul className="app-sheet-slacks">
               {slacks.map((entry) => (
                 <li key={entry.key}>
                   <SourcedValue
@@ -119,7 +119,7 @@ export function TideDetailsSheet({
                     render={(value) => (
                       <>
                         {clock(value.centre, displayTimeZone)}
-                        <span className="tide-sheet-note">
+                        <span className="app-sheet-note">
                           window {clock(value.from, displayTimeZone)}–{clock(value.to, displayTimeZone)}
                         </span>
                       </>
@@ -139,9 +139,9 @@ export function TideDetailsSheet({
         </SheetRow>
       </dl>
 
-      <details className="tide-sheet-disclosure">
+      <details className="app-sheet-disclosure">
         <summary>Every hour, in numbers</summary>
-        <table className="tide-sheet-table">
+        <table className="app-sheet-table">
           <caption>Predicted height above {series.station.datum}, hourly, with the exact highs and lows.</caption>
           <thead>
             <tr>
@@ -161,6 +161,6 @@ export function TideDetailsSheet({
           </tbody>
         </table>
       </details>
-    </ConditionsSheet>
+    </BottomSheet>
   );
 }

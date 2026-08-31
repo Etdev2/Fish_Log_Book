@@ -1,0 +1,697 @@
+@layer components {
+/*
+ * The Tackle Box, built on the same two alignment lines as the tide screen:
+ * `--app-gutter` for every box edge, `--app-card-inset` for text inside a card. Nothing
+ * here invents a second spacing scale (spec §24).
+ */
+
+.gear-screen {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+}
+
+/* ---- Header ---- */
+
+.gear-header {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 12px var(--app-gutter);
+}
+
+.gear-header-top {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  padding-inline: var(--app-card-inset);
+}
+
+.gear-header-top h1 {
+  margin: 0;
+  font-size: 26px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+.gear-header-top p {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-family: var(--font-mono);
+  font-size: 16px;
+}
+
+.gear-search-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+}
+
+.gear-search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: var(--spacing-touch-floor);
+  padding: 0 12px;
+  border: 1px solid var(--color-hairline);
+  border-radius: var(--radius-full);
+  background: var(--color-surface);
+}
+
+.gear-search-glyph {
+  color: var(--color-text-muted);
+  font-size: 20px;
+}
+
+.gear-search input {
+  width: 100%;
+  border: 0;
+  background: transparent;
+  color: var(--color-text-primary);
+  font: 400 17px/1.2 var(--font-ui);
+  outline: none;
+}
+
+.gear-search input::placeholder {
+  color: var(--color-text-muted);
+}
+
+.gear-filter-button,
+.gear-add,
+.gear-save,
+.gear-clear {
+  min-height: var(--spacing-touch-floor);
+  padding: 0 16px;
+  border: 1px solid var(--color-hairline);
+  border-radius: var(--radius-full);
+  background: var(--color-surface);
+  color: var(--color-text-link);
+  font: 700 17px/1.2 var(--font-ui);
+  cursor: pointer;
+}
+
+.gear-filter-button[data-active="true"] {
+  border-color: var(--color-signal-orange);
+  color: var(--color-signal-orange-pressed);
+}
+
+/* ---- Body ---- */
+
+.gear-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 0 var(--app-gutter) 8px;
+  overscroll-behavior-y: contain;
+}
+
+.gear-result-line {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 4px var(--app-card-inset) 10px;
+}
+
+.gear-result-line p {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: 16px;
+}
+
+.gear-result-line button {
+  min-height: var(--spacing-touch-floor);
+  padding: 0 12px;
+  border: 0;
+  background: transparent;
+  color: var(--color-text-link);
+  font: 700 16px/1.2 var(--font-ui);
+  cursor: pointer;
+}
+
+.gear-nothing {
+  margin: 24px var(--app-card-inset);
+  color: var(--color-text-muted);
+  font-size: 17px;
+  line-height: 1.4;
+}
+
+/* ---- Category cards ---- */
+
+/* Equal rows, so a two-line name ("Sinkers & weights") cannot make its card taller than
+   the one beside it. */
+.gear-categories {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  grid-auto-rows: 84px;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.gear-category-card {
+  display: grid;
+  grid-template-columns: 32px minmax(0, 1fr);
+  grid-template-rows: auto auto;
+  align-items: center;
+  gap: 2px 10px;
+  width: 100%;
+  height: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--color-hairline);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+  color: var(--color-text-primary);
+  text-align: left;
+  cursor: pointer;
+}
+
+.gear-category-card[data-empty="true"] {
+  opacity: var(--opacity-disabled);
+}
+
+.gear-category-glyph {
+  grid-row: 1 / span 2;
+  font-size: 26px;
+  line-height: 1;
+}
+
+.gear-category-name {
+  display: -webkit-box;
+  overflow: hidden;
+  font-size: 17px;
+  font-weight: 700;
+  line-height: 1.2;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.gear-category-count {
+  color: var(--color-text-muted);
+  font-family: var(--font-mono);
+  font-size: 16px;
+}
+
+/* ---- Inventory rows ---- */
+
+.gear-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.gear-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px 8px 8px;
+  border: 1px solid var(--color-hairline);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+  /* A row scrolled far off screen costs no layout or paint. This, plus the growing
+     window in the screen component, is how the list stays usable at 5,000 entries. */
+  content-visibility: auto;
+  contain-intrinsic-size: auto 72px;
+}
+
+.gear-row-open {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  min-height: var(--spacing-touch-floor);
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--color-text-primary);
+  text-align: left;
+  cursor: pointer;
+}
+
+.gear-thumb {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  overflow: hidden;
+  border-radius: var(--radius-md);
+  background: var(--color-surface-raised);
+  font-size: 22px;
+}
+
+.gear-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.gear-row-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+/* A block, not a flex row: `text-overflow` needs a block box to clip against, and as a
+   flex container it simply cut the name off mid-word with no ellipsis at all. */
+.gear-row-name {
+  overflow: hidden;
+  font-size: 17px;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.gear-star {
+  color: var(--color-amber-flag);
+}
+
+.gear-row-meta {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  overflow: hidden;
+  color: var(--color-text-muted);
+  font-size: 16px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Never colour alone: low stock says the words too (spec §34). */
+.gear-low {
+  flex: none;
+  padding: 1px 8px;
+  border-radius: var(--radius-full);
+  background: var(--color-surface-raised);
+  color: var(--color-amber-flag);
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.gear-stepper {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  border: 1px solid var(--color-hairline);
+  border-radius: var(--radius-full);
+  background: var(--color-surface-raised);
+}
+
+.gear-stepper button {
+  min-width: var(--spacing-touch-floor);
+  min-height: var(--spacing-touch-floor);
+  border: 0;
+  background: transparent;
+  color: var(--color-text-primary);
+  font: 700 22px/1 var(--font-ui);
+  cursor: pointer;
+}
+
+.gear-stepper button:disabled {
+  opacity: var(--opacity-disabled);
+  cursor: default;
+}
+
+.gear-stepper output,
+.gear-stepper input {
+  min-width: 40px;
+  border: 0;
+  background: transparent;
+  color: var(--color-text-primary);
+  font: 700 18px/1 var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+
+.gear-stepper-large output,
+.gear-stepper-large input {
+  min-width: 64px;
+  font-size: 22px;
+}
+
+.gear-stepper input {
+  width: 72px;
+  outline: none;
+  appearance: textfield;
+}
+
+.gear-fav {
+  min-width: var(--spacing-touch-floor);
+  min-height: var(--spacing-touch-floor);
+  border: 0;
+  border-radius: var(--radius-full);
+  background: transparent;
+  color: var(--color-text-muted);
+  font-size: 22px;
+  cursor: pointer;
+}
+
+.gear-fav[aria-pressed="true"] {
+  color: var(--color-amber-flag);
+}
+
+.gear-sentinel {
+  height: 1px;
+}
+
+/* ---- Empty state ---- */
+
+.gear-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  margin: 24px auto;
+  max-width: 380px;
+  padding: 24px var(--app-card-inset);
+  text-align: center;
+}
+
+.gear-empty > span {
+  font-size: 44px;
+}
+
+.gear-empty h2 {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 800;
+}
+
+.gear-empty p {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: 17px;
+  line-height: 1.45;
+}
+
+.gear-empty button {
+  min-height: var(--spacing-touch-primary-standard);
+  margin-top: 8px;
+  padding: 0 20px;
+  border: 0;
+  border-radius: var(--radius-full);
+  background: var(--color-signal-orange);
+  color: var(--color-ink-on-orange);
+  font: 800 18px/1.2 var(--font-ui);
+  cursor: pointer;
+}
+
+/* ---- Add bar ---- */
+
+.gear-add-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px var(--app-gutter) 12px;
+  border-top: 1px solid var(--color-hairline);
+  background: var(--color-background);
+}
+
+.gear-add-bar p {
+  margin: 0 0 0 var(--app-card-inset);
+  color: var(--color-text-muted);
+  font-size: 16px;
+}
+
+.gear-add {
+  flex: none;
+  min-height: var(--spacing-touch-primary-standard);
+  border-color: var(--color-signal-orange);
+  background: var(--color-signal-orange);
+  color: var(--color-ink-on-orange);
+  font-weight: 800;
+}
+
+/* ---- Forms, inside sheets ---- */
+
+.gear-form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.gear-field,
+.gear-field > label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.gear-field > span,
+.gear-field > label > span,
+.gear-chipset legend {
+  color: var(--color-text-muted);
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.gear-field input,
+.gear-field select,
+.gear-field textarea {
+  min-height: var(--spacing-touch-floor);
+  padding: 10px 12px;
+  border: 1px solid var(--color-border-interactive);
+  border-radius: var(--radius-md);
+  background: var(--color-background);
+  color: var(--color-text-primary);
+  font: 400 17px/1.3 var(--font-ui);
+}
+
+.gear-field input:focus-visible,
+.gear-field select:focus-visible,
+.gear-field textarea:focus-visible,
+.gear-search:focus-within,
+.gear-add:focus-visible,
+.gear-save:focus-visible,
+.gear-filter-button:focus-visible,
+.gear-row-open:focus-visible,
+.gear-fav:focus-visible,
+.gear-stepper button:focus-visible,
+.gear-category-card:focus-visible {
+  outline: 3px solid var(--color-focus-ring);
+  outline-offset: 3px;
+}
+
+.gear-error {
+  color: var(--color-error-red);
+  font-size: 16px;
+}
+
+.gear-hint,
+.gear-optional-note {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: 16px;
+  line-height: 1.35;
+}
+
+.gear-optional-note {
+  padding-top: 6px;
+  border-top: 1px solid var(--color-hairline);
+}
+
+.gear-save {
+  border-color: var(--color-signal-orange);
+  background: var(--color-signal-orange);
+  color: var(--color-ink-on-orange);
+  font-weight: 800;
+  min-height: var(--spacing-touch-primary-standard);
+}
+
+.gear-recent,
+.gear-chipset > div,
+.gear-actions,
+.gear-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.gear-recent button,
+.gear-chipset button,
+.gear-actions button {
+  min-height: var(--spacing-touch-floor);
+  padding: 0 14px;
+  border: 1px solid var(--color-hairline);
+  border-radius: var(--radius-full);
+  background: var(--color-surface);
+  color: var(--color-text-link);
+  font: 600 16px/1.2 var(--font-ui);
+  cursor: pointer;
+}
+
+.gear-recent button[aria-pressed="true"],
+.gear-chipset button[aria-pressed="true"] {
+  border-color: var(--color-tide-cyan);
+  color: var(--color-text-primary);
+}
+
+.gear-chipset {
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.gear-chipset legend {
+  padding: 0 0 8px;
+}
+
+.gear-check {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: var(--spacing-touch-floor);
+  font-size: 17px;
+}
+
+.gear-check input {
+  width: 24px;
+  height: 24px;
+}
+
+.gear-photo-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.gear-photo-preview {
+  display: grid;
+  place-items: center;
+  width: 64px;
+  height: 64px;
+  overflow: hidden;
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  object-fit: cover;
+  font-size: 26px;
+}
+
+.gear-photo-pick {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--spacing-touch-floor);
+  padding: 0 14px;
+  border: 1px solid var(--color-border-interactive);
+  border-radius: var(--radius-full);
+  color: var(--color-text-link);
+  font: 700 16px/1.2 var(--font-ui);
+  cursor: pointer;
+}
+
+.gear-photo-pick input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+}
+
+.gear-photo-clear {
+  min-height: var(--spacing-touch-floor);
+  padding: 0 12px;
+  border: 0;
+  background: transparent;
+  color: var(--color-text-link);
+  font: 600 16px/1.2 var(--font-ui);
+  cursor: pointer;
+}
+
+/* ---- Detail sheet ---- */
+
+.gear-detail-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.gear-detail-photo {
+  display: grid;
+  place-items: center;
+  width: 84px;
+  height: 84px;
+  overflow: hidden;
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+  object-fit: cover;
+  font-size: 34px;
+}
+
+.gear-low-banner {
+  margin: 0;
+  padding: 10px 12px;
+  border: 1px solid var(--color-amber-flag);
+  border-radius: var(--radius-md);
+  color: var(--color-text-primary);
+  font-size: 17px;
+}
+
+.gear-low-banner span {
+  color: var(--color-amber-flag);
+}
+
+.gear-tag {
+  padding: 2px 10px;
+  border-radius: var(--radius-full);
+  background: var(--color-surface);
+  color: var(--color-text-link);
+  font-size: 16px;
+}
+
+/* Destructive controls sit apart from the ones reached for constantly (spec §18). */
+.gear-danger {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 8px;
+  padding-top: 16px;
+  border-top: 1px solid var(--color-hairline);
+}
+
+.gear-danger p {
+  margin: 0;
+  color: var(--color-text-primary);
+  font-size: 17px;
+  line-height: 1.35;
+}
+
+.gear-danger-row {
+  display: flex;
+  gap: 10px;
+}
+
+.gear-danger-start,
+.gear-danger-cancel,
+.gear-danger-confirm {
+  min-height: var(--spacing-touch-floor);
+  padding: 0 16px;
+  border: 1px solid var(--color-border-interactive);
+  border-radius: var(--radius-full);
+  background: transparent;
+  color: var(--color-text-link);
+  font: 700 17px/1.2 var(--font-ui);
+  cursor: pointer;
+}
+
+.gear-danger-start {
+  align-self: flex-start;
+  border-color: transparent;
+  color: var(--color-error-red);
+}
+
+.gear-danger-confirm {
+  border-color: var(--color-error-red-fill);
+  background: var(--color-error-red-fill);
+  color: var(--color-text-primary);
+}
+}

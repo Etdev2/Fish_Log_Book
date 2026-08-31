@@ -1,0 +1,251 @@
+@layer components {
+/*
+ * The app's bottom sheet: one panel, one grabber, one close control, and a scrolling body.
+ *
+ * It started life on the tide screen and moved here the moment a second feature needed it,
+ * rather than being copied — a second sheet with slightly different padding is exactly the
+ * "two design languages" the founder's standard rules out. `src/components/bottom-sheet.tsx`
+ * is the only component that writes these class names.
+ */
+
+/* ---- Bottom sheets ---- */
+
+.app-sheet {
+  width: 100%;
+  max-width: var(--container-reading);
+  max-height: 92dvh;
+  margin: auto auto 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--color-text-primary);
+}
+
+.app-sheet::backdrop {
+  background: rgb(4 8 10 / 72%);
+}
+
+.app-sheet-panel {
+  max-height: 92dvh;
+  overflow-y: auto;
+  padding: 8px 18px calc(24px + env(safe-area-inset-bottom));
+  border: 1px solid var(--color-border-interactive);
+  border-bottom: 0;
+  border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+  background: var(--color-surface-raised);
+}
+
+.app-sheet-grabber {
+  width: 44px;
+  height: 4px;
+  margin: 4px auto 10px;
+  border-radius: var(--radius-full);
+  background: var(--color-border-interactive);
+}
+
+.app-sheet-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.app-sheet-eyebrow {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-family: var(--font-mono);
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: var(--tracking-station);
+  text-transform: uppercase;
+}
+
+.app-sheet-title {
+  margin: 2px 0 0;
+  font-size: 26px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+.app-sheet-close {
+  flex: none;
+  border-color: var(--color-border-interactive);
+}
+
+.app-sheet-body {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-top: 16px;
+}
+
+.app-sheet-badge {
+  margin: 0;
+  padding: 8px 12px;
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  color: var(--color-text-muted);
+  font-family: var(--font-mono);
+  font-size: 16px;
+}
+
+.app-sheet-warning {
+  margin: 0;
+  padding: 10px 12px;
+  border: 1px solid var(--color-amber-flag);
+  border-radius: var(--radius-md);
+  color: var(--color-text-primary);
+  font-size: 17px;
+  line-height: 1.4;
+}
+
+.app-sheet-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0;
+}
+
+.app-sheet-row {
+  display: grid;
+  grid-template-columns: minmax(120px, 34%) minmax(0, 1fr);
+  gap: 12px;
+  padding: 10px 0;
+  border-top: 1px solid var(--color-hairline);
+}
+
+.app-sheet-row dt {
+  color: var(--color-text-muted);
+  font-size: 17px;
+  line-height: 1.35;
+}
+
+.app-sheet-row dd {
+  margin: 0;
+  color: var(--color-text-primary);
+  font-size: 17px;
+  line-height: 1.35;
+}
+
+.app-sheet-note {
+  display: block;
+  margin: 4px 0 0;
+  color: var(--color-text-muted);
+  font-size: 16px;
+  line-height: 1.4;
+}
+
+.app-sheet-moon {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.app-sheet-moon-visual {
+  flex: none;
+  width: 84px;
+  height: 84px;
+}
+
+.app-sheet-moon-illumination {
+  margin: 0;
+  color: var(--color-moon-pale);
+  font-size: 28px;
+  font-weight: 800;
+}
+
+.app-sheet-turns {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.app-sheet-turns li {
+  display: grid;
+  grid-template-columns: 64px minmax(0, 1fr) auto;
+  align-items: baseline;
+  gap: 12px;
+  padding: 10px 0;
+  border-top: 1px solid var(--color-hairline);
+  font-size: 17px;
+}
+
+.app-sheet-turns li > span:first-child {
+  color: var(--color-text-muted);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.app-sheet-turns li[data-turn="high"] > strong { color: var(--color-tide-cyan); }
+.app-sheet-turns li > strong {
+  font-family: var(--font-mono);
+  font-size: 19px;
+  font-variant-numeric: tabular-nums;
+}
+
+.app-sheet-turns li > span:last-child {
+  font-family: var(--font-mono);
+  color: var(--color-text-link);
+}
+
+.app-sheet-slacks {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.app-sheet-slacks li + li {
+  margin-top: 8px;
+}
+
+.app-sheet-disclosure summary {
+  display: flex;
+  align-items: center;
+  min-height: var(--spacing-touch-floor);
+  color: var(--color-text-link);
+  font-size: 17px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.app-sheet-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 16px;
+}
+
+.app-sheet-table caption {
+  padding: 6px 0 10px;
+  color: var(--color-text-muted);
+  text-align: left;
+}
+
+.app-sheet-table th,
+.app-sheet-table td {
+  padding: 8px 10px 8px 0;
+  border-top: 1px solid var(--color-hairline);
+  text-align: left;
+}
+
+.app-sheet-table th {
+  color: var(--color-text-muted);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.app-sheet-table td {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+.app-sheet-table tr[data-turn] td {
+  color: var(--color-tide-cyan);
+  font-weight: 700;
+}
+
+}

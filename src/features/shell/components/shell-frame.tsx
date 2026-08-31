@@ -9,11 +9,13 @@ import { ShellNav } from "./shell-nav";
 /**
  * The shell's frame: the top status row, the main slot, and the bottom nav.
  *
- * One route is immersive. The tide screen is a single-screen instrument — the founder's
+ * Some routes are immersive. The tide screen is a single-screen instrument — the founder's
  * brief for it is explicit that nothing else may consume its vertical room and that the
- * page must not scroll — so on `/tides` the top row (backup badge + quick mark) is not
- * rendered and `main` runs edge to edge at exactly the viewport height. Every other route
- * keeps the shell exactly as ADR 005 §4 describes it.
+ * page must not scroll. The tackle box is the same shape for a different reason: its list
+ * scrolls inside the screen so the search field stays reachable over a five-thousand-item
+ * inventory and the add control stays under the thumb. On those routes the top row (backup
+ * badge + quick mark) is not rendered and `main` runs edge to edge at exactly the viewport
+ * height. Every other route keeps the shell exactly as ADR 005 §4 describes it.
  *
  * The quick mark is not lost on that route: it is not wired to anything yet (see
  * `quick-mark-button.tsx`), and when logging lands it needs a real home on the tide screen
@@ -23,9 +25,11 @@ import { ShellNav } from "./shell-nav";
  * `children` is passed through untouched, so every page below this stays a server
  * component — only this frame is client-side, and only because it reads the pathname.
  */
+const IMMERSIVE_ROUTES = ["/tides", "/tackle"] as const;
+
 export function ShellFrame({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const immersive = pathname === "/tides" || pathname.startsWith("/tides/");
+  const immersive = IMMERSIVE_ROUTES.some((route) => pathname === route || pathname.startsWith(`${route}/`));
 
   if (immersive) {
     return (

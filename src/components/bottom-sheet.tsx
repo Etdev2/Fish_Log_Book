@@ -3,8 +3,11 @@
 import { useEffect, useId, useRef } from "react";
 
 /**
- * The one bottom sheet the tide screen uses for every piece of secondary information
- * (station, moon, tide detail).
+ * The app's bottom sheet, used by every screen that has secondary information to show
+ * (the tide station, moon and tide detail; the tackle box's gear detail and editor).
+ *
+ * It knows no domain noun, which is why it lives here rather than under a feature
+ * (ADR 005 §3). Its styles are `src/styles/sheet.css`.
  *
  * Why a sheet and not a route: a separate page is the right shape for a separate TASK.
  * Detail about the thing already on screen is progressive disclosure — pushing a route for
@@ -16,7 +19,7 @@ import { useEffect, useId, useRef } from "react";
  * focus trapping, `Esc`, inert background, and the `::backdrop` pseudo-element with no ARIA
  * wiring of our own — the same pattern `features/tackle`'s editor sheet already uses here.
  */
-export function ConditionsSheet({
+export function BottomSheet({
   open,
   onClose,
   eyebrow,
@@ -42,7 +45,7 @@ export function ConditionsSheet({
   return (
     <dialog
       ref={dialogRef}
-      className="tide-sheet"
+      className="app-sheet"
       aria-labelledby={headingId}
       onCancel={(event) => {
         event.preventDefault();
@@ -57,20 +60,20 @@ export function ConditionsSheet({
         if (event.target === dialogRef.current) onClose();
       }}
     >
-      <div className="tide-sheet-panel" onClick={(event) => event.stopPropagation()}>
-        <div className="tide-sheet-grabber" aria-hidden="true" />
-        <header className="tide-sheet-header">
+      <div className="app-sheet-panel" onClick={(event) => event.stopPropagation()}>
+        <div className="app-sheet-grabber" aria-hidden="true" />
+        <header className="app-sheet-header">
           <div>
-            <p className="tide-sheet-eyebrow">{eyebrow}</p>
-            <h2 id={headingId} className="tide-sheet-title">
+            <p className="app-sheet-eyebrow">{eyebrow}</p>
+            <h2 id={headingId} className="app-sheet-title">
               {title}
             </h2>
           </div>
-          <button type="button" className="tide-sheet-close" onClick={onClose}>
+          <button type="button" className="app-sheet-close" onClick={onClose}>
             Close
           </button>
         </header>
-        <div className="tide-sheet-body">{children}</div>
+        <div className="app-sheet-body">{children}</div>
       </div>
     </dialog>
   );
@@ -80,7 +83,7 @@ export function ConditionsSheet({
  *  a reader with the glasses in the truck is never scanning a dense table for one number. */
 export function SheetRow({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <div className="tide-sheet-row">
+    <div className="app-sheet-row">
       <dt>{label}</dt>
       <dd>{children}</dd>
     </div>

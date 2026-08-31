@@ -4,7 +4,7 @@ import { instant, type Instant } from "@/core/units";
 import type { TidePredictionSeries } from "@/core/rules/tide";
 import type { GeoPoint } from "@/core/rules/astro";
 
-import { ConditionsSheet, SheetRow } from "./conditions-sheet";
+import { BottomSheet, SheetRow } from "@/components/bottom-sheet";
 import { clock, dayLabel, formatCoordinates, monthDay, zoneAbbreviation } from "../format";
 
 /**
@@ -46,18 +46,18 @@ export function StationDetailsSheet({
   const nowOutsideWindow = now !== null && (Number(now) < seriesStart || Number(now) > seriesEnd);
 
   return (
-    <ConditionsSheet open={open} onClose={onClose} eyebrow="Station" title={series.station.name}>
-      <p className="tide-sheet-badge">Cached prediction — not a live reading</p>
+    <BottomSheet open={open} onClose={onClose} eyebrow="Station" title={series.station.name}>
+      <p className="app-sheet-badge">Cached prediction — not a live reading</p>
 
       {nowOutsideWindow && now !== null && (
-        <p className="tide-sheet-warning">
+        <p className="app-sheet-warning">
           Your clock reads {dayLabel(now, displayTimeZone)}, {clock(now, displayTimeZone)} —{" "}
           {Number(now) < seriesStart ? "before" : "after"} this cached window. There is no live marker on the chart,
           and the cached data itself is aging out of date.
         </p>
       )}
 
-      <dl className="tide-sheet-rows">
+      <dl className="app-sheet-rows">
         <SheetRow label="NOAA station">{series.station.id}</SheetRow>
         <SheetRow label="Datum">Heights are measured above {series.station.datum}</SheetRow>
         <SheetRow label="Position">{formatCoordinates(location.latitude, location.longitude)}</SheetRow>
@@ -65,7 +65,7 @@ export function StationDetailsSheet({
         <SheetRow label="Times shown in">
           {zoneAbbreviation(instant(selectedAt), displayTimeZone)}
           {zonesDiffer && (
-            <span className="tide-sheet-note">
+            <span className="app-sheet-note">
               Your own zone. Clock times convert to it; the date divisions follow the station&rsquo;s calendar day, the
               way NOAA&rsquo;s own daily tables are dated.
             </span>
@@ -81,16 +81,16 @@ export function StationDetailsSheet({
         <SheetRow label="Source">
           Real NOAA CO-OPS predictions
           {series.retrievedAt !== null && (
-            <span className="tide-sheet-note">
+            <span className="app-sheet-note">
               Retrieved {dayLabel(series.retrievedAt, displayTimeZone)}, {clock(series.retrievedAt, displayTimeZone)}
             </span>
           )}
         </SheetRow>
       </dl>
 
-      <p className="tide-sheet-note">
+      <p className="app-sheet-note">
         One station is loaded. Choosing between stations is a separate decision and is not built yet.
       </p>
-    </ConditionsSheet>
+    </BottomSheet>
   );
 }

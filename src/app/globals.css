@@ -1,6 +1,18 @@
 @import "tailwindcss";
 @import "./tokens.generated.css";
+@import "../styles/sheet.css";
 @import "../styles/tide-chart.css";
+@import "../styles/tackle-box.css";
+
+/*
+ * The two alignment lines every screen is built on (see docs/design/07-tide-chart.md).
+ * `--app-gutter` is where box edges land; `--app-card-inset` is a card's own padding, and
+ * text inside a card starts on that second line. Screens read them, never redefine them.
+ */
+:root {
+  --app-gutter: 16px;
+  --app-card-inset: 12px;
+}
 
 body {
   background: var(--color-background);

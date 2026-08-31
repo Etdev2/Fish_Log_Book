@@ -1,157 +1,267 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
-import { TACKLE_FIXTURE } from "../tackle-fixture";
-import { FILTER_LABELS, itemMatchesFilter, type TackleDraft, type TackleFilter, type TackleItem } from "../types";
-import { TackleEditorSheet } from "./tackle-editor-sheet";
-import { TackleItemCard } from "./tackle-item-card";
+import { seedInventory } from "../gear-fixture";
+import {
+  EMPTY_DRAFT,
+  EMPTY_QUERY,
+  GEAR_CATEGORIES,
+  brandsIn,
+  categoryLabel,
+  clampQuantity,
+  countByCategory,
+  draftFrom,
+  isNarrowed,
+  recentValues,
+  selectGear,
+  type GearDraft,
+  type GearItem,
+  type GearQuery,
+  type GearSort,
+} from "../types";
+import { GearCard } from "./gear-card";
+import { GearDetailSheet } from "./gear-detail-sheet";
+import { GearEditorSheet } from "./gear-editor-sheet";
+import { GearFilterSheet } from "./gear-filter-sheet";
 
-const FILTERS: readonly TackleFilter[] = ["all", "salt", "fresh"];
+/** How many rows are in the DOM before the list grows. Sized so the first paint is one
+ *  screenful plus headroom, whatever the inventory behind it (spec §22). */
+const PAGE_SIZE = 40;
 
+type Editor = { title: string; draft: GearDraft; replacing: string | null };
+
+/**
+ * The Tackle Box (`docs/specs/tackle-box.md`).
+ *
+ * Two views, one screen: with no search or filter running, it shows category cards, which
+ * is the "what do I own" question. The moment the angler types or picks a filter it becomes
+ * a flat inventory list, which is the "where is that hook" question. That is why search
+ * lives in the header and not inside a category — an angler who remembers the item but not
+ * the category should never have to guess the category first (§4, §13).
+ *
+ * Session-only, like the rest of this prototype: nothing here writes to Supabase, and the
+ * screen says so rather than implying a sync that does not exist.
+ */
 export function TackleBox() {
-  const [items, setItems] = useState<TackleItem[]>(() => [...TACKLE_FIXTURE]);
-  const [filter, setFilter] = useState<TackleFilter>("all");
-  const [query, setQuery] = useState("");
-  const [editorOpen, setEditorOpen] = useState(false);
+  const [items, setItems] = useState<GearItem[]>(() => seedInventory());
+  const [query, setQuery] = useState<GearQuery>(EMPTY_QUERY);
+  const [sort, setSort] = useState<GearSort>("recent");
+  const [editor, setEditor] = useState<Editor | null>(null);
+  const [detailId, setDetailId] = useState<string | null>(null);
+  const [filterOpen, setFilterOpen] = useState(false);
+  const [limit, setLimit] = useState(PAGE_SIZE);
 
-  const visibleItems = useMemo(
-    () => items.filter((item) => itemMatchesFilter(item, filter, query)),
-    [filter, items, query],
-  );
-  const favorites = items.filter((item) => item.isFavorite);
+  const narrowed = isNarrowed(query);
+  const visible = useMemo(() => selectGear(items, query, sort), [items, query, sort]);
+  const counts = useMemo(() => countByCategory(items), [items]);
+  const brands = useMemo(() => brandsIn(items), [items]);
+  const detailItem = items.find((item) => item.id === detailId) ?? null;
 
-  function toggleFavorite(id: string) {
-    setItems((current) =>
-      current.map((item) => (item.id === id ? { ...item, isFavorite: !item.isFavorite } : item)),
-    );
+  // A new search starts at the top of the list, not 400 rows into the previous one.
+  // Adjusted during render rather than in an effect, so the browser never paints the old
+  // window against the new results.
+  const [windowedFor, setWindowedFor] = useState<{ query: GearQuery; sort: GearSort }>({ query, sort });
+  if (windowedFor.query !== query || windowedFor.sort !== sort) {
+    setWindowedFor({ query, sort });
+    setLimit(PAGE_SIZE);
   }
 
-  function createItem(draft: TackleDraft) {
-    setItems((current) => [
-      { ...draft, id: `session-${crypto.randomUUID()}` },
-      ...current,
-    ]);
+  const sentinelRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const sentinel = sentinelRef.current;
+    if (!sentinel) return;
+    const observer = new IntersectionObserver((entries) => {
+      if (entries[0].isIntersecting) setLimit((current) => current + PAGE_SIZE);
+    });
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, [visible.length]);
+
+  function update(id: string, change: (item: GearItem) => GearItem) {
+    setItems((current) => current.map((item) => (item.id === id ? { ...change(item), updatedAt: Date.now() } : item)));
   }
+
+  function save(draft: GearDraft, replacing: string | null) {
+    if (replacing) {
+      update(replacing, (item) => ({ ...item, ...draft }));
+      return;
+    }
+    const now = Date.now();
+    // A real, persistent id from the first moment (spec §21) — a catch will eventually
+    // point at this row, and a display name is not an identity.
+    setItems((current) => [{ ...draft, id: crypto.randomUUID(), createdAt: now, updatedAt: now }, ...current]);
+  }
+
+  const openAdd = () =>
+    setEditor({
+      title: "Add gear",
+      // Fast repeat entry (§10): a new item starts in the category being browsed and with
+      // the brand last used, so a box of the same hooks is name-and-size each time.
+      draft: {
+        ...EMPTY_DRAFT,
+        categoryId: query.categoryId ?? EMPTY_DRAFT.categoryId,
+        brand: recentValues(items, "brand", 1)[0],
+      },
+      replacing: null,
+    });
 
   return (
-    <section className="flex flex-col gap-8 pb-8">
-      <header className="rounded-lg border border-hairline bg-surface p-4">
-        <div className="flex flex-col items-start gap-4 sm:flex-row sm:justify-between">
-          <div className="min-w-0">
-            <p className="text-caption font-bold tracking-station text-tide-cyan">YOUR LURE LIBRARY</p>
-            <h1 className="mt-1 text-h1">Tackle Box</h1>
-          </div>
-          <button
-            type="button"
-            onClick={() => setEditorOpen(true)}
-            className="inline-flex min-h-touch-floor items-center justify-center rounded-md bg-signal-orange px-4 text-label text-ink-on-orange transition-colors hover:bg-signal-orange-pressed focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-3 focus-visible:outline-focus-ring active:scale-95 motion-reduce:transition-none"
-          >
-            Add lure
-          </button>
+    <section className="gear-screen">
+      <header className="gear-header">
+        <div className="gear-header-top">
+          <h1>Tackle box</h1>
+          <p>
+            {items.length} {items.length === 1 ? "item" : "items"}
+          </p>
         </div>
-        <p className="mt-4 text-body text-text-muted">
-          Keep the lures you reach for close. Favorites will be ready when you set a rig.
-        </p>
-        <p className="mt-3 rounded-md border border-tide-cyan bg-surface-raised px-3 py-2 text-caption text-text-link" role="status">
-          Prototype: changes stay in this session and are not synced.
-        </p>
-      </header>
-
-      {favorites.length > 0 ? (
-        <section aria-labelledby="favorite-lures-heading">
-          <div className="flex items-baseline justify-between gap-3">
-            <h2 id="favorite-lures-heading" className="text-h2">Ready to rig</h2>
-            <p className="text-caption text-text-muted">Your favorites</p>
-          </div>
-          <div className="mt-4 flex gap-3 overflow-x-auto pb-2">
-            {favorites.map((item) => (
-              <TackleItemCard key={item.id} item={item} compact onToggleFavorite={toggleFavorite} />
-            ))}
-          </div>
-        </section>
-      ) : null}
-
-      <section aria-labelledby="all-lures-heading">
-        <div className="flex flex-col gap-4">
-          <div className="flex items-baseline justify-between gap-3">
-            <h2 id="all-lures-heading" className="text-h2">All lures</h2>
-            <p className="text-caption text-text-muted">{items.length} in this session</p>
-          </div>
-          <label className="flex flex-col gap-2 text-label">
-            Search your tackle
+        <div className="gear-search-row">
+          <label className="gear-search">
+            <span className="sr-only">Search your tackle</span>
+            <span className="gear-search-glyph" aria-hidden="true">
+              ⌕
+            </span>
             <input
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-              placeholder="Name, class, color, or size"
-              className="min-h-touch-floor rounded-md border border-border-interactive bg-surface px-4 text-body text-text-primary placeholder:text-text-muted focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-3 focus-visible:outline-focus-ring"
+              type="search"
+              value={query.text}
+              placeholder="Search your tackle"
+              onChange={(event) => setQuery((current) => ({ ...current, text: event.target.value }))}
             />
           </label>
-          <div className="flex flex-wrap gap-3" role="group" aria-label="Water type filter">
-            {FILTERS.map((option) => {
-              const selected = filter === option;
+          <button
+            type="button"
+            className="gear-filter-button"
+            aria-haspopup="dialog"
+            data-active={narrowed && (query.categoryId !== null || query.brand !== null || query.favoritesOnly || query.lowStockOnly)}
+            onClick={() => setFilterOpen(true)}
+          >
+            Filter
+          </button>
+        </div>
+      </header>
+
+      <div className="gear-body">
+        {items.length === 0 ? (
+          <EmptyBox onAdd={openAdd} />
+        ) : narrowed ? (
+          <>
+            <div className="gear-result-line">
+              <p>
+                {visible.length} {visible.length === 1 ? "match" : "matches"}
+                {query.categoryId && <> in {categoryLabel(query.categoryId)}</>}
+              </p>
+              <button type="button" onClick={() => setQuery(EMPTY_QUERY)}>
+                Clear
+              </button>
+            </div>
+            {visible.length === 0 ? (
+              <p className="gear-nothing">Nothing matches that. Try fewer words, or clear the filters.</p>
+            ) : (
+              <ul className="gear-list">
+                {visible.slice(0, limit).map((item) => (
+                  <GearCard
+                    key={item.id}
+                    item={item}
+                    onOpen={() => setDetailId(item.id)}
+                    onQuantityChange={(quantity) => update(item.id, (current) => ({ ...current, quantity: clampQuantity(quantity) }))}
+                  />
+                ))}
+              </ul>
+            )}
+            {visible.length > limit && <div ref={sentinelRef} className="gear-sentinel" aria-hidden="true" />}
+          </>
+        ) : (
+          <ul className="gear-categories">
+            {GEAR_CATEGORIES.map((category) => {
+              const count = counts.get(category.id) ?? 0;
               return (
-                <button
-                  key={option}
-                  type="button"
-                  aria-pressed={selected}
-                  onClick={() => setFilter(option)}
-                  className={`min-h-touch-floor rounded-full border px-5 text-label transition-colors focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-3 focus-visible:outline-focus-ring active:scale-95 motion-reduce:transition-none ${
-                    selected
-                      ? "border-signal-orange bg-signal-orange text-ink-on-orange"
-                      : "border-border-interactive bg-surface text-text-link"
-                  }`}
-                >
-                  {FILTER_LABELS[option]}
-                </button>
+                <li key={category.id}>
+                  <button
+                    type="button"
+                    className="gear-category-card"
+                    data-empty={count === 0}
+                    onClick={() => setQuery({ ...EMPTY_QUERY, categoryId: category.id })}
+                  >
+                    <span className="gear-category-glyph" aria-hidden="true">
+                      {category.glyph}
+                    </span>
+                    <span className="gear-category-name">{category.label}</span>
+                    <span className="gear-category-count">
+                      {count} {count === 1 ? "item" : "items"}
+                    </span>
+                  </button>
+                </li>
               );
             })}
-          </div>
-        </div>
-
-        {items.length > 0 ? (
-          <div className="mt-5 flex flex-col gap-3">
-            {visibleItems.map((item) => (
-              <TackleItemCard key={item.id} item={item} onToggleFavorite={toggleFavorite} />
-            ))}
-          </div>
-        ) : (
-          <div className="mt-5 rounded-lg border border-hairline bg-surface p-6">
-            <h3 className="text-h3">Your box is ready when you are.</h3>
-            <p className="mt-2 text-body text-text-muted">
-              Name the lures you reach for most. They’ll be ready when you set a rig.
-            </p>
-            <button
-              type="button"
-              onClick={() => setEditorOpen(true)}
-              className="mt-5 inline-flex min-h-touch-floor items-center justify-center rounded-md bg-signal-orange px-4 text-label text-ink-on-orange focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-3 focus-visible:outline-focus-ring active:scale-95"
-            >
-              Add your first lure
-            </button>
-          </div>
+          </ul>
         )}
+      </div>
 
-        {items.length > 0 && visibleItems.length === 0 ? (
-          <div className="mt-5 rounded-lg border border-hairline bg-surface p-6">
-            <h3 className="text-h3">Nothing matches that view.</h3>
-            <p className="mt-2 text-body text-text-muted">
-              Try a different water filter or clear your search to see this session’s tackle.
-            </p>
-            <button
-              type="button"
-              onClick={() => {
-                setFilter("all");
-                setQuery("");
-              }}
-              className="mt-5 inline-flex min-h-touch-floor items-center justify-center rounded-md border border-border-interactive px-4 text-label text-text-link focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-3 focus-visible:outline-focus-ring active:scale-95"
-            >
-              Clear filters
-            </button>
-          </div>
-        ) : null}
-      </section>
+      <div className="gear-add-bar">
+        <p>Session only — nothing here syncs yet.</p>
+        <button type="button" className="gear-add" onClick={openAdd} aria-haspopup="dialog">
+          + Add gear
+        </button>
+      </div>
 
-      <TackleEditorSheet open={editorOpen} onClose={() => setEditorOpen(false)} onCreate={createItem} />
+      <GearEditorSheet
+        open={editor !== null}
+        onClose={() => setEditor(null)}
+        onSave={(draft) => save(draft, editor?.replacing ?? null)}
+        initial={editor?.draft ?? EMPTY_DRAFT}
+        title={editor?.title ?? "Add gear"}
+        recentBrands={recentValues(items, "brand")}
+        recentSizes={recentValues(items, "size")}
+        recentColors={recentValues(items, "color")}
+      />
+
+      <GearDetailSheet
+        item={detailItem}
+        onClose={() => setDetailId(null)}
+        onQuantityChange={(quantity) => detailItem && update(detailItem.id, (current) => ({ ...current, quantity }))}
+        onToggleFavorite={() => detailItem && update(detailItem.id, (current) => ({ ...current, favorite: !current.favorite }))}
+        onEdit={() => {
+          if (!detailItem) return;
+          setEditor({ title: "Edit gear", draft: draftFrom(detailItem), replacing: detailItem.id });
+          setDetailId(null);
+        }}
+        onDuplicate={() => {
+          if (!detailItem) return;
+          setEditor({ title: "Duplicate gear", draft: draftFrom(detailItem), replacing: null });
+          setDetailId(null);
+        }}
+        onDelete={() => {
+          if (!detailItem) return;
+          setItems((current) => current.filter((item) => item.id !== detailItem.id));
+          setDetailId(null);
+        }}
+      />
+
+      <GearFilterSheet
+        open={filterOpen}
+        onClose={() => setFilterOpen(false)}
+        query={query}
+        onQueryChange={setQuery}
+        sort={sort}
+        onSortChange={setSort}
+        brands={brands}
+      />
     </section>
+  );
+}
+
+function EmptyBox({ onAdd }: { onAdd: () => void }) {
+  return (
+    <div className="gear-empty">
+      <span aria-hidden="true">🧰</span>
+      <h2>Your tackle box is empty</h2>
+      <p>
+        Add your gear so you can organise tackle, get ready for a trip, and — once the log
+        fills up — see which gear actually catches fish.
+      </p>
+      <button type="button" onClick={onAdd}>
+        + Add your first item
+      </button>
+    </div>
   );
 }

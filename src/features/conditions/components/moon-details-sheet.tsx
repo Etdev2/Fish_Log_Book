@@ -3,7 +3,7 @@
 import { instant } from "@/core/units";
 import type { MoonPhase, SunEvents } from "@/core/rules/astro";
 
-import { ConditionsSheet, SheetRow } from "./conditions-sheet";
+import { BottomSheet, SheetRow } from "@/components/bottom-sheet";
 import { MoonPhaseVisual } from "./moon-phase-visual";
 import { clock, dayLabel, formatLunarAge, formatMoonIllumination, formatMoonPhaseName, zoneAbbreviation } from "../format";
 
@@ -43,16 +43,16 @@ export function MoonDetailsSheet({
   const zone = zoneAbbreviation(instant(at), displayTimeZone);
 
   return (
-    <ConditionsSheet open={open} onClose={onClose} eyebrow="Moon" title={formatMoonPhaseName(phase.name)}>
-      <div className="tide-sheet-moon">
-        <MoonPhaseVisual className="tide-sheet-moon-visual" id="moon-sheet" phase={phase} />
+    <BottomSheet open={open} onClose={onClose} eyebrow="Moon" title={formatMoonPhaseName(phase.name)}>
+      <div className="app-sheet-moon">
+        <MoonPhaseVisual className="app-sheet-moon-visual" id="moon-sheet" phase={phase} />
         <div>
-          <p className="tide-sheet-moon-illumination">{formatMoonIllumination(phase.illumination)}</p>
-          <p className="tide-sheet-note">{dayLabel(instant(at), displayTimeZone)}</p>
+          <p className="app-sheet-moon-illumination">{formatMoonIllumination(phase.illumination)}</p>
+          <p className="app-sheet-note">{dayLabel(instant(at), displayTimeZone)}</p>
         </div>
       </div>
 
-      <dl className="tide-sheet-rows">
+      <dl className="app-sheet-rows">
         <SheetRow label="Phase">
           {formatMoonPhaseName(phase.name)} · {formatMoonIllumination(phase.illumination)}
         </SheetRow>
@@ -64,11 +64,11 @@ export function MoonDetailsSheet({
         <SheetRow label="Moonrise and moonset">Not calculated yet</SheetRow>
       </dl>
 
-      <p className="tide-sheet-note">
+      <p className="app-sheet-note">
         Sun and moon times are calculated from the date and the station&rsquo;s position, not measured. They are
         accurate to well under a minute. The moon phase is context for reading the chart — it is not a forecast of
         anything, and this app will not tell you the fish bite on a full moon until your own log says so.
       </p>
-    </ConditionsSheet>
+    </BottomSheet>
   );
 }

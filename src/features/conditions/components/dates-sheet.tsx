@@ -5,7 +5,7 @@ import { useEffect, useRef } from "react";
 import { instant } from "@/core/units";
 import type { MoonPhase } from "@/core/rules/astro";
 
-import { ConditionsSheet } from "./conditions-sheet";
+import { BottomSheet } from "@/components/bottom-sheet";
 import { MoonPhaseVisual } from "./moon-phase-visual";
 import { calendarDayNumber, calendarWeekday, formatMoonIllumination, formatMoonPhaseName, dayLabel, monthDay } from "../format";
 
@@ -56,8 +56,8 @@ export function DatesSheet({
   const last = days[days.length - 1];
 
   return (
-    <ConditionsSheet open={open} onClose={onClose} eyebrow="Dates" title="Cached days">
-      <p className="tide-sheet-note">
+    <BottomSheet open={open} onClose={onClose} eyebrow="Dates" title="Cached days">
+      <p className="app-sheet-note">
         {first && last
           ? `${monthDay(instant(first.from), stationTimeZone)}–${monthDay(instant(last.to), stationTimeZone)}, station dates. Nothing outside this window is loaded.`
           : "No days are loaded."}
@@ -82,6 +82,6 @@ export function DatesSheet({
           </button>
         ))}
       </div>
-    </ConditionsSheet>
+    </BottomSheet>
   );
 }
