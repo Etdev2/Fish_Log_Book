@@ -155,6 +155,18 @@ is off (`next.config.ts`) — it floated over the bottom nav and read like part 
 product. The quick mark is not lost, but when logging lands it needs a real home on this
 screen rather than a header bar sitting on top of the chart.
 
+**The readout never changes height.** Founder-reported on a real phone: the box shook the
+whole screen while swiping. Four things inside it come and go as the read-head moves — the
+NOW badge, the two `Sourced` certainty markers (which vanish the instant the read-head
+lands exactly on a published NOAA sample), and the slack countdown — and each one was
+resizing the block, which shoved the chart up and down mid-swipe. Every row in that card
+now reserves the tallest layout it can take, so the card's height and the timeline's top
+edge are identical at every instant in the series. A contributing cause worth remembering:
+`SourcedValue`'s marker carries Tailwind utility classes, and Tailwind's utilities layer
+outranks `@layer components`, so the rule meant to put the marker on its own line was
+silently losing — the override lives outside the layer for that reason. **Anything added to
+this card in future needs a reserved slot, not a conditional one.**
+
 **Not changed:** the dark marine palette, the cyan curve, the moon rendering, the day/night
 shading, the station-day anchoring of every date division, and the honesty rules — the
 cached-prediction badge, `Sourced<T>` provenance markers, and the ban on standalone phase

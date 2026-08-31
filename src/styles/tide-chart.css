@@ -99,10 +99,24 @@
  * button rather than a div with a link tucked in a corner — the target an angler aims at
  * with wet hands is the number they are already looking at.
  */
+/*
+ * FIXED SLOTS, on purpose. See the comment on this block in `tide-screen.tsx`: the pieces
+ * inside it appear and disappear as the read-head moves, and any one of them changing the
+ * block's height shoves the chart up and down mid-swipe. Every child below reserves the
+ * tallest layout it can take, so this card's height is the same at every instant in the
+ * series and the timeline underneath it never moves.
+ */
 .tide-readout {
+  /* One 16px line of secondary text, and the reserved row for a `Sourced` certainty
+     marker. Both measured in a browser rather than guessed, then given a couple of pixels
+     of slack so a small difference in text rendering between engines cannot bring the
+     shake back. The fonts are self-hosted by `next/font`, so the phone gets the same
+     files these were measured against. */
+  --tide-readout-line: 21px;
+  --tide-readout-marker: 26px;
   display: grid;
   grid-template-columns: minmax(0, 46%) minmax(0, 1fr);
-  align-items: center;
+  align-items: start;
   gap: 4px 14px;
   width: 100%;
   padding: 8px 12px 10px;
@@ -123,6 +137,10 @@
 
 .tide-readout-height {
   display: block;
+  /* One line of the big number, plus a reserved line for the provenance marker that is
+     absent on a reading that lands exactly on a published NOAA sample. `em` here is the
+     clamped font-size below, so this stays correct at every viewport width. */
+  min-height: calc(0.92em + var(--tide-readout-marker));
   color: var(--color-tide-cyan);
   font: 200 clamp(42px, 14vw, 60px)/0.92 var(--font-ui);
   letter-spacing: -0.04em;
@@ -136,23 +154,26 @@
   letter-spacing: 0;
 }
 
-/*
- * `SourcedValue` renders its certainty disclosure immediately after the value. Next to a
- * 60px number that has to be an own-line footnote, not an inline chip — the provenance is
- * required (ADR 006 §5) but it is not the thing being read from across a boat.
- */
-.tide-readout-height details {
-  display: block;
-  margin-top: 2px;
-  font: 600 16px/1.2 var(--font-ui);
-  letter-spacing: 0;
-}
-
 .tide-readout-when {
   display: flex;
+  /* Allowed to wrap, because what might wrap here is the viewer's zone abbreviation, and
+     that is fixed for the whole session — unlike everything else in this card, it cannot
+     change while scrubbing, so it cannot reintroduce the shake. Each item stays on one
+     line; only the zone can drop below. */
   flex-wrap: wrap;
-  align-items: baseline;
-  gap: 6px;
+  align-items: center;
+  gap: 2px 6px;
+  min-height: 30px;
+}
+
+.tide-readout-when > * {
+  white-space: nowrap;
+}
+
+/* Stays in flow when it is not "now" — only its visibility goes, so the clock beside it
+   does not slide sideways as the read-head crosses the present moment. */
+.tide-readout-nowtag[data-on="false"] {
+  visibility: hidden;
 }
 
 .tide-readout-nowtag {
@@ -188,18 +209,27 @@
   min-width: 0;
 }
 
+/* The rate and its provenance marker, in a slot sized for both whether or not the marker
+   is there. */
+.tide-readout-rate-slot {
+  display: block;
+  min-height: calc(27px + var(--tide-readout-marker));
+}
+
 .tide-readout-rate {
-  margin-left: 6px;
+  display: block;
   font-family: var(--font-mono);
+  font-size: 17px;
   font-variant-numeric: tabular-nums;
 }
 
 .tide-readout-motion {
   display: inline-flex;
-  flex-wrap: wrap;
   align-items: center;
-  gap: 2px 6px;
+  gap: 6px;
+  min-height: 32px;
   padding: 4px 10px;
+  white-space: nowrap;
   border-radius: var(--radius-full);
   background: var(--color-surface-raised);
   color: var(--color-text-primary);
@@ -212,11 +242,15 @@
 .tide-readout-motion[data-motion="falling"] { color: var(--color-moon-pale); }
 .tide-readout-motion[data-motion="slack"],
 .tide-readout-motion[data-motion="near-slack"] { color: var(--color-amber-flag); }
+.tide-readout-motion[data-motion="none"] { color: var(--color-text-muted); }
 
+/* Two reserved lines: the next turn, and the slack countdown that only appears when slack
+   comes first. */
 .tide-readout-next {
   display: flex;
   flex-wrap: wrap;
-  gap: 4px 10px;
+  gap: 0 10px;
+  min-height: calc(var(--tide-readout-line) * 2);
   color: var(--color-text-muted);
   font-size: 16px;
   line-height: 1.3;
@@ -235,6 +269,7 @@
   display: inline-flex;
   align-items: center;
   gap: 4px;
+  min-height: 22px;
   color: var(--color-text-link);
   font-size: 16px;
   font-weight: 600;
@@ -656,4 +691,27 @@
     scroll-behavior: auto;
   }
 }
+}
+
+/*
+ * Deliberately OUTSIDE `@layer components`, and this is the whole reason the readout used
+ * to change height.
+ *
+ * `SourcedValue` renders its certainty disclosure with Tailwind utility classes
+ * (`inline-block`, `text-caption`). Tailwind's utilities layer is ordered after
+ * components, so a `display: block` written inside the layer above silently lost to
+ * `inline-block` — the marker stayed inline, wrapped onto a second line box sized by the
+ * 60px number's own strut, and the block grew by a full 50px whenever a reading was
+ * interpolated. Unlayered declarations outrank every layer, so these win.
+ *
+ * Next to a 60px number the provenance has to be an own-line footnote: it is required
+ * (ADR 006 §5) but it is not the thing being read from across a boat.
+ */
+.tide-readout-height details,
+.tide-readout-rate details {
+  display: block;
+  margin: 1px 0 0;
+  font-size: 16px;
+  line-height: 1.2;
+  letter-spacing: 0;
 }

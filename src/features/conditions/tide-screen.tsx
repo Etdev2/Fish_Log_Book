@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 
-import { instant, type MetresPerHour, type Sourced } from "@/core/units";
+import { instant } from "@/core/units";
 import {
   heightAt,
   nextSlackAfter,
@@ -13,7 +13,7 @@ import {
 } from "@/core/rules/tide";
 import { daylightSpans, moonPhaseAt, sunEventsFor } from "@/core/rules/astro";
 import { useNow } from "@/lib/time/use-now";
-import { useUnitPreference, type UnitPreference } from "@/features/settings/units";
+import { useUnitPreference } from "@/features/settings/units";
 
 import { STATION_LOCATION, STATION_TIME_ZONE, TIDE_SELECTED_AT, loadTideSeriesFixture } from "./queries/tide-series";
 import { useLocalTimeZone } from "./use-local-time-zone";
@@ -195,6 +195,18 @@ export function TideScreen() {
           </button>
         </div>
 
+        {/*
+          Every row in here is a FIXED-HEIGHT SLOT, and that is load-bearing rather than
+          fussy. Four things inside this block come and go as the read-head moves — the
+          NOW badge, the two `Sourced` provenance markers (which vanish the moment the
+          read-head lands exactly on a published NOAA sample), and the slack countdown —
+          and each one used to change the block's height, which shoved the whole chart up
+          and down while the angler was mid-swipe. The readout is the anchor the eye holds
+          while scrubbing; it does not get to move. So the optional pieces are reserved,
+          not conditionally laid out: the badge stays in flow and only loses its
+          visibility, and every line that can gain or lose a row reserves that row up
+          front.
+        */}
         <button type="button" className="tide-readout" aria-haspopup="dialog" onClick={() => setSheet("tide")}>
           <span className="tide-readout-main">
             {reading ? (
@@ -212,13 +224,24 @@ export function TideScreen() {
               <span className="tide-readout-height">—</span>
             )}
             <span className="tide-readout-when">
-              {atNow && <span className="tide-readout-nowtag">Now</span>}
+              <span className="tide-readout-nowtag" data-on={atNow}>
+                Now
+              </span>
               <strong>{clock(instant(selectedAt), displayTimeZone)}</strong>
               {zoneDiffersFromStation && <span>{zoneAbbreviation(instant(selectedAt), displayTimeZone)}</span>}
             </span>
           </span>
           <span className="tide-readout-lines">
-            {reading && <MotionLine motion={reading.motion} rate={reading.rate} unit={unit} />}
+            <MotionPill motion={reading?.motion ?? null} />
+            <span className="tide-readout-rate-slot">
+              {reading && reading.motion !== "slack" && (
+                <SourcedValue
+                  className="tide-readout-rate"
+                  value={reading.rate}
+                  render={(value) => <>{formatRate(value, unit)}</>}
+                />
+              )}
+            </span>
             <span className="tide-readout-next">
               {nextTurn ? (
                 <>
@@ -343,27 +366,16 @@ export function TideScreen() {
 }
 
 /**
- * Direction and speed on ONE line, from ONE `Sourced` value — so the readout carries two
- * provenance markers at most (the height, and this), not one per number. Which way the
- * water is moving and how fast is a single fact to an angler, and the glyph carries the
- * direction as well as the colour does.
+ * Direction only, on one line that never wraps. The rate sits in its own reserved slot
+ * below rather than inside this pill: the rate carries a provenance marker that comes and
+ * goes, and a pill that grows a line when it appears is exactly the movement this readout
+ * is not allowed to make. The glyph carries the direction as well as the colour does.
  */
-function MotionLine({
-  motion,
-  rate,
-  unit,
-}: {
-  motion: TideMotion;
-  rate: Sourced<MetresPerHour>;
-  unit: UnitPreference;
-}) {
+function MotionPill({ motion }: { motion: TideMotion | null }) {
   const glyph = motion === "rising" ? "▲" : motion === "falling" ? "▼" : "—";
   return (
-    <span className="tide-readout-motion" data-motion={motion}>
-      <span aria-hidden="true">{glyph}</span> {formatMotion(motion)}
-      {motion !== "slack" && (
-        <SourcedValue value={rate} render={(value) => <span className="tide-readout-rate">{formatRate(value, unit)}</span>} />
-      )}
+    <span className="tide-readout-motion" data-motion={motion ?? "none"}>
+      <span aria-hidden="true">{glyph}</span> {motion === null ? "No reading" : formatMotion(motion)}
     </span>
   );
 }
