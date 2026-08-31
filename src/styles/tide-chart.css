@@ -475,11 +475,25 @@
   background: transparent !important;
   transform: rotate(45deg);
 }
-.tide-legend-sun::before {
-  width: 10px !important;
-  height: 10px !important;
-  margin-inline: 4px;
+.tide-legend-sunrise::before,
+.tide-legend-sunset::before {
+  display: grid;
+  width: 18px !important;
+  height: 18px !important;
+  place-items: center;
+  border-radius: 50% !important;
+  color: var(--color-background);
+  font: 800 14px/1 var(--font-mono);
+}
+
+.tide-legend-sunrise::before {
   background: var(--color-amber-flag) !important;
+  content: "↑" !important;
+}
+
+.tide-legend-sunset::before {
+  background: var(--color-signal-orange) !important;
+  content: "↓" !important;
 }
 
 .tide-current-card {
