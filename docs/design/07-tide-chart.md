@@ -95,6 +95,71 @@ well as colour (▲ ▼ — for flood, ebb, slack). The scroller is a focusable 
 a live text value. A full table view of the same numbers is one tap away. Reduced motion
 disables smooth scrolling and the tooltip fade.
 
+## Single-screen redesign — 2026-08-31
+
+**Status:** founder-specified, built the same day. This section supersedes the parts of the
+sections above that it contradicts; everything it does not mention still stands.
+
+The founder's verdict on the built screen was that it held the right information and too
+much of it at once: station line, unit toggle, prev/next day pair, moon card, calendar
+strip, chart labels, sun labels, selection strip, status card, data panel and numbers
+toggle were all competing on one page. The brief was to make the tide page behave like a
+**single-screen marine instrument**: glanceability, then interaction, then detail on
+demand.
+
+**One read-head, and the timeline moves under it.** The scroller's track is padded by half
+a viewport on each side, so the instant under the fixed centre line is a pure function of
+`scrollLeft`. There is no long-press-to-select, no drag-to-select, and no second selected
+point that can scroll off screen. Momentum, rubber-banding, trackpads and keyboards come
+free from the browser's own scroller. There is exactly one answer to "what time am I
+looking at": the orange line down the middle.
+
+**The header follows the read-head, not the wall clock.** This reverses the earlier rule
+that the state tiles always describe now. With a fixed read-head the whole screen is one
+instrument pointed at one instant, and a header describing a different instant than the
+marker under the line would be a quiet lie. The honesty that rule protected is kept by
+making the difference loud instead: the readout is stamped with the time it describes, a
+NOW badge appears when they coincide, the NOW marker is drawn on the curve whenever they
+do not, and a Now control appears in the date bar the moment the read-head is elsewhere.
+
+**Detail is a bottom sheet, never a route.** Station (NOAA id, datum, position, loaded
+window, provenance, the cached-prediction and stale-window notices), Moon (phase,
+illumination, lunar age, sun events), Tide detail (the day's highs and lows, range, slack
+windows, the reading under the read-head, and the hourly numbers), Dates (the cached-day
+strip). A separate page is the right shape for a separate task; detail about the thing
+already on screen is progressive disclosure, and pushing a route for it costs the angler
+their place on the timeline.
+
+**The date strip is no longer permanently visible.** The founder left this call open. On an
+iPhone-sized viewport the strip was worth 80–100px of chart, the date is already legible in
+the `‹ MON, AUG 31 ›` control that opens it, and the timeline crosses midnight without
+anyone touching a date control at all. The strip lives in the Dates sheet; the arrows step
+a station day at the same clock time.
+
+**Units left the screen.** Feet/metres is a once-a-lifetime choice and it already exists at
+Settings → Height units. A permanent segmented control for it on the instrument was the
+clearest case of chrome on this screen.
+
+**Slack markers left the curve.** Slack is by definition at the turn, so its diamond only
+ever landed on top of the high/low dot. The turn dot is the marker; the slack window is a
+countdown in the readout and a row in the tide-detail sheet.
+
+**Sunrise and sunset keep their distinct directional glyphs but lose their always-on
+labels** — tapping a marker reveals its time, and both times are plain text in the moon and
+tide-detail sheets, so nothing is reachable only by hitting a 20px target.
+
+**The shell gets out of the way on this route.** `/tides` renders without the top status
+row and at exactly viewport height, so the page never scrolls vertically; horizontal
+scrolling belongs to the timeline and the date strip only. The Next.js dev route indicator
+is off (`next.config.ts`) — it floated over the bottom nav and read like part of the
+product. The quick mark is not lost, but when logging lands it needs a real home on this
+screen rather than a header bar sitting on top of the chart.
+
+**Not changed:** the dark marine palette, the cyan curve, the moon rendering, the day/night
+shading, the station-day anchoring of every date division, and the honesty rules — the
+cached-prediction badge, `Sourced<T>` provenance markers, and the ban on standalone phase
+names and on any moon-and-fish claim.
+
 ## Open — the "little more work" still to do
 
 1. **The amber / moon-pale collision above.** Fix in `01-foundations.md` and
@@ -108,4 +173,7 @@ disables smooth scrolling and the tooltip fade.
    explicit daylight, twilight, and night bands plus distinct directional transition
    markers — anglers can read the light change without interpreting colour alone.
 5. **More than one station.** Station is hardcoded. A picker is a separate decision.
-6. **Not yet checked on a real iPhone**, only at an iPhone-sized viewport.
+6. **Not yet checked on a real iPhone**, only at iPhone-sized viewports (390x844 and
+   375x667, headless Chromium). Nobody has held this on a boat.
+7. **The quick mark needs a home on this screen** now that `/tides` renders without the
+   shell's top row. Decide where before logging lands. Owner: `ux-ui`.

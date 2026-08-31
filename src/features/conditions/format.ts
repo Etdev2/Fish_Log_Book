@@ -3,7 +3,7 @@
  * (ADR 006 §1, §3). `core/` stays SI-only; feet, ft/hr and every date/time string are
  * produced here, from the unit preference and the station's time zone respectively.
  */
-import type { Instant, Metres, MetresPerHour } from "@/core/units";
+import type { Degrees, Instant, Metres, MetresPerHour } from "@/core/units";
 import type { UnitPreference } from "@/features/settings/units";
 import type { MoonPhaseName } from "./types";
 import type { TideMotion, PaceClass } from "@/core/rules/tide";
@@ -112,8 +112,24 @@ export function calendarWeekday(at: Instant, timeZone: string): string {
   return new Intl.DateTimeFormat("en-US", { weekday: "short", timeZone }).format(new Date(at));
 }
 
+/** "MON, AUG 31" — the compact date control above the timeline. */
+export function compactDate(at: Instant, timeZone: string): string {
+  return new Intl.DateTimeFormat("en-US", { weekday: "short", month: "short", day: "numeric", timeZone })
+    .format(new Date(at))
+    .toUpperCase();
+}
+
 export function calendarDayNumber(at: Instant, timeZone: string): string {
   return new Intl.DateTimeFormat("en-US", { day: "numeric", timeZone }).format(new Date(at));
+}
+
+/**
+ * "3 PM" — the hour axis. Deliberately the same 12-hour clock the readout and every event
+ * time on this screen uses: a chart that labels 21:00 while the readout says 9:34pm makes
+ * the reader do a conversion at exactly the moment they are trying to read a shape.
+ */
+export function hourLabel(at: Instant, timeZone: string): string {
+  return new Intl.DateTimeFormat("en-US", { hour: "numeric", hour12: true, timeZone }).format(new Date(at));
 }
 
 export function stationHour(at: Instant, timeZone: string): number {
@@ -141,4 +157,24 @@ export function formatDurationMagnitude(deltaMs: number): string {
 export function formatCountdown(deltaMs: number, label: string): string {
   const magnitude = formatDurationMagnitude(deltaMs);
   return deltaMs >= 0 ? `${magnitude} to ${label}` : `${magnitude} ago (${label})`;
+}
+
+/**
+ * "33.6047° N, 117.8830° W" — the station's position, for the station-details sheet.
+ * Four decimals is about 11 m, which is the precision NOAA publishes a station at; more
+ * digits would imply an accuracy that is not in the source.
+ */
+export function formatCoordinates(latitude: Degrees, longitude: Degrees): string {
+  const lat = `${Math.abs(latitude).toFixed(4)}\u00B0 ${latitude >= 0 ? "N" : "S"}`;
+  const lon = `${Math.abs(longitude).toFixed(4)}\u00B0 ${longitude >= 0 ? "E" : "W"}`;
+  return `${lat}, ${lon}`;
+}
+
+/**
+ * "12.4 days since the new moon". Deliberately not rounded down to fit the 29.53-day
+ * average — `docs/analysis/sun-and-moon.md` §3.2 says a real lunar month runs long and the
+ * engine reports the time actually elapsed, so a reading of 29.7 is correct, not a bug.
+ */
+export function formatLunarAge(ageDays: number): string {
+  return `${ageDays.toFixed(1)} days since the new moon`;
 }

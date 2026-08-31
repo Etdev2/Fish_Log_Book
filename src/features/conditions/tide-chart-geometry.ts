@@ -1,7 +1,8 @@
 /**
- * Pure chart geometry: pixel scales and the Catmull-Rom path builder. This is presentation
- * (ADR 006 §1) — it plots whatever heights it is given, and does not itself read the tide
- * engine or the fixture. `tide-chart.tsx` is the only caller.
+ * Pure chart geometry: pixel scales, the Catmull-Rom path builder, and the scroll <-> time
+ * conversions the timeline scrubs on. This is presentation (ADR 006 §1) — it plots whatever
+ * heights it is given, and does not itself read the tide engine or the fixture.
+ * `components/tide-timeline.tsx` is the only caller.
  *
  * Time here is a plain epoch-millisecond `number`, not the branded `Instant` — this file
  * never touches `core/`, so there is nothing for the brand to protect against here, and
@@ -13,15 +14,23 @@ export const DAY_WIDTH = 560;
 export const MS_PER_PIXEL = 86_400_000 / DAY_WIDTH;
 export const LEFT_PADDING = 10;
 export const RIGHT_PADDING = 24;
-export const CHART_HEIGHT = 300;
-// The floor here is the in-SVG orange "SELECTED" pill (drawn at PLOT_TOP - 20,
-// height 17), not the old HTML overlay readout that used to float above the plot in
-// this space — that overlay was `position: absolute` and never reserved layout height
-// (it moved into the card header row instead; see tide-chart.tsx). 20 is the smallest
-// value that keeps the pill's top edge at y=0 instead of clipping above the SVG.
-export const PLOT_TOP = 20;
-export const PLOT_BOTTOM = 48;
-export const PLOT_HEIGHT = CHART_HEIGHT - PLOT_TOP - PLOT_BOTTOM;
+
+/**
+ * The plot is no longer a fixed 300px box. The timeline fills whatever vertical room the
+ * single-screen layout has left after the header and the shell nav, measured at runtime,
+ * so the curve is the biggest thing on the screen on a tall phone and still legible on a
+ * short one. These two constants are the fixed furniture inside that box: the strip above
+ * the plot that holds the day divider tags and the NOW flag, and the strip below it that
+ * holds the hour axis.
+ */
+export const DEFAULT_CHART_HEIGHT = 320;
+export const MIN_CHART_HEIGHT = 200;
+export const PLOT_TOP = 26;
+export const PLOT_BOTTOM = 30;
+
+export function plotHeightFor(chartHeight: number): number {
+  return Math.max(40, chartHeight - PLOT_TOP - PLOT_BOTTOM);
+}
 
 /**
  * Calendar-day boundaries, computed for a real IANA zone via `Intl` rather than a
@@ -36,15 +45,14 @@ export const PLOT_HEIGHT = CHART_HEIGHT - PLOT_TOP - PLOT_BOTTOM;
  * table row filed under the wrong day's heading.
  *
  * Fixed by deliberately anchoring the chart's day/night structure — gridlines, the
- * day-nav heading, and the numbers table — to the STATION's calendar day, not the
+ * date control, and the numbers table — to the STATION's calendar day, not the
  * viewer's: a tide table is inherently about a place, the same way NOAA's own daily
  * tide tables are dated by the station's calendar day regardless of who is reading
  * them. Every call site that labels one of these boundaries now passes
  * `STATION_TIME_ZONE`, matching the zone these functions compute against — see
- * `tide-chart.tsx` and the worklog. Anything that reports a single INSTANT's clock time
- * (the drag readout, the status grid, the selected-instant caption) is unaffected and
- * continues to convert to the viewer's own zone, which is the feature this was never
- * meant to break.
+ * `tide-screen.tsx` and the worklog. Anything that reports a single INSTANT's clock time
+ * (the read-head readout, the sheets' event times) is unaffected and continues to convert
+ * to the viewer's own zone, which is the feature this was never meant to break.
  */
 function zonedYmd(at: number, timeZone: string): { y: number; m: number; d: number } {
   const parts = new Intl.DateTimeFormat("en-US", {
@@ -101,6 +109,43 @@ export function chartWidthFor(seriesStart: number, seriesEnd: number): number {
   return Math.round((seriesEnd - seriesStart) / MS_PER_PIXEL) + LEFT_PADDING + RIGHT_PADDING;
 }
 
+/**
+ * The scrubbing contract, and the reason there is now exactly ONE selected-time indicator
+ * on this screen.
+ *
+ * The timeline track is padded by half the viewport on each side, so the instant sitting
+ * under the fixed centre read-head is a pure function of `scrollLeft` — no pointer state,
+ * no long-press, no second "selected" position that can drift away from what the viewer is
+ * looking at. `scrollLeftFor` is its exact inverse, which is what the date control, the Now
+ * button, and the keyboard steps use to move the timeline.
+ */
+export function atFromScrollLeft(scrollLeft: number, seriesStart: number): number {
+  return seriesStart + (scrollLeft - LEFT_PADDING) * MS_PER_PIXEL;
+}
+
+export function scrollLeftFor(at: number, seriesStart: number): number {
+  return xFor(at, seriesStart);
+}
+
+/**
+ * Greedy left-to-right label thinning: keep a label only if it clears the last kept one by
+ * `minGapPx`. The tide curve's own highs and lows are the labels that matter, and at this
+ * zoom they normally clear each other comfortably — but a mixed-tide day, or a future
+ * station with a short second turn, can put two turns close enough together that both
+ * plates overlap into mush. Dropping one label is honest (the marker stays, and every
+ * number is in the tide-details sheet); overlapping them is not readable at all.
+ *
+ * `xs` must be sorted ascending.
+ */
+export function visibleLabelFlags(xs: readonly number[], minGapPx: number): boolean[] {
+  let lastKept: number | null = null;
+  return xs.map((x) => {
+    if (lastKept !== null && x - lastKept < minGapPx) return false;
+    lastKept = x;
+    return true;
+  });
+}
+
 /** 0-based index of the calendar day `at` falls in (in `timeZone`), relative to
  *  `seriesStart`'s day in that same zone. */
 export function localDayIndex(at: number, seriesStart: number, timeZone: string): number {
@@ -122,9 +167,10 @@ export function localMidnights(seriesStart: number, seriesEnd: number, timeZone:
   return result;
 }
 
-export function makeYFor(yMinimum: number, yMaximum: number) {
+export function makeYFor(yMinimum: number, yMaximum: number, chartHeight: number) {
+  const plotHeight = plotHeightFor(chartHeight);
   return (metres: Metres): number =>
-    PLOT_TOP + PLOT_HEIGHT - ((metres - yMinimum) / (yMaximum - yMinimum)) * PLOT_HEIGHT;
+    PLOT_TOP + plotHeight - ((metres - yMinimum) / (yMaximum - yMinimum)) * plotHeight;
 }
 
 /**
@@ -137,17 +183,23 @@ export function makeYFor(yMinimum: number, yMaximum: number) {
  * and would not match during SSR). The multiplier is deliberately generous — a plate a
  * couple of pixels wider than the glyphs is invisible at this scale; a plate that
  * clips the text is not.
+ *
+ * `lines` sizes the plate for a stacked label (the turn labels are now two lines: the
+ * height above the clock time, which is both narrower and easier to read at a glance
+ * than one long run-on string).
  */
 export function labelPlate(
   centerX: number,
   baselineY: number,
   text: string,
   fontSizePx: number,
+  lines: number = 1,
 ): { x: number; y: number; width: number; height: number } {
   const charWidth = fontSizePx * 0.64;
   const paddingX = 5;
+  const lineHeight = fontSizePx * 1.25;
   const width = text.length * charWidth + paddingX * 2;
-  const height = fontSizePx + 8;
+  const height = fontSizePx + 8 + (lines - 1) * lineHeight;
   return { x: centerX - width / 2, y: baselineY - fontSizePx * 0.86, width, height };
 }
 
