@@ -65,9 +65,14 @@ const AT_NOW_TOLERANCE_MS = 60_000;
  */
 export function TideScreen() {
   const series = useMemo(() => loadTideSeriesFixture(), []);
-  const seriesStart = Number(series.samples[0].at);
-  const seriesEnd = Number(series.samples[series.samples.length - 1].at);
-  const initialAt = Math.max(seriesStart, Math.min(seriesEnd, Number(TIDE_SELECTED_AT)));
+  // Defensive: the fixture is never empty, but the live NOAA fetch that will replace it
+  // (ADR 006 §2) can fail or return an empty window, and every line below indexes
+  // `samples[0]`/`[length - 1]`. Guard once here so an empty feed renders an honest
+  // empty state instead of a screen of NaNs.
+  const hasSamples = series.samples.length > 0;
+  const seriesStart = hasSamples ? Number(series.samples[0].at) : 0;
+  const seriesEnd = hasSamples ? Number(series.samples[series.samples.length - 1].at) : 0;
+  const initialAt = hasSamples ? Math.max(seriesStart, Math.min(seriesEnd, Number(TIDE_SELECTED_AT))) : 0;
 
   const [unit] = useUnitPreference();
   const now = useNow();
@@ -164,6 +169,19 @@ export function TideScreen() {
     timelineRef.current?.scrollToAt(clamped, true);
   };
 
+  if (!hasSamples) {
+    return (
+      <section className="tide-screen">
+        <div className="tide-empty">
+          <p className="tide-empty-title">No tide predictions loaded</p>
+          <p className="tide-empty-note">
+            The prediction window is empty. Check the station feed and try again.
+          </p>
+        </div>
+      </section>
+    );
+  }
+
   /** Same clock time, one station day over — so stepping days does not also move the hour. */
   const goToDay = (index: number) => {
     const target = calendarDays[index];
@@ -214,7 +232,30 @@ export function TideScreen() {
           and down mid-swipe. Anything added here needs a reserved slot, not a conditional
           row.
         */}
-        <button type="button" className="tide-readout" aria-haspopup="dialog" onClick={() => setSheet("tide")}>
+        {/* A `role="button"` div rather than a `<button>`: the two `SourcedValue` certainty
+            disclosures inside this card are native interactive `<details>/<summary>`
+            elements, and interactive content nested inside a `<button>` is invalid HTML —
+            the disclosure's click bubbles up and opens the sheet instead of toggling.
+            The div restores valid nesting; Enter/Space open the sheet exactly like a
+            native button would, and any activation that starts inside a `<details>` stays
+            with the disclosure. */}
+        <div
+          role="button"
+          tabIndex={0}
+          className="tide-readout"
+          aria-haspopup="dialog"
+          onClick={(event) => {
+            if ((event.target as HTMLElement).closest("details")) return;
+            setSheet("tide");
+          }}
+          onKeyDown={(event) => {
+            if ((event.target as HTMLElement).closest("details")) return;
+            if (event.key === "Enter" || event.key === " ") {
+              event.preventDefault();
+              setSheet("tide");
+            }
+          }}
+        >
           <span className="tide-readout-when">
             {/* The clock comes first so it starts on the card's text line — the same line
                 the reading below it starts on. The NOW badge holds its space whether or
@@ -278,7 +319,7 @@ export function TideScreen() {
           <span className="tide-readout-more" aria-hidden="true">
             Tide detail <Chevron />
           </span>
-        </button>
+        </div>
       </header>
 
       {/*

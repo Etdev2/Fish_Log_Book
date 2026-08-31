@@ -25,6 +25,33 @@
   overflow: hidden;
 }
 
+/* ---- Empty state (the live feed can return nothing; the fixture never will) ---- */
+
+.tide-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  flex: 1;
+  padding: 0 var(--tide-gutter);
+  text-align: center;
+}
+
+.tide-empty-title {
+  margin: 0;
+  color: var(--color-text-primary);
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.tide-empty-note {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: 16px;
+  line-height: 1.4;
+}
+
 /* ---- Header: location, moon, and the read-head's own reading ---- */
 
 .tide-header {
@@ -461,6 +488,13 @@
   position: absolute;
   inset: 0;
   pointer-events: none;
+}
+
+/* The sunrise/sunset markers are focusable controls (they reveal their time on
+   activation), so they need the same visible focus ring as every other control. */
+.tide-timeline-scroller svg [data-sun-transition]:focus-visible {
+  outline: 3px solid var(--color-focus-ring);
+  outline-offset: 3px;
 }
 
 /* ---- Bottom sheets ---- */

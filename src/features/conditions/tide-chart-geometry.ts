@@ -203,6 +203,20 @@ export function labelPlate(
   return { x: centerX - width / 2, y: baselineY - fontSizePx * 0.86, width, height };
 }
 
+/**
+ * The height-axis grid values between `yMinimum` and `yMaximum`, on the chart's fixed
+ * half-metre step. The last rounding exists because repeated floating-point addition
+ * drifts (0.1 + 0.2 ≠ 0.3); the values drawn on screen are what the tests pin.
+ */
+export function gridValues(yMinimum: number, yMaximum: number): number[] {
+  const values: number[] = [];
+  const stepMetres = 0.5;
+  for (let value = Math.ceil(yMinimum / stepMetres) * stepMetres; value <= yMaximum; value += stepMetres) {
+    values.push(Math.round(value * 1000) / 1000);
+  }
+  return values;
+}
+
 /** Catmull-Rom through the given (x, y) points, as an SVG path `d` string. Presentation only. */
 export function curvePath(points: readonly (readonly [number, number])[]): string {
   if (points.length === 0) return "";

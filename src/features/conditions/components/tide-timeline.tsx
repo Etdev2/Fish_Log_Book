@@ -14,6 +14,7 @@ import {
   atFromScrollLeft,
   chartWidthFor,
   curvePath,
+  gridValues,
   labelPlate,
   makeYFor,
   plotHeightFor,
@@ -21,7 +22,7 @@ import {
   visibleLabelFlags,
   xFor as xForAt,
 } from "../tide-chart-geometry";
-import { clock, dividerDay, formatHeight, hourLabel, stationHour } from "../format";
+import { clock, dividerDay, formatHeight, hourLabel, hourLabels } from "../format";
 import type { UnitPreference } from "@/features/settings/units";
 
 const CURVE_STEP_MS = 15 * 60_000;
@@ -274,6 +275,9 @@ export function TideTimeline({
         onPointerCancel={() => {
           dragRef.current = null;
         }}
+        onLostPointerCapture={() => {
+          dragRef.current = null;
+        }}
         onKeyDown={(event) => {
           const step = event.shiftKey ? KEY_STEP_MS_FAST : KEY_STEP_MS;
           if (event.key === "ArrowRight") {
@@ -399,10 +403,16 @@ export function TideTimeline({
                 <g
                   key={`sun-${marker.at}`}
                   data-sun-transition={marker.kind}
-                  role="img"
-                  aria-label={`${label}, ${time}, tide ${formatHeight(unwrapSourced(height), unit)}`}
+                  role="button"
+                  tabIndex={0}
+                  aria-label={`${label}, ${time}, tide ${formatHeight(unwrapSourced(height), unit)}. Activate to show or hide the time on the chart.`}
                   onClick={() => {
                     if (dragRef.current?.moved) return;
+                    setRevealedSunAt((current) => (current === marker.at ? null : marker.at));
+                  }}
+                  onKeyDown={(event) => {
+                    if (event.key !== "Enter" && event.key !== " ") return;
+                    event.preventDefault();
                     setRevealedSunAt((current) => (current === marker.at ? null : marker.at));
                   }}
                 >
@@ -495,21 +505,4 @@ function SunTransitionGlyph({ kind, x, y }: { kind: "sunrise" | "sunset"; x: num
   );
 }
 
-function gridValues(yMinimum: number, yMaximum: number): number[] {
-  const values: number[] = [];
-  const stepMetres = 0.5;
-  for (let value = Math.ceil(yMinimum / stepMetres) * stepMetres; value <= yMaximum; value += stepMetres) {
-    values.push(Math.round(value * 1000) / 1000);
-  }
-  return values;
-}
 
-function hourLabels(seriesStart: number, seriesEnd: number, timeZone: string): number[] {
-  const result: number[] = [];
-  const hourMs = 3_600_000;
-  for (let t = Math.ceil(seriesStart / hourMs) * hourMs; t <= seriesEnd; t += hourMs) {
-    const hour = stationHour(instant(t), timeZone);
-    if (hour !== 0 && hour % 3 === 0) result.push(t);
-  }
-  return result;
-}

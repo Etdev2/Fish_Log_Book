@@ -3,7 +3,7 @@
  * (ADR 006 §1, §3). `core/` stays SI-only; feet, ft/hr and every date/time string are
  * produced here, from the unit preference and the station's time zone respectively.
  */
-import type { Degrees, Instant, Metres, MetresPerHour } from "@/core/units";
+import { instant, type Degrees, type Instant, type Metres, type MetresPerHour } from "@/core/units";
 import type { UnitPreference } from "@/features/settings/units";
 import type { MoonPhaseName } from "./types";
 import type { TideMotion, PaceClass } from "@/core/rules/tide";
@@ -146,12 +146,31 @@ export function stationHour(at: Instant, timeZone: string): number {
 }
 
 /**
+ * The instants the hour axis labels: every third hour of the loaded window in `timeZone`,
+ * skipping midnight — midnight already has the day-divider tag, and a label under the tag
+ * would be the same fact written twice. `stationHour` is read so the selection follows the
+ * station's calendar, like every other date division on this chart.
+ */
+export function hourLabels(seriesStart: number, seriesEnd: number, timeZone: string): number[] {
+  const result: number[] = [];
+  const hourMs = 3_600_000;
+  for (let t = Math.ceil(seriesStart / hourMs) * hourMs; t <= seriesEnd; t += hourMs) {
+    const hour = stationHour(instant(t), timeZone);
+    if (hour !== 0 && hour % 3 === 0) result.push(t);
+  }
+  return result;
+}
+
+/**
  * "12 min", "1h 30m", "3h" — a countdown magnitude with no direction word, so callers can
  * compose "12 min to slack" / "high in 1h 30m" without this function guessing the phrasing.
  * Natural language under an hour (no "0h"), for the reading-glasses-forgotten test.
  */
 export function formatDurationMagnitude(deltaMs: number): string {
-  const totalMinutes = Math.round(Math.abs(deltaMs) / 60_000);
+  // Floor, not round: a 30-second countdown is not "1 min" away. The sub-minute branch
+  // below is the point of the floor — round(0.5) === 1 would hand "1 min" to anything
+  // 30s or more out, which is a lie at the exact moment precision matters most.
+  const totalMinutes = Math.floor(Math.abs(deltaMs) / 60_000);
   if (totalMinutes < 1) return "under a minute";
   if (totalMinutes < 60) return `${totalMinutes} min`;
   const hours = Math.floor(totalMinutes / 60);
