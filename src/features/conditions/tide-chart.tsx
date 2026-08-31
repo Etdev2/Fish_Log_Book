@@ -224,13 +224,15 @@ export function TideChart() {
   // The day <-> twilight transition instants, for the on-curve sun markers (drawn at the
   // curve's own height, the same way the H/L turn dots are — not floating above it).
   const sunMarkers = useMemo(() => {
-    const markers: { at: number; isSunrise: boolean }[] = [];
+    const markers: { at: number; kind: "sunrise" | "sunset" }[] = [];
     for (let i = 1; i < spans.length; i++) {
       const previous = spans[i - 1];
       const span = spans[i];
       const isSunrise = previous.phase !== "day" && span.phase === "day";
       const isSunset = previous.phase === "day" && span.phase !== "day";
-      if (isSunrise || isSunset) markers.push({ at: Number(span.from), isSunrise });
+      if (isSunrise || isSunset) {
+        markers.push({ at: Number(span.from), kind: isSunrise ? "sunrise" : "sunset" });
+      }
     }
     return markers;
   }, [spans]);
@@ -239,6 +241,9 @@ export function TideChart() {
   // scroller's aria-valuetext, per the brief, and also to answer the founder's own stated
   // glance test directly on the "Next turn" cell ("is the next turn in daylight").
   const selectedPhase = useMemo(() => phaseAtFrom(spans, selectedAt), [spans, selectedAt]);
+  const chartPhase = useMemo(() => phaseAtFrom(spans, centerAt), [spans, centerAt]);
+  const chartPhaseLabel = chartPhase === "day" ? "Daylight" : chartPhase === "night" ? "Night" : "Twilight";
+  const chartPhaseSymbol = chartPhase === "day" ? "☀" : chartPhase === "night" ? "☾" : "◐";
   const selectedPhaseNote =
     selectedPhase === "night" ? ", in darkness" : selectedPhase === "civil-twilight" ? ", near dawn or dusk" : "";
   // Not memoized — a handful-of-elements linear scan over `spans`, cheap enough to just
@@ -422,6 +427,7 @@ export function TideChart() {
             className="tide-moon-panel"
             data-chart-moon={chartMoon.name}
             data-chart-illumination={Math.round(chartMoon.illumination * 100)}
+            data-chart-light={chartPhase}
           >
             <MoonPhaseVisual
               className="tide-chart-moon"
@@ -431,7 +437,10 @@ export function TideChart() {
             <div className="tide-moon-copy">
               <span>Chart moon</span>
               <strong>{formatMoonPhaseName(chartMoon.name)}</strong>
-              <small>{formatMoonIllumination(chartMoon.illumination)} · swipe-linked</small>
+              <small>
+                {formatMoonIllumination(chartMoon.illumination)} · <span aria-hidden="true">{chartPhaseSymbol}</span>{" "}
+                {chartPhaseLabel}
+              </small>
             </div>
           </div>
 
@@ -562,7 +571,7 @@ export function TideChart() {
               width={chartWidth}
               height={CHART_HEIGHT}
               role="img"
-              aria-label="Continuous tide prediction for Newport Bay Entrance across the loaded window, with labelled highs and lows, daylight shading, and estimated slack markers."
+              aria-label="Continuous tide prediction for Newport Bay Entrance across the loaded window, with labelled highs and lows, explicit daylight and night shading, distinct sunrise-up and sunset-down markers, and estimated slack markers."
             >
               <defs>
                 <linearGradient id="tide-area" x1="0" y1="0" x2="0" y2="1">
@@ -669,43 +678,27 @@ export function TideChart() {
                 const value = unwrapSourced(h);
                 const x = xFor(marker.at);
                 const y = yFor(value);
-                const label = marker.isSunrise ? "Sunrise" : "Sunset";
+                const isSunrise = marker.kind === "sunrise";
+                const label = isSunrise ? "Sunrise" : "Sunset";
+                const direction = isSunrise ? "↑" : "↓";
                 const accessibleName = `${label}, ${clock(instant(marker.at), displayTimeZone)}, tide ${formatHeight(value, unit)}`;
                 const collidesWithTurn = turns.some((turn) => Math.abs(xFor(Number(turn.at)) - x) < SUN_TURN_LABEL_COLLISION_PX);
-                const labelY = marker.isSunrise ? y - 16 : y + 26;
+                const labelY = isSunrise ? y - 18 : y + 28;
                 return (
-                  <g key={`sun-${marker.at}`} {...(collidesWithTurn ? { role: "img", "aria-label": accessibleName } : {})}>
-                    <circle cx={x} cy={y} r="4.5" fill="var(--color-amber-flag)" stroke="var(--color-surface)" strokeWidth="1.5" aria-hidden="true" />
-                    {[0, 60, 120, 180, 240, 300].map((angle) => {
-                      const rad = (angle * Math.PI) / 180;
-                      // Rounded to 2dp: Math.sin/cos are not guaranteed bit-identical
-                      // across JS engines (Node's V8 build for SSR vs. the browser's for
-                      // hydration can differ in the last ULP), which was producing a real,
-                      // if extremely rare, hydration mismatch on these exact coordinates.
-                      // Sub-hundredth-pixel differences are invisible; collapsing them to
-                      // the same rounded string removes the mismatch outright.
-                      const round2 = (n: number) => Math.round(n * 100) / 100;
-                      return (
-                        <line
-                          key={angle}
-                          x1={round2(x + Math.cos(rad) * 6.5)}
-                          y1={round2(y + Math.sin(rad) * 6.5)}
-                          x2={round2(x + Math.cos(rad) * 9.5)}
-                          y2={round2(y + Math.sin(rad) * 9.5)}
-                          stroke="var(--color-amber-flag)"
-                          strokeWidth="1.25"
-                          strokeLinecap="round"
-                          aria-hidden="true"
-                        />
-                      );
-                    })}
+                  <g
+                    key={`sun-${marker.at}`}
+                    data-sun-transition={marker.kind}
+                    {...(collidesWithTurn ? { role: "img", "aria-label": accessibleName } : {})}
+                  >
+                    <SunTransitionGlyph kind={marker.kind} x={x} y={y} />
                     {!collidesWithTurn && (
                       <>
                         {(() => {
-                          const plate = labelPlate(x, labelY, `${label} ${clock(instant(marker.at), displayTimeZone)}`, 11);
+                          const plate = labelPlate(x, labelY, `${direction} ${label} ${clock(instant(marker.at), displayTimeZone)}`, 11);
                           return <rect x={plate.x} y={plate.y} width={plate.width} height={plate.height} rx="3" fill="var(--color-background)" />;
                         })()}
                         <text x={x} y={labelY} textAnchor="middle" className="fill-text-primary font-mono text-[11px] font-semibold">
+                          <tspan fill={isSunrise ? "var(--color-amber-flag)" : "var(--color-signal-orange)"}>{direction}</tspan>{" "}
                           {label} <tspan className="fill-text-muted font-normal">{clock(instant(marker.at), displayTimeZone)}</tspan>
                         </text>
                       </>
@@ -816,8 +809,9 @@ export function TideChart() {
               <span className="tide-legend-tide">Tide height</span>
               <span className="tide-legend-selected">Selected time</span>
               <span className="tide-legend-slack">Estimated slack</span>
-              <span className="tide-legend-sun">Sunrise / sunset</span>
-              <span>Shading moves from night to daylight · Arrow keys adjust by 15 minutes</span>
+              <span className="tide-legend-sunrise">Sunrise · daylight begins</span>
+              <span className="tide-legend-sunset">Sunset · darkness follows</span>
+              <span>Background bands show daylight, twilight, and night · Arrow keys adjust by 15 minutes</span>
             </div>
           </details>
         </div>
@@ -992,6 +986,47 @@ function MotionPill({ motion }: { motion: TideMotion }) {
     <span className="tide-motion-pill">
       <span aria-hidden="true">{glyph}</span> {formatMotion(motion)}
     </span>
+  );
+}
+
+function SunTransitionGlyph({
+  kind,
+  x,
+  y,
+}: {
+  kind: "sunrise" | "sunset";
+  x: number;
+  y: number;
+}) {
+  const isSunrise = kind === "sunrise";
+  const color = isSunrise ? "var(--color-amber-flag)" : "var(--color-signal-orange)";
+  const horizonY = isSunrise ? y + 3 : y - 3;
+  const arcControlY = isSunrise ? y - 5 : y + 5;
+  const arrowTipY = isSunrise ? y - 7 : y + 7;
+  const arrowTailY = isSunrise ? y + 1 : y - 1;
+  const arrowWingY = isSunrise ? arrowTipY + 2.5 : arrowTipY - 2.5;
+
+  return (
+    <g aria-hidden="true">
+      <circle cx={x} cy={y} r="10" fill="var(--color-background)" stroke={color} strokeWidth="1.25" />
+      <path
+        d={`M ${x - 4.5} ${horizonY} Q ${x} ${arcControlY} ${x + 4.5} ${horizonY}`}
+        fill="none"
+        stroke={color}
+        strokeWidth="1.5"
+        strokeLinecap="round"
+      />
+      <line x1={x - 6.5} x2={x + 6.5} y1={horizonY} y2={horizonY} stroke={color} strokeWidth="1.5" strokeLinecap="round" />
+      <line x1={x} x2={x} y1={arrowTailY} y2={arrowTipY} stroke={color} strokeWidth="2" strokeLinecap="round" />
+      <path
+        d={`M ${x - 2.25} ${arrowWingY} L ${x} ${arrowTipY} L ${x + 2.25} ${arrowWingY}`}
+        fill="none"
+        stroke={color}
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </g>
   );
 }
 

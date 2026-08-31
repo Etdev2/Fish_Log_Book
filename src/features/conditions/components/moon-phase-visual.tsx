@@ -58,9 +58,9 @@ export function MoonPhaseVisual({
     >
       <defs>
         <radialGradient id={darkGradientId} cx="38%" cy="30%" r="72%">
-          <stop offset="0" stopColor="#56616A" />
-          <stop offset=".52" stopColor="#252E35" />
-          <stop offset="1" stopColor="#0C1216" />
+          <stop offset="0" stopColor="var(--color-border-interactive)" />
+          <stop offset=".52" stopColor="var(--color-hairline)" />
+          <stop offset="1" stopColor="var(--color-background)" />
         </radialGradient>
         <clipPath id={discClipId}>
           <circle cx={CENTRE} cy={CENTRE} r={RADIUS} />
@@ -70,7 +70,7 @@ export function MoonPhaseVisual({
         </clipPath>
       </defs>
 
-      <circle cx={CENTRE} cy={CENTRE} r={RADIUS + 3} fill="#E8D9A8" opacity=".08" />
+      <circle cx={CENTRE} cy={CENTRE} r={RADIUS + 3} fill="var(--color-moon-pale)" opacity=".08" />
       <circle cx={CENTRE} cy={CENTRE} r={RADIUS} fill={`url(#${darkGradientId})`} />
       <image
         href="/images/moon-surface.png"
@@ -94,14 +94,14 @@ export function MoonPhaseVisual({
         opacity={compact ? ".9" : ".96"}
         aria-hidden="true"
       />
-      <path d={lightPath} transform={mirror} fill="#FFF3C4" opacity={compact ? ".1" : ".12"} />
+      <path d={lightPath} transform={mirror} fill="var(--color-moon-pale)" opacity={compact ? ".1" : ".12"} />
 
       <circle
         cx={CENTRE}
         cy={CENTRE}
         r={RADIUS}
         fill="none"
-        stroke="#E8D9A8"
+        stroke="var(--color-moon-pale)"
         strokeWidth="1.4"
         opacity=".5"
         aria-hidden="true"

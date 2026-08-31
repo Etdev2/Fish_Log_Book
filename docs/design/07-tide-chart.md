@@ -58,6 +58,15 @@ Choosing a day moves the selected point and centers the curve; swiping the curve
 active calendar day and keeps that day visible. Dates outside the cache are omitted rather
 than shown as if the app could open them.
 
+## Day and night transition refinement — 2026-08-30
+
+Sunrise and sunset must never share an ambiguous generic sun marker. Sunrise uses an
+amber rising-arrow horizon symbol and means daylight begins; sunset uses an orange
+falling-arrow horizon symbol and means darkness follows. Their visible curve labels carry
+the same up/down direction, and the chart key names both consequences explicitly. The
+scroll-linked moon readout also states whether the centered time is daylight, twilight,
+or night, so the meaning does not depend on colour or background shading alone.
+
 ## Colour
 
 Single series, so no legend box is needed for identity — the title names it.
@@ -95,7 +104,8 @@ disables smooth scrolling and the tooltip fade.
    `docs/team/handoffs/AWAITING_CODEX-test-runner-and-conditions.md`.
 3. **Port to React** as `src/features/conditions/tide-chart.tsx`, inline SVG. ADR 005
    bars chart libraries, and nothing here needs one.
-4. **Sunrise / sunset shading** was left out rather than faked. Once the conditions
-   module lands it is real data and worth adding — anglers plan around light.
+4. **Resolved 2026-08-30 — sunrise / sunset shading.** The conditions engine now drives
+   explicit daylight, twilight, and night bands plus distinct directional transition
+   markers — anglers can read the light change without interpreting colour alone.
 5. **More than one station.** Station is hardcoded. A picker is a separate decision.
 6. **Not yet checked on a real iPhone**, only at an iPhone-sized viewport.
