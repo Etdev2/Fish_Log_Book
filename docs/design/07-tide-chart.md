@@ -1,6 +1,6 @@
 # Tide chart
 
-**Status:** design approved by the founder, 2026-08-28. Not yet built as a component.
+**Status:** design approved by the founder, 2026-08-28; built and refined through 2026-08-30.
 **Owner:** `ux-ui` for the design, `head-dev` for the eventual React port.
 **Prototype:** `prototypes/tide-chart.html` — open it in a browser. Also published at
 https://claude.ai/code/artifact/b3f59bc6-5951-4191-a2c6-a23f1f8afc06
@@ -42,6 +42,21 @@ load-bearing — see `03-touch-and-interaction.md`.
 **The curve is Catmull-Rom smoothed into cubic beziers** so water reads like water. The
 smoothing is visual only; every plotted point is a real prediction, and the table view
 shows the underlying numbers.
+
+## Moon and chart calendar refinement — 2026-08-30
+
+**The moon follows the chart, not the wall clock.** Swiping the cached window updates a
+native SVG phase mask from the astro engine at the chart's centered instant. A detailed
+lunar surface texture remains fixed beneath it while the illuminated shape changes
+continuously rather than jumping among eight stock icons: the bright limb is circular,
+the terminator changes curvature from crescent through quarter to gibbous, waxing and
+waning mirror correctly, and the exact illumination stays visible beside the phase name.
+
+**The calendar never promises data that is not loaded.** It is a horizontal station-day
+calendar made only from the cached prediction window. Each day has its own moon preview.
+Choosing a day moves the selected point and centers the curve; swiping the curve moves the
+active calendar day and keeps that day visible. Dates outside the cache are omitted rather
+than shown as if the app could open them.
 
 ## Colour
 

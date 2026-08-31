@@ -19,7 +19,7 @@ import { useUnitPreference } from "@/features/settings/units";
 import { TIDE_SELECTED_AT, loadTideSeriesFixture, STATION_LOCATION, STATION_TIME_ZONE } from "./queries/tide-series";
 import { useLocalTimeZone } from "./use-local-time-zone";
 import { SourcedValue, unwrapSourced } from "./components/sourced-value";
-import type { MoonPhaseName } from "./types";
+import { MoonPhaseVisual } from "./components/moon-phase-visual";
 import {
   CHART_HEIGHT,
   LEFT_PADDING,
@@ -36,6 +36,8 @@ import {
 } from "./tide-chart-geometry";
 import {
   clock,
+  calendarDayNumber,
+  calendarWeekday,
   dayLabel,
   formatCountdown,
   formatHeight,
@@ -49,7 +51,6 @@ import {
   stationHour,
   zoneAbbreviation,
 } from "./format";
-import styles from "./tide-chart.module.css";
 
 const CURVE_STEP_MS = 15 * 60_000;
 // Founder-measured: the previous, more conservative shading read as invisible; these two
@@ -110,6 +111,7 @@ export function TideChart() {
   const zoneDiffersFromStation = localTimeZone !== null && localTimeZone !== STATION_TIME_ZONE;
 
   const scrollerRef = useRef<HTMLDivElement>(null);
+  const calendarRailRef = useRef<HTMLDivElement>(null);
   const dragRef = useRef<ChartPointer | null>(null);
   const longPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const centerFrameRef = useRef<number | null>(null);
@@ -177,6 +179,15 @@ export function TideChart() {
     () => [seriesStart, ...localMidnights(seriesStart, seriesEnd, STATION_TIME_ZONE)],
     [seriesStart, seriesEnd],
   );
+  const calendarDays = useMemo(
+    () =>
+      dayBoundaryStarts.map((from, index) => {
+        const to = dayBoundaryStarts[index + 1] ?? seriesEnd;
+        const anchor = Math.round(from + (to - from) / 2);
+        return { from, to, anchor, moon: moonPhaseAt(instant(anchor)) };
+      }),
+    [dayBoundaryStarts, seriesEnd],
+  );
   const currentReading = currentAt !== null ? readTideAt(series, instant(currentAt)) : null;
   const currentDayIndex = currentAt !== null ? localDayIndex(currentAt, seriesStart, STATION_TIME_ZONE) : null;
   const currentDayStart = currentDayIndex !== null ? (dayBoundaryStarts[currentDayIndex] ?? seriesStart) : null;
@@ -207,8 +218,7 @@ export function TideChart() {
     () => daylightSpans(instant(seriesStart), instant(seriesEnd), STATION_LOCATION),
     [seriesStart, seriesEnd],
   );
-  const moonAt = currentAt ?? selectedAt;
-  const moon = useMemo(() => moonPhaseAt(instant(moonAt)), [moonAt]);
+  const chartMoon = useMemo(() => moonPhaseAt(instant(centerAt)), [centerAt]);
   const selectedDaySun = useMemo(() => sunEventsFor(instant(selectedAt), STATION_LOCATION), [selectedAt]);
 
   // The day <-> twilight transition instants, for the on-curve sun markers (drawn at the
@@ -315,6 +325,19 @@ export function TideChart() {
     if (keepInView) keepVisible(next, scroller);
   };
 
+  const jumpToDay = (dayIndex: number) => {
+    const day = calendarDays[dayIndex];
+    if (!day) return;
+    const isFinalDay = dayIndex === calendarDays.length - 1;
+    const nowFallsInDay =
+      currentAt !== null &&
+      currentAt >= day.from &&
+      (isFinalDay ? currentAt <= day.to : currentAt < day.to);
+    const target = nowFallsInDay ? currentAt : day.anchor;
+    selectAt(target);
+    scrollToAt(target);
+  };
+
   const atFromPointer = (clientX: number, scroller: HTMLDivElement) => {
     const rect = scroller.getBoundingClientRect();
     const contentX = scroller.scrollLeft + clientX - rect.left;
@@ -339,95 +362,116 @@ export function TideChart() {
   const currentDay = localDayIndex(centerAt, seriesStart, STATION_TIME_ZONE);
   const finalDay = localDayIndex(seriesEnd, seriesStart, STATION_TIME_ZONE);
 
+  useEffect(() => {
+    const rail = calendarRailRef.current;
+    const active = rail?.querySelector<HTMLButtonElement>(`[data-day-index="${currentDay}"]`);
+    if (!rail || !active) return;
+    const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    rail.scrollTo({
+      left: Math.max(0, active.offsetLeft - (rail.clientWidth - active.offsetWidth) / 2),
+      behavior: reducedMotion ? "auto" : "smooth",
+    });
+  }, [currentDay]);
+
   // The next upcoming event (of turn vs. slack) gets slightly stronger emphasis, per brief.
   const soonestIsSlack =
     currentNextSlack !== null &&
     (currentNextTurn === null || Number(unwrapSourced(currentNextSlack).centre) < Number(currentNextTurn.at));
 
   return (
-    <section className={styles.page}>
-      <header className={styles.pageHeader}>
-        <p className={styles.eyebrow}>Coastal conditions</p>
-        <div className={styles.titleRow}>
-          <div className={styles.titleBlock}>
-            <h1 className={styles.pageTitle}>Tides</h1>
-            <p className={styles.stationName}>{series.station.name}</p>
+    <section className="tide-page">
+      <header className="tide-page-header">
+        <div className="tide-title-row">
+          <div className="tide-title-block">
+            <h1 className="tide-page-title">Tides</h1>
+            <p className="tide-station-name">{series.station.name}</p>
           </div>
           <UnitToggle unit={unit} onChange={setUnit} />
         </div>
-        <div className={styles.metaRow}>
-          <MoonBadge illumination={moon.illumination} name={moon.name} />
-          <span>NOAA station {series.station.id}</span>
+        <div className="tide-meta-row">
+          <span>NOAA {series.station.id} · {calendarDays.length} station days loaded</span>
         </div>
       </header>
 
-      <div className={styles.chartCard}>
-        <div className={styles.chartHeader}>
-          <div className={styles.dayNavigator}>
+      <div className="tide-chart-card">
+        <div className="tide-chart-header">
+          <div className="tide-day-navigator">
             <button
-              className={styles.dayButton}
+              className="tide-day-button"
               type="button"
               disabled={currentDay <= 0}
-              onClick={() => scrollToAt(dayBoundaryStarts[currentDay - 1] ?? seriesStart)}
+              onClick={() => jumpToDay(currentDay - 1)}
             >
               <span aria-hidden="true">‹</span> Prev
             </button>
-            <h2 className={styles.dayHeading}>
+            <h2 className="tide-day-heading">
               {dayLabel(instant(centerAt), STATION_TIME_ZONE)}
               <small>Station date</small>
             </h2>
             <button
-              className={styles.dayButton}
+              className="tide-day-button"
               type="button"
               disabled={currentDay >= finalDay}
-              onClick={() => scrollToAt(dayBoundaryStarts[currentDay + 1] ?? seriesEnd)}
+              onClick={() => jumpToDay(currentDay + 1)}
             >
               Next <span aria-hidden="true">›</span>
             </button>
           </div>
 
-          <div className={styles.selectionStrip} aria-live="polite">
-            <div className={styles.selectedReading}>
-              <span className={styles.readingLabel}>Selected point</span>
-              {reading ? (
-                <>
-                  <SourcedValue
-                    value={reading.height}
-                    render={(value) => <strong>{formatHeight(value, unit)}</strong>}
-                  />
-                  <span>
-                    {formatMotion(reading.motion)} · {clock(instant(selectedAt), displayTimeZone)} · {shortDay(instant(selectedAt), displayTimeZone)}
-                  </span>
-                </>
-              ) : (
-                <strong>Unavailable</strong>
-              )}
+          <div
+            className="tide-moon-panel"
+            data-chart-moon={chartMoon.name}
+            data-chart-illumination={Math.round(chartMoon.illumination * 100)}
+          >
+            <MoonPhaseVisual
+              className="tide-chart-moon"
+              id="chart-date"
+              phase={chartMoon}
+            />
+            <div className="tide-moon-copy">
+              <span>Chart moon</span>
+              <strong>{formatMoonPhaseName(chartMoon.name)}</strong>
+              <small>{formatMoonIllumination(chartMoon.illumination)} · swipe-linked</small>
             </div>
-            <button
-              className={styles.nowButton}
-              type="button"
-              aria-pressed={atNow || undefined}
-              title={nowButtonDisabledReason ?? undefined}
-              aria-describedby={nowButtonDisabledReason ? "now-button-reason" : undefined}
-              disabled={!nowWithinRange}
-              onClick={() => {
-                if (!nowWithinRange || now === null) return;
-                selectAt(Number(now));
-                scrollToAt(Number(now));
-              }}
-            >
-              {atNow ? "At now" : "Jump to now"}
-            </button>
           </div>
-          {nowButtonDisabledReason && (
-            <span id="now-button-reason" className="sr-only">
-              {nowButtonDisabledReason}
-            </span>
-          )}
+
+          <div className="tide-calendar-block">
+            <div className="tide-calendar-heading">
+              <span>Chart calendar</span>
+              <small>
+                {monthDay(instant(calendarDays[0].from), STATION_TIME_ZONE)}–{monthDay(instant(calendarDays[calendarDays.length - 1].to), STATION_TIME_ZONE)}
+              </small>
+            </div>
+            <div ref={calendarRailRef} className="tide-calendar-rail" role="group" aria-label="Loaded tide prediction dates">
+              {calendarDays.map((day, index) => {
+                const active = index === currentDay;
+                return (
+                  <button
+                    key={day.from}
+                    type="button"
+                    className="tide-calendar-day"
+                    data-day-index={index}
+                    aria-pressed={active}
+                    aria-label={`${dayLabel(instant(day.anchor), STATION_TIME_ZONE)}, ${formatMoonPhaseName(day.moon.name)}, ${formatMoonIllumination(day.moon.illumination)}`}
+                    onClick={() => jumpToDay(index)}
+                  >
+                    <span>{calendarWeekday(instant(day.anchor), STATION_TIME_ZONE)}</span>
+                    <strong>{calendarDayNumber(instant(day.anchor), STATION_TIME_ZONE)}</strong>
+                    <MoonPhaseVisual
+                      className="tide-calendar-moon"
+                      id={`calendar-${day.from}`}
+                      phase={day.moon}
+                      compact
+                    />
+                  </button>
+                );
+              })}
+            </div>
+          </div>
         </div>
 
-        <div className={styles.chartViewport}>
-          <svg className={styles.axis} width="46" height={CHART_HEIGHT} aria-hidden="true">
+        <div className="tide-chart-viewport">
+          <svg className="tide-axis" width="46" height={CHART_HEIGHT} aria-hidden="true">
             {gridValues(yMinimum, yMaximum).map((value) => (
               <text className="fill-text-muted font-mono text-[11px]" key={value} x="36" y={yFor(metres(value)) + 4} textAnchor="end">
                 {formatHeight(metres(value), unit).replace(` ${unit}`, "")}
@@ -439,10 +483,10 @@ export function TideChart() {
           </svg>
           <div
             ref={scrollerRef}
-            className={styles.chartScroller}
+            className="tide-chart-scroller"
             tabIndex={0}
             role="slider"
-            aria-label="Tide height by time. Drag horizontally to select a point on the curve. Use left and right arrows to adjust the selected point."
+            aria-label="Tide height by time. Swipe horizontally to move through time. Press and hold to select a point. Use left and right arrows to adjust the selected point."
             aria-valuemin={0}
             aria-valuemax={totalMs}
             aria-valuenow={Math.round(selectedAt - seriesStart)}
@@ -723,29 +767,67 @@ export function TideChart() {
             </svg>
           </div>
         </div>
-        <div className={styles.chartFooter}>
-          <p className={styles.gestureHint}>Swipe to move through time · Press and hold to inspect</p>
-          <details className={styles.legendDisclosure}>
-            <summary className={styles.disclosureSummary}>
+        <div className="tide-selection-strip" aria-live="polite">
+          <div className="tide-selected-reading">
+            <span className="tide-reading-label">Selected point</span>
+            {reading ? (
+              <>
+                <SourcedValue
+                  value={reading.height}
+                  render={(value) => <strong>{formatHeight(value, unit)}</strong>}
+                />
+                <span>
+                  {formatMotion(reading.motion)} · {clock(instant(selectedAt), displayTimeZone)} · {shortDay(instant(selectedAt), displayTimeZone)}
+                </span>
+              </>
+            ) : (
+              <strong>Unavailable</strong>
+            )}
+          </div>
+          <button
+            className="tide-now-button"
+            type="button"
+            aria-pressed={atNow || undefined}
+            title={nowButtonDisabledReason ?? undefined}
+            aria-describedby={nowButtonDisabledReason ? "now-button-reason" : undefined}
+            disabled={!nowWithinRange}
+            onClick={() => {
+              if (!nowWithinRange || now === null) return;
+              selectAt(Number(now));
+              scrollToAt(Number(now));
+            }}
+          >
+            {atNow ? "At now" : "Jump to now"}
+          </button>
+        </div>
+        {nowButtonDisabledReason && (
+          <span id="now-button-reason" className="sr-only">
+            {nowButtonDisabledReason}
+          </span>
+        )}
+        <div className="tide-chart-footer">
+          <p className="tide-gesture-hint">Swipe to move through time · Press and hold to inspect</p>
+          <details className="tide-legend-disclosure">
+            <summary className="tide-disclosure-summary">
               Chart key
               <DisclosureChevron />
             </summary>
-            <div className={styles.legendGrid}>
-              <span className={styles.legendTide}>Tide height</span>
-              <span className={styles.legendSelected}>Selected time</span>
-              <span className={styles.legendSlack}>Estimated slack</span>
-              <span className={styles.legendSun}>Sunrise / sunset</span>
+            <div className="tide-legend-grid">
+              <span className="tide-legend-tide">Tide height</span>
+              <span className="tide-legend-selected">Selected time</span>
+              <span className="tide-legend-slack">Estimated slack</span>
+              <span className="tide-legend-sun">Sunrise / sunset</span>
               <span>Shading moves from night to daylight · Arrow keys adjust by 15 minutes</span>
             </div>
           </details>
         </div>
       </div>
 
-      <section className={styles.currentCard} aria-labelledby="current-tide-heading">
-        <header className={styles.currentHeader}>
+      <section className="tide-current-card" aria-labelledby="current-tide-heading">
+        <header className="tide-current-header">
           <div>
-            <p className={styles.liveLabel}><span aria-hidden="true" /> Right now</p>
-            <h2 id="current-tide-heading" className={styles.currentHeading}>
+            <p className="tide-live-label"><span aria-hidden="true" /> Right now</p>
+            <h2 id="current-tide-heading" className="tide-current-heading">
               {currentAt !== null ? `${clock(instant(currentAt), displayTimeZone)} ${zoneAbbreviation(instant(currentAt), displayTimeZone)}` : "Outside the cached window"}
             </h2>
           </div>
@@ -754,12 +836,12 @@ export function TideChart() {
 
         {currentReading && currentAt !== null ? (
           <>
-            <div className={styles.currentOverview}>
-              <div className={styles.currentHeight}>
+            <div className="tide-current-overview">
+              <div className="tide-current-height">
                 <span>Predicted height</span>
                 <SourcedValue value={currentReading.height} render={(value) => <strong>{formatHeight(value, unit)}</strong>} />
               </div>
-              <div className={styles.movementDetails}>
+              <div className="tide-movement-details">
                 <SourcedValue value={currentReading.rate} render={(value) => <span>{formatRate(value, unit)}</span>} />
                 <SourcedValue value={currentReading.pace} render={(value) => <span>{formatPace(value.class)} movement</span>} />
                 {currentReading.twelfths !== null && (
@@ -770,7 +852,7 @@ export function TideChart() {
               </div>
             </div>
 
-            <dl className={styles.eventList}>
+            <dl className="tide-event-list">
               <EventCell
                 label={currentNextTurn ? `Next ${currentNextTurn.kind}` : "Next turn"}
                 emphasis={!soonestIsSlack && currentNextTurn !== null}
@@ -806,7 +888,7 @@ export function TideChart() {
             </dl>
           </>
         ) : (
-          <p className={styles.currentUnavailable}>
+          <p className="tide-current-unavailable">
             This saved prediction does not cover the current time. Explore the cached dates above, but do not treat them as a live reading.
           </p>
         )}
@@ -819,26 +901,26 @@ export function TideChart() {
           data-provenance footnote — is TERTIARY: true every time, useful rarely, and was
           part of the wall of simultaneous caption text this pass was asked to fix. Folded
           into one disclosure below rather than removed. */}
-      <div className={styles.dataPanel}>
-        <p className={styles.datumLine}>
+      <div className="tide-data-panel">
+        <p className="tide-datum-line">
           Predicted height above {series.station.datum} · times shown in {zoneAbbreviation(instant(selectedAt), displayTimeZone)}
         </p>
-        <span className={styles.cacheBadge}>
+        <span className="tide-cache-badge">
           Cached prediction — not a live reading
         </span>
         {now !== null && !nowWithinRange && (
-          <p className={styles.staleWarning}>
+          <p className="tide-stale-warning">
             Live clock: {dayLabel(now, displayTimeZone)}, {clock(now, displayTimeZone)} —{" "}
             {Number(now) < seriesStart ? "before" : "after"} this cached window, so there is no live marker on the chart today,
             and the cached data itself is aging out of date.
           </p>
         )}
-        <details className={styles.aboutDisclosure}>
-          <summary className={styles.disclosureSummary}>
+        <details className="tide-about-disclosure">
+          <summary className="tide-disclosure-summary">
             More about this chart
             <DisclosureChevron />
           </summary>
-          <div className={styles.aboutContent}>
+          <div className="tide-about-content">
             {zoneDiffersFromStation && (
               <p>
                 Station {series.station.name} is in {zoneAbbreviation(instant(selectedAt), STATION_TIME_ZONE)}; every clock
@@ -865,7 +947,7 @@ export function TideChart() {
       </div>
 
       <button
-        className={styles.tableButton}
+        className="tide-table-button"
         type="button"
         aria-expanded={tableOpen}
         aria-controls="tide-table"
@@ -874,8 +956,8 @@ export function TideChart() {
         {tableOpen ? "Hide the numbers" : "Show the numbers instead"}
       </button>
       {tableOpen && (
-        <div id="tide-table" className={styles.tableWrap}>
-          <table className={styles.tideTable}>
+        <div id="tide-table" className="tide-table-wrap">
+          <table className="tide-tide-table">
             <caption className="p-3 text-left text-caption text-text-muted">
               Predicted height above {series.station.datum}, hourly, with the exact highs and lows. Station-local time.
             </caption>
@@ -894,17 +976,9 @@ export function TideChart() {
   );
 }
 
-function MoonBadge({ illumination, name }: { illumination: number; name: MoonPhaseName }) {
-  return (
-    <p className={styles.moonBadge}>
-      <span aria-hidden="true">◐</span> {formatMoonPhaseName(name)} · {formatMoonIllumination(illumination)}
-    </p>
-  );
-}
-
 function UnitToggle({ unit, onChange }: { unit: "ft" | "m"; onChange: (unit: "ft" | "m") => void }) {
   return (
-    <fieldset className={styles.unitToggle}>
+    <fieldset className="tide-unit-toggle">
       <legend className="sr-only">Height units</legend>
       <button type="button" aria-pressed={unit === "ft"} onClick={() => onChange("ft")}>Feet</button>
       <button type="button" aria-pressed={unit === "m"} onClick={() => onChange("m")}>Metres</button>
@@ -915,7 +989,7 @@ function UnitToggle({ unit, onChange }: { unit: "ft" | "m"; onChange: (unit: "ft
 function MotionPill({ motion }: { motion: TideMotion }) {
   const glyph = motion === "rising" ? "▲" : motion === "falling" ? "▼" : "—";
   return (
-    <span className={styles.motionPill}>
+    <span className="tide-motion-pill">
       <span aria-hidden="true">{glyph}</span> {formatMotion(motion)}
     </span>
   );
@@ -931,7 +1005,7 @@ function EventCell({
   children: React.ReactNode;
 }) {
   return (
-    <div className={`${styles.eventCell} ${emphasis ? styles.eventCellEmphasis : ""}`}>
+    <div className={`tide-event-cell ${emphasis ? "tide-event-cell-emphasis" : ""}`}>
       <dt>{label}</dt>
       <dd>{children}</dd>
     </div>

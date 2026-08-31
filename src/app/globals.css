@@ -1,5 +1,6 @@
 @import "tailwindcss";
 @import "./tokens.generated.css";
+@import "../styles/tide-chart.css";
 
 body {
   background: var(--color-background);

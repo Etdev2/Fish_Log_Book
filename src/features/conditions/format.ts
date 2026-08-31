@@ -108,6 +108,14 @@ export function monthDay(at: Instant, timeZone: string): string {
   return new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", timeZone }).format(new Date(at));
 }
 
+export function calendarWeekday(at: Instant, timeZone: string): string {
+  return new Intl.DateTimeFormat("en-US", { weekday: "short", timeZone }).format(new Date(at));
+}
+
+export function calendarDayNumber(at: Instant, timeZone: string): string {
+  return new Intl.DateTimeFormat("en-US", { day: "numeric", timeZone }).format(new Date(at));
+}
+
 export function stationHour(at: Instant, timeZone: string): number {
   const hour = new Intl.DateTimeFormat("en-US", { hour: "2-digit", hourCycle: "h23", timeZone })
     .formatToParts(new Date(at))
