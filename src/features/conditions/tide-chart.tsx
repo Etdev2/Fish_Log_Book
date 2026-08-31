@@ -10,6 +10,7 @@ import {
   nextTurnAfter,
   readTideAt,
   turnsIn,
+  type TideMotion,
 } from "@/core/rules/tide";
 import { daylightSpans, moonPhaseAt, sunEventsFor, type DaylightSpan } from "@/core/rules/astro";
 import { useNow } from "@/lib/time/use-now";
@@ -48,6 +49,7 @@ import {
   stationHour,
   zoneAbbreviation,
 } from "./format";
+import styles from "./tide-chart.module.css";
 
 const CURVE_STEP_MS = 15 * 60_000;
 // Founder-measured: the previous, more conservative shading read as invisible; these two
@@ -80,6 +82,15 @@ const SUN_TURN_LABEL_COLLISION_PX = 40;
 const KEY_STEP_MS = 15 * 60_000;
 const KEY_STEP_MS_FAST = 180 * 60_000;
 const DRAG_EDGE_PX = 72;
+const LONG_PRESS_MS = 260;
+
+type ChartPointer = {
+  pointerId: number;
+  pointerType: string;
+  startX: number;
+  startY: number;
+  active: boolean;
+};
 
 export function TideChart() {
   const series = useMemo(() => loadTideSeriesFixture(), []);
@@ -99,9 +110,9 @@ export function TideChart() {
   const zoneDiffersFromStation = localTimeZone !== null && localTimeZone !== STATION_TIME_ZONE;
 
   const scrollerRef = useRef<HTMLDivElement>(null);
-  const dragRef = useRef<{ pointerId: number; startX: number; startY: number; startAt: number; active: boolean } | null>(
-    null,
-  );
+  const dragRef = useRef<ChartPointer | null>(null);
+  const longPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const centerFrameRef = useRef<number | null>(null);
   const [selectedAt, setSelectedAt] = useState<number>(initialSelectedAt);
   const [tableOpen, setTableOpen] = useState(false);
   const [centerAt, setCenterAt] = useState<number>(initialSelectedAt);
@@ -153,6 +164,8 @@ export function TideChart() {
   const selectedHeight: Metres | null = reading ? unwrapSourced(reading.height) : null;
   const selectedX = xFor(selectedAt);
   const selectedY = selectedHeight !== null ? yFor(selectedHeight) : null;
+  const nowWithinRange = now !== null && Number(now) >= seriesStart && Number(now) <= seriesEnd;
+  const currentAt = nowWithinRange && now !== null ? Number(now) : null;
 
   // Day boundaries are anchored to the STATION's calendar day, not the viewer's — a tide
   // table is about a place, the same way NOAA's own daily tables are dated by the
@@ -164,13 +177,17 @@ export function TideChart() {
     () => [seriesStart, ...localMidnights(seriesStart, seriesEnd, STATION_TIME_ZONE)],
     [seriesStart, seriesEnd],
   );
-  const selectedDayIndex = localDayIndex(selectedAt, seriesStart, STATION_TIME_ZONE);
-  const selectedDayStart = dayBoundaryStarts[selectedDayIndex] ?? seriesStart;
-  const selectedDayEnd = dayBoundaryStarts[selectedDayIndex + 1] ?? seriesEnd;
-  const range = dailyRange(series, instant(selectedDayStart), instant(selectedDayEnd));
-
-  const nextSlack = nextSlackAfter(series, instant(selectedAt));
-  const nextTurn = reading?.nextTurn ?? nextTurnAfter(series, instant(selectedAt));
+  const currentReading = currentAt !== null ? readTideAt(series, instant(currentAt)) : null;
+  const currentDayIndex = currentAt !== null ? localDayIndex(currentAt, seriesStart, STATION_TIME_ZONE) : null;
+  const currentDayStart = currentDayIndex !== null ? (dayBoundaryStarts[currentDayIndex] ?? seriesStart) : null;
+  const currentDayEnd = currentDayIndex !== null ? (dayBoundaryStarts[currentDayIndex + 1] ?? seriesEnd) : null;
+  const currentRange =
+    currentDayStart !== null && currentDayEnd !== null
+      ? dailyRange(series, instant(currentDayStart), instant(currentDayEnd))
+      : null;
+  const currentNextSlack = currentAt !== null ? nextSlackAfter(series, instant(currentAt)) : null;
+  const currentNextTurn =
+    currentAt !== null ? (currentReading?.nextTurn ?? nextTurnAfter(series, instant(currentAt))) : null;
 
   const turns = useMemo(
     () => turnsIn(series, instant(seriesStart), instant(seriesEnd)),
@@ -190,7 +207,8 @@ export function TideChart() {
     () => daylightSpans(instant(seriesStart), instant(seriesEnd), STATION_LOCATION),
     [seriesStart, seriesEnd],
   );
-  const moon = useMemo(() => moonPhaseAt(instant(selectedAt)), [selectedAt]);
+  const moonAt = currentAt ?? selectedAt;
+  const moon = useMemo(() => moonPhaseAt(instant(moonAt)), [moonAt]);
   const selectedDaySun = useMemo(() => sunEventsFor(instant(selectedAt), STATION_LOCATION), [selectedAt]);
 
   // The day <-> twilight transition instants, for the on-curve sun markers (drawn at the
@@ -216,7 +234,7 @@ export function TideChart() {
   // Not memoized — a handful-of-elements linear scan over `spans`, cheap enough to just
   // compute on every render (the compiler itself declined to memoize this exact shape;
   // see the worklog).
-  const nextTurnPhase = nextTurn ? phaseAtFrom(spans, Number(nextTurn.at)) : null;
+  const nextTurnPhase = currentNextTurn ? phaseAtFrom(spans, Number(currentNextTurn.at)) : null;
   const nextTurnPhaseLabel =
     nextTurnPhase === "night" ? "after dark" : nextTurnPhase === "civil-twilight" ? "near dawn/dusk" : nextTurnPhase === "day" ? "in daylight" : null;
 
@@ -229,7 +247,6 @@ export function TideChart() {
     ? `${formatHeight(selectedHeight as Metres, unit)} at ${clock(instant(selectedAt), displayTimeZone)}, ${dayLabel(instant(selectedAt), displayTimeZone)}${selectedPhaseNote}`
     : `No tide prediction available at ${clock(instant(selectedAt), displayTimeZone)}, ${dayLabel(instant(selectedAt), displayTimeZone)}${selectedPhaseNote}`;
 
-  const nowWithinRange = now !== null && Number(now) >= seriesStart && Number(now) <= seriesEnd;
   // The "Now" nav button: honest about the two ways it can't act, rather than
   // scrolling to a clamped edge and implying that edge is "now" (same rule as the
   // live curve marker).
@@ -260,8 +277,11 @@ export function TideChart() {
 
   const updateCenter = () => {
     const scroller = scrollerRef.current;
-    if (!scroller) return;
-    setCenterAt(clampAt(seriesStart + (scroller.scrollLeft + scroller.clientWidth / 2 - LEFT_PADDING) * MS_PER_PIXEL));
+    if (!scroller || centerFrameRef.current !== null) return;
+    centerFrameRef.current = requestAnimationFrame(() => {
+      centerFrameRef.current = null;
+      setCenterAt(clampAt(seriesStart + (scroller.scrollLeft + scroller.clientWidth / 2 - LEFT_PADDING) * MS_PER_PIXEL));
+    });
   };
 
   useEffect(() => {
@@ -269,7 +289,11 @@ export function TideChart() {
       scrollToAt(initialSelectedAt, false);
       updateCenter();
     });
-    return () => cancelAnimationFrame(frame);
+    return () => {
+      cancelAnimationFrame(frame);
+      if (centerFrameRef.current !== null) cancelAnimationFrame(centerFrameRef.current);
+      if (longPressTimerRef.current !== null) clearTimeout(longPressTimerRef.current);
+    };
     // Runs once, to center the initial read-head after layout — scrollToAt/updateCenter
     // intentionally excluded, same as the original chart's mount-only effect.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -291,63 +315,97 @@ export function TideChart() {
     if (keepInView) keepVisible(next, scroller);
   };
 
+  const atFromPointer = (clientX: number, scroller: HTMLDivElement) => {
+    const rect = scroller.getBoundingClientRect();
+    const contentX = scroller.scrollLeft + clientX - rect.left;
+    return seriesStart + (contentX - LEFT_PADDING) * MS_PER_PIXEL;
+  };
+
+  const clearLongPress = () => {
+    if (longPressTimerRef.current !== null) {
+      clearTimeout(longPressTimerRef.current);
+      longPressTimerRef.current = null;
+    }
+  };
+
+  const endPointer = (pointerId: number) => {
+    if (dragRef.current?.pointerId !== pointerId) return;
+    clearLongPress();
+    dragRef.current = null;
+  };
+
   const moveReadHead = (deltaMs: number) => selectAt(selectedAt + deltaMs, true);
 
   const currentDay = localDayIndex(centerAt, seriesStart, STATION_TIME_ZONE);
   const finalDay = localDayIndex(seriesEnd, seriesStart, STATION_TIME_ZONE);
 
   // The next upcoming event (of turn vs. slack) gets slightly stronger emphasis, per brief.
-  const soonestIsSlack = nextSlack !== null && (nextTurn === null || Number(unwrapSourced(nextSlack).centre) < Number(nextTurn.at));
+  const soonestIsSlack =
+    currentNextSlack !== null &&
+    (currentNextTurn === null || Number(unwrapSourced(currentNextSlack).centre) < Number(currentNextTurn.at));
 
   return (
-    <section className="mx-auto w-full max-w-reading overflow-x-hidden px-4 pb-14 pt-5 sm:px-5">
-      <header className="flex flex-col gap-1 pb-3 pt-3">
-        <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
-          <p className="font-mono text-caption font-medium uppercase tracking-station text-text-muted">
-            Station {series.station.id} · {series.station.name}
-          </p>
-          <MoonBadge illumination={moon.illumination} name={moon.name} />
+    <section className={styles.page}>
+      <header className={styles.pageHeader}>
+        <p className={styles.eyebrow}>Coastal conditions</p>
+        <div className={styles.titleRow}>
+          <div className={styles.titleBlock}>
+            <h1 className={styles.pageTitle}>Tides</h1>
+            <p className={styles.stationName}>{series.station.name}</p>
+          </div>
+          <UnitToggle unit={unit} onChange={setUnit} />
         </div>
-        <h1 className="text-h1">Tide</h1>
+        <div className={styles.metaRow}>
+          <MoonBadge illumination={moon.illumination} name={moon.name} />
+          <span>NOAA station {series.station.id}</span>
+        </div>
       </header>
 
-      <div className="overflow-hidden rounded-lg border border-hairline bg-surface pb-1.5 pt-3.5">
-        <div className="flex flex-wrap items-center gap-x-2 gap-y-1 px-3.5 pb-3">
-          <h2 className="order-1 min-w-0 shrink truncate text-lg font-bold">
-            {/* Station-zone day — matches the day-nav buttons and gridlines below, which
-                are also computed against the station's calendar day (see dayBoundaryStarts). */}
-            {dayLabel(instant(centerAt), STATION_TIME_ZONE)}
-          </h2>
-          {reading && (
-            // Demoted from a bordered pill to plain header text: the motion word/arrow that
-            // used to live here is now the exact same information as the "State" cell in the
-            // status grid below (in a bigger, cyan, higher-contrast cell) — showing it twice,
-            // in the highest-visual-weight row on the screen, was the accreted-feature-by-
-            // feature problem this pass was asked to fix. Height + time stay, as the one
-            // thing worth glancing at while a thumb is still on the chart mid-drag, before
-            // the grid re-renders below. Plain text on the card's own `bg-surface` still
-            // clears 7:1 for both colours used (text-primary 15.84:1, tide-cyan 8.76:1) with
-            // no bordered surface needed to get there.
-            <span className="order-3 min-w-0 shrink basis-full truncate font-mono text-caption sm:order-2 sm:basis-0 sm:flex-1">
-              <b className="font-mono font-bold text-text-primary">{formatHeight(unwrapSourced(reading.height), unit)}</b>
-              <span className="text-text-muted"> · </span>
-              <span className="text-text-primary">{clock(instant(selectedAt), displayTimeZone)}</span>
-            </span>
-          )}
-          <div className="order-2 ml-auto flex shrink-0 gap-2 sm:order-3">
+      <div className={styles.chartCard}>
+        <div className={styles.chartHeader}>
+          <div className={styles.dayNavigator}>
             <button
-              className="size-touch-nav-day rounded-md border border-border-interactive bg-surface-raised text-xl hover:border-tide-cyan disabled:opacity-45"
+              className={styles.dayButton}
               type="button"
-              aria-label="Previous day"
               disabled={currentDay <= 0}
               onClick={() => scrollToAt(dayBoundaryStarts[currentDay - 1] ?? seriesStart)}
             >
-              ‹
+              <span aria-hidden="true">‹</span> Prev
             </button>
+            <h2 className={styles.dayHeading}>
+              {dayLabel(instant(centerAt), STATION_TIME_ZONE)}
+              <small>Station date</small>
+            </h2>
             <button
-              className="h-touch-nav-day rounded-md border border-signal-orange bg-surface-raised px-3 font-mono text-label font-semibold tracking-widest text-signal-orange hover:bg-signal-orange hover:text-ink-on-orange disabled:opacity-45"
+              className={styles.dayButton}
               type="button"
-              aria-label="Jump to now"
+              disabled={currentDay >= finalDay}
+              onClick={() => scrollToAt(dayBoundaryStarts[currentDay + 1] ?? seriesEnd)}
+            >
+              Next <span aria-hidden="true">›</span>
+            </button>
+          </div>
+
+          <div className={styles.selectionStrip} aria-live="polite">
+            <div className={styles.selectedReading}>
+              <span className={styles.readingLabel}>Selected point</span>
+              {reading ? (
+                <>
+                  <SourcedValue
+                    value={reading.height}
+                    render={(value) => <strong>{formatHeight(value, unit)}</strong>}
+                  />
+                  <span>
+                    {formatMotion(reading.motion)} · {clock(instant(selectedAt), displayTimeZone)} · {shortDay(instant(selectedAt), displayTimeZone)}
+                  </span>
+                </>
+              ) : (
+                <strong>Unavailable</strong>
+              )}
+            </div>
+            <button
+              className={styles.nowButton}
+              type="button"
               aria-pressed={atNow || undefined}
               title={nowButtonDisabledReason ?? undefined}
               aria-describedby={nowButtonDisabledReason ? "now-button-reason" : undefined}
@@ -358,16 +416,7 @@ export function TideChart() {
                 scrollToAt(Number(now));
               }}
             >
-              Now
-            </button>
-            <button
-              className="size-touch-nav-day rounded-md border border-border-interactive bg-surface-raised text-xl hover:border-tide-cyan disabled:opacity-45"
-              type="button"
-              aria-label="Next day"
-              disabled={currentDay >= finalDay}
-              onClick={() => scrollToAt(dayBoundaryStarts[currentDay + 1] ?? seriesEnd)}
-            >
-              ›
+              {atNow ? "At now" : "Jump to now"}
             </button>
           </div>
           {nowButtonDisabledReason && (
@@ -377,8 +426,8 @@ export function TideChart() {
           )}
         </div>
 
-        <div className="flex">
-          <svg className="z-10 w-axis-gutter shrink-0 bg-surface" width="46" height={CHART_HEIGHT} aria-hidden="true">
+        <div className={styles.chartViewport}>
+          <svg className={styles.axis} width="46" height={CHART_HEIGHT} aria-hidden="true">
             {gridValues(yMinimum, yMaximum).map((value) => (
               <text className="fill-text-muted font-mono text-[11px]" key={value} x="36" y={yFor(metres(value)) + 4} textAnchor="end">
                 {formatHeight(metres(value), unit).replace(` ${unit}`, "")}
@@ -390,7 +439,7 @@ export function TideChart() {
           </svg>
           <div
             ref={scrollerRef}
-            className="min-w-0 flex-1 overflow-x-auto overscroll-x-contain [scrollbar-width:none] [touch-action:pan-y] [&::-webkit-scrollbar]:hidden"
+            className={styles.chartScroller}
             tabIndex={0}
             role="slider"
             aria-label="Tide height by time. Drag horizontally to select a point on the curve. Use left and right arrows to adjust the selected point."
@@ -400,30 +449,53 @@ export function TideChart() {
             aria-valuetext={selectedValueText}
             onScroll={updateCenter}
             onPointerDown={(event) => {
-              dragRef.current = { pointerId: event.pointerId, startX: event.clientX, startY: event.clientY, startAt: selectedAt, active: false };
+              clearLongPress();
+              const pointer: ChartPointer = {
+                pointerId: event.pointerId,
+                pointerType: event.pointerType,
+                startX: event.clientX,
+                startY: event.clientY,
+                active: event.pointerType === "mouse",
+              };
+              dragRef.current = pointer;
+              if (pointer.active) {
+                event.currentTarget.setPointerCapture(event.pointerId);
+                selectAt(atFromPointer(event.clientX, event.currentTarget));
+                return;
+              }
+              longPressTimerRef.current = setTimeout(() => {
+                const pending = dragRef.current;
+                const scroller = scrollerRef.current;
+                if (!pending || pending.pointerId !== event.pointerId || !scroller) return;
+                pending.active = true;
+                scroller.setPointerCapture(event.pointerId);
+                selectAt(atFromPointer(pending.startX, scroller));
+              }, LONG_PRESS_MS);
             }}
             onPointerMove={(event) => {
               const drag = dragRef.current;
-              if (!drag || drag.pointerId !== event.pointerId) return;
+              if (!drag || drag.pointerId !== event.pointerId) {
+                if (event.pointerType === "mouse" && event.buttons === 0) {
+                  selectAt(atFromPointer(event.clientX, event.currentTarget));
+                }
+                return;
+              }
               const horizontalDistance = event.clientX - drag.startX;
               const verticalDistance = event.clientY - drag.startY;
               if (!drag.active) {
-                if (Math.abs(horizontalDistance) < 8 || Math.abs(horizontalDistance) <= Math.abs(verticalDistance)) return;
-                drag.active = true;
-                event.currentTarget.setPointerCapture(event.pointerId);
+                if (Math.hypot(horizontalDistance, verticalDistance) < 8) return;
+                clearLongPress();
+                dragRef.current = null;
+                return;
               }
               event.preventDefault();
-              selectAt(drag.startAt + horizontalDistance * MS_PER_PIXEL, true);
+              selectAt(atFromPointer(event.clientX, event.currentTarget), true);
             }}
             onPointerUp={(event) => {
-              if (dragRef.current?.pointerId === event.pointerId) {
-                dragRef.current = null;
-              }
+              endPointer(event.pointerId);
             }}
             onPointerCancel={(event) => {
-              if (dragRef.current?.pointerId === event.pointerId) {
-                dragRef.current = null;
-              }
+              endPointer(event.pointerId);
             }}
             onKeyDown={(event) => {
               const step = event.shiftKey ? KEY_STEP_MS_FAST : KEY_STEP_MS;
@@ -446,7 +518,7 @@ export function TideChart() {
               width={chartWidth}
               height={CHART_HEIGHT}
               role="img"
-              aria-label="Continuous tide curve for Newport Bay Entrance across three days, with labelled highs and lows, shaded for daylight, and marked for slack water."
+              aria-label="Continuous tide prediction for Newport Bay Entrance across the loaded window, with labelled highs and lows, daylight shading, and estimated slack markers."
             >
               <defs>
                 <linearGradient id="tide-area" x1="0" y1="0" x2="0" y2="1">
@@ -519,7 +591,8 @@ export function TideChart() {
               ))}
 
               <path d={`${path}L${xFor(seriesEnd)},${PLOT_TOP + PLOT_HEIGHT}L${xFor(seriesStart)},${PLOT_TOP + PLOT_HEIGHT}Z`} fill="url(#tide-area)" />
-              <path d={path} fill="none" stroke="var(--color-tide-cyan)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+              <path d={path} fill="none" stroke="var(--color-tide-cyan)" strokeOpacity=".12" strokeWidth="9" strokeLinecap="round" strokeLinejoin="round" />
+              <path d={path} fill="none" stroke="var(--color-tide-cyan)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
 
               {turns.map((turn) => {
                 const labelText = `${formatHeight(turn.height, unit)} ${clock(turn.at, displayTimeZone)}`;
@@ -643,110 +716,101 @@ export function TideChart() {
                   place implying a real reading exists. */}
               {selectedY !== null && (
                 <>
-                  <line x1={selectedX} x2={selectedX} y1={PLOT_TOP - 8} y2={PLOT_TOP + PLOT_HEIGHT} stroke="var(--color-signal-orange)" strokeWidth="2" strokeDasharray="3 4" />
-                  <rect x={selectedX - 34} y={PLOT_TOP - 20} width="68" height="17" rx="8.5" fill="var(--color-signal-orange)" />
-                  <text x={selectedX} y={PLOT_TOP - 7.5} textAnchor="middle" className="fill-ink-on-orange font-mono text-[10px] font-semibold tracking-chart-pill">
-                    SELECTED
-                  </text>
+                  <line x1={selectedX} x2={selectedX} y1={PLOT_TOP} y2={PLOT_TOP + PLOT_HEIGHT} stroke="var(--color-signal-orange)" strokeWidth="2" strokeDasharray="3 4" />
                   <circle cx={selectedX} cy={selectedY} r="6.5" fill="var(--color-signal-orange)" stroke="var(--color-surface)" strokeWidth="2.5" />
                 </>
               )}
             </svg>
           </div>
         </div>
-        {/* TERTIARY — what each mark on the chart means. Useful the first few times, not
-            something an angler who already knows this chart needs to see every glance;
-            folded behind a disclosure rather than removed, same idiom as the numbers
-            table below. */}
-        <details className="px-3.5 pb-3 pt-2">
-          <summary className="inline-flex min-h-touch-floor cursor-pointer list-none items-center gap-1 text-caption font-semibold text-text-link [&::-webkit-details-marker]:hidden hover:text-text-primary">
-            What do the marks mean?
-            <svg aria-hidden="true" width="10" height="10" viewBox="0 0 8 8" className="shrink-0">
-              <path d="M1 2.5l3 3 3-3" stroke="currentColor" strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-          </summary>
-          <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 font-mono text-caption text-text-muted">
-            <span className="inline-flex items-center gap-2 before:h-0.75 before:w-4 before:rounded before:bg-tide-cyan">Tide height</span>
-            <span className="inline-flex items-center gap-2 before:h-0.75 before:w-4 before:rounded before:bg-signal-orange">Selected time</span>
-            <span className="inline-flex items-center gap-1">
-              <svg width="10" height="10" aria-hidden="true">
-                <rect x="1.5" y="1.5" width="7" height="7" transform="rotate(45 5 5)" fill="none" stroke="var(--color-text-muted)" strokeWidth="1.5" />
-              </svg>
-              Estimated slack
-            </span>
-            <span className="inline-flex items-center gap-2 before:size-2 before:rounded-full before:bg-amber-flag">Sunrise / sunset</span>
-            <span>Shading: night to day · Drag the curve · ← → to adjust</span>
-          </div>
-        </details>
+        <div className={styles.chartFooter}>
+          <p className={styles.gestureHint}>Swipe to move through time · Press and hold to inspect</p>
+          <details className={styles.legendDisclosure}>
+            <summary className={styles.disclosureSummary}>
+              Chart key
+              <DisclosureChevron />
+            </summary>
+            <div className={styles.legendGrid}>
+              <span className={styles.legendTide}>Tide height</span>
+              <span className={styles.legendSelected}>Selected time</span>
+              <span className={styles.legendSlack}>Estimated slack</span>
+              <span className={styles.legendSun}>Sunrise / sunset</span>
+              <span>Shading moves from night to daylight · Arrow keys adjust by 15 minutes</span>
+            </div>
+          </details>
+        </div>
       </div>
 
-      <dl className="mt-4 mb-4 grid grid-cols-2 gap-px overflow-hidden rounded-lg border border-hairline bg-hairline sm:grid-cols-3">
-        <StatusCell label="Selected">
-          {reading ? <SourcedValue value={reading.height} render={(v) => <span>{formatHeight(v, unit)}</span>} /> : "—"}
-        </StatusCell>
+      <section className={styles.currentCard} aria-labelledby="current-tide-heading">
+        <header className={styles.currentHeader}>
+          <div>
+            <p className={styles.liveLabel}><span aria-hidden="true" /> Right now</p>
+            <h2 id="current-tide-heading" className={styles.currentHeading}>
+              {currentAt !== null ? `${clock(instant(currentAt), displayTimeZone)} ${zoneAbbreviation(instant(currentAt), displayTimeZone)}` : "Outside the cached window"}
+            </h2>
+          </div>
+          {currentReading && <MotionPill motion={currentReading.motion} />}
+        </header>
 
-        <StatusCell label="State" cyan>
-          {reading && (
-            <>
-              <span aria-hidden="true">
-                {reading.motion === "slack" || reading.motion === "near-slack" ? "—" : reading.motion === "rising" ? "▲" : "▼"}{" "}
-              </span>
-              {formatMotion(reading.motion)}
-              <SourcedValue
-                className="mt-1 block text-caption font-normal text-text-muted"
-                value={reading.rate}
-                render={(v) => <>Rate: {formatRate(v, unit)}</>}
-              />
-              <SourcedValue
-                className="mt-1 block text-caption font-normal text-text-muted"
-                value={reading.pace}
-                render={(v) => <>Pace: {formatPace(v.class)}</>}
-              />
-              {reading.twelfths !== null && (
-                <small aria-label={`Rule of twelfths: approximately ${reading.twelfths} twelfths of the tidal range this tide hour`}>
-                  Rule: ~{reading.twelfths}/12
-                </small>
-              )}
-            </>
-          )}
-        </StatusCell>
-
-        <StatusCell label="Next turn" emphasis={!soonestIsSlack && nextTurn !== null}>
-          {nextTurn ? (
-            <>
-              <span>{clock(nextTurn.at, displayTimeZone)}</span>
-              <small>
-                {nextTurn.kind === "high" ? "High" : "Low"} · {formatCountdown(Number(nextTurn.at) - selectedAt, nextTurn.kind)}
-                {nextTurnPhaseLabel && <> · {nextTurnPhaseLabel}</>}
-              </small>
-            </>
-          ) : (
-            "—"
-          )}
-        </StatusCell>
-
-        <StatusCell label="Next slack" emphasis={soonestIsSlack}>
-          {nextSlack ? (
-            <SourcedValue
-              value={nextSlack}
-              render={(v) => (
-                <>
-                  <span>
-                    {clock(v.from, displayTimeZone)}–{clock(v.to, displayTimeZone)}
+        {currentReading && currentAt !== null ? (
+          <>
+            <div className={styles.currentOverview}>
+              <div className={styles.currentHeight}>
+                <span>Predicted height</span>
+                <SourcedValue value={currentReading.height} render={(value) => <strong>{formatHeight(value, unit)}</strong>} />
+              </div>
+              <div className={styles.movementDetails}>
+                <SourcedValue value={currentReading.rate} render={(value) => <span>{formatRate(value, unit)}</span>} />
+                <SourcedValue value={currentReading.pace} render={(value) => <span>{formatPace(value.class)} movement</span>} />
+                {currentReading.twelfths !== null && (
+                  <span aria-label={`Rule of twelfths: approximately ${currentReading.twelfths} twelfths of the tidal range this tide hour`}>
+                    About {currentReading.twelfths}/12 through this tide hour
                   </span>
-                  <small>{formatCountdown(Number(v.centre) - selectedAt, "slack")}</small>
-                </>
-              )}
-            />
-          ) : (
-            "—"
-          )}
-        </StatusCell>
+                )}
+              </div>
+            </div>
 
-        <StatusCell label={`${monthDay(instant(selectedAt), displayTimeZone)} range`}>
-          {range ? <SourcedValue value={range} render={(v) => <span>{formatHeight(v, unit)}</span>} /> : "—"}
-        </StatusCell>
-      </dl>
+            <dl className={styles.eventList}>
+              <EventCell
+                label={currentNextTurn ? `Next ${currentNextTurn.kind}` : "Next turn"}
+                emphasis={!soonestIsSlack && currentNextTurn !== null}
+              >
+                {currentNextTurn ? (
+                  <>
+                    <strong>{clock(currentNextTurn.at, displayTimeZone)}</strong>
+                    <span>
+                      {formatCountdown(Number(currentNextTurn.at) - currentAt, currentNextTurn.kind)}
+                      {nextTurnPhaseLabel && <> · {nextTurnPhaseLabel}</>}
+                    </span>
+                  </>
+                ) : "—"}
+              </EventCell>
+              <EventCell label="Next slack" emphasis={soonestIsSlack}>
+                {currentNextSlack ? (
+                  <SourcedValue
+                    value={currentNextSlack}
+                    render={(value) => (
+                      <>
+                        <strong>{clock(value.centre, displayTimeZone)}</strong>
+                        <span>
+                          {formatCountdown(Number(value.centre) - currentAt, "slack")} · window {clock(value.from, displayTimeZone)}–{clock(value.to, displayTimeZone)}
+                        </span>
+                      </>
+                    )}
+                  />
+                ) : "—"}
+              </EventCell>
+              <EventCell label={`${monthDay(instant(currentAt), displayTimeZone)} range`}>
+                {currentRange ? <SourcedValue value={currentRange} render={(value) => <strong>{formatHeight(value, unit)}</strong>} /> : "—"}
+              </EventCell>
+            </dl>
+          </>
+        ) : (
+          <p className={styles.currentUnavailable}>
+            This saved prediction does not cover the current time. Explore the cached dates above, but do not treat them as a live reading.
+          </p>
+        )}
+      </section>
       {/* PRIMARY/SECONDARY info stays visible: what the numbers mean, and the two things
           that are required disclosures (cached-fixture, and the aged-out-window warning
           when it applies, which is a safety-relevant "don't trust this marker" notice, not
@@ -755,28 +819,26 @@ export function TideChart() {
           data-provenance footnote — is TERTIARY: true every time, useful rarely, and was
           part of the wall of simultaneous caption text this pass was asked to fix. Folded
           into one disclosure below rather than removed. */}
-      <div className="mb-4 flex flex-col gap-2">
-        <p className="text-caption text-text-muted">
+      <div className={styles.dataPanel}>
+        <p className={styles.datumLine}>
           Predicted height above {series.station.datum} · times shown in {zoneAbbreviation(instant(selectedAt), displayTimeZone)}
         </p>
-        <span className="inline-flex w-fit items-center gap-2 rounded-full border border-hairline bg-surface-raised px-3 py-1.5 font-mono text-caption tracking-wide text-text-muted before:size-2 before:rounded-full before:bg-text-muted">
-          Cached fixture — not a live reading
+        <span className={styles.cacheBadge}>
+          Cached prediction — not a live reading
         </span>
         {now !== null && !nowWithinRange && (
-          <p className="text-caption text-text-muted">
+          <p className={styles.staleWarning}>
             Live clock: {dayLabel(now, displayTimeZone)}, {clock(now, displayTimeZone)} —{" "}
             {Number(now) < seriesStart ? "before" : "after"} this cached window, so there is no live marker on the chart today,
             and the cached data itself is aging out of date.
           </p>
         )}
-        <details>
-          <summary className="inline-flex min-h-touch-floor cursor-pointer list-none items-center gap-1 text-caption font-semibold text-text-link [&::-webkit-details-marker]:hidden hover:text-text-primary">
+        <details className={styles.aboutDisclosure}>
+          <summary className={styles.disclosureSummary}>
             More about this chart
-            <svg aria-hidden="true" width="10" height="10" viewBox="0 0 8 8" className="shrink-0">
-              <path d="M1 2.5l3 3 3-3" stroke="currentColor" strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
+            <DisclosureChevron />
           </summary>
-          <div className="mt-2 flex flex-col gap-2 text-caption text-text-muted">
+          <div className={styles.aboutContent}>
             {zoneDiffersFromStation && (
               <p>
                 Station {series.station.name} is in {zoneAbbreviation(instant(selectedAt), STATION_TIME_ZONE)}; every clock
@@ -803,7 +865,7 @@ export function TideChart() {
       </div>
 
       <button
-        className="mt-4 min-h-touch-primary-standard w-full rounded-lg border border-border-interactive bg-surface-raised px-5 text-lg font-semibold hover:border-tide-cyan"
+        className={styles.tableButton}
         type="button"
         aria-expanded={tableOpen}
         aria-controls="tide-table"
@@ -812,8 +874,8 @@ export function TideChart() {
         {tableOpen ? "Hide the numbers" : "Show the numbers instead"}
       </button>
       {tableOpen && (
-        <div id="tide-table" className="mt-3 overflow-x-auto rounded-lg border border-hairline">
-          <table className="w-full border-collapse font-mono text-caption">
+        <div id="tide-table" className={styles.tableWrap}>
+          <table className={styles.tideTable}>
             <caption className="p-3 text-left text-caption text-text-muted">
               Predicted height above {series.station.datum}, hourly, with the exact highs and lows. Station-local time.
             </caption>
@@ -828,50 +890,59 @@ export function TideChart() {
           </table>
         </div>
       )}
-
-      <div className="sr-only">
-        <label>
-          Height units
-          <select value={unit} onChange={(event) => setUnit(event.target.value === "m" ? "m" : "ft")}>
-            <option value="ft">Feet</option>
-            <option value="m">Metres</option>
-          </select>
-        </label>
-      </div>
     </section>
   );
 }
 
 function MoonBadge({ illumination, name }: { illumination: number; name: MoonPhaseName }) {
   return (
-    <p className="font-mono text-caption font-medium uppercase tracking-station text-text-muted">
-      {formatMoonPhaseName(name)} · {formatMoonIllumination(illumination)}
+    <p className={styles.moonBadge}>
+      <span aria-hidden="true">◐</span> {formatMoonPhaseName(name)} · {formatMoonIllumination(illumination)}
     </p>
   );
 }
 
-function StatusCell({
+function UnitToggle({ unit, onChange }: { unit: "ft" | "m"; onChange: (unit: "ft" | "m") => void }) {
+  return (
+    <fieldset className={styles.unitToggle}>
+      <legend className="sr-only">Height units</legend>
+      <button type="button" aria-pressed={unit === "ft"} onClick={() => onChange("ft")}>Feet</button>
+      <button type="button" aria-pressed={unit === "m"} onClick={() => onChange("m")}>Metres</button>
+    </fieldset>
+  );
+}
+
+function MotionPill({ motion }: { motion: TideMotion }) {
+  const glyph = motion === "rising" ? "▲" : motion === "falling" ? "▼" : "—";
+  return (
+    <span className={styles.motionPill}>
+      <span aria-hidden="true">{glyph}</span> {formatMotion(motion)}
+    </span>
+  );
+}
+
+function EventCell({
   label,
-  cyan = false,
   emphasis = false,
   children,
 }: {
   label: string;
-  cyan?: boolean;
   emphasis?: boolean;
   children: React.ReactNode;
 }) {
   return (
-    <div className={`flex min-w-0 flex-col gap-0.5 bg-surface p-3 ${emphasis ? "ring-2 ring-inset ring-signal-orange" : ""}`}>
-      <dt className="font-mono text-caption uppercase tracking-widest text-text-muted">{label}</dt>
-      <dd
-        className={`m-0 font-mono text-xl font-semibold tabular-nums [&_small]:mt-1 [&_small]:block [&_small]:text-caption [&_small]:font-normal [&_small]:text-text-muted ${
-          cyan ? "text-tide-cyan" : ""
-        }`}
-      >
-        {children}
-      </dd>
+    <div className={`${styles.eventCell} ${emphasis ? styles.eventCellEmphasis : ""}`}>
+      <dt>{label}</dt>
+      <dd>{children}</dd>
     </div>
+  );
+}
+
+function DisclosureChevron() {
+  return (
+    <svg aria-hidden="true" width="12" height="12" viewBox="0 0 8 8">
+      <path d="M1 2.5l3 3 3-3" stroke="currentColor" strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
   );
 }
 
@@ -890,8 +961,10 @@ function gridValues(yMinimum: number, yMaximum: number): number[] {
 
 function timeLabels(seriesStart: number, seriesEnd: number, timeZone: string): number[] {
   const result: number[] = [];
-  for (let t = seriesStart; t <= seriesEnd; t += 3 * 3_600_000) {
-    if (stationHour(instant(t), timeZone) !== 0) result.push(t);
+  const hourMs = 3_600_000;
+  for (let t = Math.ceil(seriesStart / hourMs) * hourMs; t <= seriesEnd; t += hourMs) {
+    const hour = stationHour(instant(t), timeZone);
+    if (hour !== 0 && hour % 3 === 0) result.push(t);
   }
   return result;
 }
