@@ -31,10 +31,6 @@ export function formatRate(value: MetresPerHour, unit: UnitPreference): string {
   return `${sign}${shown.toFixed(2)} ${unit}/hr`;
 }
 
-export function formatHeightDelta(value: Metres, unit: UnitPreference): string {
-  return formatHeight(value, unit);
-}
-
 const MOTION_LABEL: Record<TideMotion, string> = {
   rising: "Rising",
   falling: "Falling",
@@ -100,10 +96,6 @@ export function dayLabel(at: Instant, timeZone: string): string {
   );
 }
 
-export function shortDay(at: Instant, timeZone: string): string {
-  return new Intl.DateTimeFormat("en-US", { weekday: "short", day: "numeric", timeZone }).format(new Date(at));
-}
-
 export function monthDay(at: Instant, timeZone: string): string {
   return new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", timeZone }).format(new Date(at));
 }
@@ -124,12 +116,26 @@ export function calendarDayNumber(at: Instant, timeZone: string): string {
 }
 
 /**
- * "3 PM" — the hour axis. Deliberately the same 12-hour clock the readout and every event
- * time on this screen uses: a chart that labels 21:00 while the readout says 9:34pm makes
- * the reader do a conversion at exactly the moment they are trying to read a shape.
+ * "3am" — the hour axis. Deliberately identical in form to `clock` above, which sets every
+ * other time on this screen: a chart that labels its axis "3 AM" while the reading beside
+ * it says "6:04am" is the same fact written two ways, and the eye reads that as two
+ * different kinds of thing.
  */
 export function hourLabel(at: Instant, timeZone: string): string {
-  return new Intl.DateTimeFormat("en-US", { hour: "numeric", hour12: true, timeZone }).format(new Date(at));
+  return new Intl.DateTimeFormat("en-US", { hour: "numeric", hour12: true, timeZone })
+    .format(new Date(at))
+    .replace(" ", "")
+    .toLowerCase();
+}
+
+/**
+ * "THU 27" — the day divider tags on the chart. Composed from the same two parts, in the
+ * same order, as the date control below the readout ("THU, AUG 27"): `Intl`'s own
+ * weekday+day pattern for en-US returns "27 Thu", which put the two labels for the same
+ * day in opposite orders on one screen.
+ */
+export function dividerDay(at: Instant, timeZone: string): string {
+  return `${calendarWeekday(at, timeZone)} ${calendarDayNumber(at, timeZone)}`.toUpperCase();
 }
 
 export function stationHour(at: Instant, timeZone: string): number {

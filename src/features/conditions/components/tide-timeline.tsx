@@ -21,7 +21,7 @@ import {
   visibleLabelFlags,
   xFor as xForAt,
 } from "../tide-chart-geometry";
-import { clock, formatHeight, hourLabel, shortDay, stationHour } from "../format";
+import { clock, dividerDay, formatHeight, hourLabel, stationHour } from "../format";
 import type { UnitPreference } from "@/features/settings/units";
 
 const CURVE_STEP_MS = 15 * 60_000;
@@ -31,6 +31,13 @@ const KEY_STEP_MS_FAST = 180 * 60_000;
 const TAP_SLOP_PX = 6;
 /** Two turn labels closer together than this share pixels; the later one drops its text. */
 const TURN_LABEL_MIN_GAP_PX = 78;
+/**
+ * The height-axis labels sit on the same left line as the readout card and the day
+ * stepper, rather than jammed against the screen edge. Kept in sync with `--tide-gutter`
+ * in `tide-chart.css` by hand — the chart itself is full-bleed, so there is no box here to
+ * inherit the padding from.
+ */
+const AXIS_LABEL_INSET_PX = 16;
 
 // Founder-measured: the previous, more conservative shading read as invisible; these two
 // opacities are what the founder asked to keep. No text is drawn directly on the shaded
@@ -78,6 +85,7 @@ export function TideTimeline({
   sunMarkers,
   dayBoundaries,
   valueText,
+  nowAction,
 }: {
   ref?: React.Ref<TideTimelineHandle>;
   series: TidePredictionSeries;
@@ -94,6 +102,9 @@ export function TideTimeline({
   sunMarkers: readonly SunMarker[];
   dayBoundaries: readonly number[];
   valueText: string;
+  /** Returns the read-head to the present. Null while it is already there, or while the
+   *  clock falls outside the cached window. */
+  nowAction: (() => void) | null;
 }) {
   const viewportRef = useRef<HTMLDivElement>(null);
   const scrollerRef = useRef<HTMLDivElement>(null);
@@ -329,7 +340,7 @@ export function TideTimeline({
             {dayBoundaries.map((at) => (
               <g key={at}>
                 <line x1={xFor(at)} x2={xFor(at)} y1={PLOT_TOP - 12} y2={plotBottom + 26} stroke="var(--color-border-interactive)" strokeDasharray="2 5" />
-                <text x={xFor(at) + 8} y={PLOT_TOP - 6} className="fill-text-muted font-mono text-[11px] font-semibold tracking-widest">{shortDay(instant(at), stationTimeZone).toUpperCase()}</text>
+                <text x={xFor(at) + 8} y={PLOT_TOP - 6} className="fill-text-muted font-mono text-[11px] font-semibold tracking-widest">{dividerDay(instant(at), stationTimeZone)}</text>
               </g>
             ))}
 
@@ -433,8 +444,8 @@ export function TideTimeline({
           if (y < PLOT_TOP + 6 || y > plotBottom - 6) return null;
           return (
             <g key={value}>
-              <rect x="0" y={plate.y + 1} width={plate.width} height={plate.height - 2} fill="var(--color-background)" fillOpacity=".8" />
-              <text x={plate.width / 2} y={y + 4} textAnchor="middle" className="fill-text-muted font-mono text-[12px]">{text}</text>
+              <rect x={AXIS_LABEL_INSET_PX} y={plate.y + 1} width={plate.width} height={plate.height - 2} fill="var(--color-background)" fillOpacity=".8" />
+              <text x={AXIS_LABEL_INSET_PX + plate.width / 2} y={y + 4} textAnchor="middle" className="fill-text-muted font-mono text-[12px]">{text}</text>
             </g>
           );
         })}
@@ -451,6 +462,15 @@ export function TideTimeline({
           </g>
         )}
       </svg>
+
+      {/* Anchored to the chart's own top-right corner on the shared gutter. It appears and
+          disappears as the read-head leaves and returns to the present, and because it is
+          positioned out of flow that costs no layout anywhere on the screen. */}
+      {nowAction !== null && (
+        <button type="button" className="tide-now-button" onClick={nowAction}>
+          Now
+        </button>
+      )}
     </div>
   );
 }

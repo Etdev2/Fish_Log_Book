@@ -167,6 +167,24 @@ outranks `@layer components`, so the rule meant to put the marker on its own lin
 silently losing — the override lives outside the layer for that reason. **Anything added to
 this card in future needs a reserved slot, not a conditional one.**
 
+**Two alignment lines, and everything sits on one of them.** `--tide-gutter` (16px) is
+where every BOX edge lands: the readout card, the day stepper, the chart's height-axis
+labels, the floating Now control. `--tide-card-inset` puts a second line 12px further in,
+and that is where every piece of TEXT starts — the station name and the big reading share
+it, as do the moon pill's right edge, the motion pill, the rate and "Tide detail" on the
+other side. The readout is one two-column, three-row grid so both columns share their rows:
+time / direction, the two values, then what's next / the way in. The two certainty markers
+are pinned to a shared bottom edge inside equal-height value cells, because letting each
+follow its own value left them 10px apart — small floating text at two different heights is
+exactly what reads as "not aligned". The day stepper is symmetric, so the date label sits
+directly above the read-head line running down the chart.
+
+**One form per fact.** Times are one format everywhere (`3:43pm`, `9am` — the hour axis
+included; it used to say `3 PM` while the reading beside it said `6:04am`). Day labels are
+one order everywhere (`THU 27` on the chart's dividers, matching `THU, AUG 27` in the date
+control; `Intl`'s own weekday+day pattern returns "27 Thu", which put the two labels for
+the same day in opposite orders on one screen).
+
 **Not changed:** the dark marine palette, the cyan curve, the moon rendering, the day/night
 shading, the station-day anchoring of every date division, and the honesty rules — the
 cached-prediction badge, `Sourced<T>` provenance markers, and the ban on standalone phase

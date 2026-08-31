@@ -196,76 +196,98 @@ export function TideScreen() {
         </div>
 
         {/*
-          Every row in here is a FIXED-HEIGHT SLOT, and that is load-bearing rather than
-          fussy. Four things inside this block come and go as the read-head moves — the
-          NOW badge, the two `Sourced` provenance markers (which vanish the moment the
-          read-head lands exactly on a published NOAA sample), and the slack countdown —
-          and each one used to change the block's height, which shoved the whole chart up
-          and down while the angler was mid-swipe. The readout is the anchor the eye holds
-          while scrubbing; it does not get to move. So the optional pieces are reserved,
-          not conditionally laid out: the badge stays in flow and only loses its
-          visibility, and every line that can gain or lose a row reserves that row up
-          front.
+          A two-column, three-row grid, and both of those numbers are load-bearing.
+
+          Every item sits on a shared line: the left column starts on the card's inner
+          content edge (the same line the station name above it starts on), the right
+          column ends on the card's inner right edge (the same line the moon pill ends
+          on), and the three rows are shared by both columns — time / direction, then the
+          two values, then what's next / the way in. The two `Sourced` certainty markers
+          hang off the bottom of their own value cells, which are given equal height on
+          purpose so the markers land on one line instead of floating at two different
+          heights.
+
+          Every row is also a FIXED-HEIGHT SLOT. Things in here come and go as the
+          read-head moves — the NOW badge, both certainty markers (which vanish the moment
+          the read-head lands exactly on a published NOAA sample), and the slack countdown
+          — and each one used to change the card's height, which shoved the whole chart up
+          and down mid-swipe. Anything added here needs a reserved slot, not a conditional
+          row.
         */}
         <button type="button" className="tide-readout" aria-haspopup="dialog" onClick={() => setSheet("tide")}>
-          <span className="tide-readout-main">
-            {reading ? (
-              <SourcedValue
-                className="tide-readout-height"
-                value={reading.height}
-                render={(value) => (
-                  <>
-                    {toDisplayHeight(value, unit).toFixed(2)}
-                    <small>{unit}</small>
-                  </>
-                )}
-              />
-            ) : (
-              <span className="tide-readout-height">—</span>
-            )}
-            <span className="tide-readout-when">
-              <span className="tide-readout-nowtag" data-on={atNow}>
-                Now
-              </span>
-              <strong>{clock(instant(selectedAt), displayTimeZone)}</strong>
-              {zoneDiffersFromStation && <span>{zoneAbbreviation(instant(selectedAt), displayTimeZone)}</span>}
+          <span className="tide-readout-when">
+            {/* The clock comes first so it starts on the card's text line — the same line
+                the reading below it starts on. The NOW badge holds its space whether or
+                not it is showing, so it can never push the clock off that line. */}
+            <strong>{clock(instant(selectedAt), displayTimeZone)}</strong>
+            <span className="tide-readout-nowtag" data-on={atNow}>
+              Now
             </span>
+            {zoneDiffersFromStation && <span>{zoneAbbreviation(instant(selectedAt), displayTimeZone)}</span>}
           </span>
-          <span className="tide-readout-lines">
-            <MotionPill motion={reading?.motion ?? null} />
-            <span className="tide-readout-rate-slot">
-              {reading && reading.motion !== "slack" && (
-                <SourcedValue
-                  className="tide-readout-rate"
-                  value={reading.rate}
-                  render={(value) => <>{formatRate(value, unit)}</>}
-                />
+          <MotionPill motion={reading?.motion ?? null} />
+
+          {reading ? (
+            <SourcedValue
+              className="tide-readout-height"
+              value={reading.height}
+              render={(value) => (
+                // One element, not a fragment: the value cell is a flex column whose other
+                // child is the certainty marker, and a bare <small> beside the digits would
+                // become a second flex row — the unit stacked under the number.
+                <span className="tide-readout-value">
+                  {toDisplayHeight(value, unit).toFixed(2)}
+                  <small>{unit}</small>
+                </span>
               )}
+            />
+          ) : (
+            <span className="tide-readout-height">
+              <span className="tide-readout-value">—</span>
             </span>
-            <span className="tide-readout-next">
-              {nextTurn ? (
-                <>
-                  <strong>{nextTurn.kind === "high" ? "High" : "Low"} {formatHeight(nextTurn.height, unit)}</strong>{" "}
-                  in {formatDurationMagnitude(Number(nextTurn.at) - selectedAt)}
-                </>
-              ) : (
-                <>No further turn in this window</>
-              )}
-              {slackIsSooner && nextSlack !== null && (
-                <SourcedValue
-                  className="tide-readout-slack"
-                  value={nextSlack}
-                  render={(value) => <>Slack in {formatDurationMagnitude(Number(value.centre) - selectedAt)}</>}
-                />
-              )}
+          )}
+          {reading ? (
+            <SourcedValue
+              className="tide-readout-rate"
+              value={reading.rate}
+              render={(value) => <span className="tide-readout-value">{formatRate(value, unit)}</span>}
+            />
+          ) : (
+            <span className="tide-readout-rate">
+              <span className="tide-readout-value">—</span>
             </span>
-            <span className="tide-readout-more" aria-hidden="true">
-              Tide detail <Chevron />
-            </span>
+          )}
+
+          <span className="tide-readout-next">
+            {nextTurn ? (
+              <>
+                <strong>{nextTurn.kind === "high" ? "High" : "Low"} {formatHeight(nextTurn.height, unit)}</strong>{" "}
+                in {formatDurationMagnitude(Number(nextTurn.at) - selectedAt)}
+              </>
+            ) : (
+              <>No further turn in this window</>
+            )}
+            {slackIsSooner && nextSlack !== null && (
+              <SourcedValue
+                className="tide-readout-slack"
+                value={nextSlack}
+                render={(value) => <>Slack in {formatDurationMagnitude(Number(value.centre) - selectedAt)}</>}
+              />
+            )}
+          </span>
+          <span className="tide-readout-more" aria-hidden="true">
+            Tide detail <Chevron />
           </span>
         </button>
       </header>
 
+      {/*
+        Symmetric on purpose: one 48px step control either side of the date, so the date
+        label is centred on the same vertical line the read-head runs down. The Now
+        control used to sit in a fourth column here, which pushed the date 42px off that
+        line and left a hole when it was hidden — it now floats over the chart it acts on
+        (below), where appearing and disappearing costs no layout at all.
+      */}
       <div className="tide-datebar">
         <button
           type="button"
@@ -289,13 +311,6 @@ export function TideScreen() {
         >
           <span aria-hidden="true">›</span>
         </button>
-        <span className="tide-now-slot">
-          {currentAt !== null && !atNow && (
-            <button type="button" className="tide-now-button" onClick={() => goToAt(currentAt)}>
-              Now
-            </button>
-          )}
-        </span>
       </div>
 
       <TideTimeline
@@ -314,6 +329,7 @@ export function TideScreen() {
         sunMarkers={sunMarkers}
         dayBoundaries={dayBoundaries.slice(1)}
         valueText={valueText}
+        nowAction={currentAt !== null && !atNow ? () => goToAt(currentAt) : null}
       />
 
       <p className="sr-only" aria-live="polite">

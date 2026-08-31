@@ -6,6 +6,17 @@
  */
 
 .tide-screen {
+  /*
+   * Two alignment lines, and everything on this screen sits on one of them.
+   *
+   * `--tide-gutter` is where every BOX edge lands: the readout card, the day stepper, the
+   * chart's height-axis labels, the Now control. `--tide-card-inset` is the card's own
+   * padding, which puts a second line 12px further in — that is where every piece of TEXT
+   * starts, the station name and the big reading included, so the two most prominent
+   * left-aligned things on the screen share an edge. Right-hand items mirror it.
+   */
+  --tide-gutter: 16px;
+  --tide-card-inset: 12px;
   display: flex;
   flex-direction: column;
   flex: 1;
@@ -19,15 +30,20 @@
 .tide-header {
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  padding: 10px 14px 8px;
+  gap: 12px;
+  padding: 12px var(--tide-gutter) 0;
 }
 
+/* Inset by the card's own padding, so the station name starts on the same line as the big
+   reading below it and the moon pill ends on the same line as "Tide detail". */
 .tide-header-top {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
+  gap: 8px;
+  /* +1px for the card's border, so the pill's edge lands on the card's inner text line
+     rather than a pixel outside it. */
+  padding-inline: calc(var(--tide-card-inset) + 1px);
 }
 
 .tide-station-button,
@@ -38,7 +54,7 @@
 .tide-sheet-close {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   min-height: var(--spacing-touch-floor);
   padding: 0 12px;
   border: 1px solid transparent;
@@ -52,9 +68,13 @@
 .tide-station-button {
   flex: 1 1 auto;
   min-width: 0;
-  padding-left: 2px;
+  /* No border, transparent or otherwise: the shared control rule carries a 1px one, and
+     that pixel is the difference between this name starting on the card's text line and
+     starting one pixel off it. */
+  border: 0;
+  padding-left: 0;
   color: var(--color-text-primary);
-  font-size: 19px;
+  font-size: 18px;
   letter-spacing: -0.01em;
 }
 
@@ -67,7 +87,7 @@
 .tide-moon-button {
   flex: none;
   max-width: 55%;
-  padding: 0 12px 0 8px;
+  padding: 0 12px 0 6px;
   border-color: var(--color-hairline);
   background: var(--color-surface);
   color: var(--color-text-link);
@@ -100,26 +120,41 @@
  * with wet hands is the number they are already looking at.
  */
 /*
- * FIXED SLOTS, on purpose. See the comment on this block in `tide-screen.tsx`: the pieces
- * inside it appear and disappear as the read-head moves, and any one of them changing the
- * block's height shoves the chart up and down mid-swipe. Every child below reserves the
- * tallest layout it can take, so this card's height is the same at every instant in the
- * series and the timeline underneath it never moves.
+ * FIXED SLOTS AND SHARED LINES. See the comment on this block in `tide-screen.tsx`.
+ *
+ * Two columns and three rows, every item placed on a line something else also sits on:
+ * the left column opens on the card's text line, the right column closes on its mirror,
+ * and each row pairs a left item with a right one — time / direction, the two values, then
+ * what is next / the way in. Row heights are reserved for the tallest thing they can hold,
+ * because the pieces inside come and go as the read-head moves and any one of them
+ * resizing this card drags the chart with it.
  */
 .tide-readout {
+  /*
+   * The one place the big reading's size is defined, and the line box both value cells
+   * share so their certainty markers hang on one line.
+   *
+   * The multiplier is deliberately ABOVE the typeface's own natural line height (Archivo
+   * measures about 1.12). Set below it, the line box stops being what governs — the glyph
+   * box does — and the two cells silently end up different heights, which is exactly the
+   * bug this replaced: the markers sat 11px apart at every reading.
+   */
+  --tide-value-size: clamp(38px, 13vw, 54px);
+  --tide-value-line: calc(var(--tide-value-size) * 1.15);
   /* One 16px line of secondary text, and the reserved row for a `Sourced` certainty
      marker. Both measured in a browser rather than guessed, then given a couple of pixels
      of slack so a small difference in text rendering between engines cannot bring the
-     shake back. The fonts are self-hosted by `next/font`, so the phone gets the same
-     files these were measured against. */
+     shake back. The fonts are self-hosted by `next/font`, so the phone gets the same files
+     these were measured against. */
   --tide-readout-line: 21px;
   --tide-readout-marker: 26px;
   display: grid;
-  grid-template-columns: minmax(0, 46%) minmax(0, 1fr);
-  align-items: start;
-  gap: 4px 14px;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  align-items: center;
+  column-gap: 12px;
+  row-gap: 6px;
   width: 100%;
-  padding: 8px 12px 10px;
+  padding: 10px var(--tide-card-inset) 12px;
   border: 1px solid var(--color-hairline);
   border-radius: var(--radius-lg);
   background: var(--color-surface);
@@ -128,30 +163,21 @@
   cursor: pointer;
 }
 
-.tide-readout-main {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  min-width: 0;
+/* The right column closes on the card's text line. */
+.tide-readout-motion,
+.tide-readout-rate,
+.tide-readout-more {
+  justify-self: end;
+  text-align: right;
 }
 
-.tide-readout-height {
-  display: block;
-  /* One line of the big number, plus a reserved line for the provenance marker that is
-     absent on a reading that lands exactly on a published NOAA sample. `em` here is the
-     clamped font-size below, so this stays correct at every viewport width. */
-  min-height: calc(0.92em + var(--tide-readout-marker));
-  color: var(--color-tide-cyan);
-  font: 200 clamp(42px, 14vw, 60px)/0.92 var(--font-ui);
-  letter-spacing: -0.04em;
-  font-variant-numeric: tabular-nums;
-}
-
-.tide-readout-height small {
-  margin-left: 4px;
-  font-size: 22px;
-  font-weight: 500;
-  letter-spacing: 0;
+/* Rows two and three hang from their top line, so the values start together and
+   "Tide detail" meets the first line of the countdown beside it. */
+.tide-readout-height,
+.tide-readout-rate,
+.tide-readout-next,
+.tide-readout-more {
+  align-self: start;
 }
 
 .tide-readout-when {
@@ -162,8 +188,8 @@
      line; only the zone can drop below. */
   flex-wrap: wrap;
   align-items: center;
-  gap: 2px 6px;
-  min-height: 30px;
+  gap: 2px 8px;
+  min-height: 32px;
 }
 
 .tide-readout-when > * {
@@ -195,32 +221,10 @@
   font-variant-numeric: tabular-nums;
 }
 
-.tide-readout-when > span {
+.tide-readout-when > span:not(.tide-readout-nowtag) {
   color: var(--color-text-muted);
   font-family: var(--font-mono);
   font-size: 16px;
-}
-
-.tide-readout-lines {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 4px;
-  min-width: 0;
-}
-
-/* The rate and its provenance marker, in a slot sized for both whether or not the marker
-   is there. */
-.tide-readout-rate-slot {
-  display: block;
-  min-height: calc(27px + var(--tide-readout-marker));
-}
-
-.tide-readout-rate {
-  display: block;
-  font-family: var(--font-mono);
-  font-size: 17px;
-  font-variant-numeric: tabular-nums;
 }
 
 .tide-readout-motion {
@@ -243,6 +247,71 @@
 .tide-readout-motion[data-motion="slack"],
 .tide-readout-motion[data-motion="near-slack"] { color: var(--color-amber-flag); }
 .tide-readout-motion[data-motion="none"] { color: var(--color-text-muted); }
+
+/*
+ * The two value cells are one fixed height, laid out as a column with the value at the top
+ * and the certainty marker pinned to the bottom. That pinning is the point: the two values
+ * are wildly different sizes, so their line boxes are too, and letting the markers simply
+ * follow their own value left them sitting 10px apart at every reading — small floating
+ * text at two different heights, which is exactly what a reader notices as "not aligned".
+ * Pinned to a shared bottom edge they land on one line, whatever is above them, and the
+ * cell keeps its height when a marker is absent.
+ */
+.tide-readout-height,
+.tide-readout-rate {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  height: calc(var(--tide-value-line) + var(--tide-readout-marker));
+  line-height: var(--tide-value-line);
+}
+
+.tide-readout-height {
+  align-items: flex-start;
+}
+
+/* The value itself: one flex item, so the unit sits beside the digits and the marker is
+   the only other row in the cell. */
+.tide-readout-value {
+  display: block;
+}
+
+/*
+ * The unit needs its own line-height, and this was the last 10px of misalignment.
+ * `line-height` inherits as a fixed length, so the small "ft" was inheriting the big
+ * number's ~58px leading; half of that hangs below its baseline, which pushed the line box
+ * 10px deeper than the number's own strut and dragged the certainty marker down with it.
+ */
+.tide-readout-value small {
+  line-height: 1;
+}
+
+.tide-readout-rate {
+  align-items: flex-end;
+}
+
+.tide-readout-height {
+  color: var(--color-tide-cyan);
+  font-family: var(--font-ui);
+  font-size: var(--tide-value-size);
+  font-weight: 200;
+  letter-spacing: -0.04em;
+  font-variant-numeric: tabular-nums;
+}
+
+.tide-readout-height small {
+  margin-left: 4px;
+  font-size: 22px;
+  font-weight: 500;
+  letter-spacing: 0;
+}
+
+.tide-readout-rate {
+  color: var(--color-text-primary);
+  font-family: var(--font-mono);
+  font-size: 20px;
+  font-variant-numeric: tabular-nums;
+}
 
 /* Two reserved lines: the next turn, and the slack countdown that only appears when slack
    comes first. */
@@ -269,7 +338,7 @@
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  min-height: 22px;
+  min-height: calc(var(--tide-readout-line) * 1.3);
   color: var(--color-text-link);
   font-size: 16px;
   font-weight: 600;
@@ -283,10 +352,10 @@
 
 .tide-datebar {
   display: grid;
-  grid-template-columns: var(--spacing-touch-floor) minmax(0, 1fr) var(--spacing-touch-floor) 76px;
+  grid-template-columns: var(--spacing-touch-floor) minmax(0, 1fr) var(--spacing-touch-floor);
   align-items: center;
   gap: 8px;
-  padding: 0 14px 8px;
+  padding: 12px var(--tide-gutter);
 }
 
 .tide-step-button {
@@ -310,19 +379,25 @@
   white-space: nowrap;
 }
 
-.tide-now-slot {
-  display: flex;
-  justify-content: flex-end;
-  min-width: 76px;
-}
-
+/*
+ * Floats over the chart it acts on, on the shared gutter line. Outlined rather than
+ * filled: it sits on top of the data, so it has to read as a control laid over the chart
+ * without outweighing the curve underneath it. `signal-orange-pressed` is the orange this
+ * palette reserves for orange TEXT on a dark fill (9.31:1); plain `signal-orange` is only
+ * cleared for large text on a surface.
+ */
 .tide-now-button {
+  position: absolute;
+  top: 8px;
+  right: var(--tide-gutter);
+  z-index: 1;
   justify-content: center;
-  padding: 0 16px;
+  padding: 0 14px;
   border-color: var(--color-signal-orange);
-  background: var(--color-signal-orange);
-  color: var(--color-ink-on-orange);
+  background: var(--color-surface-raised);
+  color: var(--color-signal-orange-pressed);
   font-size: 17px;
+  box-shadow: 0 4px 14px rgb(0 0 0 / 40%);
 }
 
 .tide-step-button:disabled {
