@@ -160,10 +160,12 @@ field. Both are the kind that only show up in a browser.
 
 **Concerns.**
 
-1. **There is no CI.** `.github/workflows/` does not exist. `npm run verify` runs 281 tests
-   and it runs when somebody remembers. A stated definition of done with no automation is
-   a definition of hope, and we are about to add a Swift codebase that will inherit that
-   same absence (`PLAN.md` §6.6 predicted exactly this).
+1. **There is no test CI.** `.github/workflows/` does not exist. Vercel does build and
+   deploy a preview on every PR, so a broken build or a type error is caught — credit
+   where it is due. What never runs is `npm run verify`: lint, tokens, tripwires and all
+   281 tests execute only when somebody remembers. A stated definition of done that is
+   half-automated is a definition of hope for the other half, and we are about to add a
+   Swift codebase that will inherit that same absence (`PLAN.md` §6.6 predicted this).
 2. **The tide fixture window ends 2026-09-04.** In three days the flagship screen has no
    data. It fails honestly — the empty state exists — but it fails.
 3. **I cannot write the flusher.** It cannot be written honestly without a live backend to
@@ -347,8 +349,10 @@ formatting — is genuinely good.
 
 **Concerns.**
 
-1. **No CI.** Nothing runs on a PR. Green means "green on the machine of whoever last ran
-   it," which for a solo-owner project with rotating agents is close to meaningless.
+1. **No test CI.** Vercel builds and deploys every PR, which catches a broken build and
+   type errors — that is real coverage and I should say so. But no test, lint, token or
+   tripwire check runs on a PR. Green means "green on the machine of whoever last ran it,"
+   which for a solo-owner project with rotating agents is close to meaningless.
 2. **The browser checks cited as evidence are not in the repository.** PR #14 cites 37
    browser checks; the tackle work cites 46 plus a 14-check keyboard pass; the Fish Log
    cites 32 plus 19 harder ones. There is no Playwright or Puppeteer dependency and no
@@ -382,8 +386,9 @@ as intended and two lanes stayed off each other.
    agents writing the same files.
 2. **PR #14's branch is named `merge-open-prs` and its content is a UX feature.** Anyone
    reading the branch list is misled about what is in flight.
-3. **No required status check on `main`** — because there is no CI to require. Once
-   `verify` runs in Actions, it should be a required check before anything else is added.
+3. **No required status check on `main`.** Vercel reports two deployment statuses per PR,
+   but a successful deploy is not a passing test suite and should never be read as one.
+   Once `verify` runs in Actions, make it required.
 
 **Recommendation.** Accept that runtimes generate branch names, and adapt the rule rather
 than lose it: **the PR title and first commit must carry the role prefix** (`ux-ui:`,
@@ -468,8 +473,8 @@ that did not write them. The token/tripwire scripts catch drift automatically.
 
 **Not working.**
 
-1. **No CI.** The single biggest workflow gap. Every other process depends on "somebody
-   ran it."
+1. **No test CI.** The single biggest workflow gap. Vercel covers the build; nothing
+   covers the tests, and every other process depends on "somebody ran it."
 2. **Evidence is not reproducible.** See `test-agent`. PRs cite dozens of browser checks
    that exist nowhere.
 3. **The newcomer document is wrong.** `HANDOFF.md` describes a repo with no application
@@ -747,7 +752,8 @@ in `ROADMAP.md` Part 3. They will each look like an obvious win to someone arriv
 1. **No hosted Supabase project.** Blocks the flusher, auth, RLS validation end-to-end,
    and therefore Phase 1's exit test. **Everything important this month sits behind this.**
 2. **Tide fixture expires 2026-09-04.** Three days.
-3. **No CI**, so every other quality claim rests on memory.
+3. **No test CI** — Vercel catches a broken build, nothing catches a broken test — so
+   every other quality claim rests on memory.
 4. **PR #14** waits on one owner decision (below).
 5. **No real-phone testing has ever occurred**, on anything.
 
