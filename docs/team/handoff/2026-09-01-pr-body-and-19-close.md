@@ -64,7 +64,7 @@ route composes both features); ADR 006 §5 Sourced-unwrapping moved the tide fil
 
 ## Gates
 
-- 364/364 tests (TIDE fill flood/ebb/slack/pending/clipped curve; conversions round-trip;
+- 355/355 tests (TIDE fill flood/ebb/slack/pending/clipped curve; conversions round-trip;
   compass labels; captureModeFor boundaries; draftFromRecord round-trips; ontology
   parity incl. the 3 new regulated species ids).
 - eslint / tsc / next build green. Migration arity machine-checked; no local Postgres in
