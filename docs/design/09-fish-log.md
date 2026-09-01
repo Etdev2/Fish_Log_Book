@@ -1,6 +1,7 @@
 # 09 — Fish Log
 
-**Status:** Built as a local-first web prototype · **First slice:** 2026-09-01
+**Status:** Built as a local-first web prototype · **First slice:** 2026-09-01 ·
+**Second slice (quick mark + shell):** 2026-09-01
 (product spec: the Fish Log specification supplied by the founder, 2026-09-01)
 
 ## Job
@@ -220,3 +221,85 @@ of a second. The list pages at 50, so the DOM stays small however long the histo
   for starting, ending, naming or reviewing one yet. `/trip/[id]` is still a stub.
 - **Spot picking, batch quantity beyond a stepper, and the calendar's catch counts.**
 - Everything in §45, which is explicitly out.
+
+---
+
+## Second slice — the quick mark becomes optional (2026-09-01)
+
+The first slice put the quick mark at the top of every screen as the largest control in
+the app. The founder's revision: it should not be there by default, it should be a
+setting, and it should not cost anybody screen space they did not ask for.
+
+**Simple by default. Fast when needed.**
+
+### What changed
+
+- **Settings → Fishing shortcuts → Quick Mark**, default **off**, persisted on the
+  device. Off is the real default, not a nudge: an angler who never turns it on never
+  sees it and never pays for it in layout.
+- **The header collapsed.** With the button gone it carries only the backup badge, so it
+  is a 47px status line instead of an 88px control bar. No hole where the button was.
+- **When on, the action docks bottom-right**, above the nav, right-aligned to the same
+  16px gutter every page's content uses — and that the tide screen uses for its own
+  alignment line. It is not a float looking for space; it lands on an edge that already
+  existed.
+- **Undo in the confirmation**, per `03-touch-and-interaction.md` §5 — a mis-tap is
+  corrected inside the toast's window, never by a dialog before the fact.
+- **One preference system.** `preference.ts` now holds the storage mechanics (localStorage,
+  ref-gated `useSyncExternalStore`, same-tab change event) that `units.ts` had worked out,
+  and both preferences go through it. A second preference did not become a second
+  implementation of the same careful hydration handling.
+
+### This placement is not a new idea — it is the one already written down
+
+`05-app-shell.md` §1 already specifies the shell's primary action as *"docked at the
+bottom per `03-touch-and-interaction.md` §3 — this is where the quick mark lives."* The
+first slice's header placement contradicted the design system. This slice makes the code
+agree with the document rather than inventing a third position.
+
+### The conflict, and why the button is still 88px
+
+The revision asks for something compact that does not dominate. `03-touch-and-interaction.md`
+§1 and §5 size this specific control at 88px (`primary-quick-mark`) because it is meant
+to be used **by feel, not by sight** — the founder's own framing is "you click it without
+looking." Those two pull against each other, so, rather than silently shrinking it:
+
+**The touch target stays 88px. What changed is where it lives and whether it is there at
+all.** Shrinking it to look tidier would break the single property it exists for. As
+built it is 110×88 in the bottom corner, about 3% of a 390×844 screen, and off by
+default — which is what "does not dominate" actually asks for. Flagged rather than
+decided quietly; say the word and it drops to the 68px `primary-standard` target.
+
+### Why it is still absent from the tide screen
+
+Every placement that fits costs the tide screen something it is not allowed to spend:
+floating it bottom-right puts it over the timeline the angler scrubs horizontally, and
+folding it into the date bar breaks that row's centred three-column symmetry. Giving it a
+home there is a design decision for the tide screen itself, and this revision was
+explicitly told not to redesign Tide. It stays off that route, as it already was.
+
+### The bug the screenshots caught and the assertions did not
+
+The first version used `sticky bottom-0`, which pins to the *viewport* bottom — the same
+place the nav lives — so the button sat on top of the Settings tab. A bounding-box check
+passed anyway, because it measured a scroll position where the two happened not to
+overlap.
+
+It now hangs at `bottom-full` off a shared bottom dock, which is exactly the nav's top
+edge, so the two cannot overlap however tall either becomes — no hardcoded nav height to
+go stale. There is a check that hit-tests every nav tab, not just its rectangle.
+
+### Checked
+
+- `npm run verify` green — **281 tests**, `npm run build` green.
+- **37 browser checks** at 390×844, zero console errors: absent by default on four
+  routes; the switch defaults off, toggles, and survives reload; when on, the action is
+  gutter-aligned, above the nav, and every nav tab is hit-testable; marks still land in
+  Needs details as unresolved; Undo removes the mark it just made; a mark still saves
+  with the network fully off (46 ms); disabling leaves no reserved space (96px → 24px);
+  the tide screen keeps no status line, no overlay and no vertical scroll; no horizontal
+  overflow at 390 px or 320 px.
+- **11 checks on the units preference**, because migrating `units.ts` onto the shared
+  factory was the real regression risk: the tide screen still defaults to feet, switches
+  to metres, and remembers the choice across a reload.
+- Catch logging measured again after the change: **193 ms**, species picker unchanged.
