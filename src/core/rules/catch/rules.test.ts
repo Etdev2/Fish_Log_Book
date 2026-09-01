@@ -51,7 +51,16 @@ function makeCatch(overrides: Partial<CatchRecord> = {}): CatchRecord {
     depth_fished_m: 76.2,
     rig_id: null,
     rig_revision: null,
+    rig_slot: null,
     inherited_fields: [],
+    location_condition_id: null,
+    location_name: null,
+    current_term: null,
+    current_strength: null,
+    structure_type_ids: [],
+    bottom_depth_m: null,
+    water_color_id: null,
+    water_clarity_id: null,
     presentation: null,
     notes: null,
     tags: [],
@@ -215,6 +224,9 @@ describe("applyRig — D21a", () => {
     id: "rig-1",
     angler_id: "angler-1",
     trip_id: "trip-1",
+    slot: 1,
+    name: "40 lb Flyline",
+    setup_type: "flyline",
     revision: 2,
     effective_from: NOW,
     spot_id: "spot-1",
@@ -223,7 +235,9 @@ describe("applyRig — D21a", () => {
     gear: [
       { angler_id: "angler-1", tackle_item_id: "t1", role: "jig", label: "Nomad Streaker 200g", detail: "Pink" },
     ],
+    live_bait: true,
     created_at: NOW,
+    retired_at: null,
   };
 
   it("fills absent fields from the standing rig and records what it supplied", () => {

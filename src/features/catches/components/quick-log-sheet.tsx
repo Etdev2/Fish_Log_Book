@@ -11,13 +11,20 @@ import {
   type LengthUnit,
   type WeightUnit,
 } from "@/core/rules/catch/measurement";
-import type { Disposition, GearRole } from "@/core/rules/catch/types";
+import { rodSetupLabel } from "@/core/rules/catch/rules";
+import type {
+  Disposition,
+  GearRole,
+  LocationConditionRecord,
+  RigRecord,
+} from "@/core/rules/catch/types";
 import type { CatchDraft } from "../create";
 import { GEAR_ROLE_LABEL, type UnitSystem } from "../format";
 import {
   CHIP_CLASS,
   CHIP_OFF,
   CHIP_ON,
+  FOCUS_RING,
   INPUT_CLASS,
   PRIMARY_BUTTON,
   SECONDARY_BUTTON,
@@ -35,6 +42,12 @@ import { SpeciesPicker } from "./species-picker";
  *
  * Repeat mode (spec §6) reuses this sheet with a seeded draft, so "+ Log another" and a
  * fresh catch are the same code path and cannot drift apart.
+ *
+ * **Rod and location sit above Add details, not inside it** (spec §15). They are the two
+ * questions that make a catch analysable later — what it came on and where — and unlike
+ * weight or notes they are answered by tapping one already-configured chip rather than
+ * typing. They only appear at all once the angler has set something up: an angler who
+ * has never opened Setup sees exactly the screen they saw before.
  */
 
 export type LogRequest = {
@@ -43,6 +56,11 @@ export type LogRequest = {
   seed: CatchDraft | null;
   note: string | null;
   title: string;
+  /**
+   * Set when finishing an existing quick mark. The sheet looks identical; the save
+   * updates that mark in place instead of writing a new catch (spec §5).
+   */
+  resolveId?: string;
 };
 
 const DISPOSITIONS: readonly { id: Disposition; label: string }[] = [
@@ -55,12 +73,16 @@ const GEAR_ROLES: readonly GearRole[] = ["rod", "reel", "main_line", "leader", "
 export function QuickLogSheet({
   request,
   recentSpeciesIds,
+  rods,
+  locations,
   unitSystem,
   onClose,
   onSave,
 }: {
   request: LogRequest | null;
   recentSpeciesIds: readonly string[];
+  rods: readonly RigRecord[];
+  locations: readonly LocationConditionRecord[];
   unitSystem: UnitSystem;
   onClose: () => void;
   onSave: (draft: CatchDraft, andAnother: boolean) => void;
@@ -93,6 +115,8 @@ export function QuickLogSheet({
           key={request.key}
           request={request}
           recentSpeciesIds={recentSpeciesIds}
+          rods={rods}
+          locations={locations}
           unitSystem={unitSystem}
           onClose={onClose}
           onSave={onSave}
@@ -105,12 +129,16 @@ export function QuickLogSheet({
 function LogForm({
   request,
   recentSpeciesIds,
+  rods,
+  locations,
   unitSystem,
   onClose,
   onSave,
 }: {
   request: LogRequest;
   recentSpeciesIds: readonly string[];
+  rods: readonly RigRecord[];
+  locations: readonly LocationConditionRecord[];
   unitSystem: UnitSystem;
   onClose: () => void;
   onSave: (draft: CatchDraft, andAnother: boolean) => void;
@@ -136,6 +164,16 @@ function LogForm({
   const [notes, setNotes] = useState("");
   const [gear, setGear] = useState<CatchDraft["gear"]>(seed?.gear ?? []);
   const [photos, setPhotos] = useState<readonly File[]>([]);
+  // Smart defaults (spec §16): the previous catch's rod and place come pre-selected, and
+  // with exactly one rod rigged or one place set up there is nothing to choose between,
+  // so it starts selected. Both are *visible* selections the angler can see and change —
+  // suggested, never silently assumed. With two or more, nothing is guessed.
+  const [rodSetupId, setRodSetupId] = useState<string | null>(
+    seed?.rodSetupId ?? (rods.length === 1 ? rods[0].id : null),
+  );
+  const [locationId, setLocationId] = useState<string | null>(
+    seed?.locationId ?? (locations.length === 1 ? locations[0].id : null),
+  );
 
   const build = (): CatchDraft => {
     const weightValue = parseMeasurement(weight);
@@ -157,6 +195,8 @@ function LogForm({
       notes: notes.trim() || null,
       tags: seed?.tags ?? [],
       gear,
+      rodSetupId,
+      locationId,
       photos,
     };
   };
@@ -195,6 +235,36 @@ function LogForm({
           setSpeciesId(null);
         }}
       />
+
+      {rods.length > 0 ? (
+        <PresetPicker
+          heading="Rod"
+          emptyHint={null}
+          options={rods.map((rod) => ({
+            id: rod.id,
+            label: rodSetupLabel(rod),
+            detail: rodSummary(rod),
+          }))}
+          selectedId={rodSetupId}
+          onSelect={setRodSetupId}
+          clearLabel="Not recorded"
+        />
+      ) : null}
+
+      {locations.length > 0 ? (
+        <PresetPicker
+          heading="Where"
+          emptyHint={null}
+          options={locations.map((location) => ({
+            id: location.id,
+            label: location.name,
+            detail: locationSummary(location),
+          }))}
+          selectedId={locationId}
+          onSelect={setLocationId}
+          clearLabel="Not recorded"
+        />
+      ) : null}
 
       <button
         type="button"
@@ -386,4 +456,128 @@ const GEAR_PLACEHOLDER: Record<GearRole, string> = {
   bait: "Live sardine",
   weight: "",
   terminal: "",
+};
+
+/**
+ * One row of preset chips — today's rods, or today's places.
+ *
+ * Every option carries a second line saying what it actually is ("65 lb braid · 40 lb
+ * fluoro · 2/0"), because "Rod 2" three hours into a trip is not a memory anybody should
+ * be asked to hold. `Not recorded` is always present: spec §14 makes presets an
+ * accelerator, never a requirement, and a fish caught on a borrowed rod still gets
+ * logged.
+ */
+function PresetPicker({
+  heading,
+  emptyHint,
+  options,
+  selectedId,
+  onSelect,
+  clearLabel,
+}: {
+  heading: string;
+  emptyHint: string | null;
+  options: readonly { id: string; label: string; detail: string | null }[];
+  selectedId: string | null;
+  onSelect: (id: string | null) => void;
+  clearLabel: string;
+}) {
+  return (
+    <fieldset className="flex flex-col gap-2">
+      <legend className="text-label text-text-muted">{heading}</legend>
+      {options.length === 0 && emptyHint ? (
+        <p className="text-caption text-text-muted">{emptyHint}</p>
+      ) : null}
+      <div className="flex flex-wrap gap-2">
+        {options.map((option) => {
+          const selected = selectedId === option.id;
+          return (
+            <button
+              key={option.id}
+              type="button"
+              // Select-only, deliberately not a toggle. Re-tapping the rod you are
+              // actually using must never silently clear it — that would be a wrong
+              // record produced by a confirming tap, which is the worst kind. Clearing
+              // is the explicit "Not recorded" chip beside these.
+              onClick={() => onSelect(option.id)}
+              aria-pressed={selected}
+              className={`flex min-h-touch-floor flex-col items-start justify-center rounded-full border px-4 py-2 text-left transition-colors ${FOCUS_RING} active:scale-95 motion-reduce:transition-none ${
+                selected ? CHIP_ON : CHIP_OFF
+              }`}
+            >
+              <span className="text-label">{option.label}</span>
+              {option.detail ? (
+                <span
+                  className={`text-caption ${selected ? "text-ink-on-orange" : "text-text-muted"}`}
+                >
+                  {option.detail}
+                </span>
+              ) : null}
+            </button>
+          );
+        })}
+        {/*
+          "Not recorded" is the absence of a choice, so it never wears the orange fill.
+          Orange is this system's affirmative signal, and putting it on the do-nothing
+          option made the default look like the recommendation and out-shout the real
+          rods. Selected here means "this is where things stand", not "do this".
+        */}
+        <button
+          type="button"
+          onClick={() => onSelect(null)}
+          aria-pressed={selectedId === null}
+          className={`${CHIP_CLASS} ${
+            selectedId === null
+              ? "border-border-interactive bg-surface-raised text-text-primary"
+              : CHIP_OFF
+          }`}
+        >
+          {clearLabel}
+        </button>
+      </div>
+    </fieldset>
+  );
+}
+
+/** "65 lb braid · 40 lb fluoro · 2/0" — the rig, in the order it reads down the rod. */
+export function rodSummary(rod: RigRecord): string | null {
+  const parts = rod.gear
+    .slice()
+    .sort((a, b) => GEAR_ROLES.indexOf(a.role) - GEAR_ROLES.indexOf(b.role))
+    .map((g) => g.label)
+    .filter(Boolean);
+  return parts.length > 0 ? parts.join(" · ") : null;
+}
+
+/** "Strong uphill · Rocky + Kelp" — what an angler would say about the spot. */
+export function locationSummary(location: LocationConditionRecord): string | null {
+  const parts: string[] = [];
+  if (location.current_term && location.current_term !== "unknown") {
+    const strength = location.current_strength;
+    parts.push(
+      [strength && strength !== "none" ? CURRENT_STRENGTH_LABEL[strength] : null, CURRENT_TERM_LABEL[location.current_term]]
+        .filter(Boolean)
+        .join(" "),
+    );
+  }
+  if (location.structure_type_ids.length > 0) {
+    parts.push(location.structure_type_ids.length === 1 ? "1 structure" : `${location.structure_type_ids.length} structures`);
+  }
+  return parts.length > 0 ? parts.join(" · ") : null;
+}
+
+export const CURRENT_TERM_LABEL: Record<string, string> = {
+  uphill: "uphill",
+  downhill: "downhill",
+  inshore: "inshore",
+  offshore: "offshore",
+  unknown: "unknown",
+};
+
+export const CURRENT_STRENGTH_LABEL: Record<string, string> = {
+  none: "No",
+  light: "Light",
+  moderate: "Moderate",
+  strong: "Strong",
+  very_strong: "Very strong",
 };

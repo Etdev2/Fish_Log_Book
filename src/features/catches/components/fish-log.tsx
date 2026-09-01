@@ -2,7 +2,7 @@
 
 import { useMemo, useRef, useState } from "react";
 
-import { repeatSeedFrom } from "@/core/rules/catch/rules";
+import { activeRodSetups, repeatSeedFrom } from "@/core/rules/catch/rules";
 import {
   filterCatches,
   groupByLocalDate,
@@ -17,14 +17,16 @@ import {
   draftGearFrom,
   EMPTY_DRAFT,
   logCatch,
+  resolveMark,
   startPositionRequest,
   type CatchDraft,
   type PositionRequest,
 } from "../create";
-import { formatDayHeading, type UnitSystem } from "../format";
+import { formatClock, formatDayHeading, type UnitSystem } from "../format";
 import {
   currentZone,
   logActions,
+  openTripOf,
   searchable,
   useLog,
   type LogSnapshot,
@@ -97,6 +99,20 @@ export function FishLog({ unitSystem }: { unitSystem: UnitSystem }) {
 
   const remaining = filtered.length - shown.reduce((n, d) => n + d.items.length, 0);
   const today = useMemo(() => todayLocalDate(), []);
+  // Today's Setup, offered when logging. An angler who has never opened Setup gets an
+  // empty list here and the sheet simply does not show those rows (spec §14).
+  const openTrip = useMemo(() => openTripOf(state), [state]);
+  const rods = useMemo(
+    () => (openTrip ? activeRodSetups(state.rigs, openTrip.id) : []),
+    [state.rigs, openTrip],
+  );
+  const locations = useMemo(
+    () =>
+      openTrip
+        ? state.locations.filter((l) => l.trip_id === openTrip.id && l.deleted_at === null)
+        : [],
+    [state.locations, openTrip],
+  );
   const recentSpeciesIds = useMemo(() => recentSpecies(state), [state]);
   const openItem = items.find((i) => i.record.id === openCatchId) ?? null;
 
@@ -107,10 +123,18 @@ export function FishLog({ unitSystem }: { unitSystem: UnitSystem }) {
 
   const save = async (draft: CatchDraft, andAnother: boolean) => {
     const request = positionRequest.current;
-    // Read, do not await: whatever the GPS has managed so far is what this catch gets.
-    const result = await logCatch(state, draft, request?.value ?? null);
+    const resolving = logRequest?.resolveId;
+
+    // Finishing a mark updates that row; it never writes a second one.
+    const result = resolving
+      ? await resolveMark(state, resolving, draft)
+      : // Read, do not await: whatever the GPS has managed so far is what this catch gets.
+        await logCatch(state, draft, request?.value ?? null);
+
     setJustSaved(result.catchId);
-    if (request && !request.settled) void attachPositionLater(result.catchId, request);
+    if (!resolving && request && !request.settled) {
+      void attachPositionLater(result.catchId, request);
+    }
     if (andAnother) {
       // Repeat mode (spec §6): same rig, same species, new id and new timestamp. The
       // seed comes from the draft that was just saved, so nothing is re-typed.
@@ -233,6 +257,8 @@ export function FishLog({ unitSystem }: { unitSystem: UnitSystem }) {
       <QuickLogSheet
         request={logRequest}
         recentSpeciesIds={recentSpeciesIds}
+        rods={rods}
+        locations={locations}
         unitSystem={unitSystem}
         onClose={() => setLogRequest(null)}
         onSave={save}
@@ -264,8 +290,14 @@ export function FishLog({ unitSystem }: { unitSystem: UnitSystem }) {
           positionRequest.current = startPositionRequest();
           setLogRequest({
             key: `resolve-${item.record.id}`,
-            seed: { ...EMPTY_DRAFT, gear: draftGearFrom(item.gear) },
-            note: "This mark was saved without details. Saying what it was makes it count.",
+            resolveId: item.record.id,
+            seed: {
+              ...EMPTY_DRAFT,
+              gear: draftGearFrom(item.gear),
+              rodSetupId: item.record.rig_id,
+              locationId: item.record.location_condition_id,
+            },
+            note: `Saved at ${formatClock(item.record.caught_at, item.record.caught_tz)}. That time, and anything else already captured, is kept.`,
             title: "What was it?",
           });
         }}

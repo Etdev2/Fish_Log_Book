@@ -81,7 +81,24 @@ export interface CatchRecord {
   readonly depth_fished_m: number | null;
   readonly rig_id: string | null;
   readonly rig_revision: number | null;
+  /** Which rod slot this fish came on, for "how has Rod 2 done today". */
+  readonly rig_slot: number | null;
   readonly inherited_fields: readonly string[];
+
+  /**
+   * The location preset this catch was logged against, and a copy of what it said at
+   * that moment (spec §10, §17). The id is the live link; the copied values are the
+   * history, and they are what survives the preset being edited or deleted later.
+   */
+  readonly location_condition_id: string | null;
+  readonly location_name: string | null;
+  readonly current_term: CurrentTerm | null;
+  readonly current_strength: CurrentStrength | null;
+  readonly structure_type_ids: readonly string[];
+  /** Bottom depth at the spot. `depth_fished_m` above is where the fish actually was. */
+  readonly bottom_depth_m: number | null;
+  readonly water_color_id: string | null;
+  readonly water_clarity_id: string | null;
 
   readonly presentation: string | null;
   readonly notes: string | null;
@@ -115,18 +132,85 @@ export interface TripRecord {
 }
 
 /**
- * The sticky rig (D21a). Append-only: changing it inserts revision n+1, so a change at
- * 3pm cannot rewrite what the 11am fish was caught on.
+ * A rod setup — one rigged rod, ready to fish (spec §6).
+ *
+ * This is D21a's sticky rig generalised from one standing rig per trip to N of them,
+ * one per `slot` (Rod 1, Rod 2, …). It stays **append-only**: re-rigging Rod 1 inserts
+ * revision n+1 of slot 1 rather than editing revision n. That is the whole of spec §10 —
+ * changing today's leader at 10am cannot rewrite what the 8am fish was caught on,
+ * because the 8am catch still points at the revision that was standing when it happened.
+ *
+ * A second table was deliberately not created for this. Two answers to "what was I
+ * fishing with" is exactly the drift ADR 003 exists to prevent.
  */
+export type SetupType =
+  | "flyline"
+  | "surface_iron"
+  | "yo_yo"
+  | "knife_jig"
+  | "slow_pitch"
+  | "dropper_loop"
+  | "trolling"
+  | "bottom"
+  | "bait_rig"
+  | "custom";
+
+/** Gear on a rod setup: the same shape as gear on a catch, minus the catch it is on. */
+export type SetupGear = Omit<CatchGear, "catch_id" | "id" | "created_at" | "deleted_at">;
+
 export interface RigRecord {
   readonly id: string;
   readonly angler_id: string;
   readonly trip_id: string;
+  /** Rod 1, Rod 2, … Stable for the life of the trip; revisions accrue within a slot. */
+  readonly slot: number;
+  /** The angler's own name for it — "40 lb Flyline". Falls back to "Rod {slot}". */
+  readonly name: string | null;
+  readonly setup_type: SetupType | null;
   readonly revision: number;
   readonly effective_from: string;
   readonly spot_id: string | null;
   readonly platform: string | null;
   readonly depth_fished_m: number | null;
-  readonly gear: readonly Omit<CatchGear, "catch_id" | "id" | "created_at" | "deleted_at">[];
+  readonly live_bait: boolean;
+  readonly gear: readonly SetupGear[];
   readonly created_at: string;
+  /** Retired rods stop being offered when logging, without losing their history. */
+  readonly retired_at: string | null;
+}
+
+/**
+ * Observed conditions at a place being fished today (spec §11–§13).
+ *
+ * **Angler observations, not instrument readings.** `current_term` is the fishing term
+ * for which way the water is pushing relative to the spot — uphill, downhill, inshore,
+ * offshore — and is deliberately never reconciled with a measured current vector. The
+ * ontology already reserved exactly these four values for exactly this reason.
+ *
+ * Unlike a rod setup this is mutable: it is a preset describing right now, and the
+ * history lives on the catch's own immutable `condition_snapshot`. Editing "West End"
+ * at noon does not touch the 8am fish, because the 8am fish copied what it needed.
+ */
+export type CurrentTerm = "uphill" | "downhill" | "inshore" | "offshore" | "unknown";
+export type CurrentStrength = "none" | "light" | "moderate" | "strong" | "very_strong";
+
+export interface LocationConditionRecord {
+  readonly id: string;
+  readonly angler_id: string;
+  readonly trip_id: string;
+  readonly spot_id: string | null;
+  /** "West End". The one field that has to be filled in. */
+  readonly name: string;
+  readonly current_term: CurrentTerm | null;
+  readonly current_strength: CurrentStrength | null;
+  /** Several are normal — "Rocky + Kelp" is one place, not two (spec §13). */
+  readonly structure_type_ids: readonly string[];
+  /** Bottom depth here. NOT the depth a fish was caught at — see spec §13. */
+  readonly bottom_depth_m: number | null;
+  readonly water_color_id: string | null;
+  readonly water_clarity_id: string | null;
+  readonly notes: string | null;
+  readonly created_at: string;
+  readonly client_updated_at: string;
+  readonly deleted_at: string | null;
 }

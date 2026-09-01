@@ -1,6 +1,11 @@
 "use client";
 
-import { applyRig, localDateOf, type RepeatSeed } from "@/core/rules/catch/rules";
+import {
+  applyLocation,
+  applyRig,
+  localDateOf,
+  type RepeatSeed,
+} from "@/core/rules/catch/rules";
 import type {
   CatchGear,
   CatchRecord,
@@ -46,6 +51,10 @@ export interface CatchDraft {
   readonly notes: string | null;
   readonly tags: readonly string[];
   readonly gear: readonly { role: GearRole; label: string; detail: string | null; tackleItemId: string | null }[];
+  /** The rod setup this fish came on (spec §15 step 2). Null = not recorded. */
+  readonly rodSetupId: string | null;
+  /** The location preset it was logged at (spec §15 step 3). Null = not recorded. */
+  readonly locationId: string | null;
   /** Photos to attach once the catch exists. Never on the save path (spec §25). */
   readonly photos: readonly File[];
   /** Set when editing or when the angler corrected the time; otherwise now. */
@@ -71,6 +80,10 @@ export function draftFromRepeatSeed(seed: RepeatSeed): CatchDraft {
     presentation: seed.presentation,
     tags: seed.tags,
     gear: draftGearFrom(seed.gear),
+    // Smart defaults (spec §16): the next fish is usually on the same rod, at the same
+    // place. Carried forward as a visible pre-selection, never silently assumed.
+    rodSetupId: seed.rod_setup_id,
+    locationId: seed.location_condition_id,
     // Photos are of one particular fish and are never copied to another (spec §25).
     photos: [],
   };
@@ -100,6 +113,8 @@ export const EMPTY_DRAFT: CatchDraft = {
   notes: null,
   tags: [],
   gear: [],
+  rodSetupId: null,
+  locationId: null,
   photos: [],
 };
 
@@ -255,7 +270,16 @@ export async function logCatch(
   const tripId = await tripForCatch(state, caughtAt);
   const catchId = uuidv7();
 
-  const rig = latestRigOf(state, tripId);
+  // The chosen rod, or the standing one if the angler did not pick. `latestRigOf` is
+  // the fallback for a trip with a single rig and no Setup page visit.
+  const rig =
+    (draft.rodSetupId
+      ? (state.rigs.find((r) => r.id === draft.rodSetupId) ?? null)
+      : null) ?? latestRigOf(state, tripId);
+  const location = draft.locationId
+    ? (state.locations.find((l) => l.id === draft.locationId && l.deleted_at === null) ?? null)
+    : null;
+
   const typedGear = gearRows(draft, catchId, nowIso);
   const inherited = applyRig(
     { depth_fished_m: draft.depthM, gear: typedGear },
@@ -263,6 +287,8 @@ export async function logCatch(
     catchId,
     nowIso,
   );
+  // A copy, not a reference (spec §10): editing the preset later cannot retell this fish.
+  const observed = applyLocation(location);
 
   const record: CatchRecord = {
     id: catchId,
@@ -287,12 +313,21 @@ export async function logCatch(
     length_mm: draft.lengthMm,
     weight_g: draft.weightG,
     size_estimated: draft.sizeEstimated,
-    spot_id: inherited.spot_id,
+    spot_id: observed.spot_id ?? inherited.spot_id,
     platform: inherited.platform,
     depth_fished_m: inherited.depth_fished_m,
     rig_id: inherited.rig_id,
     rig_revision: inherited.rig_revision,
+    rig_slot: inherited.rig_slot,
     inherited_fields: inherited.inherited_fields,
+    location_condition_id: observed.location_condition_id,
+    location_name: observed.location_name,
+    current_term: observed.current_term,
+    current_strength: observed.current_strength,
+    structure_type_ids: observed.structure_type_ids,
+    bottom_depth_m: observed.bottom_depth_m,
+    water_color_id: observed.water_color_id,
+    water_clarity_id: observed.water_clarity_id,
     presentation: draft.presentation,
     notes: draft.notes,
     tags: draft.tags,
@@ -314,6 +349,99 @@ export async function logCatch(
 }
 
 /**
+ * Resolve an unresolved quick mark into a real catch (D22, spec §5).
+ *
+ * **This updates the mark in place; it does not create a second row.** An earlier version
+ * routed "say what this was" through `logCatch`, which quietly produced a duplicate and
+ * left the original mark sitting in the queue forever. The mark IS the fish — the angler
+ * recorded it at the moment it happened, and resolving is finishing that record, not
+ * writing a new one.
+ *
+ * Everything the mark already captured is preserved: its original `caught_at`, its trip,
+ * its position fix, its capture mode, and the `condition_snapshot` already attached to
+ * its id. The angler is filling in what the button could not know, and nothing observed
+ * is overwritten by something typed later.
+ *
+ * D22's one-way rule still holds: this moves `unresolved -> confirmed` and there is no
+ * path back.
+ */
+export async function resolveMark(
+  state: LogSnapshot,
+  markId: string,
+  draft: CatchDraft,
+): Promise<LogResult> {
+  const mark = state.catches.find((c) => c.id === markId);
+  if (!mark) throw new Error(`no mark ${markId} to resolve`);
+  if (mark.resolution_state !== "unresolved") {
+    // Already answered — resolving twice is a no-op, not an error at the glass.
+    return { catchId: mark.id, tripId: mark.trip_id };
+  }
+
+  const nowIso = new Date().toISOString();
+  const rig =
+    (draft.rodSetupId ? (state.rigs.find((r) => r.id === draft.rodSetupId) ?? null) : null) ??
+    (mark.rig_id ? (state.rigs.find((r) => r.id === mark.rig_id) ?? null) : null);
+  const location = draft.locationId
+    ? (state.locations.find((l) => l.id === draft.locationId && l.deleted_at === null) ?? null)
+    : null;
+
+  const typedGear = gearRows(draft, mark.id, nowIso);
+  const inherited = applyRig(
+    { depth_fished_m: draft.depthM, gear: typedGear },
+    rig,
+    mark.id,
+    nowIso,
+  );
+  const observed = applyLocation(location);
+
+  const resolved: CatchRecord = {
+    ...mark,
+    // Answered now.
+    resolution_state: "confirmed",
+    resolved_at: nowIso,
+    species_id: draft.speciesId,
+    species_other: draft.speciesOther,
+    outcome: draft.outcome,
+    disposition: draft.disposition,
+    quantity: draft.quantity,
+    length_mm: draft.lengthMm,
+    weight_g: draft.weightG,
+    size_estimated: draft.sizeEstimated,
+    presentation: draft.presentation,
+    notes: draft.notes,
+    tags: draft.tags,
+    // Rod and place: what the angler picked now, falling back to what the mark inherited
+    // at the time. A `null` from an untouched picker never erases what was captured.
+    rig_id: inherited.rig_id ?? mark.rig_id,
+    rig_revision: inherited.rig_revision ?? mark.rig_revision,
+    rig_slot: inherited.rig_slot ?? mark.rig_slot,
+    depth_fished_m: inherited.depth_fished_m ?? mark.depth_fished_m,
+    platform: inherited.platform ?? mark.platform,
+    inherited_fields: inherited.inherited_fields,
+    location_condition_id: observed.location_condition_id ?? mark.location_condition_id,
+    location_name: observed.location_name ?? mark.location_name,
+    current_term: observed.current_term ?? mark.current_term,
+    current_strength: observed.current_strength ?? mark.current_strength,
+    structure_type_ids:
+      observed.structure_type_ids.length > 0
+        ? observed.structure_type_ids
+        : mark.structure_type_ids,
+    bottom_depth_m: observed.bottom_depth_m ?? mark.bottom_depth_m,
+    water_color_id: observed.water_color_id ?? mark.water_color_id,
+    water_clarity_id: observed.water_clarity_id ?? mark.water_clarity_id,
+    spot_id: observed.spot_id ?? mark.spot_id,
+    client_updated_at: nowIso,
+    // Deliberately NOT touched: caught_at, caught_tz, local_date, trip_id, lat, lng,
+    // gps_accuracy_m, capture_mode, client_created_at, created_at. Those are what the
+    // mark observed, and typing a species later does not change when or where it was.
+  };
+
+  await saveCatch({ record: resolved, gear: inherited.gear, isNew: false });
+  if (draft.photos.length > 0) await attachPhotos(mark.id, draft.photos);
+  return { catchId: mark.id, tripId: mark.trip_id };
+}
+
+/**
  * The quick mark (D22) — the man-overboard button.
  *
  * Writes a row that is explicitly *not yet a fact*: no species, no outcome, excluded
@@ -326,8 +454,11 @@ export async function logQuickMark(state: LogSnapshot): Promise<LogResult> {
   const tripId = await tripForCatch(state, nowIso);
   const catchId = uuidv7();
 
+  // A mark inherits the standing rod and the last location just like a catch does.
+  // The angler tapped one button; that is not a reason for the record to be poorer.
   const rig = latestRigOf(state, tripId);
   const inherited = applyRig({}, rig, catchId, nowIso);
+  const observed = applyLocation(mostRecentLocation(state, tripId));
 
   const record: CatchRecord = {
     id: catchId,
@@ -350,12 +481,21 @@ export async function logQuickMark(state: LogSnapshot): Promise<LogResult> {
     length_mm: null,
     weight_g: null,
     size_estimated: false,
-    spot_id: inherited.spot_id,
+    spot_id: observed.spot_id ?? inherited.spot_id,
     platform: inherited.platform,
     depth_fished_m: inherited.depth_fished_m,
     rig_id: inherited.rig_id,
     rig_revision: inherited.rig_revision,
+    rig_slot: inherited.rig_slot,
     inherited_fields: inherited.inherited_fields,
+    location_condition_id: observed.location_condition_id,
+    location_name: observed.location_name,
+    current_term: observed.current_term,
+    current_strength: observed.current_strength,
+    structure_type_ids: observed.structure_type_ids,
+    bottom_depth_m: observed.bottom_depth_m,
+    water_color_id: observed.water_color_id,
+    water_clarity_id: observed.water_clarity_id,
     presentation: null,
     notes: null,
     tags: [],
@@ -406,6 +546,15 @@ async function attachSnapshot(record: CatchRecord): Promise<void> {
   } catch {
     // The catch stands. Enrichment is retried server-side.
   }
+}
+
+/** The location the angler most recently set up, for a mark that names none. */
+function mostRecentLocation(state: LogSnapshot, tripId: string) {
+  return (
+    state.locations
+      .filter((l) => l.trip_id === tripId && l.deleted_at === null)
+      .sort((a, b) => (a.client_updated_at < b.client_updated_at ? 1 : -1))[0] ?? null
+  );
 }
 
 function round5(value: number): number {

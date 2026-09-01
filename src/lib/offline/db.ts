@@ -21,7 +21,7 @@ import { openDB, type DBSchema, type IDBPDatabase } from "idb";
 import type { Mutation, SyncEntity } from "@/core/sync/outbox";
 
 /** Bump only with a migration in `upgrade` below. */
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 const DB_NAME = "fish-log-book";
 
 export const ENTITY_STORES = [
@@ -30,6 +30,7 @@ export const ENTITY_STORES = [
   "catch",
   "catch_gear",
   "condition_snapshot",
+  "location_condition",
 ] as const;
 
 export type EntityStore = (typeof ENTITY_STORES)[number];
@@ -46,6 +47,7 @@ interface FishLogDB extends DBSchema {
   catch: { key: string; value: StoredRow; indexes: { by_trip: string; by_local_date: string } };
   catch_gear: { key: string; value: StoredRow; indexes: { by_catch: string } };
   condition_snapshot: { key: string; value: StoredRow; indexes: { by_catch: string } };
+  location_condition: { key: string; value: StoredRow; indexes: { by_trip: string } };
   outbox: { key: string; value: Mutation; indexes: { by_state: string } };
   meta: { key: string; value: unknown };
   /** Photo blobs, kept out of the row so a list query never drags megabytes with it. */
@@ -61,7 +63,18 @@ export function isIndexedDbAvailable(): boolean {
 export function getDb(): Promise<IDBPDatabase<FishLogDB>> {
   if (!dbPromise) {
     dbPromise = openDB<FishLogDB>(DB_NAME, DB_VERSION, {
-      upgrade(db) {
+      upgrade(db, oldVersion) {
+        // v2 adds `location_condition`. Written as additive steps rather than a rebuild
+        // so an angler who already logged catches keeps them: a wipe-and-recreate here
+        // would silently destroy a local-first log that has never synced anywhere.
+        if (oldVersion >= 1) {
+          if (!db.objectStoreNames.contains("location_condition")) {
+            const locations = db.createObjectStore("location_condition", { keyPath: "id" });
+            locations.createIndex("by_trip", "trip_id");
+          }
+          return;
+        }
+
         db.createObjectStore("trip", { keyPath: "id" });
 
         const rig = db.createObjectStore("trip_rig", { keyPath: "id" });
@@ -81,6 +94,9 @@ export function getDb(): Promise<IDBPDatabase<FishLogDB>> {
 
         const outbox = db.createObjectStore("outbox", { keyPath: "id" });
         outbox.createIndex("by_state", "state");
+
+        const locations = db.createObjectStore("location_condition", { keyPath: "id" });
+        locations.createIndex("by_trip", "trip_id");
 
         db.createObjectStore("meta");
         db.createObjectStore("media", { keyPath: "id" });

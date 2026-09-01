@@ -13,6 +13,7 @@ import type {
   CatchRecord,
   Disposition,
   GearRole,
+  LocationConditionRecord,
   Outcome,
   RigRecord,
 } from "./types";
@@ -54,6 +55,7 @@ export interface InheritedRig {
   readonly gear: readonly CatchGear[];
   readonly rig_id: string | null;
   readonly rig_revision: number | null;
+  readonly rig_slot: number | null;
   /** Which of the above came from the rig rather than the angler's thumb. */
   readonly inherited_fields: readonly string[];
 }
@@ -65,6 +67,7 @@ const EMPTY_RIG: InheritedRig = {
   gear: [],
   rig_id: null,
   rig_revision: null,
+  rig_slot: null,
   inherited_fields: [],
 };
 
@@ -131,8 +134,101 @@ export function applyRig(
     gear,
     rig_id: rig.id,
     rig_revision: rig.revision,
+    rig_slot: rig.slot,
     inherited_fields: inherited,
   };
+}
+
+// ---------------------------------------------------------------------------------
+// Location conditions (spec §10, §11, §17)
+// ---------------------------------------------------------------------------------
+
+/** The observed-condition fields a catch copies from the location it was logged at. */
+export interface InheritedLocation {
+  readonly location_condition_id: string | null;
+  readonly location_name: string | null;
+  readonly spot_id: string | null;
+  readonly current_term: LocationConditionRecord["current_term"];
+  readonly current_strength: LocationConditionRecord["current_strength"];
+  readonly structure_type_ids: readonly string[];
+  readonly bottom_depth_m: number | null;
+  readonly water_color_id: string | null;
+  readonly water_clarity_id: string | null;
+}
+
+export const NO_LOCATION: InheritedLocation = {
+  location_condition_id: null,
+  location_name: null,
+  spot_id: null,
+  current_term: null,
+  current_strength: null,
+  structure_type_ids: [],
+  bottom_depth_m: null,
+  water_color_id: null,
+  water_clarity_id: null,
+};
+
+/**
+ * Copy a location preset onto a catch.
+ *
+ * This is a **copy, not a reference**, and that is the entire point of spec §10. The id
+ * is kept so "how has West End fished" can still join; every value beside it is frozen
+ * at the moment of the catch, so editing the preset at noon — or deleting it next week —
+ * cannot retell what the 8am fish was caught in.
+ *
+ * `structure_type_ids` is copied by value for the same reason. "Rocky + Kelp" is one
+ * place, and the array is what makes it one place rather than two rows (spec §13).
+ */
+export function applyLocation(location: LocationConditionRecord | null): InheritedLocation {
+  if (!location) return NO_LOCATION;
+  return {
+    location_condition_id: location.id,
+    location_name: location.name,
+    spot_id: location.spot_id,
+    current_term: location.current_term,
+    current_strength: location.current_strength,
+    structure_type_ids: [...location.structure_type_ids],
+    bottom_depth_m: location.bottom_depth_m,
+    water_color_id: location.water_color_id,
+    water_clarity_id: location.water_clarity_id,
+  };
+}
+
+/**
+ * The rods on offer when logging: the newest revision of each slot, minus any slot whose
+ * newest revision retires it.
+ *
+ * The order of those two steps is the whole correctness of this function. Filtering
+ * retired *rows* first and then taking the newest of what is left resurrects the rod:
+ * putting Rod 1 away writes revision 2 with `retired_at` set, revision 1 is not retired,
+ * and the rod comes straight back onto the log screen. Retirement is a property of the
+ * slot as of its latest revision, never of an individual row.
+ */
+export function activeRodSetups(
+  rigs: readonly RigRecord[],
+  tripId: string,
+): readonly RigRecord[] {
+  const latestBySlot = new Map<number, RigRecord>();
+  for (const rig of rigs) {
+    if (rig.trip_id !== tripId) continue;
+    const seen = latestBySlot.get(rig.slot);
+    if (!seen || rig.revision > seen.revision) latestBySlot.set(rig.slot, rig);
+  }
+  return [...latestBySlot.values()]
+    .filter((rig) => rig.retired_at === null)
+    .sort((a, b) => a.slot - b.slot);
+}
+
+/** The display name for a rod: the angler's own, or the slot it sits in. */
+export function rodSetupLabel(rig: Pick<RigRecord, "slot" | "name">): string {
+  const named = rig.name?.trim();
+  return named && named !== "" ? named : `Rod ${rig.slot}`;
+}
+
+/** The next free slot number, so adding a rod never collides with a live one. */
+export function nextRodSlot(rigs: readonly RigRecord[], tripId: string): number {
+  const used = rigs.filter((r) => r.trip_id === tripId).map((r) => r.slot);
+  return used.length === 0 ? 1 : Math.max(...used) + 1;
 }
 
 // ---------------------------------------------------------------------------------
@@ -157,6 +253,8 @@ export const REPEATED_FIELDS = [
   "disposition",
   "outcome",
   "tags",
+  "rig_id",
+  "location_condition_id",
 ] as const;
 
 export interface RepeatSeed {
@@ -170,6 +268,9 @@ export interface RepeatSeed {
   readonly outcome: Outcome | null;
   readonly tags: readonly string[];
   readonly gear: readonly CatchGear[];
+  /** Smart defaults (spec §16): same rod, same place, offered — never assumed. */
+  readonly rod_setup_id: string | null;
+  readonly location_condition_id: string | null;
 }
 
 /**
@@ -189,6 +290,8 @@ export function repeatSeedFrom(previous: CatchRecord, gear: readonly CatchGear[]
     outcome: previous.outcome,
     tags: previous.tags,
     gear,
+    rod_setup_id: previous.rig_id,
+    location_condition_id: previous.location_condition_id,
   };
 }
 
