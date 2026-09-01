@@ -55,6 +55,27 @@ the session-only boundary:
 The old All/Salt/Fresh water filter was removed: `waterClass` described lure *classes*,
 not an inventory of every gear type, and categories + search carry the load now.
 
+## Consistency pass (2026-08-31)
+
+Applied the owner's alignment & visual-consistency standard to everything above:
+
+- **Color has one job per slot.** Card attribute text no longer uses the link color;
+  LOW/OUT badges and the header "running low" count are the only amber/red on the
+  page; the "session-only" notice is a quiet muted caption under a hairline instead
+  of a cyan-bordered box competing with the content.
+- **One chip, everywhere.** Filter chips, sheet chips, and favorite pills share one
+  48px / radius-full / px-4 treatment; the favorite pill carries a star glyph and a
+  fixed minimum width so both states paint identical geometry.
+- **Categories carry identity.** Each browse card got a hand-drawn 24px stroke icon
+  (same grid, same stroke weight) alongside its label and a bottom-aligned count, so
+  wrapped labels can no longer knock counts off the row's shared baseline.
+- **The rail is a rail.** Ready-to-rig cards use a raised surface, clamp long names
+  to two lines, pin their controls to the bottom, and stretch to one shared height —
+  visibly distinct from the inventory records below instead of a duplicate list.
+- **Typography follows one chain.** Page title → section heading (h2) → item name
+  (h3) → attribute line (primary, caption size) → context line (muted, caption size);
+  equivalent data uses equivalent treatment on every card.
+
 ## Design decisions (answers to the review questions)
 
 1. **Keep:** native dialog sheet with focus management and Escape; 48px touch floor /

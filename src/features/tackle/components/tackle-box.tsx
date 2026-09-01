@@ -21,6 +21,7 @@ import {
   type TackleItem,
   type ViewFilter,
 } from "../types";
+import { CategoryIcon } from "./category-icon";
 import { TackleEditorSheet, type EditorRequest } from "./tackle-editor-sheet";
 import { TackleItemCard } from "./tackle-item-card";
 
@@ -35,7 +36,7 @@ const SORT_ORDERS: readonly SortOrder[] = ["recent", "name", "category", "quanti
 
 const FOCUS_RING =
   "focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-3 focus-visible:outline-focus-ring";
-const CHIP_CLASS = `min-h-touch-floor rounded-full border px-5 text-label transition-colors ${FOCUS_RING} active:scale-95 motion-reduce:transition-none`;
+const CHIP_CLASS = `min-h-touch-floor rounded-full border px-4 text-label transition-colors ${FOCUS_RING} active:scale-95 motion-reduce:transition-none`;
 const CHIP_ON = "border-signal-orange bg-signal-orange text-ink-on-orange";
 const CHIP_OFF = "border-border-interactive bg-surface text-text-link";
 const PRIMARY_BUTTON = `inline-flex min-h-touch-floor items-center justify-center rounded-md bg-signal-orange px-4 text-label text-ink-on-orange transition-colors hover:bg-signal-orange-pressed ${FOCUS_RING} active:scale-95 motion-reduce:transition-none`;
@@ -188,14 +189,11 @@ export function TackleBox() {
             <strong className="text-text-primary">{items.length}</strong> items
           </span>
           <span>
-            <strong className="text-text-primary">{Object.keys(categoryCounts).length}</strong> categories
-          </span>
-          <span>
             <strong className={lowCount > 0 ? "text-amber-flag" : "text-text-primary"}>{lowCount}</strong>{" "}
             running low
           </span>
         </div>
-        <p className="mt-4 rounded-md border border-tide-cyan bg-surface-raised px-3 py-2 text-caption text-text-link" role="status">
+        <p className="mt-4 border-t border-hairline pt-3 text-caption text-text-muted" role="status">
           Prototype: changes stay in this session and are not synced.
         </p>
       </header>
@@ -204,11 +202,11 @@ export function TackleBox() {
         <section aria-labelledby="favorite-gear-heading">
           <div className="flex items-baseline justify-between gap-3">
             <h2 id="favorite-gear-heading" className="text-h2">Ready to rig</h2>
-            <p className="text-caption text-text-muted">
-              {favorites.length > RAIL_MAX ? `${favorites.length} total — see the Favorites view` : "Your favorites"}
-            </p>
+            {favorites.length > RAIL_MAX ? (
+              <p className="text-caption text-text-muted">{favorites.length} total — see the Favorites view</p>
+            ) : null}
           </div>
-          <div className="mt-4 flex gap-3 overflow-x-auto pb-2">
+          <div className="mt-4 flex items-stretch gap-3 overflow-x-auto pb-2">
             {railItems.map((item) => (
               <TackleItemCard
                 key={item.id}
@@ -236,12 +234,16 @@ export function TackleBox() {
                   type="button"
                   aria-pressed={active}
                   onClick={() => applyCategoryFilter(active ? "all" : category.id)}
-                  className={`flex min-h-touch-floor flex-col items-start gap-1 rounded-lg border p-4 text-left transition-colors ${FOCUS_RING} active:scale-95 motion-reduce:transition-none ${
+                  className={`flex min-h-touch-floor flex-col items-start gap-2 rounded-lg border p-4 text-left transition-colors ${FOCUS_RING} active:scale-95 motion-reduce:transition-none ${
                     active ? "border-signal-orange bg-surface-raised" : "border-hairline bg-surface"
                   }`}
                 >
+                  <CategoryIcon
+                    id={category.id}
+                    className={`h-6 w-6 ${active ? "text-signal-orange" : "text-text-muted"}`}
+                  />
                   <span className="text-label text-text-primary">{category.label}</span>
-                  <span className="text-caption text-text-muted">
+                  <span className="mt-auto text-caption text-text-muted">
                     {counts.total} {counts.total === 1 ? "item" : "items"}
                     {counts.low > 0 ? (
                       <span className="text-amber-flag"> · {counts.low} low</span>

@@ -11,6 +11,7 @@ import {
   isOutOfStock,
   itemMatchesSearch,
   rememberValue,
+  TACKLE_CATEGORIES,
   retainedAttributes,
   sortItems,
   suggestedOptions,
@@ -140,5 +141,14 @@ describe("clampQuantity", () => {
     expect(clampQuantity(-3)).toBe(0);
     expect(clampQuantity(Number.NaN)).toBe(0);
     expect(clampQuantity(12.9)).toBe(12);
+  });
+});
+
+describe("category icons", () => {
+  it("every registered category has an icon, so the browse grid never breaks", async () => {
+    const { TACKLE_CATEGORY_ICON_PATHS } = await import("./components/category-icon");
+    for (const category of TACKLE_CATEGORIES) {
+      expect(TACKLE_CATEGORY_ICON_PATHS[category.id], `icon for ${category.id}`).toBeTruthy();
+    }
   });
 });
