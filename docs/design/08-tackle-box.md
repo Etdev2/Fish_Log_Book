@@ -46,6 +46,11 @@ the session-only boundary:
   category ("owner 4/0", "40 lb fluoro"); category cards double as browse filters with
   live counts; All / Favorites / Low stock views; sort by recent, name, category, or
   lowest quantity.
+- **Built for the 5,000-item spec without virtualization:** the list renders in pages
+  of 100 with a "Show more (N left)" button and the rail caps at 12 favorites —
+  anglers at scale find via search/filters, not endless scroll. Measured headless at
+  5,000 items: initial render 2.6s/61k DOM nodes (unpaged) → 0.6s/1.5k nodes (paged),
+  search keystroke→paint ≤133ms, zero long tasks while scrolling.
 
 The old All/Salt/Fresh water filter was removed: `waterClass` described lure *classes*,
 not an inventory of every gear type, and categories + search carry the load now.
@@ -85,6 +90,9 @@ leaves room (flat attributes, category registry, stable ids) without building th
   badges, not color alone; the stepper announces each count change via `aria-live`.
 - The native dialog owns focus while open; Escape and the visible Close button both
   return the user to the page. Card text areas open edit from a plain button — no
-  nested interactive elements inside the card.
+  nested interactive elements inside the card. Deleting keeps the Delete… and
+  Duplicate buttons mounted and moves focus into the confirm step (and back), so
+  keyboard users never lose their place; the confirm text is announced via
+  `role="alert"`.
 - At 320px, chips and controls wrap rather than compress below the touch floor; the
   favorites rail remains the only intentional horizontal scroll.

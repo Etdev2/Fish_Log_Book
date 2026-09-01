@@ -136,6 +136,8 @@ function EditorForm({
   onDelete: (id: string) => void;
 }) {
   const nameRef = useRef<HTMLInputElement>(null);
+  const deleteButtonRef = useRef<HTMLButtonElement>(null);
+  const keepItRef = useRef<HTMLButtonElement>(null);
   const [draft, setDraft] = useState<DraftState>(() => draftFrom(request));
   const [submitted, setSubmitted] = useState(false);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
@@ -356,30 +358,7 @@ function EditorForm({
         </button>
 
         {editing ? (
-          confirmingDelete ? (
-            <div className="flex flex-col gap-3 rounded-md border border-error-red-fill p-4">
-              <p className="text-body text-text-primary">Delete “{editing.label}” for good?</p>
-              <div className="flex gap-3">
-                <button
-                  type="button"
-                  onClick={() => setConfirmingDelete(false)}
-                  className={`inline-flex min-h-touch-floor flex-1 items-center justify-center rounded-md border border-border-interactive px-4 text-label text-text-link ${FOCUS_RING} active:scale-95`}
-                >
-                  Keep it
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    onDelete(editing.id);
-                    onClose();
-                  }}
-                  className={`inline-flex min-h-touch-floor flex-1 items-center justify-center rounded-md bg-error-red-fill px-4 text-label text-text-primary ${FOCUS_RING} active:scale-95`}
-                >
-                  Delete
-                </button>
-              </div>
-            </div>
-          ) : (
+          <div className="flex flex-col gap-3">
             <div className="flex gap-3">
               <button
                 type="button"
@@ -390,13 +369,48 @@ function EditorForm({
               </button>
               <button
                 type="button"
-                onClick={() => setConfirmingDelete(true)}
+                ref={deleteButtonRef}
+                aria-expanded={confirmingDelete}
+                onClick={() => {
+                  setConfirmingDelete(true);
+                  window.requestAnimationFrame(() => keepItRef.current?.focus());
+                }}
                 className={`inline-flex min-h-touch-floor flex-1 items-center justify-center rounded-md border border-error-red-fill px-4 text-label text-error-red ${FOCUS_RING} active:scale-95`}
               >
                 Delete…
               </button>
             </div>
-          )
+            {confirmingDelete ? (
+              <div className="flex flex-col gap-3 rounded-md border border-error-red-fill p-4">
+                <p className="text-body text-text-primary" role="alert">
+                  Delete “{editing.label}” for good?
+                </p>
+                <div className="flex gap-3">
+                  <button
+                    type="button"
+                    ref={keepItRef}
+                    onClick={() => {
+                      setConfirmingDelete(false);
+                      window.requestAnimationFrame(() => deleteButtonRef.current?.focus());
+                    }}
+                    className={`inline-flex min-h-touch-floor flex-1 items-center justify-center rounded-md border border-border-interactive px-4 text-label text-text-link ${FOCUS_RING} active:scale-95`}
+                  >
+                    Keep it
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onDelete(editing.id);
+                      onClose();
+                    }}
+                    className={`inline-flex min-h-touch-floor flex-1 items-center justify-center rounded-md bg-error-red-fill px-4 text-label text-text-primary ${FOCUS_RING} active:scale-95`}
+                  >
+                    Delete
+                  </button>
+                </div>
+              </div>
+            ) : null}
+          </div>
         ) : null}
       </div>
     </form>

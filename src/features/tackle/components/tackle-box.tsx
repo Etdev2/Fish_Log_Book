@@ -25,6 +25,12 @@ import { TackleEditorSheet, type EditorRequest } from "./tackle-editor-sheet";
 import { TackleItemCard } from "./tackle-item-card";
 
 const VIEW_FILTERS: readonly ViewFilter[] = ["all", "favorites", "low"];
+
+/** Rendered in pages so a 5,000-item box never mounts 5,000 cards; anglers at
+ *  scale find with search/filters rather than scrolling the full list. */
+const LIST_PAGE = 100;
+/** The horizontal rail stays a quick rig list, not a second inventory. */
+const RAIL_MAX = 12;
 const SORT_ORDERS: readonly SortOrder[] = ["recent", "name", "category", "quantity"];
 
 const FOCUS_RING =
@@ -40,6 +46,7 @@ export function TackleBox() {
   const [categoryFilter, setCategoryFilter] = useState<CategoryId | "all">("all");
   const [query, setQuery] = useState("");
   const [sort, setSort] = useState<SortOrder>("recent");
+  const [shownCount, setShownCount] = useState(LIST_PAGE);
   const [recents, setRecents] = useState<RecentsMap>({});
   const [lastDraft, setLastDraft] = useState<TackleDraft | null>(null);
   const [editor, setEditor] = useState<EditorRequest | null>(null);
@@ -57,7 +64,29 @@ export function TackleBox() {
       ),
     [categoryFilter, items, query, sort, view],
   );
+  const shownItems = visibleItems.slice(0, shownCount);
   const favorites = items.filter((item) => item.isFavorite);
+  const railItems = favorites.slice(0, RAIL_MAX);
+
+  function applyQuery(next: string) {
+    setQuery(next);
+    setShownCount(LIST_PAGE);
+  }
+
+  function applyView(next: ViewFilter) {
+    setView(next);
+    setShownCount(LIST_PAGE);
+  }
+
+  function applyCategoryFilter(next: CategoryId | "all") {
+    setCategoryFilter(next);
+    setShownCount(LIST_PAGE);
+  }
+
+  function applySort(next: SortOrder) {
+    setSort(next);
+    setShownCount(LIST_PAGE);
+  }
   const categoryCounts = countByCategory(items);
   const lowCount = countLow(items);
   const categoriesInUse = TACKLE_CATEGORIES.filter(
@@ -135,6 +164,8 @@ export function TackleBox() {
     setQuery("");
     setView("all");
     setCategoryFilter("all");
+    setSort("recent");
+    setShownCount(LIST_PAGE);
   }
 
   return (
@@ -173,10 +204,12 @@ export function TackleBox() {
         <section aria-labelledby="favorite-gear-heading">
           <div className="flex items-baseline justify-between gap-3">
             <h2 id="favorite-gear-heading" className="text-h2">Ready to rig</h2>
-            <p className="text-caption text-text-muted">Your favorites</p>
+            <p className="text-caption text-text-muted">
+              {favorites.length > RAIL_MAX ? `${favorites.length} total — see the Favorites view` : "Your favorites"}
+            </p>
           </div>
           <div className="mt-4 flex gap-3 overflow-x-auto pb-2">
-            {favorites.map((item) => (
+            {railItems.map((item) => (
               <TackleItemCard
                 key={item.id}
                 item={item}
@@ -202,7 +235,7 @@ export function TackleBox() {
                   key={category.id}
                   type="button"
                   aria-pressed={active}
-                  onClick={() => setCategoryFilter(active ? "all" : category.id)}
+                  onClick={() => applyCategoryFilter(active ? "all" : category.id)}
                   className={`flex min-h-touch-floor flex-col items-start gap-1 rounded-lg border p-4 text-left transition-colors ${FOCUS_RING} active:scale-95 motion-reduce:transition-none ${
                     active ? "border-signal-orange bg-surface-raised" : "border-hairline bg-surface"
                   }`}
@@ -232,7 +265,7 @@ export function TackleBox() {
             Search your tackle
             <input
               value={query}
-              onChange={(event) => setQuery(event.target.value)}
+              onChange={(event) => applyQuery(event.target.value)}
               placeholder="Name, brand, size, color…"
               className={`min-h-touch-floor rounded-md border border-border-interactive bg-surface px-4 text-body text-text-primary placeholder:text-text-muted ${FOCUS_RING}`}
             />
@@ -250,7 +283,7 @@ export function TackleBox() {
                   key={option}
                   type="button"
                   aria-pressed={selected}
-                  onClick={() => setView(option)}
+                  onClick={() => applyView(option)}
                   className={`${CHIP_CLASS} ${selected ? CHIP_ON : CHIP_OFF}`}
                 >
                   {label}
@@ -264,7 +297,7 @@ export function TackleBox() {
               Sort
               <select
                 value={sort}
-                onChange={(event) => setSort(event.target.value as SortOrder)}
+                onChange={(event) => applySort(event.target.value as SortOrder)}
                 className={`min-h-touch-floor rounded-md border border-border-interactive bg-surface px-4 text-body text-text-primary ${FOCUS_RING}`}
               >
                 {SORT_ORDERS.map((order) => (
@@ -277,7 +310,7 @@ export function TackleBox() {
             {categoryFilter !== "all" ? (
               <button
                 type="button"
-                onClick={() => setCategoryFilter("all")}
+                onClick={() => applyCategoryFilter("all")}
                 aria-label={`Clear the ${categoryFor(categoryFilter).label} category filter`}
                 className={`${CHIP_CLASS} ${CHIP_ON}`}
               >
@@ -315,7 +348,7 @@ export function TackleBox() {
         ) : (
           <>
             <div className="mt-5 flex flex-col gap-3">
-              {visibleItems.map((item) => (
+              {shownItems.map((item) => (
                 <TackleItemCard
                   key={item.id}
                   item={item}
@@ -325,10 +358,19 @@ export function TackleBox() {
                 />
               ))}
             </div>
-            {visibleItems.length !== items.length ? (
-              <p className="mt-4 text-caption text-text-muted">
-                Showing {visibleItems.length} of {items.length} items
-              </p>
+            <p className="mt-4 text-caption text-text-muted">
+              {visibleItems.length === items.length
+                ? `${items.length} items`
+                : `Showing ${shownItems.length} of ${visibleItems.length} matching · ${items.length} total`}
+            </p>
+            {shownItems.length < visibleItems.length ? (
+              <button
+                type="button"
+                onClick={() => setShownCount((count) => count + LIST_PAGE)}
+                className={`mt-3 inline-flex min-h-touch-floor w-full items-center justify-center rounded-md border border-border-interactive px-4 text-label text-text-link ${FOCUS_RING} active:scale-95`}
+              >
+                Show more ({visibleItems.length - shownItems.length} left)
+              </button>
             ) : null}
           </>
         )}
