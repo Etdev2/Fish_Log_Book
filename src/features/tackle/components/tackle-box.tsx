@@ -3,23 +3,121 @@
 import { useMemo, useState } from "react";
 
 import { TACKLE_FIXTURE } from "../tackle-fixture";
-import { FILTER_LABELS, itemMatchesFilter, type TackleDraft, type TackleFilter, type TackleItem } from "../types";
-import { TackleEditorSheet } from "./tackle-editor-sheet";
+import {
+  categoryFor,
+  countByCategory,
+  countLow,
+  itemMatchesSearch,
+  itemMatchesView,
+  rememberValue,
+  SORT_LABELS,
+  sortItems,
+  TACKLE_CATEGORIES,
+  VIEW_FILTER_LABELS,
+  type CategoryId,
+  type RecentsMap,
+  type SortOrder,
+  type TackleDraft,
+  type TackleItem,
+  type ViewFilter,
+} from "../types";
+import { TackleEditorSheet, type EditorRequest } from "./tackle-editor-sheet";
 import { TackleItemCard } from "./tackle-item-card";
 
-const FILTERS: readonly TackleFilter[] = ["all", "salt", "fresh"];
+const VIEW_FILTERS: readonly ViewFilter[] = ["all", "favorites", "low"];
+const SORT_ORDERS: readonly SortOrder[] = ["recent", "name", "category", "quantity"];
+
+const FOCUS_RING =
+  "focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-3 focus-visible:outline-focus-ring";
+const CHIP_CLASS = `min-h-touch-floor rounded-full border px-5 text-label transition-colors ${FOCUS_RING} active:scale-95 motion-reduce:transition-none`;
+const CHIP_ON = "border-signal-orange bg-signal-orange text-ink-on-orange";
+const CHIP_OFF = "border-border-interactive bg-surface text-text-link";
+const PRIMARY_BUTTON = `inline-flex min-h-touch-floor items-center justify-center rounded-md bg-signal-orange px-4 text-label text-ink-on-orange transition-colors hover:bg-signal-orange-pressed ${FOCUS_RING} active:scale-95 motion-reduce:transition-none`;
 
 export function TackleBox() {
   const [items, setItems] = useState<TackleItem[]>(() => [...TACKLE_FIXTURE]);
-  const [filter, setFilter] = useState<TackleFilter>("all");
+  const [view, setView] = useState<ViewFilter>("all");
+  const [categoryFilter, setCategoryFilter] = useState<CategoryId | "all">("all");
   const [query, setQuery] = useState("");
-  const [editorOpen, setEditorOpen] = useState(false);
+  const [sort, setSort] = useState<SortOrder>("recent");
+  const [recents, setRecents] = useState<RecentsMap>({});
+  const [lastDraft, setLastDraft] = useState<TackleDraft | null>(null);
+  const [editor, setEditor] = useState<EditorRequest | null>(null);
 
   const visibleItems = useMemo(
-    () => items.filter((item) => itemMatchesFilter(item, filter, query)),
-    [filter, items, query],
+    () =>
+      sortItems(
+        items.filter(
+          (item) =>
+            (categoryFilter === "all" || item.category === categoryFilter) &&
+            itemMatchesView(item, view) &&
+            itemMatchesSearch(item, query),
+        ),
+        sort,
+      ),
+    [categoryFilter, items, query, sort, view],
   );
   const favorites = items.filter((item) => item.isFavorite);
+  const categoryCounts = countByCategory(items);
+  const lowCount = countLow(items);
+  const categoriesInUse = TACKLE_CATEGORIES.filter(
+    (category) => (categoryCounts[category.id]?.total ?? 0) > 0 || categoryFilter === category.id,
+  );
+
+  function openAddSheet() {
+    setEditor(
+      lastDraft
+        ? {
+            kind: "add",
+            key: crypto.randomUUID(),
+            prefill: { ...lastDraft, label: "" },
+            note: "Pre-filled from your last add — change what’s different and save.",
+          }
+        : { kind: "add", key: crypto.randomUUID(), prefill: null, note: null },
+    );
+  }
+
+  function openEditSheet(id: string) {
+    const item = items.find((candidate) => candidate.id === id);
+    if (item) setEditor({ kind: "edit", key: crypto.randomUUID(), item });
+  }
+
+  function openDuplicateSheet(source: TackleItem) {
+    setEditor({
+      kind: "add",
+      key: crypto.randomUUID(),
+      prefill: {
+        category: source.category,
+        label: source.label,
+        quantity: source.quantity,
+        lowStockAt: source.lowStockAt,
+        attributes: { ...source.attributes },
+        notes: source.notes,
+        isFavorite: source.isFavorite,
+      },
+      note: `Duplicating “${source.label}” — change what’s different, then save.`,
+    });
+  }
+
+  function saveItem(draft: TackleDraft, id?: string) {
+    setItems((current) =>
+      id
+        ? current.map((item) => (item.id === id ? { ...draft, id, addedAt: item.addedAt } : item))
+        : [{ ...draft, id: `session-${crypto.randomUUID()}`, addedAt: Date.now() }, ...current],
+    );
+    setRecents((current) => {
+      let next = current;
+      for (const [fieldKey, value] of Object.entries(draft.attributes)) {
+        next = rememberValue(next, `${draft.category}:${fieldKey}`, value);
+      }
+      return next;
+    });
+    setLastDraft(draft);
+  }
+
+  function deleteItem(id: string) {
+    setItems((current) => current.filter((item) => item.id !== id));
+  }
 
   function toggleFavorite(id: string) {
     setItems((current) =>
@@ -27,131 +125,223 @@ export function TackleBox() {
     );
   }
 
-  function createItem(draft: TackleDraft) {
-    setItems((current) => [
-      { ...draft, id: `session-${crypto.randomUUID()}` },
-      ...current,
-    ]);
+  function adjustQuantity(id: string, next: number) {
+    setItems((current) =>
+      current.map((item) => (item.id === id ? { ...item, quantity: next } : item)),
+    );
+  }
+
+  function clearListControls() {
+    setQuery("");
+    setView("all");
+    setCategoryFilter("all");
   }
 
   return (
     <section className="flex flex-col gap-8 pb-8">
       <header className="rounded-lg border border-hairline bg-surface p-4">
-        <div className="flex flex-col items-start gap-4 sm:flex-row sm:justify-between">
+        <div className="flex flex-col items-start gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="min-w-0">
-            <p className="text-caption font-bold tracking-station text-tide-cyan">YOUR LURE LIBRARY</p>
+            <p className="text-caption font-bold tracking-station text-tide-cyan">YOUR GEAR INVENTORY</p>
             <h1 className="mt-1 text-h1">Tackle Box</h1>
           </div>
-          <button
-            type="button"
-            onClick={() => setEditorOpen(true)}
-            className="inline-flex min-h-touch-floor items-center justify-center rounded-md bg-signal-orange px-4 text-label text-ink-on-orange transition-colors hover:bg-signal-orange-pressed focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-3 focus-visible:outline-focus-ring active:scale-95 motion-reduce:transition-none"
-          >
-            Add lure
+          <button type="button" onClick={openAddSheet} className={PRIMARY_BUTTON}>
+            + Add gear
           </button>
         </div>
         <p className="mt-4 text-body text-text-muted">
-          Keep the lures you reach for close. Favorites will be ready when you set a rig.
+          Add gear in seconds, keep counts honest, and spot what needs restocking before a trip.
         </p>
-        <p className="mt-3 rounded-md border border-tide-cyan bg-surface-raised px-3 py-2 text-caption text-text-link" role="status">
+        <div className="mt-4 flex flex-wrap items-center gap-x-6 gap-y-2 text-caption text-text-muted">
+          <span>
+            <strong className="text-text-primary">{items.length}</strong> items
+          </span>
+          <span>
+            <strong className="text-text-primary">{Object.keys(categoryCounts).length}</strong> categories
+          </span>
+          <span>
+            <strong className={lowCount > 0 ? "text-amber-flag" : "text-text-primary"}>{lowCount}</strong>{" "}
+            running low
+          </span>
+        </div>
+        <p className="mt-4 rounded-md border border-tide-cyan bg-surface-raised px-3 py-2 text-caption text-text-link" role="status">
           Prototype: changes stay in this session and are not synced.
         </p>
       </header>
 
       {favorites.length > 0 ? (
-        <section aria-labelledby="favorite-lures-heading">
+        <section aria-labelledby="favorite-gear-heading">
           <div className="flex items-baseline justify-between gap-3">
-            <h2 id="favorite-lures-heading" className="text-h2">Ready to rig</h2>
+            <h2 id="favorite-gear-heading" className="text-h2">Ready to rig</h2>
             <p className="text-caption text-text-muted">Your favorites</p>
           </div>
           <div className="mt-4 flex gap-3 overflow-x-auto pb-2">
             {favorites.map((item) => (
-              <TackleItemCard key={item.id} item={item} compact onToggleFavorite={toggleFavorite} />
+              <TackleItemCard
+                key={item.id}
+                item={item}
+                compact
+                onOpen={openEditSheet}
+                onToggleFavorite={toggleFavorite}
+                onAdjustQuantity={adjustQuantity}
+              />
             ))}
           </div>
         </section>
       ) : null}
 
-      <section aria-labelledby="all-lures-heading">
+      {items.length > 0 ? (
+        <section aria-labelledby="categories-heading">
+          <h2 id="categories-heading" className="text-h2">Browse by category</h2>
+          <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
+            {categoriesInUse.map((category) => {
+              const counts = categoryCounts[category.id] ?? { total: 0, low: 0 };
+              const active = categoryFilter === category.id;
+              return (
+                <button
+                  key={category.id}
+                  type="button"
+                  aria-pressed={active}
+                  onClick={() => setCategoryFilter(active ? "all" : category.id)}
+                  className={`flex min-h-touch-floor flex-col items-start gap-1 rounded-lg border p-4 text-left transition-colors ${FOCUS_RING} active:scale-95 motion-reduce:transition-none ${
+                    active ? "border-signal-orange bg-surface-raised" : "border-hairline bg-surface"
+                  }`}
+                >
+                  <span className="text-label text-text-primary">{category.label}</span>
+                  <span className="text-caption text-text-muted">
+                    {counts.total} {counts.total === 1 ? "item" : "items"}
+                    {counts.low > 0 ? (
+                      <span className="text-amber-flag"> · {counts.low} low</span>
+                    ) : null}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </section>
+      ) : null}
+
+      <section aria-labelledby="all-gear-heading">
         <div className="flex flex-col gap-4">
           <div className="flex items-baseline justify-between gap-3">
-            <h2 id="all-lures-heading" className="text-h2">All lures</h2>
+            <h2 id="all-gear-heading" className="text-h2">All gear</h2>
             <p className="text-caption text-text-muted">{items.length} in this session</p>
           </div>
+
           <label className="flex flex-col gap-2 text-label">
             Search your tackle
             <input
               value={query}
               onChange={(event) => setQuery(event.target.value)}
-              placeholder="Name, class, color, or size"
-              className="min-h-touch-floor rounded-md border border-border-interactive bg-surface px-4 text-body text-text-primary placeholder:text-text-muted focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-3 focus-visible:outline-focus-ring"
+              placeholder="Name, brand, size, color…"
+              className={`min-h-touch-floor rounded-md border border-border-interactive bg-surface px-4 text-body text-text-primary placeholder:text-text-muted ${FOCUS_RING}`}
             />
           </label>
-          <div className="flex flex-wrap gap-3" role="group" aria-label="Water type filter">
-            {FILTERS.map((option) => {
-              const selected = filter === option;
+
+          <div className="flex flex-wrap gap-3" role="group" aria-label="Inventory view">
+            {VIEW_FILTERS.map((option) => {
+              const selected = view === option;
+              const label =
+                option === "low" && lowCount > 0
+                  ? `${VIEW_FILTER_LABELS[option]} (${lowCount})`
+                  : VIEW_FILTER_LABELS[option];
               return (
                 <button
                   key={option}
                   type="button"
                   aria-pressed={selected}
-                  onClick={() => setFilter(option)}
-                  className={`min-h-touch-floor rounded-full border px-5 text-label transition-colors focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-3 focus-visible:outline-focus-ring active:scale-95 motion-reduce:transition-none ${
-                    selected
-                      ? "border-signal-orange bg-signal-orange text-ink-on-orange"
-                      : "border-border-interactive bg-surface text-text-link"
-                  }`}
+                  onClick={() => setView(option)}
+                  className={`${CHIP_CLASS} ${selected ? CHIP_ON : CHIP_OFF}`}
                 >
-                  {FILTER_LABELS[option]}
+                  {label}
                 </button>
               );
             })}
           </div>
+
+          <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
+            <label className="flex items-center gap-3 text-label">
+              Sort
+              <select
+                value={sort}
+                onChange={(event) => setSort(event.target.value as SortOrder)}
+                className={`min-h-touch-floor rounded-md border border-border-interactive bg-surface px-4 text-body text-text-primary ${FOCUS_RING}`}
+              >
+                {SORT_ORDERS.map((order) => (
+                  <option key={order} value={order}>
+                    {SORT_LABELS[order]}
+                  </option>
+                ))}
+              </select>
+            </label>
+            {categoryFilter !== "all" ? (
+              <button
+                type="button"
+                onClick={() => setCategoryFilter("all")}
+                aria-label={`Clear the ${categoryFor(categoryFilter).label} category filter`}
+                className={`${CHIP_CLASS} ${CHIP_ON}`}
+              >
+                {categoryFor(categoryFilter).label} ✕
+              </button>
+            ) : null}
+          </div>
         </div>
 
-        {items.length > 0 ? (
-          <div className="mt-5 flex flex-col gap-3">
-            {visibleItems.map((item) => (
-              <TackleItemCard key={item.id} item={item} onToggleFavorite={toggleFavorite} />
-            ))}
-          </div>
-        ) : (
+        {items.length === 0 ? (
           <div className="mt-5 rounded-lg border border-hairline bg-surface p-6">
-            <h3 className="text-h3">Your box is ready when you are.</h3>
+            <h3 className="text-h3">Your tackle box is empty.</h3>
             <p className="mt-2 text-body text-text-muted">
-              Name the lures you reach for most. They’ll be ready when you set a rig.
+              Add the gear you actually carry — hooks, line, lures, all of it — so counts stay honest
+              and restocking is obvious.
             </p>
-            <button
-              type="button"
-              onClick={() => setEditorOpen(true)}
-              className="mt-5 inline-flex min-h-touch-floor items-center justify-center rounded-md bg-signal-orange px-4 text-label text-ink-on-orange focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-3 focus-visible:outline-focus-ring active:scale-95"
-            >
-              Add your first lure
+            <button type="button" onClick={openAddSheet} className={`mt-5 ${PRIMARY_BUTTON}`}>
+              Add your first item
             </button>
           </div>
-        )}
-
-        {items.length > 0 && visibleItems.length === 0 ? (
+        ) : visibleItems.length === 0 ? (
           <div className="mt-5 rounded-lg border border-hairline bg-surface p-6">
             <h3 className="text-h3">Nothing matches that view.</h3>
             <p className="mt-2 text-body text-text-muted">
-              Try a different water filter or clear your search to see this session’s tackle.
+              Try a different view, another category, or clear your search.
             </p>
             <button
               type="button"
-              onClick={() => {
-                setFilter("all");
-                setQuery("");
-              }}
-              className="mt-5 inline-flex min-h-touch-floor items-center justify-center rounded-md border border-border-interactive px-4 text-label text-text-link focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-3 focus-visible:outline-focus-ring active:scale-95"
+              onClick={clearListControls}
+              className={`mt-5 inline-flex min-h-touch-floor items-center justify-center rounded-md border border-border-interactive px-4 text-label text-text-link ${FOCUS_RING} active:scale-95`}
             >
-              Clear filters
+              Clear search and filters
             </button>
           </div>
-        ) : null}
+        ) : (
+          <>
+            <div className="mt-5 flex flex-col gap-3">
+              {visibleItems.map((item) => (
+                <TackleItemCard
+                  key={item.id}
+                  item={item}
+                  onOpen={openEditSheet}
+                  onToggleFavorite={toggleFavorite}
+                  onAdjustQuantity={adjustQuantity}
+                />
+              ))}
+            </div>
+            {visibleItems.length !== items.length ? (
+              <p className="mt-4 text-caption text-text-muted">
+                Showing {visibleItems.length} of {items.length} items
+              </p>
+            ) : null}
+          </>
+        )}
       </section>
 
-      <TackleEditorSheet open={editorOpen} onClose={() => setEditorOpen(false)} onCreate={createItem} />
+      <TackleEditorSheet
+        request={editor}
+        recents={recents}
+        onClose={() => setEditor(null)}
+        onSave={saveItem}
+        onDuplicate={openDuplicateSheet}
+        onDelete={deleteItem}
+      />
     </section>
   );
 }
