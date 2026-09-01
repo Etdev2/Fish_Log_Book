@@ -69,7 +69,82 @@ export const SPECIES: readonly Species[] = [
   { id: "bluefin_tuna", commonName: "Bluefin tuna", scientificName: "Thunnus orientalis", isGroup: false, rollsUpTo: null, waterClass: "salt", takeStatus: "regulated", sortOrder: 306 },
   { id: "yellowfin_tuna", commonName: "Yellowfin tuna", scientificName: "Thunnus albacares", isGroup: false, rollsUpTo: null, waterClass: "salt", takeStatus: "regulated", sortOrder: 307 },
   { id: "dorado", commonName: "Dorado", scientificName: "Coryphaena hippurus", isGroup: false, rollsUpTo: null, waterClass: "salt", takeStatus: "open", sortOrder: 308 },
-  { id: "thresher_shark", commonName: "Thresher shark", scientificName: "Alopias vulpinus", isGroup: false, rollsUpTo: null, waterClass: "salt", takeStatus: "regulated", sortOrder: 309 },];
+  { id: "thresher_shark", commonName: "Thresher shark", scientificName: "Alopias vulpinus", isGroup: false, rollsUpTo: null, waterClass: "salt", takeStatus: "regulated", sortOrder: 309 },
+
+  /* Regional expansion (ADR 007, founder requirements 2026-09-01 §4/§5). The list stays
+   * one vocabulary, SoCal-shaped only by sort order; other regions surface through
+   * `regions.ts`, not by filtering rows out. waterClass is the dominant regulatory
+   * habitat — anadromous runs (salmon, steelhead, striped bass) pick the water they are
+   * managed in, and may appear in either region's lists. */
+
+  // Inshore anadromous / mixed-coast (400s)
+  { id: "striped_bass", commonName: "Striped bass", scientificName: "Morone saxatilis", isGroup: false, rollsUpTo: null, waterClass: "salt", takeStatus: "regulated", sortOrder: 400 },
+  { id: "chinook_salmon", commonName: "Chinook salmon", scientificName: "Oncorhynchus tshawytscha", isGroup: false, rollsUpTo: null, waterClass: "salt", takeStatus: "regulated", sortOrder: 401 },
+  { id: "coho_salmon", commonName: "Coho salmon", scientificName: "Oncorhynchus kisutch", isGroup: false, rollsUpTo: null, waterClass: "salt", takeStatus: "regulated", sortOrder: 402 },
+  { id: "pacific_halibut", commonName: "Pacific halibut", scientificName: "Hippoglossus stenolepis", isGroup: false, rollsUpTo: null, waterClass: "salt", takeStatus: "regulated", sortOrder: 403 },
+  { id: "white_sturgeon", commonName: "White sturgeon", scientificName: "Acipenser transmontanus", isGroup: false, rollsUpTo: null, waterClass: "salt", takeStatus: "regulated", sortOrder: 404 },
+
+  // Atlantic inshore (410s)
+  { id: "bluefish", commonName: "Bluefish", scientificName: "Pomatomus saltatrix", isGroup: false, rollsUpTo: null, waterClass: "salt", takeStatus: "regulated", sortOrder: 410 },
+  { id: "summer_flounder", commonName: "Summer flounder (fluke)", scientificName: "Paralichthys dentatus", isGroup: false, rollsUpTo: null, waterClass: "salt", takeStatus: "regulated", sortOrder: 411 },
+  { id: "black_sea_bass", commonName: "Black sea bass", scientificName: "Centropristis striata", isGroup: false, rollsUpTo: null, waterClass: "salt", takeStatus: "regulated", sortOrder: 412 },
+  { id: "tautog", commonName: "Tautog (blackfish)", scientificName: "Tautoga onitis", isGroup: false, rollsUpTo: null, waterClass: "salt", takeStatus: "regulated", sortOrder: 413 },
+  { id: "atlantic_cod", commonName: "Atlantic cod", scientificName: "Gadus morhua", isGroup: false, rollsUpTo: null, waterClass: "salt", takeStatus: "regulated", sortOrder: 414 },
+  { id: "pollock", commonName: "Pollock", scientificName: "Pollachius virens", isGroup: false, rollsUpTo: null, waterClass: "salt", takeStatus: "open", sortOrder: 415 },
+  { id: "false_albacore", commonName: "False albacore", scientificName: "Euthynnus alletteratus", isGroup: false, rollsUpTo: null, waterClass: "salt", takeStatus: "open", sortOrder: 416 },
+  { id: "weakfish", commonName: "Weakfish", scientificName: "Cynoscion regalis", isGroup: false, rollsUpTo: null, waterClass: "salt", takeStatus: "regulated", sortOrder: 417 },
+
+  // Florida / Gulf inshore + nearshore (420s)
+  { id: "common_snook", commonName: "Snook", scientificName: "Centropomus undecimalis", isGroup: false, rollsUpTo: null, waterClass: "salt", takeStatus: "regulated", sortOrder: 420 },
+  { id: "red_drum", commonName: "Redfish (red drum)", scientificName: "Sciaenops ocellatus", isGroup: false, rollsUpTo: null, waterClass: "salt", takeStatus: "regulated", sortOrder: 421 },
+  { id: "atlantic_tarpon", commonName: "Tarpon", scientificName: "Megalops atlanticus", isGroup: false, rollsUpTo: null, waterClass: "salt", takeStatus: "regulated", sortOrder: 422 },
+  { id: "spotted_seatrout", commonName: "Spotted seatrout (speckled trout)", scientificName: "Cynoscion nebulosus", isGroup: false, rollsUpTo: null, waterClass: "salt", takeStatus: "regulated", sortOrder: 423 },
+  { id: "gray_snapper", commonName: "Mangrove snapper (gray)", scientificName: "Lutjanus griseus", isGroup: false, rollsUpTo: null, waterClass: "salt", takeStatus: "regulated", sortOrder: 424 },
+  { id: "yellowtail_snapper", commonName: "Yellowtail snapper", scientificName: "Ocyurus chrysurus", isGroup: false, rollsUpTo: null, waterClass: "salt", takeStatus: "regulated", sortOrder: 425 },
+  { id: "southern_flounder", commonName: "Southern flounder", scientificName: "Paralichthys lethostigma", isGroup: false, rollsUpTo: null, waterClass: "salt", takeStatus: "regulated", sortOrder: 426 },
+  { id: "sheepshead", commonName: "Sheepshead", scientificName: "Archosargus probatocephalus", isGroup: false, rollsUpTo: null, waterClass: "salt", takeStatus: "regulated", sortOrder: 427 },
+  { id: "permit", commonName: "Permit", scientificName: "Trachinotus falcatus", isGroup: false, rollsUpTo: null, waterClass: "salt", takeStatus: "regulated", sortOrder: 428 },
+  { id: "atlantic_bonefish", commonName: "Bonefish", scientificName: "Albula vulpes", isGroup: false, rollsUpTo: null, waterClass: "salt", takeStatus: "regulated", sortOrder: 429 },
+
+  // Florida / Gulf offshore (430s)
+  { id: "red_snapper", commonName: "Red snapper", scientificName: "Lutjanus campechanus", isGroup: false, rollsUpTo: null, waterClass: "salt", takeStatus: "regulated", sortOrder: 430 },
+  { id: "gag_grouper", commonName: "Gag grouper", scientificName: "Mycteroperca microlepis", isGroup: false, rollsUpTo: null, waterClass: "salt", takeStatus: "regulated", sortOrder: 431 },
+  { id: "goliath_grouper", commonName: "Goliath grouper", scientificName: "Epinephelus itajara", isGroup: false, rollsUpTo: null, waterClass: "salt", takeStatus: "protected", sortOrder: 432 },
+  { id: "king_mackerel", commonName: "King mackerel", scientificName: "Scomberomorus cavalla", isGroup: false, rollsUpTo: null, waterClass: "salt", takeStatus: "regulated", sortOrder: 433 },
+  { id: "spanish_mackerel", commonName: "Spanish mackerel", scientificName: "Scomberomorus maculatus", isGroup: false, rollsUpTo: null, waterClass: "salt", takeStatus: "regulated", sortOrder: 434 },
+  { id: "cobia", commonName: "Cobia", scientificName: "Rachycentron canadum", isGroup: false, rollsUpTo: null, waterClass: "salt", takeStatus: "regulated", sortOrder: 435 },
+  { id: "greater_amberjack", commonName: "Greater amberjack", scientificName: "Seriola dumerili", isGroup: false, rollsUpTo: null, waterClass: "salt", takeStatus: "regulated", sortOrder: 436 },
+  { id: "hogfish", commonName: "Hogfish", scientificName: "Lachnolaimus maximus", isGroup: false, rollsUpTo: null, waterClass: "salt", takeStatus: "regulated", sortOrder: 437 },
+
+  // Tropical offshore — Hawaii, Baja, shared pelagics (440s)
+  { id: "wahoo", commonName: "Wahoo (ono)", scientificName: "Acanthocybium solandri", isGroup: false, rollsUpTo: null, waterClass: "salt", takeStatus: "open", sortOrder: 440 },
+  { id: "blue_marlin", commonName: "Blue marlin", scientificName: "Makaira nigricans", isGroup: false, rollsUpTo: null, waterClass: "salt", takeStatus: "regulated", sortOrder: 441 },
+  { id: "black_marlin", commonName: "Black marlin", scientificName: "Istiompax indica", isGroup: false, rollsUpTo: null, waterClass: "salt", takeStatus: "regulated", sortOrder: 442 },
+  { id: "striped_marlin", commonName: "Striped marlin", scientificName: "Kajikia audax", isGroup: false, rollsUpTo: null, waterClass: "salt", takeStatus: "regulated", sortOrder: 443 },
+  { id: "sailfish", commonName: "Pacific sailfish", scientificName: "Istiophorus platypterus", isGroup: false, rollsUpTo: null, waterClass: "salt", takeStatus: "regulated", sortOrder: 444 },
+  { id: "skipjack_tuna", commonName: "Skipjack tuna (aku)", scientificName: "Katsuwonus pelamis", isGroup: false, rollsUpTo: null, waterClass: "salt", takeStatus: "open", sortOrder: 445 },
+  { id: "giant_trevally", commonName: "Giant trevally (ulua)", scientificName: "Caranx ignobilis", isGroup: false, rollsUpTo: null, waterClass: "salt", takeStatus: "open", sortOrder: 446 },
+  { id: "bluefin_trevally", commonName: "Bluefin trevally (omilu)", scientificName: "Caranx melampygus", isGroup: false, rollsUpTo: null, waterClass: "salt", takeStatus: "open", sortOrder: 447 },
+  { id: "green_jobfish", commonName: "Green jobfish (uku)", scientificName: "Aprion virescens", isGroup: false, rollsUpTo: null, waterClass: "salt", takeStatus: "regulated", sortOrder: 448 },
+  { id: "roosterfish", commonName: "Roosterfish", scientificName: "Nematistius pectoralis", isGroup: false, rollsUpTo: null, waterClass: "salt", takeStatus: "open", sortOrder: 449 },
+  { id: "sierra_mackerel", commonName: "Sierra mackerel", scientificName: "Scomberomorus sierra", isGroup: false, rollsUpTo: null, waterClass: "salt", takeStatus: "open", sortOrder: 450 },
+
+  // Freshwater (500s) — groundwork for lake/river regions (ADR 007 §5)
+  { id: "trout", commonName: "Trout", scientificName: "Salmonidae", isGroup: true, rollsUpTo: null, waterClass: "fresh", takeStatus: "regulated", sortOrder: 500 },
+  { id: "catfish", commonName: "Catfish", scientificName: "Siluriformes", isGroup: true, rollsUpTo: null, waterClass: "fresh", takeStatus: "open", sortOrder: 501 },
+  { id: "walleye", commonName: "Walleye", scientificName: "Sander vitreus", isGroup: false, rollsUpTo: null, waterClass: "fresh", takeStatus: "regulated", sortOrder: 502 },
+  { id: "yellow_perch", commonName: "Yellow perch", scientificName: "Perca flavescens", isGroup: false, rollsUpTo: null, waterClass: "fresh", takeStatus: "open", sortOrder: 503 },
+  { id: "smallmouth_bass", commonName: "Smallmouth bass", scientificName: "Micropterus dolomieu", isGroup: false, rollsUpTo: null, waterClass: "fresh", takeStatus: "regulated", sortOrder: 504 },
+  { id: "largemouth_bass", commonName: "Largemouth bass", scientificName: "Micropterus salmoides", isGroup: false, rollsUpTo: null, waterClass: "fresh", takeStatus: "regulated", sortOrder: 505 },
+  { id: "lake_trout", commonName: "Lake trout", scientificName: "Salvelinus namaycush", isGroup: false, rollsUpTo: "trout", waterClass: "fresh", takeStatus: "regulated", sortOrder: 506 },
+  { id: "steelhead", commonName: "Steelhead", scientificName: "Oncorhynchus mykiss", isGroup: false, rollsUpTo: "trout", waterClass: "fresh", takeStatus: "regulated", sortOrder: 507 },
+  { id: "brown_trout", commonName: "Brown trout", scientificName: "Salmo trutta", isGroup: false, rollsUpTo: "trout", waterClass: "fresh", takeStatus: "regulated", sortOrder: 508 },
+  { id: "muskellunge", commonName: "Muskellunge (muskie)", scientificName: "Esox masquinongy", isGroup: false, rollsUpTo: null, waterClass: "fresh", takeStatus: "regulated", sortOrder: 509 },
+  { id: "northern_pike", commonName: "Northern pike", scientificName: "Esox lucius", isGroup: false, rollsUpTo: null, waterClass: "fresh", takeStatus: "open", sortOrder: 510 },
+  { id: "black_crappie", commonName: "Black crappie", scientificName: "Pomoxis nigromaculatus", isGroup: false, rollsUpTo: null, waterClass: "fresh", takeStatus: "regulated", sortOrder: 511 },
+  { id: "bluegill", commonName: "Bluegill", scientificName: "Lepomis macrochirus", isGroup: false, rollsUpTo: null, waterClass: "fresh", takeStatus: "open", sortOrder: 512 },
+  { id: "channel_catfish", commonName: "Channel catfish", scientificName: "Ictalurus punctatus", isGroup: false, rollsUpTo: "catfish", waterClass: "fresh", takeStatus: "open", sortOrder: 513 },
+];
 
 const BY_ID = new Map(SPECIES.map((s) => [s.id, s]));
 

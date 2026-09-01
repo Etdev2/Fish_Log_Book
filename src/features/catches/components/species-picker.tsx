@@ -2,7 +2,9 @@
 
 import { useMemo, useState } from "react";
 
+import { popularSpecies, regionById } from "@/core/ontology/regions";
 import { searchSpecies, speciesById, SPECIES, type Species } from "@/core/ontology/species";
+import { useRegionPreference } from "@/features/settings/region";
 import { CHIP_CLASS, CHIP_OFF, CHIP_ON, FOCUS_RING, INPUT_CLASS } from "../ui-classes";
 
 /**
@@ -51,23 +53,25 @@ export function SpeciesPicker({
     return searchSpecies(query).slice(0, 20);
   }, [query]);
 
-  // What a SoCal salt angler reaches for before they have any history at all.
+  // What this angler reaches for before they have any history at all.
   //
-  // Curated rather than "the first N by sort_order": the vocabulary is ordered by habitat
-  // (groups, then inshore, then nearshore, then pelagic), so taking the head of it offers
-  // surfperch and croaker and silently buries yellowtail and bluefin. This list spans the
-  // three things people actually fish for here — bay/surf, reef, and offshore — and it
-  // stops mattering after a handful of catches, when Recent takes over.
+  // Driven by the Fishing region preference (ADR 007 §4): curated per region rather than
+  // "the first N by sort_order", because the vocabulary is ordered by habitat and the head
+  // of it would offer a SoCal surfer's list to a walleye angler. It stops mattering after
+  // a handful of catches, when Recent takes over. Suggestions only — search and "Something
+  // else" always reach the full vocabulary.
+  const [regionId] = useRegionPreference();
+  const region = regionById(regionId);
+
   const common = useMemo(() => {
     const recentSet = new Set(recentIds);
-    return COMMON_SALT_IDS.map((id) => speciesById(id))
-      .filter((s): s is Species => s !== null && !recentSet.has(s.id));
-  }, [recentIds]);
+    return popularSpecies(regionId).filter((s) => !recentSet.has(s.id));
+  }, [regionId, recentIds]);
 
   const rest = useMemo(() => {
-    const shown = new Set([...recentIds, ...COMMON_SALT_IDS]);
+    const shown = new Set([...recentIds, ...common.map((s) => s.id)]);
     return SPECIES.filter((s) => !shown.has(s.id)).sort((a, b) => a.sortOrder - b.sortOrder);
-  }, [recentIds]);
+  }, [recentIds, common]);
 
   const showing = query.trim() !== "" ? results : null;
   const chosen = speciesById(selectedId);
@@ -103,7 +107,12 @@ export function SpeciesPicker({
           type="search"
           value={query}
           onChange={(event) => setQuery(event.target.value)}
-          placeholder="bluefin, calico, halibut…"
+          // The hint fish live in the chosen region too — a Florida angler should not
+          // be invited to search for bluefin.
+          placeholder={`${common
+            .slice(0, 3)
+            .map((s) => s.commonName.replaceAll(/\s*\(.*\)\s*/g, "").toLowerCase())
+            .join(", ") || "species"}…`}
           className={INPUT_CLASS}
           autoComplete="off"
         />
@@ -127,7 +136,12 @@ export function SpeciesPicker({
             />
           ) : null}
           <SpeciesChips
-            heading={recent.length > 0 ? "Common" : "Species"}
+            // Naming the region is the honest label: the row genuinely changes with it.
+            heading={
+              regionId === "custom"
+                ? "Species"
+                : `Common — ${region?.label ?? ""}`
+            }
             species={common}
             selectedId={selectedId}
             onSelect={choose}
@@ -236,21 +250,3 @@ function SpeciesChips({
   );
 }
 
-/**
- * The no-history starting set. Not a taxonomy — a guess at what gets logged most on this
- * coast, deliberately short so the row does not wrap three times on a phone.
- */
-const COMMON_SALT_IDS: readonly string[] = [
-  "kelp_bass",
-  "barred_sand_bass",
-  "california_halibut",
-  "barred_surfperch",
-  "spotfin_croaker",
-  "rockfish",
-  "lingcod",
-  "california_sheephead",
-  "yellowtail",
-  "white_seabass",
-  "pacific_bonito",
-  "bluefin_tuna",
-];
