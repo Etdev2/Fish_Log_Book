@@ -13,3 +13,5 @@ export { paceAt, PACE_BANDS } from "./pace";
 export type { PaceClass, PaceBand, PaceBaseline, TidePace } from "./pace";
 export type { TideReadOptions } from "./constants";
 export { RATE_WINDOW, SLACK_BELOW, NEAR_SLACK_BELOW } from "./constants";
+export { catchTideFillAt, seriesCoversAt } from "./catch-fill";
+export type { CatchTideFill } from "./catch-fill";

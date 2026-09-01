@@ -100,3 +100,40 @@ export function parseMeasurement(raw: string): number | null | undefined {
   const parsed = Number.parseFloat(numeric);
   return Number.isFinite(parsed) ? parsed : undefined;
 }
+
+/*
+ * Environmental weather measurements (founder "Historical Catch" spec §2). Same rule
+ * as length/weight: typed in the angler's unit, stored SI-canonical so a Hawaii
+ * pressure and a North-Sea pressure mean the same number.
+ */
+
+/** Fahrenheit on the keypad, Celsius in the row. */
+export function fahrenheitToCelsius(f: number): number {
+  return (f - 32) * (5 / 9);
+}
+export function celsiusToFahrenheit(c: number): number {
+  return c * (9 / 5) + 32;
+}
+
+/** inHg on the keypad (US marine forecasts), hectopascals in the row. */
+export function inHgToHpa(inHg: number): number {
+  return inHg * 33.8639;
+}
+export function hpaToInHg(hpa: number): number {
+  return hpa / 33.8639;
+}
+
+/** Knots on the keypad (how boats talk), metres/second in the row (how sync talks). */
+export function knotsToMps(knots: number): number {
+  return knots * 0.514444;
+}
+export function mpsToKnots(mps: number): number {
+  return mps / 0.514444;
+}
+
+/** 16-point compass label for a direction in degrees. Undefined input is honest data. */
+export function compassLabel(deg: number | null): string | null {
+  if (deg === null || !Number.isFinite(deg)) return null;
+  const points = ["N","NNE","NE","ENE","E","ESE","SE","SSE","S","SSW","SW","WSW","W","WNW","NW","NNW"];
+  return points[Math.round((((deg % 360) + 360) % 360) / 22.5) % 16];
+}

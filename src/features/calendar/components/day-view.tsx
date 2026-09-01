@@ -15,8 +15,8 @@ import { localDateKey } from "../calendar-data";
  * Shows exactly what the log knows: catch times, species (or the amber "needs details"
  * state), the gear attached to each, GPS honesty (real accuracy or "no fix"), and kept /
  * released. It does NOT promise tide or weather it cannot show yet — those join when the
- * conditions snapshot link-up lands. D24's backfill verbs land with the day-flow slice;
- * today a day page is a window into history, plus a door to the tide chart.
+ * conditions snapshot link-up lands. Founder Historical spec §1: this page is also the
+ * backfill door — "+ Add catch for this day" opens the Fish Log pre-set on this date.
  */
 export function DayView({ dateKey }: { dateKey: string }) {
   const state = useLog();
@@ -57,6 +57,12 @@ export function DayView({ dateKey }: { dateKey: string }) {
                 }`
             : ""}
         </p>
+        <Link
+          href={`/log?add=${dateKey}`}
+          className="mt-3 inline-flex min-h-touch-floor items-center justify-center self-start rounded-md border border-border-interactive px-4 text-label text-text-link focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-3 focus-visible:outline-focus-ring"
+        >
+          + Add catch for this day
+        </Link>
       </section>
 
       {!state.hydrated ? (
@@ -71,10 +77,10 @@ export function DayView({ dateKey }: { dateKey: string }) {
             — time, species, gear, and where you were.
           </p>
           <Link
-            href="/log"
+            href={`/log?add=${dateKey}`}
             className="mt-4 inline-flex min-h-touch-floor items-center justify-center rounded-md border border-border-interactive px-4 text-label text-text-link focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-3 focus-visible:outline-focus-ring"
           >
-            Open the Fish Log
+            + Add catch for this day
           </Link>
         </section>
       ) : (
@@ -158,14 +164,12 @@ function DayRow({
           .filter(Boolean)
           .join(" · ")}
       </p>
-      {needsDetails ? (
-        <Link
-          href="/log"
-          className="mt-2 inline-flex min-h-touch-floor items-center rounded-md text-label text-text-link focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-3 focus-visible:outline-focus-ring"
-        >
-          Finish it in the Fish Log →
-        </Link>
-      ) : null}
+      <Link
+        href={needsDetails ? "/log" : `/catch/${record.id}`}
+        className="mt-2 inline-flex min-h-touch-floor items-center rounded-md text-label text-text-link focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-3 focus-visible:outline-focus-ring"
+      >
+        {needsDetails ? "Finish it in the Fish Log →" : "Open record →"}
+      </Link>
     </article>
   );
 }

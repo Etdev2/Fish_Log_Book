@@ -3,6 +3,7 @@
  * (ADR 006 §2–§3, mirroring `features/conditions/format.ts`).
  */
 
+import { celsiusToFahrenheit, hpaToInHg, mpsToKnots } from "@/core/rules/catch/measurement";
 import {
   gramsToPoundsOunces,
   gramsToWeight,
@@ -47,6 +48,24 @@ export function formatDepth(metres: number | null, system: UnitSystem): string |
 }
 
 /** "8:42 PM" in the zone the catch was recorded in, not the reader's current one. */
+export function formatTemperature(celsius: number | null, system: UnitSystem): string | null {
+  if (celsius === null) return null;
+  return system === "metric"
+    ? `${celsius.toFixed(1)}°C`
+    : `${Math.round(celsiusToFahrenheit(celsius))}°F`;
+}
+
+export function formatPressure(hpa: number | null, system: UnitSystem): string | null {
+  if (hpa === null) return null;
+  return system === "metric" ? `${Math.round(hpa)} hPa` : `${hpaToInHg(hpa).toFixed(2)} inHg`;
+}
+
+/** Wind in knots for both systems: it is how marine forecasts talk, everywhere. */
+export function formatWindSpeed(mps: number | null): string | null {
+  if (mps === null) return null;
+  return `${Math.round(mpsToKnots(mps))} kt`;
+}
+
 export function formatClock(isoInstant: string, zone: string): string {
   return new Intl.DateTimeFormat(undefined, {
     hour: "numeric",

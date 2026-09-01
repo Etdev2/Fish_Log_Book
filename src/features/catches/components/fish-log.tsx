@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useRef, useState } from "react";
+import { useSearchParams } from "next/navigation";
 
 import { activeRodSetups, repeatSeedFrom } from "@/core/rules/catch/rules";
 import {
@@ -13,12 +14,14 @@ import {
 } from "@/core/rules/catch/search";
 import {
   attachPositionLater,
+  draftFromRecord,
   draftFromRepeatSeed,
   draftGearFrom,
   EMPTY_DRAFT,
   logCatch,
   resolveMark,
   startPositionRequest,
+  updateCatchFromDraft,
   type CatchDraft,
   type PositionRequest,
 } from "../create";
@@ -69,7 +72,22 @@ export function FishLog({ unitSystem }: { unitSystem: UnitSystem }) {
   // derived during render rather than reset in an effect: an effect would paint one frame
   // of the old page count against the new results.
   const [paging, setPaging] = useState({ key: "", count: PAGE_SIZE });
-  const [logRequest, setLogRequest] = useState<LogRequest | null>(null);
+  const searchParams = useSearchParams();
+  const [logRequest, setLogRequest] = useState<LogRequest | null>(() => {
+    // Calendar → day → "+ Add catch for this day" lands here (founder Historical spec §1).
+    // SSR and first client render get the same answer from the URL, so this is safe.
+    const add = searchParams.get("add");
+    if (add && /^\d{4}-\d{2}-\d{2}$/.test(add)) {
+      return {
+        key: `backfill-${add}`,
+        seed: null,
+        note: "Logging for this day — set the time if you know it.",
+        title: "Log a past catch",
+        backfillDateKey: add,
+      };
+    }
+    return null;
+  });
   const [openCatchId, setOpenCatchId] = useState<string | null>(null);
   const [justSaved, setJustSaved] = useState<string | null>(null);
 
@@ -121,9 +139,49 @@ export function FishLog({ unitSystem }: { unitSystem: UnitSystem }) {
     setLogRequest({ key: `fresh-${Date.now()}`, seed: null, note: null, title: "Log a catch" });
   };
 
+  const openEdit = (item: SearchableCatch) => {
+    // Editing never re-fixes the position: a fix is the record's history, not the edit's
+    // (Historical spec §3). No position request is started here on purpose.
+    setOpenCatchId(null);
+    setLogRequest({
+      key: `edit-${item.record.id}`,
+      seed: draftFromRecord(
+          item.record,
+          state.gear,
+          (() => {
+            const s = state.snapshots.find(
+              (snap) => snap.catch_id === item.record.id && snap.deleted_at === null,
+            );
+            return s
+              ? {
+                  waterTempC: s.water_temp_c,
+                  pressureHpa: s.pressure_hpa,
+                  windSpeedMs: s.wind_speed_ms,
+                  windDirDeg: s.wind_dir_deg,
+                }
+              : null;
+          })(),
+        ),
+      note: "Editing rewrites this catch in place. Its id, its trip, and its moment are kept.",
+      title: "Edit catch",
+      editId: item.record.id,
+    });
+  };
+
   const save = async (draft: CatchDraft, andAnother: boolean) => {
     const request = positionRequest.current;
     const resolving = logRequest?.resolveId;
+    const editing = logRequest?.editId;
+
+    if (editing) {
+      const existing = state.catches.find((c) => c.id === editing);
+      if (existing) {
+        await updateCatchFromDraft(state, existing, draft);
+        setJustSaved(editing);
+        setLogRequest(null);
+        return;
+      }
+    }
 
     // Finishing a mark updates that row; it never writes a second one.
     const result = resolving
@@ -274,6 +332,7 @@ export function FishLog({ unitSystem }: { unitSystem: UnitSystem }) {
           setOpenCatchId(null);
         }}
         onToggleFavorite={(id) => void logActions.toggleFavorite(id)}
+        onEdit={(item) => openEdit(item)}
         onDuplicate={(item) => {
           const seed = repeatSeedFrom(item.record, item.gear);
           setOpenCatchId(null);

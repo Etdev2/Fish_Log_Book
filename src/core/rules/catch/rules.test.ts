@@ -2,9 +2,16 @@ import { describe, expect, it } from "vitest";
 
 import vectors from "../vectors/catch-rules.json";
 import {
+  celsiusToFahrenheit,
+  compassLabel,
   depthToMetres,
+  fahrenheitToCelsius,
   gramsToPoundsOunces,
+  hpaToInHg,
+  inHgToHpa,
+  knotsToMps,
   lengthToMillimetres,
+  mpsToKnots,
   parseMeasurement,
   weightToGrams,
   type DepthUnit,
@@ -292,5 +299,46 @@ describe("sortGear", () => {
   it("reads a rig top to bottom, rod first", () => {
     const sorted = sortGear([gear("jig", "j"), gear("rod", "r"), gear("leader", "l")]);
     expect(sorted.map((g) => g.role)).toEqual(["rod", "leader", "jig"]);
+  });
+});
+
+describe("environment converters (Historical §2 — display in, SI stored)", () => {
+  it("freezes and boils water at the right numbers", () => {
+    expect(fahrenheitToCelsius(32)).toBeCloseTo(0, 4);
+    expect(fahrenheitToCelsius(212)).toBeCloseTo(100, 4);
+    expect(celsiusToFahrenheit(0)).toBeCloseTo(32, 4);
+  });
+
+  it("round-trips an honest water temperature", () => {
+    expect(celsiusToFahrenheit(fahrenheitToCelsius(64.3))).toBeCloseTo(64.3, 4);
+  });
+
+  it("round-trips pressure through hPa, the storage unit", () => {
+    expect(inHgToHpa(hpaToInHg(1013.25))).toBeCloseTo(1013.25, 3);
+    // A standard atmosphere in the display unit an angler's barometer reports.
+    expect(hpaToInHg(1013.25)).toBeCloseTo(29.92, 1);
+  });
+
+  it("round-trips wind through m/s, displaying knots", () => {
+    expect(mpsToKnots(knotsToMps(8))).toBeCloseTo(8, 4);
+    expect(knotsToMps(19.44)).toBeCloseTo(10, 2);
+  });
+});
+
+describe("compassLabel", () => {
+  it("names the cardinal points", () => {
+    expect(compassLabel(0)).toBe("N");
+    expect(compassLabel(90)).toBe("E");
+    expect(compassLabel(180)).toBe("S");
+    expect(compassLabel(270)).toBe("W");
+  });
+
+  it("wraps negatives and past-360 bearings", () => {
+    expect(compassLabel(-45)).toBe(compassLabel(315));
+    expect(compassLabel(380)).toBe(compassLabel(20));
+  });
+
+  it("splits the difference halfway between points", () => {
+    expect(compassLabel(202.5)).toBe("SSW");
   });
 });

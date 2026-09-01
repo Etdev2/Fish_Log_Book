@@ -4,6 +4,7 @@ import { useSyncExternalStore } from "react";
 
 import { speciesLabel } from "@/core/ontology/species";
 import { localDateOf } from "@/core/rules/catch/rules";
+import type { ConditionSnapshotRecord } from "./conditions";
 import type {
   CatchGear,
   CatchRecord,
@@ -46,6 +47,10 @@ export interface LogSnapshot {
   readonly trips: readonly TripRecord[];
   readonly rigs: readonly RigRecord[];
   readonly locations: readonly LocationConditionRecord[];
+  /** Catch-linked condition snapshots (astro now; tide filled by the conditions layer
+   *  when its window covers the catch; weather server-side later). Founder's
+   *  Historical spec §6: a snapshot is stored, never recomputed at view time. */
+  readonly snapshots: readonly ConditionSnapshotRecord[];
   readonly backup: BackupState;
 }
 
@@ -57,6 +62,7 @@ const EMPTY: LogSnapshot = {
   trips: [],
   rigs: [],
   locations: [],
+  snapshots: [],
   backup: { kind: "backed_up" },
 };
 
@@ -90,12 +96,13 @@ export function hydrate(): Promise<void> {
       return;
     }
     try {
-      const [catches, gear, trips, rigs, locations, mutations] = await Promise.all([
+      const [catches, gear, trips, rigs, locations, snapshots, mutations] = await Promise.all([
         allRows("catch"),
         allRows("catch_gear"),
         allRows("trip"),
         allRows("trip_rig"),
         allRows("location_condition"),
+        allRows("condition_snapshot"),
         allMutations(),
       ]);
       publish({
@@ -106,6 +113,7 @@ export function hydrate(): Promise<void> {
         trips: trips as unknown as TripRecord[],
         rigs: rigs as unknown as RigRecord[],
         locations: locations as unknown as LocationConditionRecord[],
+        snapshots: snapshots as unknown as ConditionSnapshotRecord[],
         backup: backupState(mutations),
       });
     } catch {
@@ -180,12 +188,13 @@ async function persist(
 }
 
 async function refresh(): Promise<void> {
-  const [catches, gear, trips, rigs, locations, queued] = await Promise.all([
+  const [catches, gear, trips, rigs, locations, snapshots, queued] = await Promise.all([
     allRows("catch"),
     allRows("catch_gear"),
     allRows("trip"),
     allRows("trip_rig"),
     allRows("location_condition"),
+    allRows("condition_snapshot"),
     allMutations(),
   ]);
   publish({
@@ -196,6 +205,7 @@ async function refresh(): Promise<void> {
     trips: trips as unknown as TripRecord[],
     rigs: rigs as unknown as RigRecord[],
     locations: locations as unknown as LocationConditionRecord[],
+    snapshots: snapshots as unknown as ConditionSnapshotRecord[],
     backup: backupState(queued),
   });
 }

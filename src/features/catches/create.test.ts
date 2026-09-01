@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { repeatSeedFrom } from "@/core/rules/catch/rules";
 import type { CatchGear, CatchRecord } from "@/core/rules/catch/types";
-import { draftFromRepeatSeed, draftGearFrom, EMPTY_DRAFT } from "./create";
+import { captureModeFor, draftFromRecord, draftFromRepeatSeed, draftGearFrom, EMPTY_DRAFT } from "./create";
 
 const NOW = "2026-08-20T21:12:00.000Z";
 
@@ -131,5 +131,67 @@ describe("EMPTY_DRAFT", () => {
     expect(EMPTY_DRAFT.outcome).toBe("landed");
     expect(EMPTY_DRAFT.speciesId).toBeNull();
     expect(EMPTY_DRAFT.sizeEstimated).toBe(false);
+  });
+});
+
+describe("captureModeFor (Historical §1, D24)", () => {
+  const ZONE = "America/Los_Angeles";
+
+  it("calls a catch live when it happens on the angler's own today", () => {
+    // 2026-08-20 21:12Z is 14:12 PDT the same day.
+    expect(captureModeFor("2026-08-20T14:00:00.000Z", "2026-08-20T21:12:00.000Z", ZONE)).toBe("live");
+    expect(captureModeFor("2026-08-20T21:12:00.000Z", "2026-08-20T21:12:00.000Z", ZONE)).toBe("live");
+  });
+
+  it("calls yesterday a backfill, even five minutes into today", () => {
+    // PDT from this era is UTC-7: 06:55Z is 23:55 the previous local day, and 07:00Z is
+    // local midnight snapping over. Five wall-minutes apart, different day → backfill.
+    expect(captureModeFor("2026-08-21T06:55:00.000Z", "2026-08-21T07:00:00.000Z", ZONE)).toBe("backfill");
+  });
+
+  it("compares the DAY, not the instant spread", () => {
+    // Same UTC afternoon spread across a PDT midnight boundary is still a backfill.
+    expect(captureModeFor("2026-08-21T06:30:00.000Z", "2026-08-22T06:30:00.000Z", ZONE)).toBe("backfill");
+  });
+});
+
+describe("draftFromRecord (Historical §3 edit-in-place)", () => {
+  it("round-trips every draft field off one save", () => {
+    const draft = draftFromRecord(record, gear);
+    expect(draft.speciesId).toBe("bluefin_tuna");
+    expect(draft.weightG).toBe(38102);
+    expect(draft.lengthMm).toBe(900);
+    expect(draft.disposition).toBe("released");
+    expect(draft.presentation).toBe("yo-yo");
+    expect(draft.notes).toBe("meter marks at 250");
+    expect(draft.tags).toEqual(["night bite"]);
+    expect(draft.outcome).toBe("landed");
+    expect(draft.gear).toEqual([
+      { role: "jig", label: "Nomad Streaker 200g", detail: "Pink", tackleItemId: "t-1" },
+    ]);
+    expect(draft.caughtAt).toBe(NOW);
+  });
+
+  it("starts with no unsaved photos (spec §10 re-attach is explicit)", () => {
+    expect(draftFromRecord(record, gear).photos).toEqual([]);
+  });
+
+  it("seeds the conditions block from the snapshot, so an untouched block survives edit", () => {
+    const draft = draftFromRecord(record, gear, {
+      waterTempC: 18.4,
+      pressureHpa: 1013.2,
+      windSpeedMs: 4.1,
+      windDirDeg: 225,
+    });
+    expect(draft.waterTempC).toBe(18.4);
+    expect(draft.windDirDeg).toBe(225);
+  });
+
+  it("leaves the conditions block empty when there is no snapshot input", () => {
+    const draft = draftFromRecord(record, gear);
+    expect(draft.waterTempC).toBeNull();
+    expect(draft.pressureHpa).toBeNull();
+    expect(draft.windSpeedMs).toBeNull();
+    expect(draft.windDirDeg).toBeNull();
   });
 });
