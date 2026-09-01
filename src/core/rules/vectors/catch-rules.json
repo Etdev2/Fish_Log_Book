@@ -1,0 +1,103 @@
+{
+  "$comment": "ADR 003 §4. Loaded by src/core/rules/catch/rules.test.ts and, when the Swift client exists, by its unit tests off this same file. When the two clients disagree about which day a 01:30 halibut belongs to, this file says who is wrong.",
+  "localDate": [
+    {
+      "name": "an afternoon fish is on its own day",
+      "instant": "2026-08-20T21:12:00Z",
+      "zone": "America/Los_Angeles",
+      "expected": "2026-08-20"
+    },
+    {
+      "name": "a 01:30 local halibut belongs to the local day, not the UTC one",
+      "instant": "2026-08-21T08:30:00Z",
+      "zone": "America/Los_Angeles",
+      "expected": "2026-08-21"
+    },
+    {
+      "name": "22:00 local is still the day it started, though UTC has rolled over",
+      "instant": "2026-08-21T05:00:00Z",
+      "zone": "America/Los_Angeles",
+      "expected": "2026-08-20"
+    },
+    {
+      "name": "the instant PDT begins, spring forward",
+      "instant": "2026-03-08T10:00:00Z",
+      "zone": "America/Los_Angeles",
+      "expected": "2026-03-08"
+    },
+    {
+      "name": "the instant PST resumes, fall back",
+      "instant": "2026-11-01T09:00:00Z",
+      "zone": "America/Los_Angeles",
+      "expected": "2026-11-01"
+    },
+    {
+      "name": "the same instant is a different day in a different zone",
+      "instant": "2026-08-21T05:00:00Z",
+      "zone": "UTC",
+      "expected": "2026-08-21"
+    }
+  ],
+  "countable": [
+    {
+      "name": "a confirmed landed fish counts",
+      "resolution_state": "confirmed",
+      "outcome": "landed",
+      "deleted": false,
+      "expected": true
+    },
+    {
+      "name": "an unresolved mark is not yet a fact (D22)",
+      "resolution_state": "unresolved",
+      "outcome": null,
+      "deleted": false,
+      "expected": false
+    },
+    {
+      "name": "a dismissed mistap never counts",
+      "resolution_state": "dismissed",
+      "outcome": null,
+      "deleted": false,
+      "expected": false
+    },
+    {
+      "name": "a confirmed lost fish is a real event but not a landed one",
+      "resolution_state": "confirmed",
+      "outcome": "lost",
+      "deleted": false,
+      "expected": false
+    },
+    {
+      "name": "a soft-deleted row never counts",
+      "resolution_state": "confirmed",
+      "outcome": "landed",
+      "deleted": true,
+      "expected": false
+    }
+  ],
+  "resolutionTransitions": [
+    { "from": "unresolved", "to": "confirmed", "allowed": true },
+    { "from": "unresolved", "to": "dismissed", "allowed": true },
+    { "from": "confirmed", "to": "dismissed", "allowed": true },
+    { "from": "confirmed", "to": "unresolved", "allowed": false },
+    { "from": "dismissed", "to": "unresolved", "allowed": false },
+    { "from": "confirmed", "to": "confirmed", "allowed": true }
+  ],
+  "measurement": [
+    { "name": "84 lb", "value": 84, "unit": "lb", "ounces": 0, "expectedGrams": 38102 },
+    { "name": "12 lb 4 oz", "value": 12, "unit": "lb", "ounces": 4, "expectedGrams": 5557 },
+    { "name": "3.5 kg", "value": 3.5, "unit": "kg", "ounces": 0, "expectedGrams": 3500 },
+    { "name": "zero is a legal weight", "value": 0, "unit": "lb", "ounces": 0, "expectedGrams": 0 },
+    { "name": "a negative weight is not a measurement", "value": -1, "unit": "lb", "ounces": 0, "expectedGrams": null }
+  ],
+  "length": [
+    { "name": "28 in", "value": 28, "unit": "in", "expectedMm": 711 },
+    { "name": "71 cm", "value": 71, "unit": "cm", "expectedMm": 710 },
+    { "name": "negative rejected", "value": -5, "unit": "in", "expectedMm": null }
+  ],
+  "depth": [
+    { "name": "250 ft", "value": 250, "unit": "ft", "expectedMetres": 76.2 },
+    { "name": "30 m", "value": 30, "unit": "m", "expectedMetres": 30 },
+    { "name": "negative rejected", "value": -3, "unit": "ft", "expectedMetres": null }
+  ]
+}

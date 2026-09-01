@@ -14,6 +14,7 @@ import { usePathname } from "next/navigation";
  */
 export const SHELL_ROUTES = [
   { href: "/", label: "Calendar" },
+  { href: "/log", label: "Log" },
   { href: "/tides", label: "Tide" },
   { href: "/settings", label: "Settings" },
 ] as const;

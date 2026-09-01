@@ -1,0 +1,51 @@
+{
+  "$comment": "ADR 003 §4 / ADR 004 §2. Loaded by src/core/sync/uuid.test.ts and, when the Swift client exists, by its unit tests off the same file. Encoding cases are exact: given this timestamp and this sequence, these are the bits. Random bits are masked out of the comparison by the test.",
+  "encoding": [
+    {
+      "name": "epoch",
+      "timestampMs": 0,
+      "sequence": 0,
+      "expectedTimestampHex": "000000000000",
+      "expectedVersionNibble": "7",
+      "expectedSequenceHex": "000"
+    },
+    {
+      "name": "a known instant",
+      "timestampMs": 1756000000000,
+      "sequence": 0,
+      "expectedTimestampHex": "0198d9c19800",
+      "expectedVersionNibble": "7",
+      "expectedSequenceHex": "000"
+    },
+    {
+      "name": "sequence increments within one millisecond",
+      "timestampMs": 1756000000000,
+      "sequence": 1,
+      "expectedTimestampHex": "0198d9c19800",
+      "expectedVersionNibble": "7",
+      "expectedSequenceHex": "001"
+    },
+    {
+      "name": "top of the 12-bit sequence",
+      "timestampMs": 1756000000000,
+      "sequence": 4095,
+      "expectedTimestampHex": "0198d9c19800",
+      "expectedVersionNibble": "7",
+      "expectedSequenceHex": "fff"
+    },
+    {
+      "name": "a timestamp above 2^32 ms exercises the 48-bit path",
+      "timestampMs": 4294967296,
+      "sequence": 0,
+      "expectedTimestampHex": "000100000000",
+      "expectedVersionNibble": "7",
+      "expectedSequenceHex": "000"
+    }
+  ],
+  "roundTrip": [
+    { "timestampMs": 0 },
+    { "timestampMs": 1756000000000 },
+    { "timestampMs": 4294967296 },
+    { "timestampMs": 281474976710655 }
+  ]
+}
