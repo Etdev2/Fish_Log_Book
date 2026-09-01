@@ -55,6 +55,26 @@ the session-only boundary:
 The old All/Salt/Fresh water filter was removed: `waterClass` described lure *classes*,
 not an inventory of every gear type, and categories + search carry the load now.
 
+## Third slice (category pages, 2026-08-31)
+
+Two owner-review changes:
+
+- **The "Ready to rig" rail is gone.** Favoriting stays (it drives the Favorites
+  view), but the duplicated strip above the list was determined to be noise.
+- **Categories navigate instead of filtering.** Each browse card is a real link to
+  `/tackle/<category>` — one prerendered page per registry entry (`generateStaticParams`,
+  `dynamicParams = false`, unknown categories 404). The category page mirrors the main
+  header anatomy (back link, icon + title, + Add gear, scoped counts) and hosts the
+  same inventory list scoped to the category; Add gear there pre-picks the category.
+
+State moved from component state to a tiny module-level session store
+(`session-store.ts`, `useSyncExternalStore`), so client-side navigation between the
+box and category pages keeps the session's edits — while a full refresh still resets
+to the fixture, exactly as the on-screen notice says. The inventory list (search,
+views, sort, cards, paging, empty states) is now one shared component used by both
+routes, and every chip/pill/primary class string lives in `ui-classes.ts` so the
+treatment cannot drift between pages.
+
 ## Consistency pass (2026-08-31)
 
 Applied the owner's alignment & visual-consistency standard to everything above:

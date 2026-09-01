@@ -58,12 +58,12 @@ function draftFrom(request: Exclude<EditorRequest, null>): DraftState {
   return EMPTY_DRAFT;
 }
 
-const FOCUS_RING =
-  "focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-3 focus-visible:outline-focus-ring";
+import { CHIP_CLASS as SHARED_CHIP_CLASS, CHIP_OFF as SHARED_CHIP_OFF, CHIP_ON as SHARED_CHIP_ON, FOCUS_RING } from "../ui-classes";
+
 const INPUT_CLASS = `min-h-touch-floor rounded-md border border-border-interactive bg-background px-4 text-body text-text-primary placeholder:text-text-muted ${FOCUS_RING}`;
-const CHIP_CLASS = `min-h-touch-floor rounded-full border px-4 text-label transition-colors ${FOCUS_RING} active:scale-95 motion-reduce:transition-none`;
-const CHIP_ON = "border-signal-orange bg-signal-orange text-ink-on-orange";
-const CHIP_OFF = "border-border-interactive text-text-link";
+const CHIP_CLASS = SHARED_CHIP_CLASS;
+const CHIP_ON = SHARED_CHIP_ON;
+const CHIP_OFF = SHARED_CHIP_OFF;
 
 export function TackleEditorSheet({
   request,

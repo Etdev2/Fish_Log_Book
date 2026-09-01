@@ -1,8 +1,6 @@
 import { cardSummary, categoryFor, isLowStock, isOutOfStock, type TackleItem } from "../types";
+import { FOCUS_RING } from "../ui-classes";
 import { QuantityStepper } from "./quantity-stepper";
-
-const FOCUS_RING =
-  "focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-3 focus-visible:outline-focus-ring";
 
 function FavoritePill({ isFavorite, onToggle, fullWidth = false }: { isFavorite: boolean; onToggle: () => void; fullWidth?: boolean }) {
   return (
