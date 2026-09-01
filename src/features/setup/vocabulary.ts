@@ -66,6 +66,12 @@ export const WATER_COLORS: readonly { id: string; label: string }[] = [
   { id: "green", label: "Green" },
   { id: "green_brown", label: "Green-brown" },
   { id: "brown", label: "Brown" },
+  // Three seeded colours the mirror had silently dropped (caught by the parity test):
+  // tannic tea water, blooms, and red tide — seeded as colours, flagged for review,
+  // because leaving them out meant those days got logged as custom text.
+  { id: "tannic", label: "Tannic / tea" },
+  { id: "algae_bloom", label: "Algae bloom" },
+  { id: "red_tide", label: "Red tide" },
 ];
 
 export const WATER_CLARITIES: readonly { id: string; label: string }[] = [
@@ -73,6 +79,8 @@ export const WATER_CLARITIES: readonly { id: string; label: string }[] = [
   { id: "clear", label: "Clear" },
   { id: "lightly_stained", label: "Lightly stained" },
   { id: "stained", label: "Stained" },
+  // Founder requirement 2026-09-01 §3: milky glacial/plankton tints are not stained.
+  { id: "milky", label: "Milky" },
   { id: "muddy", label: "Muddy" },
 ];
 
