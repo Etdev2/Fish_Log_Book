@@ -14,6 +14,8 @@ import {
 import { daylightSpans, moonPhaseAt, sunEventsFor } from "@/core/rules/astro";
 import { useNow } from "@/lib/time/use-now";
 import { useUnitPreference } from "@/features/settings/units";
+import { useLog } from "@/features/catches/store";
+import { speciesLabel } from "@/core/ontology/species";
 
 import { STATION_LOCATION, STATION_TIME_ZONE, TIDE_SELECTED_AT, loadTideSeriesFixture } from "./queries/tide-series";
 import { useLocalTimeZone } from "./use-local-time-zone";
@@ -25,6 +27,7 @@ import { MoonDetailsSheet } from "./components/moon-details-sheet";
 import { StationDetailsSheet } from "./components/station-details-sheet";
 import { TideDetailsSheet } from "./components/tide-details-sheet";
 import { localDayIndex, localMidnights } from "./tide-chart-geometry";
+import type { CatchMarkerInput } from "./catch-markers";
 import {
   clock,
   compactDate,
@@ -107,6 +110,27 @@ export function TideScreen() {
   const dayBoundaries = useMemo(
     () => [seriesStart, ...localMidnights(seriesStart, seriesEnd, STATION_TIME_ZONE)],
     [seriesStart, seriesEnd],
+  );
+
+  /* Catches onto the curve at their exact instant (founder §6). Only live, timestamped
+   * catches inside the loaded window become markers; anything outside the window is
+   * simply not on this chart yet (the window edge is the honest boundary). */
+  const log = useLog();
+  const catchMarkers = useMemo<readonly CatchMarkerInput[]>(
+    () =>
+      log.catches
+        .filter((c) => c.deleted_at === null)
+        .map((c) => {
+          const at = Date.parse(c.caught_at);
+          return {
+            id: c.id,
+            at,
+            label: speciesLabel(c.species_id, c.species_other) ?? "Mark",
+            needsDetails: c.species_id === null && c.species_other === null,
+          };
+        })
+        .filter((m) => m.at >= seriesStart && m.at <= seriesEnd),
+    [log.catches, seriesStart, seriesEnd],
   );
   const calendarDays: CalendarDay[] = useMemo(
     () =>
@@ -368,6 +392,7 @@ export function TideScreen() {
         spans={spans}
         turns={turns}
         sunMarkers={sunMarkers}
+        catchMarkers={catchMarkers}
         dayBoundaries={dayBoundaries.slice(1)}
         valueText={valueText}
         nowAction={currentAt !== null && !atNow ? () => goToAt(currentAt) : null}

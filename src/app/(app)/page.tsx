@@ -1,34 +1,30 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 
+import { MonthCalendar } from "@/features/calendar/components/month-calendar";
+
 export const metadata: Metadata = { title: "Calendar | Fish Log Book" };
 
 /**
  * / — the month calendar. D23 is unambiguous that the calendar is the home surface: not a
- * dashboard, not a feed, not a landing page.
+ * dashboard, not a feed, not a landing page (founder requirements 2026-09-01 §7 makes it
+ * the third leg of Calendar → Day → Catch navigation).
  *
- * The calendar itself is the next round's work (ADR 005 scope note: this round is the
- * design system and the shell, and nothing in features/* beyond shell/ should exist).
- *
- * The tide chart link carries over from the pre-shell homepage (see PR #4/#5). The Tide
- * tab in the primary nav also reaches it now, but this stays as a direct shortcut until
- * the month grid itself surfaces conditions inline.
+ * Dots are the day's truth: orange for catches, amber for anything still needing
+ * details. The tide chart link carries over from the shell round (PR #4/#5); the Tide
+ * tab reaches it too, and this stays as the direct shortcut until the grid itself
+ * surfaces conditions inline.
  */
 export default function CalendarPage() {
   return (
-    <section className="rounded-lg border border-hairline bg-surface p-4">
-      <h1 className="text-h1">Calendar</h1>
-      <p className="mt-3 text-body text-text-muted">
-        The month grid lands next, with a record dot on days that have one and a flag on
-        days that need a look.
-      </p>
-
+    <div className="flex flex-col gap-4">
+      <MonthCalendar />
       <Link
         href="/tides"
-        className="mt-4 inline-flex min-h-touch-floor items-center justify-center rounded-md border border-signal-orange bg-signal-orange px-6 py-3 text-label font-semibold text-ink-on-orange transition-colors hover:bg-signal-orange-pressed focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-3 focus-visible:outline-focus-ring"
+        className="inline-flex min-h-touch-floor items-center justify-center self-start rounded-md border border-border-interactive px-4 text-label text-text-link transition-colors hover:border-tide-cyan focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-3 focus-visible:outline-focus-ring"
       >
         Open tide chart
       </Link>
-    </section>
+    </div>
   );
 }

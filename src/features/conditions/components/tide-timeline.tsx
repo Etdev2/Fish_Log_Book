@@ -7,6 +7,7 @@ import { heightAt, type TidePredictionSeries, type TideTurn } from "@/core/rules
 import type { DaylightSpan } from "@/core/rules/astro";
 
 import { unwrapSourced } from "./sourced-value";
+import { clusterCatchMarkers, type CatchMarkerInput } from "../catch-markers";
 import {
   DEFAULT_CHART_HEIGHT,
   MIN_CHART_HEIGHT,
@@ -32,6 +33,10 @@ const KEY_STEP_MS_FAST = 180 * 60_000;
 const TAP_SLOP_PX = 6;
 /** Two turn labels closer together than this share pixels; the later one drops its text. */
 const TURN_LABEL_MIN_GAP_PX = 78;
+/** Catches closer together than this read as one clustered marker with a count. */
+const CATCH_CLUSTER_MIN_GAP_PX = 32;
+/** The most a cluster's reveal panel lists; past that it says "+N more". */
+const CATCH_REVEAL_MAX_LINES = 4;
 /**
  * The height-axis labels sit on the same left line as the readout card and the day
  * stepper, rather than jammed against the screen edge. Kept in sync with `--tide-gutter`
@@ -84,6 +89,7 @@ export function TideTimeline({
   spans,
   turns,
   sunMarkers,
+  catchMarkers,
   dayBoundaries,
   valueText,
   nowAction,
@@ -101,6 +107,10 @@ export function TideTimeline({
   spans: readonly DaylightSpan[];
   turns: readonly TideTurn[];
   sunMarkers: readonly SunMarker[];
+  /** Logged catches whose `caught_at` falls inside the plotted window (§6 founder
+   *  requirements): drawn on the curve at their instant; tap reveals and pins the
+   *  read-head onto the catch. */
+  catchMarkers?: readonly CatchMarkerInput[];
   dayBoundaries: readonly number[];
   valueText: string;
   /** Returns the read-head to the present. Null while it is already there, or while the
@@ -120,6 +130,7 @@ export function TideTimeline({
 
   const [box, setBox] = useState({ width: 0, height: DEFAULT_CHART_HEIGHT });
   const [revealedSunAt, setRevealedSunAt] = useState<number | null>(null);
+  const [revealedCatchKey, setRevealedCatchKey] = useState<string | null>(null);
 
   const chartHeight = Math.max(MIN_CHART_HEIGHT, box.height);
   const plotHeight = plotHeightFor(chartHeight);
@@ -128,6 +139,14 @@ export function TideTimeline({
   const padInline = box.width / 2;
   const xFor = (at: number) => xForAt(at, seriesStart);
   const clampAt = (at: number) => Math.round(Math.max(seriesStart, Math.min(seriesEnd, at)));
+
+  // Catches cluster only when their marks would print on top of each other at this
+  // scale (founder §6). `xFor` closes over `seriesStart`, so that edge is the dep.
+  const catchClusters = useMemo(
+    () => clusterCatchMarkers(catchMarkers ?? [], xFor, CATCH_CLUSTER_MIN_GAP_PX),
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- xFor is xForAt(_, seriesStart)
+    [catchMarkers, seriesStart],
+  );
 
   const { yMinimum, yMaximum } = useMemo(() => {
     const heights = series.samples.map((s) => Number(s.height));
@@ -421,6 +440,85 @@ export function TideTimeline({
                     <>
                       <rect x={plate.x} y={plate.y} width={plate.width} height={plate.height} rx="3" fill="var(--color-background)" />
                       <text x={x} y={labelY} textAnchor="middle" className="fill-text-primary font-mono text-[12px] font-semibold"><tspan fill={isSunrise ? "var(--color-amber-flag)" : "var(--color-signal-orange)"}>{isSunrise ? "↑" : "↓"}</tspan> {label} <tspan className="fill-text-muted font-normal">{time}</tspan></text>
+                    </>
+                  )}
+                </g>
+              );
+            })}
+
+            {/* Catch markers (founder requirements §6): every logged catch sits ON the
+                curve at its exact instant. Tapping one does two things — reveals
+                species + time, and pins the read-head onto the catch, so the header
+                readout immediately answers "what was the tide doing when I caught it"
+                (height and movement at that instant). Clusters carry a count instead
+                of overlapping glyphs. Same tap-not-pan guard and keyboard contract as
+                the sun markers above. */}
+            {catchClusters.map((cluster) => {
+              const height = heightAt(series, instant(cluster.at));
+              if (!height) return null;
+              const x = xFor(cluster.at);
+              const y = yFor(unwrapSourced(height));
+              const revealed = revealedCatchKey === cluster.key;
+              const markerFill = cluster.anyNeedsDetails ? "var(--color-amber-flag)" : "var(--color-signal-orange)";
+              const inkFill = cluster.anyNeedsDetails ? "var(--color-background)" : "var(--color-ink-on-orange)";
+              const count = cluster.members.length;
+              const memberLines = cluster.members
+                .slice(0, CATCH_REVEAL_MAX_LINES)
+                .map((m) => `${m.label} · ${clock(instant(m.at), displayTimeZone)}`);
+              const lines =
+                count > CATCH_REVEAL_MAX_LINES
+                  ? [...memberLines, `+${count - CATCH_REVEAL_MAX_LINES} more`]
+                  : memberLines;
+              const longest = lines.reduce((a, b) => (b.length > a.length ? b : a), "");
+              // Bubble unfolds with its last line just above the marker (y - 22)…
+              let firstBaseline = y - 22 - (lines.length - 1) * 15;
+              // …unless that runs off the chart: then it unfolds below the marker.
+              if (firstBaseline < PLOT_TOP + 12) firstBaseline = y + 26;
+              const plate = labelPlate(x, firstBaseline + (lines.length - 1) * 15, longest, 12, 1);
+              const desc =
+                count === 1
+                  ? `${cluster.members[0].label} caught ${clock(instant(cluster.at), displayTimeZone)}, tide ${formatHeight(unwrapSourced(height), unit)}`
+                  : `${count} catches here, ${cluster.members
+                      .slice(0, 3)
+                      .map((m) => m.label)
+                      .join(", ")}${count > 3 ? "…" : ""}`;
+              return (
+                <g
+                  key={cluster.key}
+                  data-catch-marker={cluster.key}
+                  role="button"
+                  tabIndex={0}
+                  aria-label={`${desc}. Activate to show it and point the read-head at the catch.`}
+                  onClick={() => {
+                    if (dragRef.current?.moved) return;
+                    onSelectedAtChange(cluster.at);
+                    setRevealedCatchKey((current) => (current === cluster.key ? null : cluster.key));
+                  }}
+                  onKeyDown={(event) => {
+                    if (event.key !== "Enter" && event.key !== " ") return;
+                    event.preventDefault();
+                    onSelectedAtChange(cluster.at);
+                    setRevealedCatchKey((current) => (current === cluster.key ? null : cluster.key));
+                  }}
+                >
+                  <circle cx={x} cy={y} r="9" fill={markerFill} stroke="var(--color-surface)" strokeWidth="2" />
+                  {count === 1 ? (
+                    // A fish body with a tail, sized to sit inside the marker.
+                    <path
+                      d={`M ${x - 4.4} ${y} Q ${x - 1} ${y - 3.2} ${x + 2.2} ${y - 1.3} L ${x + 4.4} ${y - 2.8} L ${x + 4.4} ${y + 2.8} L ${x + 2.2} ${y + 1.3} Q ${x - 1} ${y + 3.2} ${x - 4.4} ${y} Z`}
+                      fill={inkFill}
+                    />
+                  ) : (
+                    <text x={x} y={y + 4} textAnchor="middle" dominantBaseline="middle" className="font-mono text-[11px] font-bold" fill={inkFill}>
+                      {count}
+                    </text>
+                  )}
+                  {revealed && (
+                    <>
+                      <rect x={plate.x} y={plate.y - (lines.length - 1) * 15} width={plate.width} height={plate.height + (lines.length - 1) * 15} rx="4" fill="var(--color-background)" />
+                      {lines.map((line, index) => (
+                        <text key={line} x={x} y={firstBaseline + index * 15} textAnchor="middle" className="fill-text-primary font-mono text-[12px] font-semibold">{line}</text>
+                      ))}
                     </>
                   )}
                 </g>
