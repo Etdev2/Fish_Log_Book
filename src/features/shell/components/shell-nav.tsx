@@ -11,6 +11,9 @@ import { usePathname } from "next/navigation";
  *
  * Bottom-anchored for one-handed use on a moving boat. Position and appearance are ux-ui's
  * call (ADR 005 §4) — this is a working default, not a design decision defended here.
+ *
+ * Sticky positioning lives on the shell's bottom dock rather than here, so the nav and
+ * the optional quick-mark action are pinned as one unit and cannot overlap each other.
  */
 export const SHELL_ROUTES = [
   { href: "/", label: "Calendar" },
@@ -25,7 +28,7 @@ export function ShellNav() {
   return (
     <nav
       aria-label="Primary"
-      className="sticky bottom-0 border-t border-hairline bg-surface"
+      className="border-t border-hairline bg-surface"
     >
       <ul className="mx-auto flex max-w-3xl">
         {SHELL_ROUTES.map((route) => {

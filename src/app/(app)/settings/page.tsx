@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 import { BackendDiagnostics } from "@/features/settings/components/backend-diagnostics";
+import { QuickMarkToggle } from "@/features/settings/components/quick-mark-toggle";
 import { UnitsToggle } from "@/features/settings/components/units-toggle";
 
 export const metadata: Metadata = { title: "Settings | Fish Log Book" };
@@ -27,6 +28,23 @@ export default function SettingsPage() {
         >
           Open Tackle Box
         </Link>
+      </section>
+
+      {/*
+        Fishing shortcuts: accelerators that stay out of the way until asked for. Off by
+        default, so the app is simple for everyone and fast for the people who want it.
+      */}
+      <section className="rounded-lg border border-hairline bg-surface p-4">
+        <h2 className="text-h3">Fishing shortcuts</h2>
+        <p className="mt-2 mb-4 text-body text-text-muted">
+          Extra one-tap controls for the water. Off by default so they do not take up room
+          you have not asked them to.
+        </p>
+        <QuickMarkToggle />
+        <p className="mt-2 text-caption text-text-muted">
+          Quickly record that something happened while fishing and add the details later.
+          Marks appear in the Fish Log under &ldquo;Needs details&rdquo;.
+        </p>
       </section>
 
       <section className="rounded-lg border border-hairline bg-surface p-4">
