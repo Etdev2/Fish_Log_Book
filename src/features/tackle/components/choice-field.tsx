@@ -3,11 +3,7 @@
 import { useId, useState } from "react";
 
 import { suggestedOptions, type AttributeField } from "../types";
-
-const CHIP_CLASS =
-  "min-h-touch-floor rounded-full border px-4 text-label transition-colors focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-3 focus-visible:outline-focus-ring active:scale-95 motion-reduce:transition-none";
-const CHIP_ON = "border-signal-orange bg-signal-orange text-ink-on-orange";
-const CHIP_OFF = "border-border-interactive text-text-link";
+import { CHIP_CLASS, CHIP_OFF, CHIP_ON } from "../ui-classes";
 
 /**
  * The single repeated field pattern for the Add Gear sheet: a row of common
