@@ -16,20 +16,23 @@ import { usePathname } from "next/navigation";
  * the optional quick-mark action are pinned as one unit and cannot overlap each other.
  */
 /**
- * Five destinations is the ceiling, and this is the fifth. Ordered by how the day runs
- * rather than alphabetically: you plan on the Calendar, rig on Setup, log what you catch,
- * check the Tide, and visit Settings rarely. Setup sits beside Log because the two are
- * used together — configure once, log repeatedly.
+ * Six destinations now, by founder decision (regulations spec §16, 2026-09-01): "Rules"
+ * earns the spot between Tide and Settings because a-law question beats a settings visit
+ * when a fish flops in the well. The old ceiling ("five, and the fifth is the talk")
+ * lived in this comment block and in shell-nav.test.ts; both were updated together —
+ * the guard below is a decision record, not a patch over.
  *
- * At 320px five labels only fit because they are short. "Settings" is the longest and it
- * is the one that could be truncated to an icon first if a sixth ever arrives; adding a
- * sixth is a conversation, not a patch.
+ * "Rules" is deliberately the shortest label: six one-word labels still clear 320px
+ * with min-h-touch-floor taps, which keeps the spec's "must not crowd the bar" clause.
+ * Ordered by how the day runs: plan on the Calendar, rig on Setup, log what you catch,
+ * check the Tide, check the Rules, visit Settings rarely.
  */
 export const SHELL_ROUTES = [
   { href: "/", label: "Calendar" },
   { href: "/setup", label: "Setup" },
   { href: "/log", label: "Log" },
   { href: "/tides", label: "Tide" },
+  { href: "/regulations", label: "Rules" },
   { href: "/settings", label: "Settings" },
 ] as const;
 

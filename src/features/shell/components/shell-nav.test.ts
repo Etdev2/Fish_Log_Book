@@ -9,8 +9,9 @@ describe("shell navigation", () => {
     expect(hrefs.indexOf("/setup")).toBe(hrefs.indexOf("/log") - 1);
   });
 
-  it("stays at five destinations — a sixth needs a decision, not a patch", () => {
-    expect(SHELL_ROUTES.length).toBeLessThanOrEqual(5);
+  it("stays at six destinations — the sixth ('Rules') was the founder's call (spec §16); a seventh still needs a decision, not a patch", () => {
+    expect(SHELL_ROUTES.length).toBeLessThanOrEqual(6);
+    expect(SHELL_ROUTES).toContainEqual({ href: "/regulations", label: "Rules" });
   });
 
   it("links to the tide chart and does not advertise unfinished Spots or the unlinked Learn & Build route", () => {
