@@ -15,6 +15,12 @@ import {
   OUTCOME_LABEL,
   type UnitSystem,
 } from "../format";
+import {
+  STRUCTURE_TYPES,
+  WATER_CLARITIES,
+  WATER_COLORS,
+} from "@/features/setup/vocabulary";
+import { CURRENT_STRENGTH_LABEL, CURRENT_TERM_LABEL } from "./quick-log-sheet";
 import { photosFor } from "../media";
 import { CHIP_CLASS, CHIP_OFF, FOCUS_RING, PRIMARY_BUTTON, SECONDARY_BUTTON } from "../ui-classes";
 
@@ -191,13 +197,55 @@ function DetailBody({
           ) : null}
 
           <Section title="Fishing">
-            <Row label="Depth" value={formatDepth(item.record.depth_fished_m, unitSystem)} />
+            {item.record.rig_slot !== null ? (
+              <Row label="Rod" value={`Rod ${item.record.rig_slot}`} />
+            ) : null}
+            <Row label="Depth fished" value={formatDepth(item.record.depth_fished_m, unitSystem)} />
             <Row label="Presentation" value={item.record.presentation} />
             <Row label="Platform" value={item.record.platform} />
           </Section>
 
           <Section title="Location">
+            <Row label="Where" value={item.record.location_name} />
             <Row label="Spot" value={spotName} />
+            {/* Bottom depth, kept distinct from depth fished above — spec §13. */}
+            <Row label="Water depth" value={formatDepth(item.record.bottom_depth_m, unitSystem)} />
+            <Row
+              label="Current"
+              value={
+                item.record.current_term && item.record.current_term !== "unknown"
+                  ? [
+                      item.record.current_strength && item.record.current_strength !== "none"
+                        ? CURRENT_STRENGTH_LABEL[item.record.current_strength]
+                        : null,
+                      CURRENT_TERM_LABEL[item.record.current_term],
+                    ]
+                      .filter(Boolean)
+                      .join(" ")
+                  : null
+              }
+            />
+            <Row
+              label="Structure"
+              value={
+                item.record.structure_type_ids.length > 0
+                  ? item.record.structure_type_ids
+                      .map((id) => STRUCTURE_TYPES.find((s) => s.id === id)?.label ?? id)
+                      .join(" + ")
+                  : null
+              }
+            />
+            <Row
+              label="Water"
+              value={
+                [
+                  WATER_COLORS.find((c) => c.id === item.record.water_color_id)?.label,
+                  WATER_CLARITIES.find((c) => c.id === item.record.water_clarity_id)?.label,
+                ]
+                  .filter(Boolean)
+                  .join(" / ") || null
+              }
+            />
             {/* Spec §20/§37: coordinates are never rendered. The angler's spots are the
                 most sensitive thing this app holds, and a screen is shoulder-surfable. */}
             <Row

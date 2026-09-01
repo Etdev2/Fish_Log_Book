@@ -18,6 +18,7 @@ export type SyncEntity =
   | "catch"
   | "catch_gear"
   | "condition_snapshot"
+  | "location_condition"
   | "journal_entry"
   | "spot"
   | "tackle_item";

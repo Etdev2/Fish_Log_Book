@@ -7,7 +7,9 @@ import { localDateOf } from "@/core/rules/catch/rules";
 import type {
   CatchGear,
   CatchRecord,
+  LocationConditionRecord,
   RigRecord,
+  SetupGear,
   TripRecord,
 } from "@/core/rules/catch/types";
 import type { SearchableCatch } from "@/core/rules/catch/search";
@@ -43,6 +45,7 @@ export interface LogSnapshot {
   readonly gear: readonly CatchGear[];
   readonly trips: readonly TripRecord[];
   readonly rigs: readonly RigRecord[];
+  readonly locations: readonly LocationConditionRecord[];
   readonly backup: BackupState;
 }
 
@@ -53,6 +56,7 @@ const EMPTY: LogSnapshot = {
   gear: [],
   trips: [],
   rigs: [],
+  locations: [],
   backup: { kind: "backed_up" },
 };
 
@@ -86,11 +90,12 @@ export function hydrate(): Promise<void> {
       return;
     }
     try {
-      const [catches, gear, trips, rigs, mutations] = await Promise.all([
+      const [catches, gear, trips, rigs, locations, mutations] = await Promise.all([
         allRows("catch"),
         allRows("catch_gear"),
         allRows("trip"),
         allRows("trip_rig"),
+        allRows("location_condition"),
         allMutations(),
       ]);
       publish({
@@ -100,6 +105,7 @@ export function hydrate(): Promise<void> {
         gear: gear as unknown as CatchGear[],
         trips: trips as unknown as TripRecord[],
         rigs: rigs as unknown as RigRecord[],
+        locations: locations as unknown as LocationConditionRecord[],
         backup: backupState(mutations),
       });
     } catch {
@@ -174,11 +180,12 @@ async function persist(
 }
 
 async function refresh(): Promise<void> {
-  const [catches, gear, trips, rigs, queued] = await Promise.all([
+  const [catches, gear, trips, rigs, locations, queued] = await Promise.all([
     allRows("catch"),
     allRows("catch_gear"),
     allRows("trip"),
     allRows("trip_rig"),
+    allRows("location_condition"),
     allMutations(),
   ]);
   publish({
@@ -188,6 +195,7 @@ async function refresh(): Promise<void> {
     gear: gear as unknown as CatchGear[],
     trips: trips as unknown as TripRecord[],
     rigs: rigs as unknown as RigRecord[],
+    locations: locations as unknown as LocationConditionRecord[],
     backup: backupState(queued),
   });
 }
@@ -389,6 +397,127 @@ export async function toggleFavorite(catchId: string): Promise<void> {
   );
 }
 
+// --- Setup: rod setups and location conditions ------------------------------------
+
+/**
+ * Save a rod setup as a NEW REVISION rather than an edit (D21a, spec §10).
+ *
+ * This is the mechanism behind "the 8am fish keeps its 40 lb leader". Re-rigging Rod 1
+ * at 10am inserts revision n+1 of slot 1; the 8am catch still points at revision n, and
+ * revision n is never mutated by anybody — not by this function, and not by the server,
+ * where `trip_rig` revokes UPDATE and DELETE outright.
+ *
+ * The consequence worth stating: a typo in a rod's name costs a revision to fix. That is
+ * the price of history that cannot be quietly rewritten, and it is the right trade for
+ * the one table whose whole job is to be trusted later.
+ */
+export async function saveRodSetup(input: {
+  tripId: string;
+  slot: number;
+  name: string | null;
+  setupType: RigRecord["setup_type"];
+  liveBait: boolean;
+  depthM: number | null;
+  gear: readonly SetupGear[];
+  /** Omitted for a brand-new slot; supplied when re-rigging an existing one. */
+  previousRevision?: number;
+}): Promise<RigRecord> {
+  const now = new Date().toISOString();
+  const rig: RigRecord = {
+    id: uuidv7(),
+    angler_id: LOCAL_ANGLER_ID,
+    trip_id: input.tripId,
+    slot: input.slot,
+    name: input.name?.trim() || null,
+    setup_type: input.setupType,
+    revision: (input.previousRevision ?? 0) + 1,
+    effective_from: now,
+    spot_id: null,
+    platform: null,
+    depth_fished_m: input.depthM,
+    live_bait: input.liveBait,
+    gear: input.gear,
+    created_at: now,
+    retired_at: null,
+  };
+  await persist(
+    [{ store: "trip_rig", row: rig as unknown as StoredRow }],
+    [mutation("trip_rig", rig.id, "insert", rig as unknown as Record<string, unknown>, now)],
+  );
+  return rig;
+}
+
+/**
+ * Take a rod out of today's line-up.
+ *
+ * Retiring is itself a new revision, for the same reason as above: the rod was really
+ * fishing this morning, and every catch that came on it must keep saying so.
+ */
+export async function retireRodSetup(rigId: string): Promise<void> {
+  const rig = snapshot.rigs.find((r) => r.id === rigId);
+  if (!rig || rig.retired_at !== null) return;
+  const now = new Date().toISOString();
+  const retired: RigRecord = {
+    ...rig,
+    id: uuidv7(),
+    revision: rig.revision + 1,
+    effective_from: now,
+    created_at: now,
+    retired_at: now,
+  };
+  await persist(
+    [{ store: "trip_rig", row: retired as unknown as StoredRow }],
+    [mutation("trip_rig", retired.id, "insert", retired as unknown as Record<string, unknown>, now)],
+  );
+}
+
+/**
+ * Save a location's observed conditions.
+ *
+ * Mutable, unlike a rod setup — this describes the place as it is right now, and the
+ * history lives on each catch's own copy (see `applyLocation`). Editing "West End" at
+ * noon is a correction to the present, not a rewrite of the morning.
+ */
+export async function saveLocation(
+  input: Omit<LocationConditionRecord, "id" | "angler_id" | "created_at" | "client_updated_at" | "deleted_at">,
+  id?: string,
+): Promise<LocationConditionRecord> {
+  const now = new Date().toISOString();
+  const existing = id ? snapshot.locations.find((l) => l.id === id) : undefined;
+  const record: LocationConditionRecord = {
+    ...input,
+    id: existing?.id ?? uuidv7(),
+    angler_id: LOCAL_ANGLER_ID,
+    created_at: existing?.created_at ?? now,
+    client_updated_at: now,
+    deleted_at: null,
+  };
+  const patch = existing
+    ? changedFields(
+        existing as unknown as Record<string, unknown>,
+        record as unknown as Record<string, unknown>,
+      )
+    : (record as unknown as Record<string, unknown>);
+  await persist(
+    [{ store: "location_condition", row: record as unknown as StoredRow }],
+    [mutation("location_condition", record.id, existing ? "patch" : "insert", patch, now)],
+  );
+  return record;
+}
+
+export async function deleteLocation(id: string): Promise<void> {
+  const record = snapshot.locations.find((l) => l.id === id);
+  if (!record) return;
+  const now = new Date().toISOString();
+  await persist(
+    [{
+      store: "location_condition",
+      row: { ...record, deleted_at: now, client_updated_at: now } as unknown as StoredRow,
+    }],
+    [mutation("location_condition", id, "delete", {}, now)],
+  );
+}
+
 /**
  * Persist a conditions snapshot and queue it. Separate from `saveCatch` because it runs
  * after the catch is already durable — it must never be able to roll one back.
@@ -411,4 +540,8 @@ export const logActions = Object.freeze({
   toggleFavorite,
   startTrip,
   endTrip,
+  saveRodSetup,
+  retireRodSetup,
+  saveLocation,
+  deleteLocation,
 });

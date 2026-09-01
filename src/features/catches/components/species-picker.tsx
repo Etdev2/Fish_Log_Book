@@ -34,6 +34,12 @@ export function SpeciesPicker({
   const [query, setQuery] = useState("");
   const [otherOpen, setOtherOpen] = useState(selectedOther !== null);
   const [otherText, setOtherText] = useState(selectedOther ?? "");
+  // Once a species is chosen the list collapses to the answer.
+  //
+  // Not decoration: the full list is a dozen chips tall, which pushed Rod, Where and
+  // Save below the fold and turned a four-tap flow into a scroll. Picking is still one
+  // tap from a visible list; the moment it is answered the question gets out of the way.
+  const [picking, setPicking] = useState(true);
 
   const recent = useMemo(
     () => recentIds.map((id) => speciesById(id)).filter((s): s is Species => s !== null),
@@ -64,6 +70,30 @@ export function SpeciesPicker({
   }, [recentIds]);
 
   const showing = query.trim() !== "" ? results : null;
+  const chosen = speciesById(selectedId);
+
+  const choose = (id: string) => {
+    onSelect(id);
+    setPicking(false);
+  };
+
+  if (!picking && (chosen || selectedOther)) {
+    return (
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex min-w-0 flex-col">
+          <span className="text-label text-text-muted">Species</span>
+          <span className="truncate text-h3">{chosen?.commonName ?? selectedOther}</span>
+        </div>
+        <button
+          type="button"
+          onClick={() => setPicking(true)}
+          className={`${CHIP_CLASS} ${CHIP_OFF} shrink-0`}
+        >
+          Change
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col gap-3">
@@ -93,14 +123,14 @@ export function SpeciesPicker({
               heading="Recent"
               species={recent}
               selectedId={selectedId}
-              onSelect={onSelect}
+              onSelect={choose}
             />
           ) : null}
           <SpeciesChips
             heading={recent.length > 0 ? "Common" : "Species"}
             species={common}
             selectedId={selectedId}
-            onSelect={onSelect}
+            onSelect={choose}
           />
           {/* Everything else is one tap away, so a species that is merely uncommon never
               requires typing on a wet screen. */}
@@ -115,7 +145,7 @@ export function SpeciesPicker({
                 heading="Everything else"
                 species={rest}
                 selectedId={selectedId}
-                onSelect={onSelect}
+                onSelect={choose}
               />
             </div>
           </details>
@@ -139,7 +169,12 @@ export function SpeciesPicker({
                 type="text"
                 value={otherText}
                 onChange={(event) => setOtherText(event.target.value)}
-                onBlur={() => otherText.trim() && onSelectOther(otherText.trim())}
+                onBlur={() => {
+                  if (otherText.trim()) {
+                    onSelectOther(otherText.trim());
+                    setPicking(false);
+                  }
+                }}
                 placeholder="e.g. something long and silver"
                 className={INPUT_CLASS}
               />
