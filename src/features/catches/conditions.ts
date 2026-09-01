@@ -33,6 +33,18 @@ export interface SnapshotInput {
   readonly waterClass: "salt" | "fresh";
   readonly lat: number | null;
   readonly lng: number | null;
+  /**
+   * Anything the angler typed themselves (founder §2: water temp, pressure, wind are
+   * optional manual fields). Manual values are observations with a name — they carry
+   * their own provenance line so a future analytics pass never mistakes them for an
+   * instrument reading or a server fetch.
+   */
+  readonly manualEnvironment?: {
+    readonly waterTempC: number | null;
+    readonly pressureHpa: number | null;
+    readonly windSpeedMs: number | null;
+    readonly windDirDeg: number | null;
+  } | null;
 }
 
 export interface ConditionSnapshotRecord {
@@ -52,6 +64,24 @@ export interface ConditionSnapshotRecord {
   readonly minutes_from_sunrise: number | null;
   readonly minutes_from_sunset: number | null;
   readonly day_of_year: number | null;
+  // Founder §2 manual fields (canonical SI). Null = "not entered", never a guess.
+  readonly water_temp_c: number | null;
+  readonly pressure_hpa: number | null;
+  readonly wind_speed_ms: number | null;
+  readonly wind_dir_deg: number | null;
+  // Tide at the catch (founder §6): filled ONCE from the cached on-device tide series,
+  // only when the catch moment sits inside that series' window and the water is salt.
+  // Null means "not filled" — never "neap", never "calm", never a guess (spec §19:
+  // nothing is slack that was not measured).
+  readonly tide_height_m: number | null;
+  readonly tide_rate_m_per_hr: number | null;
+  readonly tide_state: "flood" | "ebb" | "slack" | null;
+  readonly tide_pct_through_cycle: number | null;
+  readonly twelfths_hour: 1 | 2 | 3 | 4 | 5 | 6 | null;
+  readonly tide_range_m: number | null;
+  // [minutesFromCatch, heightM] pairs, ±3h at 15-minute steps. Stored so the Catch
+  // Detail mini-chart never recomputes at view time.
+  readonly tide_curve: readonly (readonly [number, number])[] | null;
   readonly enrichment_status: "pending" | "partial";
   readonly snapshot_basis: "observed" | "historical_reconstruction";
   readonly provenance: Record<string, unknown>;
@@ -85,6 +115,17 @@ export function buildCatchSnapshot(
   const now = new Date().toISOString();
   const observedMs = Date.parse(input.observedAt);
   const hasFix = input.lat !== null && input.lng !== null && Number.isFinite(observedMs);
+  const manual = input.manualEnvironment ?? null;
+  const manualFields = {
+    water_temp_c: manual?.waterTempC ?? null,
+    pressure_hpa: manual?.pressureHpa ?? null,
+    wind_speed_ms: manual?.windSpeedMs ?? null,
+    wind_dir_deg: manual?.windDirDeg ?? null,
+  };
+  const manualNote =
+    manual && Object.values(manual).some((v) => v !== null)
+      ? "entered by the angler at log time"
+      : null;
 
   const base = {
     id: uuidv7(),
@@ -100,6 +141,16 @@ export function buildCatchSnapshot(
       captureMode === "backfill"
         ? ("historical_reconstruction" as const)
         : ("observed" as const),
+    // Tide fill is a separate pass (conditions feature): the snapshot is written
+    // honest-but-pending here, and the tide columns stay null until the cached series
+    // actually covers this moment.
+    tide_height_m: null,
+    tide_rate_m_per_hr: null,
+    tide_state: null,
+    tide_pct_through_cycle: null,
+    twelfths_hour: null,
+    tide_range_m: null,
+    tide_curve: null,
     created_at: now,
     deleted_at: null,
   };
@@ -117,7 +168,11 @@ export function buildCatchSnapshot(
       minutes_from_sunset: null,
       day_of_year: Number.isFinite(observedMs) ? dayOfYear(new Date(observedMs)) : null,
       enrichment_status: "pending",
-      provenance: { astro: "skipped: no position fix at the moment of the catch" },
+      provenance: {
+        astro: "skipped: no position fix at the moment of the catch",
+        ...(manualNote ? { manual: manualNote } : {}),
+      },
+      ...manualFields,
     };
   }
 
@@ -148,8 +203,10 @@ export function buildCatchSnapshot(
     enrichment_status: "partial",
     provenance: {
       astro: "computed on device (D25)",
-      tide: "pending: server enrichment (PLAN.md §1)",
+      tide: "pending: cached tide engine fill (on device when in window)",
       weather: "pending: server enrichment (PLAN.md §1)",
+      ...(manualNote ? { manual: manualNote } : {}),
     },
+    ...manualFields,
   };
 }

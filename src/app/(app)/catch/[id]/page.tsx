@@ -1,12 +1,17 @@
 import type { Metadata } from "next";
 
+import { CatchDetailClient } from "./catch-detail-client";
+
+type Params = Promise<{ id: string }>;
+
 export const metadata: Metadata = { title: "Catch | Fish Log Book" };
 
-export default function Page() {
-  return (
-    <section className="rounded-lg border border-hairline bg-surface p-4">
-      <h1 className="text-h1">Catch</h1>
-      <p className="mt-3 text-body text-text-muted">One catch, including resolving a quick mark into a species (D22).</p>
-    </section>
-  );
+/**
+ * Catch Detail (founder Historical spec §3): Calendar → Day → Catch → here.
+ * The id is device data; unknown ids get an honest "no such catch", not a 404 —
+ * the record may simply not be synced to this device.
+ */
+export default async function CatchPage({ params }: { params: Params }) {
+  const { id } = await params;
+  return <CatchDetailClient catchId={id} unitSystem="imperial" />;
 }

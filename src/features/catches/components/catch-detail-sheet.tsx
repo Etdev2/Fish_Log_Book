@@ -41,6 +41,7 @@ export function CatchDetailSheet({
   onClose,
   onDelete,
   onDuplicate,
+  onEdit,
   onToggleFavorite,
   onResolve,
 }: {
@@ -50,6 +51,8 @@ export function CatchDetailSheet({
   onClose: () => void;
   onDelete: (id: string) => void;
   onDuplicate: (item: SearchableCatch) => void;
+  /** Historical spec §3: rewrite this catch in place via the log sheet. */
+  onEdit: (item: SearchableCatch) => void;
   onToggleFavorite: (id: string) => void;
   onResolve: (item: SearchableCatch) => void;
 }) {
@@ -85,6 +88,7 @@ export function CatchDetailSheet({
           onClose={onClose}
           onDelete={onDelete}
           onDuplicate={onDuplicate}
+          onEdit={onEdit}
           onToggleFavorite={onToggleFavorite}
           onResolve={onResolve}
         />
@@ -144,6 +148,7 @@ function DetailBody({
   onClose,
   onDelete,
   onDuplicate,
+  onEdit,
   onToggleFavorite,
   onResolve,
 }: {
@@ -153,6 +158,7 @@ function DetailBody({
   onClose: () => void;
   onDelete: (id: string) => void;
   onDuplicate: (item: SearchableCatch) => void;
+  onEdit: (item: SearchableCatch) => void;
   onToggleFavorite: (id: string) => void;
   onResolve: (item: SearchableCatch) => void;
 }) {
@@ -272,6 +278,15 @@ function DetailBody({
             {item.record.resolution_state === "unresolved" ? (
               <button type="button" onClick={() => onResolve(item)} className={PRIMARY_BUTTON}>
                 Say what this was
+              </button>
+            ) : null}
+            {item.record.resolution_state === "confirmed" ? (
+              <button
+                type="button"
+                onClick={() => onEdit(item)}
+                className={SECONDARY_BUTTON}
+              >
+                Edit this catch
               </button>
             ) : null}
             <button

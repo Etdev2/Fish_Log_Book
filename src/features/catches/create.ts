@@ -59,6 +59,11 @@ export interface CatchDraft {
   readonly photos: readonly File[];
   /** Set when editing or when the angler corrected the time; otherwise now. */
   readonly caughtAt?: string;
+  /** Angler-entered conditions (founder §2). Canonical SI; each optional. */
+  readonly waterTempC?: number | null;
+  readonly pressureHpa?: number | null;
+  readonly windSpeedMs?: number | null;
+  readonly windDirDeg?: number | null;
 }
 
 /**
@@ -99,6 +104,55 @@ export function draftGearFrom(gear: readonly CatchGear[]): CatchDraft["gear"] {
   }));
 }
 
+/**
+ * Record + its gear rows → the editable draft (founder Historical spec §3: existing
+ * catches ARE editable). The inverse of the save path, written out field by field for
+ * the same reason `draftFromRepeatSeed` is: a spread silently drops fields.
+ */
+export function draftFromRecord(
+  record: CatchRecord,
+  gear: readonly CatchGear[],
+  /**
+   * The record's snapshot manual-environment values, if the caller has them: editing
+   * round-trips them so an untouched "Conditions at the catch" block does not silently
+   * blank the angler's earlier entries on save. SI units, same as the draft fields.
+   */
+  snapshotEnv?: {
+    readonly waterTempC: number | null;
+    readonly pressureHpa: number | null;
+    readonly windSpeedMs: number | null;
+    readonly windDirDeg: number | null;
+  } | null,
+): CatchDraft {
+  return {
+    speciesId: record.species_id,
+    speciesOther: record.species_other,
+    quantity: record.quantity ?? 1,
+    weightG: record.weight_g,
+    lengthMm: record.length_mm,
+    sizeEstimated: record.size_estimated,
+    depthM: record.depth_fished_m,
+    disposition: record.disposition,
+    outcome: (record.outcome ?? "landed") as Outcome,
+    presentation: record.presentation,
+    notes: record.notes,
+    tags: record.tags,
+    gear: gear
+      .filter((g) => g.catch_id === record.id && g.deleted_at === null)
+      .map((g) => ({ role: g.role, label: g.label, detail: g.detail, tackleItemId: g.tackle_item_id })),
+    /** The catch's rig row is history; re-selecting changes it. Wire the id through so
+     *  the sheet can show what this fish actually came on. */
+    rodSetupId: record.rig_id,
+    locationId: record.location_condition_id,
+    photos: [],
+    caughtAt: record.caught_at,
+    waterTempC: snapshotEnv?.waterTempC ?? null,
+    pressureHpa: snapshotEnv?.pressureHpa ?? null,
+    windSpeedMs: snapshotEnv?.windSpeedMs ?? null,
+    windDirDeg: snapshotEnv?.windDirDeg ?? null,
+  };
+}
+
 export const EMPTY_DRAFT: CatchDraft = {
   speciesId: null,
   speciesOther: null,
@@ -116,6 +170,10 @@ export const EMPTY_DRAFT: CatchDraft = {
   rodSetupId: null,
   locationId: null,
   photos: [],
+  waterTempC: null,
+  pressureHpa: null,
+  windSpeedMs: null,
+  windDirDeg: null,
 };
 
 /**
@@ -252,6 +310,20 @@ export interface LogResult {
 }
 
 /**
+ * D24 honesty at row level: a catch typed in for another day is a reconstruction entry,
+ * not a live one — `capture_mode = 'backfill'` and the snapshot carries the matching
+ * `snapshot_basis` downstream. Days are compared in the angler's own zone: 23:30 UTC on
+ * the west coast is still "this afternoon" to the person holding the rod.
+ */
+export function captureModeFor(
+  caughtAtIso: string,
+  nowIso: string,
+  zone: string,
+): "live" | "backfill" {
+  return localDateOf(caughtAtIso, zone) !== localDateOf(nowIso, zone) ? "backfill" : "live";
+}
+
+/**
  * Log a catch. Resolves once the row is durable locally — not once it is synced.
  *
  * `position` is passed in rather than fetched here so the caller can start the GPS
@@ -267,6 +339,7 @@ export async function logCatch(
   const nowIso = now.toISOString();
   const caughtAt = draft.caughtAt ?? nowIso;
   const zone = currentZone();
+  const isBackfill = captureModeFor(caughtAt, nowIso, zone) === "backfill";
   const tripId = await tripForCatch(state, caughtAt);
   const catchId = uuidv7();
 
@@ -332,7 +405,7 @@ export async function logCatch(
     notes: draft.notes,
     tags: draft.tags,
     favorite: false,
-    capture_mode: "live",
+    capture_mode: isBackfill ? "backfill" : "live",
     client_created_at: nowIso,
     created_at: nowIso,
     client_updated_at: nowIso,
@@ -343,7 +416,7 @@ export async function logCatch(
 
   // Both of these run after the catch is durable and neither can undo it (spec §21).
   if (draft.photos.length > 0) await attachPhotos(catchId, draft.photos);
-  await attachSnapshot(record);
+  await attachSnapshot(record, draft);
 
   return { catchId, tripId };
 }
@@ -365,6 +438,96 @@ export async function logCatch(
  * D22's one-way rule still holds: this moves `unresolved -> confirmed` and there is no
  * path back.
  */
+/**
+ * Edit in place (Historical spec §3). Everything the sheet can say is rewritten from the
+ * draft; everything it cannot — id, trip, creation stamps, the position fix — is kept
+ * exactly. `client_updated_at` moves; provenance fields (`capture_mode`, the snapshot's
+ * basis) do not: editing a backfilled catch does not turn it into a live one, and the
+ * outbox patch carries only changed fields (ADR 004 §3).
+ */
+export async function updateCatchFromDraft(
+  state: LogSnapshot,
+  existing: CatchRecord,
+  draft: CatchDraft,
+): Promise<void> {
+  const nowIso = new Date().toISOString();
+  const zone = currentZone();
+  const caughtAt = draft.caughtAt ?? existing.caught_at;
+
+  const rig =
+    (draft.rodSetupId
+      ? (state.rigs.find((r) => r.id === draft.rodSetupId) ?? null)
+      : null) ?? latestRigOf(state, existing.trip_id);
+  const location = draft.locationId
+    ? (state.locations.find((l) => l.id === draft.locationId && l.deleted_at === null) ?? null)
+    : null;
+
+  const typedGear = gearRows({ ...draft }, existing.id, nowIso);
+  const inherited = applyRig(
+    { depth_fished_m: draft.depthM, gear: typedGear },
+    rig,
+    existing.id,
+    nowIso,
+  );
+  const observed = applyLocation(location);
+
+  const record: CatchRecord = {
+    ...existing,
+    caught_at: caughtAt,
+    caught_tz: zone,
+    local_date: localDateOf(caughtAt, zone),
+    species_id: draft.speciesId,
+    species_other: draft.speciesOther,
+    outcome: draft.outcome,
+    disposition: draft.disposition,
+    quantity: draft.quantity,
+    length_mm: draft.lengthMm,
+    weight_g: draft.weightG,
+    size_estimated: draft.sizeEstimated,
+    spot_id: observed.spot_id ?? inherited.spot_id,
+    platform: inherited.platform,
+    depth_fished_m: inherited.depth_fished_m,
+    rig_id: inherited.rig_id,
+    rig_revision: inherited.rig_revision,
+    rig_slot: inherited.rig_slot,
+    inherited_fields: inherited.inherited_fields,
+    location_condition_id: observed.location_condition_id,
+    location_name: observed.location_name,
+    current_term: observed.current_term,
+    current_strength: observed.current_strength,
+    structure_type_ids: observed.structure_type_ids,
+    bottom_depth_m: observed.bottom_depth_m,
+    water_color_id: observed.water_color_id,
+    water_clarity_id: observed.water_clarity_id,
+    presentation: draft.presentation,
+    notes: draft.notes,
+    tags: draft.tags,
+    client_updated_at: nowIso,
+  };
+
+  await saveCatch({ record, gear: typedGear, isNew: false });
+
+  // Manual environment edits patch the snapshot too, like a fix arriving late (D24):
+  // the snapshot row is the record's weather page, and editing the catch edits its page.
+  const snapshot = state.snapshots.find((s) => s.catch_id === existing.id && s.deleted_at === null);
+  const manualEnv = {
+    waterTempC: draft.waterTempC ?? null,
+    pressureHpa: draft.pressureHpa ?? null,
+    windSpeedMs: draft.windSpeedMs ?? null,
+    windDirDeg: draft.windDirDeg ?? null,
+  };
+  if (snapshot && Object.values(manualEnv).some((v) => v !== null)) {
+    await saveConditionSnapshot({
+      ...(snapshot as unknown as Record<string, unknown>),
+      water_temp_c: manualEnv.waterTempC,
+      pressure_hpa: manualEnv.pressureHpa,
+      wind_speed_ms: manualEnv.windSpeedMs,
+      wind_dir_deg: manualEnv.windDirDeg,
+      client_updated_at: nowIso,
+    } as unknown as { id: string } & Record<string, unknown>);
+  }
+}
+
 export async function resolveMark(
   state: LogSnapshot,
   markId: string,
@@ -529,7 +692,10 @@ export async function logQuickMark(state: LogSnapshot): Promise<LogResult> {
  * explicit that a failed secondary service must never cost the angler the catch, and
  * the catch is already durable by the time this runs.
  */
-async function attachSnapshot(record: CatchRecord): Promise<void> {
+async function attachSnapshot(
+  record: CatchRecord,
+  draft?: CatchDraft,
+): Promise<void> {
   try {
     const snapshot = buildCatchSnapshot(
       {
@@ -539,6 +705,18 @@ async function attachSnapshot(record: CatchRecord): Promise<void> {
         waterClass: "salt",
         lat: record.lat,
         lng: record.lng,
+        manualEnvironment:
+          draft &&
+          [draft.waterTempC, draft.pressureHpa, draft.windSpeedMs, draft.windDirDeg].some(
+            (v) => v !== null && v !== undefined,
+          )
+            ? {
+                waterTempC: draft.waterTempC ?? null,
+                pressureHpa: draft.pressureHpa ?? null,
+                windSpeedMs: draft.windSpeedMs ?? null,
+                windDirDeg: draft.windDirDeg ?? null,
+              }
+            : null,
       },
       record.capture_mode,
     );

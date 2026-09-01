@@ -3,8 +3,14 @@
 import { type FormEvent, useEffect, useRef, useState } from "react";
 
 import {
+  celsiusToFahrenheit,
   depthToMetres,
+  fahrenheitToCelsius,
+  hpaToInHg,
+  inHgToHpa,
+  knotsToMps,
   lengthToMillimetres,
+  mpsToKnots,
   parseMeasurement,
   weightToGrams,
   type DepthUnit,
@@ -30,6 +36,7 @@ import {
   SECONDARY_BUTTON,
 } from "../ui-classes";
 import { MeasurementField } from "./measurement-field";
+import { useNow } from "@/lib/time/use-now";
 import { SpeciesPicker } from "./species-picker";
 
 /**
@@ -61,6 +68,10 @@ export type LogRequest = {
    * updates that mark in place instead of writing a new catch (spec §5).
    */
   resolveId?: string;
+  /** Calendar backfill (founder Historical §1): the day the sheet should open on. */
+  backfillDateKey?: string;
+  /** Editing an existing catch (Historical §3): save rewrites that row in place. */
+  editId?: string;
 };
 
 const DISPOSITIONS: readonly { id: Disposition; label: string }[] = [
@@ -175,6 +186,50 @@ function LogForm({
     seed?.locationId ?? (locations.length === 1 ? locations[0].id : null),
   );
 
+  // When (founder Historical §1): always visible but costs nothing until touched —
+  // default "today, now" (or the calendar day the sheet was opened from), never a
+  // required decision between the angler and Save.
+  const [initialWhen] = useState(() => {
+    const fromSeed = seed?.caughtAt ? new Date(seed.caughtAt) : null;
+    const now = new Date();
+    if (fromSeed && !Number.isNaN(fromSeed.getTime())) {
+      const pad = (n: number) => String(n).padStart(2, "0");
+      return `${fromSeed.getFullYear()}-${pad(fromSeed.getMonth() + 1)}-${pad(fromSeed.getDate())}T${pad(fromSeed.getHours())}:${pad(fromSeed.getMinutes())}`;
+    }
+    if (request.backfillDateKey) {
+      // The day is chosen; the clock time defaults to midday so nobody saves "midnight"
+      // by accident while backfilling last Saturday.
+      return `${request.backfillDateKey}T12:00`;
+    }
+    const pad = (n: number) => String(n).padStart(2, "0");
+    return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}T${pad(now.getHours())}:${pad(now.getMinutes())}`;
+  });
+  const [when, setWhen] = useState(initialWhen);
+  const whenMs = Date.parse(when);
+  const whenValid = !Number.isNaN(whenMs);
+  // useNow is the only honest wall-clock in the house (ADR 006 §7); null until hydrated,
+  // which conveniently means "no future-warning" during SSR/first paint.
+  const now = useNow();
+  const whenFuture = whenValid && now !== null && whenMs > Number(now) + 15 * 60_000;
+
+  // Optional conditions (Historical §2): typed in display units, stored SI. Seeded from
+  // the edit draft (which carries SI back from the record's snapshot) so an untouched
+  // block round-trips unchanged, and clearing a field truly clears it on save.
+  const [waterTemp, setWaterTemp] = useState(() =>
+    seed?.waterTempC != null
+      ? String(Math.round((unitSystem === "metric" ? seed.waterTempC : celsiusToFahrenheit(seed.waterTempC)) * 10) / 10)
+      : "",
+  );
+  const [pressure, setPressure] = useState(() =>
+    seed?.pressureHpa != null
+      ? String(Math.round((unitSystem === "metric" ? seed.pressureHpa : hpaToInHg(seed.pressureHpa)) * 100) / 100)
+      : "",
+  );
+  const [windSpeed, setWindSpeed] = useState(() =>
+    seed?.windSpeedMs != null ? String(Math.round(mpsToKnots(seed.windSpeedMs) * 10) / 10) : "",
+  );
+  const [windDirDeg, setWindDirDeg] = useState<number | null>(seed?.windDirDeg ?? null);
+
   const build = (): CatchDraft => {
     const weightValue = parseMeasurement(weight);
     const lengthValue = parseMeasurement(length);
@@ -198,11 +253,23 @@ function LogForm({
       rodSetupId,
       locationId,
       photos,
+      caughtAt: whenValid ? new Date(whenMs).toISOString() : undefined,
+      waterTempC: typeof parseMeasurement(waterTemp) === "number"
+        ? (unitSystem === "metric" ? (parseMeasurement(waterTemp) as number) : fahrenheitToCelsius(parseMeasurement(waterTemp) as number))
+        : null,
+      pressureHpa: typeof parseMeasurement(pressure) === "number"
+        ? (unitSystem === "metric" ? (parseMeasurement(pressure) as number) : inHgToHpa(parseMeasurement(pressure) as number))
+        : null,
+      windSpeedMs: typeof parseMeasurement(windSpeed) === "number"
+        ? knotsToMps(parseMeasurement(windSpeed) as number)
+        : null,
+      windDirDeg,
     };
   };
 
   const submit = (event: FormEvent, andAnother: boolean) => {
     event.preventDefault();
+    if (!whenValid || whenFuture) return;
     onSave(build(), andAnother);
   };
 
@@ -221,6 +288,25 @@ function LogForm({
       </div>
 
       {request.note ? <p className="text-caption text-text-muted">{request.note}</p> : null}
+
+      <div className="flex flex-col gap-1">
+        <label className="flex flex-col gap-2">
+          <span className="text-label text-text-muted">
+            {request.backfillDateKey ? "When was it caught?" : "When?"}
+          </span>
+          <input
+            type="datetime-local"
+            value={when}
+            onChange={(event) => setWhen(event.target.value)}
+            className={INPUT_CLASS}
+          />
+        </label>
+        {whenFuture ? (
+          <p className="text-caption text-amber-flag">
+            That looks like the future — pick the real catch time. Save stays off until it is honest.
+          </p>
+        ) : null}
+      </div>
 
       <SpeciesPicker
         recentIds={recentSpeciesIds}
@@ -314,6 +400,58 @@ function LogForm({
             onUnitChange={(next) => setDepthUnit(next as DepthUnit)}
             placeholder="250"
           />
+
+          <fieldset className="flex flex-col gap-3 rounded-md border border-hairline p-3">
+            <legend className="text-label text-text-muted">Conditions at the catch (optional)</legend>
+            <div className="grid grid-cols-2 gap-3">
+              <MeasurementField
+                label="Water temp"
+                value={waterTemp}
+                onChange={setWaterTemp}
+                units={[unitSystem === "metric" ? "°C" : "°F"]}
+                unit={unitSystem === "metric" ? "°C" : "°F"}
+                onUnitChange={() => undefined}
+                placeholder={unitSystem === "metric" ? "18" : "64"}
+              />
+              <MeasurementField
+                label="Air pressure"
+                value={pressure}
+                onChange={setPressure}
+                units={[unitSystem === "metric" ? "hPa" : "inHg"]}
+                unit={unitSystem === "metric" ? "hPa" : "inHg"}
+                onUnitChange={() => undefined}
+                placeholder={unitSystem === "metric" ? "1013" : "29.92"}
+              />
+              <MeasurementField
+                label="Wind (knots)"
+                value={windSpeed}
+                onChange={setWindSpeed}
+                units={["kt"]}
+                unit="kt"
+                onUnitChange={() => undefined}
+                placeholder="8"
+              />
+              <label className="flex flex-col gap-2">
+                <span className="text-label text-text-muted">Wind from</span>
+                <select
+                  value={windDirDeg ?? ""}
+                  onChange={(event) =>
+                    setWindDirDeg(event.target.value === "" ? null : Number(event.target.value))
+                  }
+                  className={`${INPUT_CLASS} min-h-touch-floor`}
+                >
+                  <option value="">—</option>
+                  {[0, 22.5, 45, 67.5, 90, 112.5, 135, 157.5, 180, 202.5, 225, 247.5, 270, 292.5, 315, 337.5].map(
+                    (deg, i) => (
+                      <option key={deg} value={deg}>
+                        {["N","NNE","NE","ENE","E","ESE","SE","SSE","S","SSW","SW","WSW","W","WNW","NW","NNW"][i]}
+                      </option>
+                    ),
+                  )}
+                </select>
+              </label>
+            </div>
+          </fieldset>
 
           <div className="flex flex-col gap-2">
             <span className="text-label text-text-muted">Quantity</span>
