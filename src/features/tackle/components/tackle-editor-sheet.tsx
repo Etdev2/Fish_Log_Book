@@ -2,64 +2,95 @@
 
 import { type FormEvent, useEffect, useRef, useState } from "react";
 
-import { LURE_CLASSES, type TackleDraft, type WaterClass } from "../types";
+import {
+  categoryFor,
+  clampQuantity,
+  retainedAttributes,
+  TACKLE_CATEGORIES,
+  type CategoryId,
+  type RecentsMap,
+  type TackleDraft,
+  type TackleItem,
+} from "../types";
+import { ChoiceField } from "./choice-field";
+import { QuantityStepper } from "./quantity-stepper";
 
-const EMPTY_DRAFT: TackleDraft = {
+/** What the sheet should show; null means closed. One dialog, three entry stories:
+ *  fresh add, add pre-filled (last add / duplicate), and edit. The key remounts
+ *  the form so each request starts from its own source with no reset effect. */
+export type EditorRequest = { key: string } & (
+  | { kind: "add"; prefill: TackleDraft | null; note: string | null }
+  | { kind: "edit"; item: TackleItem }
+);
+
+type DraftState = {
+  category: CategoryId | null;
+  label: string;
+  quantity: number;
+  lowStockAt: number | null;
+  attributes: Record<string, string>;
+  notes: string;
+  isFavorite: boolean;
+};
+
+const EMPTY_DRAFT: DraftState = {
+  category: null,
   label: "",
-  lureClass: "",
-  waterClass: "both",
-  color: "",
-  sizeLabel: "",
+  quantity: 1,
+  lowStockAt: null,
+  attributes: {},
+  notes: "",
   isFavorite: false,
 };
 
+function draftFrom(request: Exclude<EditorRequest, null>): DraftState {
+  if (request.kind === "edit") {
+    const { category, label, quantity, lowStockAt, attributes, notes, isFavorite } = request.item;
+    return { category, label, quantity, lowStockAt, attributes: { ...attributes }, notes: notes ?? "", isFavorite };
+  }
+  if (request.prefill) {
+    return {
+      ...request.prefill,
+      attributes: { ...request.prefill.attributes },
+      notes: request.prefill.notes ?? "",
+    };
+  }
+  return EMPTY_DRAFT;
+}
+
+const FOCUS_RING =
+  "focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-3 focus-visible:outline-focus-ring";
+const INPUT_CLASS = `min-h-touch-floor rounded-md border border-border-interactive bg-background px-4 text-body text-text-primary placeholder:text-text-muted ${FOCUS_RING}`;
+const CHIP_CLASS = `min-h-touch-floor rounded-full border px-4 text-label transition-colors ${FOCUS_RING} active:scale-95 motion-reduce:transition-none`;
+const CHIP_ON = "border-signal-orange bg-signal-orange text-ink-on-orange";
+const CHIP_OFF = "border-border-interactive text-text-link";
+
 export function TackleEditorSheet({
-  open,
+  request,
+  recents,
   onClose,
-  onCreate,
+  onSave,
+  onDuplicate,
+  onDelete,
 }: {
-  open: boolean;
+  request: EditorRequest | null;
+  recents: RecentsMap;
   onClose: () => void;
-  onCreate: (draft: TackleDraft) => void;
+  onSave: (draft: TackleDraft, id?: string) => void;
+  onDuplicate: (item: TackleItem) => void;
+  onDelete: (id: string) => void;
 }) {
   const dialogRef = useRef<HTMLDialogElement>(null);
-  const nameRef = useRef<HTMLInputElement>(null);
-  const [draft, setDraft] = useState<TackleDraft>(EMPTY_DRAFT);
-  const [submitted, setSubmitted] = useState(false);
+  const open = request !== null;
 
   useEffect(() => {
     const dialog = dialogRef.current;
     if (!dialog) return;
     if (open && !dialog.open) {
       dialog.showModal();
-      window.requestAnimationFrame(() => nameRef.current?.focus());
     }
     if (!open && dialog.open) dialog.close();
   }, [open]);
-
-  function close() {
-    setSubmitted(false);
-    setDraft(EMPTY_DRAFT);
-    onClose();
-  }
-
-  function selectClass(lureClass: string, waterClass: WaterClass) {
-    setDraft((current) => ({ ...current, lureClass, waterClass }));
-  }
-
-  function submit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    setSubmitted(true);
-    if (!draft.label.trim() || !draft.lureClass) return;
-
-    onCreate({
-      ...draft,
-      label: draft.label.trim(),
-      color: draft.color?.trim(),
-      sizeLabel: draft.sizeLabel?.trim(),
-    });
-    close();
-  }
 
   return (
     <dialog
@@ -67,142 +98,321 @@ export function TackleEditorSheet({
       aria-labelledby="tackle-editor-title"
       onCancel={(event) => {
         event.preventDefault();
-        close();
+        onClose();
       }}
       onClose={() => {
         if (open) onClose();
       }}
       className="m-auto max-h-dvh w-full max-w-reading border-0 bg-transparent p-0 text-text-primary backdrop:bg-background/80"
     >
-      <form
-        onSubmit={submit}
-        className="max-h-dvh overflow-y-auto rounded-t-xl border border-border-interactive bg-surface-raised p-4 shadow-2xl motion-reduce:transition-none"
-      >
-        <div className="flex items-start justify-between gap-3">
-          <div>
-            <p className="text-caption font-bold tracking-station text-tide-cyan">SESSION-ONLY</p>
-            <h2 id="tackle-editor-title" className="mt-1 text-h2">Add a lure</h2>
-          </div>
-          <button
-            type="button"
-            onClick={close}
-            className="inline-flex min-h-touch-floor items-center justify-center rounded-md border border-border-interactive px-4 text-label text-text-link focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-3 focus-visible:outline-focus-ring active:scale-95"
-          >
-            Close
-          </button>
-        </div>
+      {request ? (
+        <EditorForm
+          key={request.key}
+          request={request}
+          recents={recents}
+          onClose={onClose}
+          onSave={onSave}
+          onDuplicate={onDuplicate}
+          onDelete={onDelete}
+        />
+      ) : null}
+    </dialog>
+  );
+}
 
-        <p className="mt-3 text-body text-text-muted">
-          This prototype keeps changes only in this open session. Nothing syncs yet.
+function EditorForm({
+  request,
+  recents,
+  onClose,
+  onSave,
+  onDuplicate,
+  onDelete,
+}: {
+  request: Exclude<EditorRequest, null>;
+  recents: RecentsMap;
+  onClose: () => void;
+  onSave: (draft: TackleDraft, id?: string) => void;
+  onDuplicate: (item: TackleItem) => void;
+  onDelete: (id: string) => void;
+}) {
+  const nameRef = useRef<HTMLInputElement>(null);
+  const deleteButtonRef = useRef<HTMLButtonElement>(null);
+  const keepItRef = useRef<HTMLButtonElement>(null);
+  const [draft, setDraft] = useState<DraftState>(() => draftFrom(request));
+  const [submitted, setSubmitted] = useState(false);
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
+
+  const editing = request.kind === "edit" ? request.item : null;
+
+  useEffect(() => {
+    window.requestAnimationFrame(() => nameRef.current?.focus());
+  }, []);
+
+  function update(patch: Partial<DraftState>) {
+    setDraft((current) => ({ ...current, ...patch }));
+  }
+
+  function changeCategory(category: CategoryId) {
+    setDraft((current) => ({
+      ...current,
+      category,
+      attributes: retainedAttributes(categoryFor(category), current.attributes),
+    }));
+  }
+
+  function setAttribute(key: string, value: string) {
+    setDraft((current) => ({ ...current, attributes: { ...current.attributes, [key]: value } }));
+  }
+
+  function submit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setSubmitted(true);
+    if (!draft.category || !draft.label.trim()) return;
+
+    const attributes: Record<string, string> = {};
+    for (const [key, value] of Object.entries(draft.attributes)) {
+      const trimmed = value.trim();
+      if (trimmed) attributes[key] = trimmed;
+    }
+
+    onSave(
+      {
+        category: draft.category,
+        label: draft.label.trim(),
+        quantity: clampQuantity(draft.quantity),
+        lowStockAt: draft.lowStockAt,
+        attributes,
+        notes: draft.notes.trim() || undefined,
+        isFavorite: draft.isFavorite,
+      },
+      editing?.id,
+    );
+    onClose();
+  }
+
+  const categorySpec = draft.category ? categoryFor(draft.category) : null;
+
+  return (
+    <form
+      onSubmit={submit}
+      className="max-h-dvh overflow-y-auto rounded-t-xl border border-border-interactive bg-surface-raised p-4 shadow-2xl motion-reduce:transition-none"
+    >
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <p className="text-caption font-bold tracking-station text-tide-cyan">SESSION-ONLY</p>
+          <h2 id="tackle-editor-title" className="mt-1 text-h2">
+            {editing ? "Edit gear" : "Add gear"}
+          </h2>
+        </div>
+        <button
+          type="button"
+          onClick={onClose}
+          className={`inline-flex min-h-touch-floor items-center justify-center rounded-md border border-border-interactive px-4 text-label text-text-link ${FOCUS_RING} active:scale-95`}
+        >
+          Close
+        </button>
+      </div>
+
+      {request.kind === "add" && request.note ? (
+        <p className="mt-3 rounded-md border border-hairline bg-surface px-3 py-2 text-caption text-text-link" role="status">
+          {request.note}
         </p>
+      ) : null}
 
-        <div className="mt-6 flex flex-col gap-5">
-          <label className="flex flex-col gap-2 text-label">
-            Your lure name
-            <input
-              ref={nameRef}
-              value={draft.label}
-              onChange={(event) => setDraft((current) => ({ ...current, label: event.target.value }))}
-              aria-invalid={submitted && !draft.label.trim()}
-              aria-describedby={submitted && !draft.label.trim() ? "tackle-name-error" : undefined}
-              className="min-h-touch-floor rounded-md border border-border-interactive bg-background px-4 text-body text-text-primary focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-3 focus-visible:outline-focus-ring"
-            />
-            {submitted && !draft.label.trim() ? (
-              <span id="tackle-name-error" className="text-caption text-error-red">
-                Give this lure a name.
-              </span>
-            ) : null}
-          </label>
-
-          <fieldset className="flex flex-col gap-3">
-            <legend className="text-label">Lure class</legend>
-            <div className="flex flex-wrap gap-3" role="group" aria-label="Lure class">
-              {LURE_CLASSES.slice(0, 7).map((option) => {
-                const selected = draft.lureClass === option.label;
-                return (
-                  <button
-                    key={option.label}
-                    type="button"
-                    aria-pressed={selected}
-                    onClick={() => selectClass(option.label, option.waterClass)}
-                    className={`min-h-touch-floor rounded-full border px-4 text-label focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-3 focus-visible:outline-focus-ring active:scale-95 ${
-                      selected
-                        ? "border-signal-orange bg-signal-orange text-ink-on-orange"
-                        : "border-border-interactive text-text-link"
-                    }`}
-                  >
-                    {option.label}
-                  </button>
-                );
-              })}
-            </div>
-            <label className="flex flex-col gap-2 text-label">
-              Or choose another class
-              <select
-                value={draft.lureClass}
-                onChange={(event) => {
-                  const option = LURE_CLASSES.find((candidate) => candidate.label === event.target.value);
-                  selectClass(option?.label ?? "", option?.waterClass ?? "both");
-                }}
-                aria-invalid={submitted && !draft.lureClass}
-                aria-describedby={submitted && !draft.lureClass ? "tackle-class-error" : undefined}
-                className="min-h-touch-floor rounded-md border border-border-interactive bg-background px-4 text-body text-text-primary focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-3 focus-visible:outline-focus-ring"
-              >
-                <option value="">Choose a lure class</option>
-                {LURE_CLASSES.map((option) => (
-                  <option key={option.label} value={option.label}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
-            </label>
-            {submitted && !draft.lureClass ? (
-              <p id="tackle-class-error" className="text-caption text-error-red">
-                Choose the closest lure class.
-              </p>
-            ) : null}
-          </fieldset>
-
-          <div className="grid gap-5 sm:grid-cols-2">
-            <label className="flex flex-col gap-2 text-label">
-              Color <span className="font-normal text-text-muted">(optional)</span>
-              <input
-                value={draft.color}
-                onChange={(event) => setDraft((current) => ({ ...current, color: event.target.value }))}
-                className="min-h-touch-floor rounded-md border border-border-interactive bg-background px-4 text-body text-text-primary focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-3 focus-visible:outline-focus-ring"
-              />
-            </label>
-            <label className="flex flex-col gap-2 text-label">
-              Size <span className="font-normal text-text-muted">(optional)</span>
-              <input
-                value={draft.sizeLabel}
-                onChange={(event) => setDraft((current) => ({ ...current, sizeLabel: event.target.value }))}
-                className="min-h-touch-floor rounded-md border border-border-interactive bg-background px-4 text-body text-text-primary focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-3 focus-visible:outline-focus-ring"
-              />
-            </label>
+      <div className="mt-6 flex flex-col gap-5">
+        <fieldset className="flex flex-col gap-3">
+          <legend className="text-label">Category</legend>
+          <div className="flex flex-wrap gap-3" role="group" aria-label="Gear category">
+            {TACKLE_CATEGORIES.map((category) => {
+              const selected = draft.category === category.id;
+              return (
+                <button
+                  key={category.id}
+                  type="button"
+                  aria-pressed={selected}
+                  onClick={() => changeCategory(category.id)}
+                  className={`${CHIP_CLASS} ${selected ? CHIP_ON : CHIP_OFF}`}
+                >
+                  {category.label}
+                </button>
+              );
+            })}
           </div>
+          {submitted && !draft.category ? (
+            <p id="tackle-category-error" className="text-caption text-error-red">
+              Pick the category this gear belongs in.
+            </p>
+          ) : null}
+        </fieldset>
 
-          <button
-            type="button"
-            aria-pressed={draft.isFavorite}
-            onClick={() => setDraft((current) => ({ ...current, isFavorite: !current.isFavorite }))}
-            className={`min-h-touch-floor rounded-md border px-4 text-label focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-3 focus-visible:outline-focus-ring active:scale-95 ${
-              draft.isFavorite
-                ? "border-signal-orange bg-signal-orange text-ink-on-orange"
-                : "border-border-interactive text-text-link"
-            }`}
-          >
-            {draft.isFavorite ? "Favorite for quick rigging" : "Save as a favorite"}
-          </button>
+        <label className="flex flex-col gap-2 text-label">
+          Item name
+          <input
+            ref={nameRef}
+            value={draft.label}
+            onChange={(event) => update({ label: event.target.value })}
+            placeholder={categorySpec?.namePlaceholder ?? "e.g. Owner Mutu circle 4/0"}
+            aria-invalid={submitted && !draft.label.trim()}
+            aria-describedby={
+              [
+                submitted && !draft.label.trim() ? "tackle-name-error" : "",
+                submitted && !draft.category ? "tackle-category-error" : "",
+              ]
+                .filter(Boolean)
+                .join(" ") || undefined
+            }
+            className={INPUT_CLASS}
+          />
+          {submitted && !draft.label.trim() ? (
+            <span id="tackle-name-error" className="text-caption text-error-red">
+              Give this item a name.
+            </span>
+          ) : null}
+        </label>
+
+        <fieldset className="flex flex-col gap-3">
+          <legend className="text-label">
+            Quantity <span className="font-normal text-text-muted">(type it or tap)</span>
+          </legend>
+          <QuantityStepper
+            value={draft.quantity}
+            onChange={(next) => update({ quantity: next })}
+            editable
+            ariaLabel="Quantity"
+          />
+        </fieldset>
+
+        {categorySpec?.fields.map((field) => (
+          <ChoiceField
+            key={`${categorySpec.id}:${field.key}`}
+            field={field}
+            value={draft.attributes[field.key] ?? ""}
+            recents={draft.category ? recents[`${draft.category}:${field.key}`] ?? [] : []}
+            onChange={(value) => setAttribute(field.key, value)}
+          />
+        ))}
+
+        <div className="flex flex-col gap-3 rounded-md border border-hairline bg-surface p-4">
+          <div className="flex items-center justify-between gap-3">
+            <p className="text-label">
+              Low-stock alert <span className="font-normal text-text-muted">(optional)</span>
+            </p>
+            {draft.lowStockAt === null ? (
+              <button
+                type="button"
+                onClick={() => update({ lowStockAt: 5 })}
+                className={`inline-flex min-h-touch-floor items-center justify-center rounded-full border border-border-interactive px-4 text-label text-text-link ${FOCUS_RING} active:scale-95`}
+              >
+                Set alert
+              </button>
+            ) : null}
+          </div>
+          {draft.lowStockAt !== null ? (
+            <div className="flex flex-wrap items-center gap-3">
+              <span className="text-caption text-text-muted">Alert me at or below</span>
+              <QuantityStepper
+                value={draft.lowStockAt}
+                onChange={(next) => update({ lowStockAt: Math.max(1, next) })}
+                ariaLabel="Low-stock alert threshold"
+              />
+              <button
+                type="button"
+                onClick={() => update({ lowStockAt: null })}
+                className={`inline-flex min-h-touch-floor items-center justify-center rounded-full px-2 text-label text-text-link underline decoration-dotted underline-offset-4 ${FOCUS_RING}`}
+              >
+                Turn off
+              </button>
+            </div>
+          ) : null}
         </div>
+
+        <label className="flex flex-col gap-2 text-label">
+          Notes <span className="font-normal text-text-muted">(optional)</span>
+          <textarea
+            value={draft.notes}
+            onChange={(event) => update({ notes: event.target.value })}
+            rows={2}
+            placeholder="Where it lives, what it’s for…"
+            className={`${INPUT_CLASS} py-3`}
+          />
+        </label>
 
         <button
-          type="submit"
-          className="mt-8 flex min-h-touch-primary-standard w-full items-center justify-center rounded-md bg-signal-orange px-6 text-label text-ink-on-orange transition-colors hover:bg-signal-orange-pressed focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-3 focus-visible:outline-focus-ring active:scale-95 motion-reduce:transition-none"
+          type="button"
+          aria-pressed={draft.isFavorite}
+          onClick={() => update({ isFavorite: !draft.isFavorite })}
+          className={`min-h-touch-floor rounded-md border px-4 text-label ${FOCUS_RING} active:scale-95 ${
+            draft.isFavorite ? CHIP_ON : "border-border-interactive text-text-link"
+          }`}
         >
-          Add lure to this session
+          {draft.isFavorite ? "Favorited — shows in Ready to rig" : "Save as a favorite"}
         </button>
-      </form>
-    </dialog>
+      </div>
+
+      <div className="mt-8 flex flex-col gap-3">
+        <button
+          type="submit"
+          className={`flex min-h-touch-primary-standard w-full items-center justify-center rounded-md bg-signal-orange px-6 text-label text-ink-on-orange transition-colors hover:bg-signal-orange-pressed ${FOCUS_RING} active:scale-95 motion-reduce:transition-none`}
+        >
+          {editing ? "Save changes" : "Add to your box"}
+        </button>
+
+        {editing ? (
+          <div className="flex flex-col gap-3">
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={() => onDuplicate(editing)}
+                className={`inline-flex min-h-touch-floor flex-1 items-center justify-center rounded-md border border-border-interactive px-4 text-label text-text-link ${FOCUS_RING} active:scale-95`}
+              >
+                Duplicate
+              </button>
+              <button
+                type="button"
+                ref={deleteButtonRef}
+                aria-expanded={confirmingDelete}
+                onClick={() => {
+                  setConfirmingDelete(true);
+                  window.requestAnimationFrame(() => keepItRef.current?.focus());
+                }}
+                className={`inline-flex min-h-touch-floor flex-1 items-center justify-center rounded-md border border-error-red-fill px-4 text-label text-error-red ${FOCUS_RING} active:scale-95`}
+              >
+                Delete…
+              </button>
+            </div>
+            {confirmingDelete ? (
+              <div className="flex flex-col gap-3 rounded-md border border-error-red-fill p-4">
+                <p className="text-body text-text-primary" role="alert">
+                  Delete “{editing.label}” for good?
+                </p>
+                <div className="flex gap-3">
+                  <button
+                    type="button"
+                    ref={keepItRef}
+                    onClick={() => {
+                      setConfirmingDelete(false);
+                      window.requestAnimationFrame(() => deleteButtonRef.current?.focus());
+                    }}
+                    className={`inline-flex min-h-touch-floor flex-1 items-center justify-center rounded-md border border-border-interactive px-4 text-label text-text-link ${FOCUS_RING} active:scale-95`}
+                  >
+                    Keep it
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onDelete(editing.id);
+                      onClose();
+                    }}
+                    className={`inline-flex min-h-touch-floor flex-1 items-center justify-center rounded-md bg-error-red-fill px-4 text-label text-text-primary ${FOCUS_RING} active:scale-95`}
+                  >
+                    Delete
+                  </button>
+                </div>
+              </div>
+            ) : null}
+          </div>
+        ) : null}
+      </div>
+    </form>
   );
 }
