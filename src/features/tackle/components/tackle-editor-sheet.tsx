@@ -3,6 +3,7 @@
 import { type FormEvent, useEffect, useRef, useState } from "react";
 
 import {
+  autoName,
   categoryFor,
   clampQuantity,
   retainedAttributes,
@@ -167,7 +168,7 @@ function EditorForm({
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setSubmitted(true);
-    if (!draft.category || !draft.label.trim()) return;
+    if (!draft.category) return;
 
     const attributes: Record<string, string> = {};
     for (const [key, value] of Object.entries(draft.attributes)) {
@@ -178,7 +179,10 @@ function EditorForm({
     onSave(
       {
         category: draft.category,
-        label: draft.label.trim(),
+        // Typed name wins. Blank name = the category noun plus the buttons pushed
+        // ("Hook Owner 2/0 J-hook") — quick inventory stays a taps-only flow
+        // (founder request 2026-09-01).
+        label: draft.label.trim() || (draft.category ? autoName(draft.category, attributes) : ""),
         quantity: clampQuantity(draft.quantity),
         lowStockAt: draft.lowStockAt,
         attributes,
@@ -246,28 +250,22 @@ function EditorForm({
         </fieldset>
 
         <label className="flex flex-col gap-2 text-label">
-          Item name
+          Item name <span className="font-normal text-text-muted">(optional)</span>
           <input
             ref={nameRef}
             value={draft.label}
             onChange={(event) => update({ label: event.target.value })}
-            placeholder={categorySpec?.namePlaceholder ?? "e.g. Owner Mutu circle 4/0"}
-            aria-invalid={submitted && !draft.label.trim()}
-            aria-describedby={
-              [
-                submitted && !draft.label.trim() ? "tackle-name-error" : "",
-                submitted && !draft.category ? "tackle-category-error" : "",
-              ]
-                .filter(Boolean)
-                .join(" ") || undefined
+            placeholder={
+              draft.category
+                ? `Saves as “${autoName(draft.category, draft.attributes)}”`
+                : "e.g. Owner Mutu circle 4/0"
             }
+            aria-describedby={submitted && !draft.category ? "tackle-category-error" : undefined}
             className={INPUT_CLASS}
           />
-          {submitted && !draft.label.trim() ? (
-            <span id="tackle-name-error" className="text-caption text-error-red">
-              Give this item a name.
-            </span>
-          ) : null}
+          <span className="text-caption text-text-muted">
+            Leave it blank and the buttons you tap become the name.
+          </span>
         </label>
 
         <fieldset className="flex flex-col gap-3">

@@ -436,6 +436,39 @@ export function categoryFor(id: CategoryId): CategorySpec {
   return spec;
 }
 
+/**
+ * The no-type name (founder request 2026-09-01): an angler stocking a box quickly taps
+ * category + buttons and hits save — typing is optional. If the name box is blank, the
+ * item's name is the noun plus whatever buttons were pushed, in the order the founder
+ * spelled out ("Hook Owner 2/0 J-hook"). A typed name always wins; this only ever fills
+ * the blank.
+ */
+const AUTO_NAME_ORDER: Record<CategoryId, { noun: string; keys: readonly string[] }> = {
+  hooks: { noun: "Hook", keys: ["brand", "size", "style"] },
+  jigs: { noun: "Jig", keys: ["brand", "weight", "style", "color"] },
+  "hard-baits": { noun: "Hard bait", keys: ["brand", "size", "weight", "type", "color"] },
+  "soft-plastics": { noun: "Soft plastic", keys: ["brand", "size", "style", "color"] },
+  line: { noun: "Line", keys: ["brand", "poundTest", "material", "spoolLength", "color"] },
+  leaders: { noun: "Leader", keys: ["brand", "poundTest", "material", "spoolLength"] },
+  "sinkers-weights": { noun: "Sinker", keys: ["style", "weight", "material"] },
+  "terminal-tackle": { noun: "Terminal tackle", keys: ["brand", "kind", "size"] },
+  rods: { noun: "Rod", keys: ["brand", "length", "rating", "type"] },
+  reels: { noun: "Reel", keys: ["brand", "size", "type"] },
+  tools: { noun: "Tool", keys: ["brand", "kind"] },
+  accessories: { noun: "Accessory", keys: ["kind"] },
+  other: { noun: "Gear", keys: [] },
+};
+
+export function autoName(category: CategoryId, attributes: Record<string, string>): string {
+  const { noun, keys } = AUTO_NAME_ORDER[category];
+  const parts = [noun];
+  for (const key of keys) {
+    const value = attributes[key]?.trim();
+    if (value) parts.push(value);
+  }
+  return parts.join(" ");
+}
+
 export function isOutOfStock(item: TackleItem): boolean {
   return item.quantity === 0;
 }
