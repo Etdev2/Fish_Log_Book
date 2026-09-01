@@ -124,6 +124,13 @@ export function TackleInventoryList({
       </label>
 
       <section aria-labelledby={headingId} className="flex flex-col gap-3">
+        {/*
+          On the main box this section is named by the visible "All gear" h2 above it.
+          On a category page the section name is the page h1 itself, and the card
+          titles (h3) would leap a level — so the outline keeps an unseen h2 here
+          rather than skipping from h1 to h3 (WCAG 1.3.1 heading order).
+        */}
+        {scopeLabel ? <h2 className="sr-only">All {scopeLabel.toLowerCase()}</h2> : null}
         {scopedItems.length === 0 ? (
           <div className="rounded-lg border border-hairline bg-surface p-6">
             <h3 className="text-h3">

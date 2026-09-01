@@ -172,6 +172,8 @@ export function TideScreen() {
   if (!hasSamples) {
     return (
       <section className="tide-screen">
+        {/* The immersive canvas has no visible title; keep the page named for outline and screen readers. */}
+        <h1 className="sr-only">Tide</h1>
         <div className="tide-empty">
           <p className="tide-empty-title">No tide predictions loaded</p>
           <p className="tide-empty-note">
@@ -192,6 +194,8 @@ export function TideScreen() {
 
   return (
     <section className="tide-screen">
+      {/* The immersive canvas has no visible title; keep the page named for outline and screen readers. */}
+      <h1 className="sr-only">Tide</h1>
       <header className="tide-header">
         <div className="tide-header-top">
           <button type="button" className="tide-station-button" aria-haspopup="dialog" onClick={() => setSheet("station")}>
