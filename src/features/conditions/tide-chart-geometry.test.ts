@@ -5,6 +5,7 @@ import {
   MS_PER_PIXEL,
   PLOT_TOP,
   atFromScrollLeft,
+  gridValues,
   localDayIndex,
   makeYFor,
   plotHeightFor,
@@ -75,6 +76,26 @@ describe("plot box", () => {
     expect(yFor(metres(2))).toBeCloseTo(PLOT_TOP, 6);
     expect(yFor(metres(0))).toBeCloseTo(PLOT_TOP + plotHeightFor(400), 6);
     expect(yFor(metres(1))).toBeLessThan(yFor(metres(0)));
+  });
+});
+
+describe("gridValues", () => {
+  it("steps the axis on the chart's half-metre grid", () => {
+    expect(gridValues(0, 2)).toEqual([0, 0.5, 1, 1.5, 2]);
+    expect(gridValues(-0.8, 1.2)).toEqual([-0.5, 0, 0.5, 1]);
+    expect(gridValues(0.2, 1.9)).toEqual([0.5, 1, 1.5]);
+  });
+
+  it("returns no values for an empty range", () => {
+    expect(gridValues(1.6, 1.6)).toEqual([]);
+    expect(gridValues(2, 1)).toEqual([]);
+  });
+
+  it("keeps the floating-point drift out of the axis", () => {
+    // 0.1 + 0.2 !== 0.3 in doubles; the axis values are what a human reads.
+    for (const value of gridValues(0, 5)) {
+      expect(Number.isInteger(value * 10)).toBe(true);
+    }
   });
 });
 
