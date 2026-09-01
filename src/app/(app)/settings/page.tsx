@@ -3,6 +3,7 @@ import Link from "next/link";
 
 import { BackendDiagnostics } from "@/features/settings/components/backend-diagnostics";
 import { QuickMarkToggle } from "@/features/settings/components/quick-mark-toggle";
+import { RegionSelect } from "@/features/settings/components/region-select";
 import { UnitsToggle } from "@/features/settings/components/units-toggle";
 
 export const metadata: Metadata = { title: "Settings | Fish Log Book" };
@@ -45,6 +46,19 @@ export default function SettingsPage() {
           Quickly record that something happened while fishing and add the details later.
           Marks appear in the Fish Log under &ldquo;Needs details&rdquo;.
         </p>
+      </section>
+
+      {/*
+        Fishing region: which species the picker's "Common" row leads with (founder
+        requirements §4). Suggestions only — the full vocabulary is always searchable.
+      */}
+      <section className="rounded-lg border border-hairline bg-surface p-4">
+        <h2 className="text-h3">Fishing region</h2>
+        <p className="mt-2 mb-4 text-body text-text-muted">
+          Sets the species suggested first when you log a catch. Every species stays
+          searchable wherever you fish — this only changes what is one tap away.
+        </p>
+        <RegionSelect />
       </section>
 
       <section className="rounded-lg border border-hairline bg-surface p-4">
