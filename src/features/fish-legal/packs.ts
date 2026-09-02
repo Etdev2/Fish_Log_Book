@@ -23,6 +23,7 @@ import { OREGON } from "./oregon-pack";
 import { WASHINGTON } from "./washington-pack";
 import { ALASKA } from "./alaska-pack";
 import { HAWAII } from "./hawaii-pack";
+import { MASSACHUSETTS } from "./massachusetts-pack";
 import type { RegPack, RegArea, RegGroup, RegRule } from "./types";
 
 export type RegBundle = {
@@ -199,6 +200,13 @@ export const PACKS: readonly BundledPack[] = [
     shortCode: "HI",
     primaryAreaId: "hi-statewide",
     data: HAWAII,
+  },
+  {
+    regionId: "northeast",
+    jurisdictionLabel: "Northeast — Massachusetts DMF (US)",
+    shortCode: "MA",
+    primaryAreaId: "ma-statewide",
+    data: MASSACHUSETTS,
   },
 ];
 
