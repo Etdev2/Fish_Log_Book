@@ -23,9 +23,12 @@ import type { RegArea, RegGroup, RegPack, RegRule, SocalPack } from "./types";
 
 export const SOCAL_PACK: RegPack = {
   id: "socal-2026-09-01",
-  version: 1,
+  version: 2,
   publishedAt: "2026-09-01T00:00:00.000Z",
-  notes: "Hand-verified starter set. Bundle mirrors migration 20260901230000.",
+  notes:
+    "Hand-verified starter set + v2 Groundfish Management Area doctrine rows " +
+    "(GMA-crossing possession, transit provision, GEA note) from the Groundfish " +
+    "Summary updated June 23, 2026.",
 };
 
 const SOUTHERN_RING: readonly (readonly [number, number])[] = [
@@ -614,6 +617,40 @@ export const REG_RULES: readonly RegRule[] = [
     sourceUrl: B.url, sourceTitle: B.title, sourceUpdatedAt: B.updated, verifiedAt: VERIFIED,
     seasonStart: null, seasonEnd: null, bagDaily: null, possessionLimit: null, bagSharesWithGroup: false,
     minSizeIn: 22, maxSizeIn: null, sizeMeasure: "total_length", platformScope: null, depthNote: null,
+    checkInseason: false, staleAfterDays: 60,
+  }),
+  // ———— v2 GMA doctrine (founder callout: the pack must say how GMAs interact) ————
+  rule({
+    id: "gma-crossing-possession", speciesId: null, regAreaId: "ca-gma-southern", kind: "note",
+    verbatim:
+      "It is unlawful to possess a groundfish species or species group within a Groundfish Management Area where the take and possession of those species are prohibited in all waters of that Groundfish Management Area or in excess of the bag limit of that Groundfish Management Area, regardless of if the groundfish species or species group were taken in a different Groundfish Management Area where the take or possession is authorized (CCR T14 §27.20(b)(1)(A)(1)).",
+    sourceUrl: "https://wildlife.ca.gov/Fishing/Ocean/Regulations/Groundfish-Summary",
+    sourceTitle: "CDFW — Summary of Recreational Groundfish Fishing Regulations (updated June 23, 2026)",
+    sourceUpdatedAt: "2026-06-23", verifiedAt: "2026-09-01",
+    seasonStart: null, seasonEnd: null, bagDaily: null, possessionLimit: null, bagSharesWithGroup: false,
+    minSizeIn: null, maxSizeIn: null, sizeMeasure: null, platformScope: null, depthNote: null,
+    checkInseason: false, staleAfterDays: 60,
+  }),
+  rule({
+    id: "gma-transit-provision", speciesId: null, regAreaId: "ca-gma-southern", kind: "note",
+    verbatim:
+      "Transit Provision: in waters where groundfish species or species groups are closed to take or possession but authorized elsewhere, those species may be possessed aboard a vessel that is anchored, drifting, or transiting in or through the closed area. While transiting a closed area, no gear may be deployed other than crustacean hoop nets (§29.80(b)), Dungeness crab traps (§29.80(c)), and dip nets (§28.80) (CCR T14 §27.20(b)(1)(A)).",
+    sourceUrl: "https://wildlife.ca.gov/Fishing/Ocean/Regulations/Groundfish-Summary",
+    sourceTitle: "CDFW — Summary of Recreational Groundfish Fishing Regulations (updated June 23, 2026)",
+    sourceUpdatedAt: "2026-06-23", verifiedAt: "2026-09-01",
+    seasonStart: null, seasonEnd: null, bagDaily: null, possessionLimit: null, bagSharesWithGroup: false,
+    minSizeIn: null, maxSizeIn: null, sizeMeasure: null, platformScope: null, depthNote: null,
+    checkInseason: false, staleAfterDays: 60,
+  }),
+  rule({
+    id: "gea-eight-note", speciesId: null, regAreaId: "ca-gma-southern", kind: "note",
+    verbatim:
+      "Groundfish Exclusion Areas: eight Groundfish Exclusion Areas in the Southern Management Area restrict certain fishing activities (CCR T14 §27.50). Cowcod protections — take of groundfish is prohibited inside the GEAs; coordinates on the CDFW Cowcod page and Ocean Sport Fishing interactive map.",
+    sourceUrl: "https://wildlife.ca.gov/Conservation/Marine/Cowcod",
+    sourceTitle: "CDFW — Cowcod conservation / Groundfish Exclusion Areas",
+    sourceUpdatedAt: null, verifiedAt: "2026-09-01",
+    seasonStart: null, seasonEnd: null, bagDaily: null, possessionLimit: null, bagSharesWithGroup: false,
+    minSizeIn: null, maxSizeIn: null, sizeMeasure: null, platformScope: null, depthNote: null,
     checkInseason: false, staleAfterDays: 60,
   }),
 ];
