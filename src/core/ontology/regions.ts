@@ -24,6 +24,8 @@ export type RegionId =
   | "gulf_coast"
   | "northeast"
   | "great_lakes"
+  /** California inland waters (CDFW statewide defaults; named waters override). */
+  | "california_freshwater"
   /** Angler-defined home water: nothing is pre-judged, Recent builds the picture. */
   | "custom";
 
@@ -43,6 +45,7 @@ export const REGIONS: readonly Region[] = [
   { id: "gulf_coast", label: "Gulf Coast", hint: "Redfish, specks, snapper, cobia." },
   { id: "northeast", label: "Northeast", hint: "Stripers, blues, fluke, tog, cod." },
   { id: "great_lakes", label: "Great Lakes", hint: "Walleye, salmon and trout, perch, bass." },
+  { id: "california_freshwater", label: "California — Freshwater", hint: "Lakes, rivers, Delta: bass, trout, striper, sturgeon." },
   { id: "custom", label: "Custom / anywhere else", hint: "No regional suggestions — search finds everything." },
 ];
 
@@ -60,6 +63,15 @@ const BY_REGION: Record<RegionId, readonly string[]> = {
     "white_seabass",
     "pacific_bonito",
     "bluefin_tuna",
+  ],
+  california_freshwater: [
+    "largemouth_bass",
+    "smallmouth_bass",
+    "trout",
+    "striped_bass",
+    "catfish",
+    "white_sturgeon",
+    "steelhead",
   ],
   northern_california: [
     "striped_bass",

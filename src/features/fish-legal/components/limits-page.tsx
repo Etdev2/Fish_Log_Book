@@ -8,9 +8,10 @@ import { useLocalTimeZone } from "@/features/conditions/use-local-time-zone";
 import { useRegionPreference } from "@/features/settings/region";
 import { REGIONS } from "@/core/ontology/regions";
 import { useLog } from "@/features/catches/store";
-import { limitLines, talliedKeptToday } from "../catch-limits";
+import { keptAudit, limitLines, talliedKeptToday } from "../catch-limits";
 import { packForRegion } from "../packs";
 import { speciesDisplayName } from "../reg-species";
+import { JurisdictionChip } from "./jurisdiction-chip";
 import type { LimitLine } from "../catch-limits";
 
 const STATE_COPY: Record<LimitLine["state"], { word: string; tone: string }> = {
@@ -51,12 +52,19 @@ export function LimitsPage() {
     [bundle, dateKey, keptToday],
   );
   const moving = lines.filter((l) => l.retained > 0);
+  const audit = useMemo(
+    () => (bundle ? keptAudit(bundle.data, keptToday) : []),
+    [bundle, keptToday],
+  );
   const regionLabel = REGIONS.find((r) => r.id === region)?.label ?? "this region";
 
   return (
     <div className="flex flex-col gap-4">
       <header className="rounded-lg border border-hairline bg-surface p-4">
-        <h1 className="text-h1">Today&rsquo;s limits</h1>
+        <div className="flex items-center gap-2">
+          <h1 className="text-h1">Today&rsquo;s limits</h1>
+          <JurisdictionChip prefix="Limits" />
+        </div>
         <p className="mt-1 text-caption text-text-muted">
           {dateKey} · {regionLabel} · {bundle ? bundle.jurisdictionLabel : "no verified pack"}
           {" · "}Counts come from kept fish in your log — released fish never enter.
@@ -127,6 +135,35 @@ export function LimitsPage() {
           })
         )}
       </section>
+
+      {bundle && audit.length > 0 ? (
+        <section aria-label="Kept fish audit" className="rounded-lg border border-hairline bg-surface p-4">
+          <h2 className="text-h3">Kept fish audit</h2>
+          <p className="mt-1 text-caption text-text-muted">
+            Every kept row in today&rsquo;s log, and exactly which line it counts against. A
+            fish whose species has no rule in this pack is listed <strong>unmetered</strong> —
+            never dropped, never called unlimited.
+          </p>
+          <ul className="mt-3 flex flex-col gap-2">
+            {audit.map((a) => (
+              <li
+                key={a.speciesId}
+                className="flex items-start justify-between gap-3 rounded-md border border-hairline bg-surface-raised px-3 py-2"
+              >
+                <div>
+                  <p className="text-body font-medium">{speciesDisplayName(a.speciesId)}</p>
+                  <p className="text-caption text-text-muted">
+                    {a.unmetered
+                      ? "UNMETERED — no limit row in this pack counts this species; logged and truthful."
+                      : `Counts against: ${a.countsAgainst.join(" + ")}`}
+                  </p>
+                </div>
+                <p className="text-body font-semibold">kept ×{a.kept}</p>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
 
       <p className="px-1 text-caption text-text-muted">
         Fish Legal audits the log, never gates it. If a day goes over a limit, the answer

@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { JurisdictionChip } from "./jurisdiction-chip";
 import { useMemo, useState } from "react";
 
 import { useNow } from "@/lib/time/use-now";
@@ -100,7 +101,10 @@ export function RegulationsHome() {
   return (
     <div className="flex flex-col gap-4">
       <section className="rounded-lg border border-hairline bg-surface p-4">
-        <h1 className="text-h1">Fish Legal</h1>
+        <div className="flex items-center gap-2">
+          <h1 className="text-h1">Fish Legal</h1>
+          <JurisdictionChip prefix="Rules" />
+        </div>
         <p className="mt-1 text-caption text-text-muted">
           Verified rules for where you fish, dated like logbook entries. Legal text one
           tap away; every card says who said it and when we checked.

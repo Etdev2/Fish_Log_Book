@@ -7,6 +7,7 @@ import { INPUT_CLASS } from "@/features/catches/ui-classes";
 import { useRegionPreference } from "@/features/settings/region";
 import { REGIONS } from "@/core/ontology/regions";
 import { regulationCard, platformFor } from "../reg-engine";
+import { JurisdictionChip } from "./jurisdiction-chip";
 import { packForRegion } from "../packs";
 import { speciesDisplayName } from "../reg-species";
 import { useFishingModePreference } from "../prefs";
@@ -74,6 +75,7 @@ export function SpeciesBrowser({ dateKey }: { dateKey: string }) {
             />
           </label>
 
+          <JurisdictionChip prefix="Species & limits" />
           <p className="text-caption text-text-muted">
             {bundle.jurisdictionLabel} · pack v{bundle.data.pack.version}, verified{" "}
             {bundle.data.pack.publishedAt.slice(0, 10)}

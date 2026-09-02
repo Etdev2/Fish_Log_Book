@@ -26,6 +26,13 @@ export interface SpeciesPhoto {
 
 const P = "public-domain / Wikimedia/Wikipedia";
 const S = "source-restricted — attribution shown; Wikimedia/NOAA swap owed before release";
+/**
+ * CDFW (California Department of Fish & Wildlife) — CA Marine Species Portal
+ * (marinespecies.wildlife.ca.gov): the department's own ID illustrations (many by
+ * Amadeo Bachar). Founder direction 2026-09-02: CA ID photos come from wildlife.ca.gov.
+ * State-agency educational material, shown with attribution.
+ */
+const W = "CDFW Marine Species Portal (wildlife.ca.gov) — CA state agency, attribution shown";
 
 export const SPECIES_PHOTOS: Record<string, SpeciesPhoto> = {
   red_drum: { src: "/species-photos/red_drum.jpg", credit: "Dreamstime stock", license: S, sourceUrl: "https://www.dreamstime.com/photos-images/drum-fish.html" },
@@ -40,34 +47,45 @@ export const SPECIES_PHOTOS: Record<string, SpeciesPhoto> = {
   spanish_mackerel: { src: "/species-photos/spanish_mackerel.jpg", credit: "Florida Museum · photo George Burgess", license: S, sourceUrl: "https://www.floridamuseum.ufl.edu/discover-fish/species-profiles/spanish-mackerel/" },
   gag_grouper: { src: "/species-photos/gag_grouper.jpg", credit: "Florida Museum · photo George Ryschkewitsch", license: S, sourceUrl: "https://www.floridamuseum.ufl.edu/discover-fish/species-profiles/gag-grouper/" },
   red_snapper: { src: "/species-photos/red_snapper.jpg", credit: "Northern red snapper (Wiki)", license: P, sourceUrl: "https://picturefishai.com/wiki/Lutjanus_campechanus.html" },
-  california_halibut: { src: "/species-photos/california_halibut.jpg", credit: "Newport Bay Conservancy", license: S, sourceUrl: "https://newportbay.org/wildlife/marine-life/california-halibut/" },
-  white_seabass: { src: "/species-photos/white_seabass.jpg", credit: "Big Fishes of the World", license: S, sourceUrl: "http://bigfishesoftheworld.blogspot.com/2012/09/seabass-white-atractoscion-nobilis.html" },
-  yellowtail: { src: "/species-photos/yellowtail.jpg", credit: "Nature Picture Library", license: S, sourceUrl: "https://www.naturepl.com/stock-photo-california-yellowtail-seriola-lalandi-dorsalis-nature-image01582784.html" },
-  barred_sand_bass: { src: "/species-photos/barred_sand_bass.jpg", credit: "FishBase", license: S, sourceUrl: "https://www.fishbase.se/summary/3337" },
-  kelp_bass: { src: "/species-photos/kelp_bass.jpg", credit: "Oceanlight / Philippe Widmann", license: S, sourceUrl: "https://www.oceanlight.com/lightbox.php?sp=paralabrax_clathratus" },
-  spotted_sand_bass: { src: "/species-photos/spotted_sand_bass.jpg", credit: "FishBase", license: S, sourceUrl: "https://www.fishbase.se/Summary/SpeciesSummary.php?id=3336&lang=spanish" },
-  california_sheephead: { src: "/species-photos/california_sheephead.jpg", credit: "Wikimedia Commons (California sheephead, big male)", license: P, sourceUrl: "https://en.wikipedia.org/wiki/California_sheephead" },
-  lingcod: { src: "/species-photos/lingcod.jpg", credit: "Dreamstime stock", license: S, sourceUrl: "https://www.dreamstime.com/photos-images/ling-cod.html" },
-  cabezon: { src: "/species-photos/cabezon.jpg", credit: "Bottomfish Identification Guide (via Alchetron)", license: S, sourceUrl: "https://alchetron.com/Cabezon-(fish)" },
-  kelp_greenling: { src: "/species-photos/kelp_greenling.jpg", credit: "Eiko Jones Photography", license: S, sourceUrl: "https://www.eikojonesphotography.com/-/galleries/stock-images/underwater-stock-images/cold-water-fish/kelp-greenling" },
-  ocean_whitefish: { src: "/species-photos/ocean_whitefish.jpg", credit: "Reeflex — Torrance Reef 2024", license: S, sourceUrl: "https://www.reeflex.net/tiere/14830_Caulolatilus_princeps.htm" },
-  giant_sea_bass: { src: "/species-photos/giant_sea_bass.jpg", credit: "Giant sea bass (Wiki)", license: P, sourceUrl: "https://picturefishai.com/wiki/Stereolepis_gigas.html" },
-  leopard_shark: { src: "/species-photos/leopard_shark.jpg", credit: "Wikimedia Commons", license: P, sourceUrl: "https://en.wikipedia.org/wiki/Leopard_shark" },
-  california_scorpionfish: { src: "/species-photos/california_scorpionfish.jpg", credit: "Scorpionfish (Wiki)", license: P, sourceUrl: "https://picturefishai.com/wiki/Scorpaena_guttata.html" },
-  vermilion_rockfish: { src: "/species-photos/vermilion_rockfish.jpg", credit: "Reeflex — Carmel 2025", license: S, sourceUrl: "https://reeflex.net/tiere/11703_Sebastes_miniatus.htm" },
-  copper_rockfish: { src: "/species-photos/copper_rockfish.jpg", credit: "Oceanlight stock", license: S, sourceUrl: "http://www.oceanlight.com/spotlight.php?img=09020" },
-  canary_rockfish: { src: "/species-photos/canary_rockfish.jpg", credit: "OceanInfo", license: S, sourceUrl: "https://oceaninfo.com/animals/canary-rockfish/" },
-  yelloweye_rockfish: { src: "/species-photos/yelloweye_rockfish.jpg", credit: "Crappy Wildlife Photography (Flickr)", license: S, sourceUrl: "https://www.flickr.com/photos/crappywildlifephotography/20806024066" },
-  cowcod: { src: "/species-photos/cowcod.jpg", credit: "Wikimedia Commons (Sebastes levis)", license: P, sourceUrl: "https://en.wikipedia.org/wiki/Sebastes_levis" },
-  blue_rockfish: { src: "/species-photos/blue_rockfish.jpg", credit: "r/Fish (OC, uploader-attributed)", license: S, sourceUrl: "https://www.reddit.com/r/Fish/comments/krg760/blue_rockfish_aka_blue_seapirch_sebastes_mystinus/" },
-  black_rockfish: { src: "/species-photos/black_rockfish.jpg", credit: "Oceanlight", license: S, sourceUrl: "https://oceanlight.com/lightbox.php?sp=sebastes_melanops" },
-  olive_rockfish: { src: "/species-photos/olive_rockfish.jpg", credit: "Nature Footage stock still", license: S, sourceUrl: "https://www.naturefootage.com/stock-video-species/olive-rockfish/sebastes-serranoides" },
-  gopher_rockfish: { src: "/species-photos/gopher_rockfish.jpg", credit: "scuba.spanglers.com", license: S, sourceUrl: "https://scuba.spanglers.com/species/sebastes-carnatus" },
-  bocaccio: { src: "/species-photos/bocaccio.jpg", credit: "Joel Sartore (National Geographic Photo Ark)", license: S, sourceUrl: "https://www.joelsartore.com/fis041-00078/" },
+  california_halibut: { src: "/species-photos/california_halibut.jpg", credit: "CDFW CA Marine Species Portal (ID illustration, Amadeo Bachar)", license: W, sourceUrl: "https://marinespecies.wildlife.ca.gov/california-halibut/false/" },
+  white_seabass: { src: "/species-photos/white_seabass.jpg", credit: "CDFW CA Marine Species Portal (ID illustration, Amadeo Bachar)", license: W, sourceUrl: "https://marinespecies.wildlife.ca.gov/white-seabass/false/" },
+  yellowtail: { src: "/species-photos/yellowtail.jpg", credit: "CDFW CA Marine Species Portal (ID illustration, Amadeo Bachar)", license: W, sourceUrl: "https://marinespecies.wildlife.ca.gov/yellowtail/false/" },
+  barred_sand_bass: { src: "/species-photos/barred_sand_bass.jpg", credit: "CDFW CA Marine Species Portal (ID illustration, Amadeo Bachar)", license: W, sourceUrl: "https://marinespecies.wildlife.ca.gov/barred-sand-bass/false/" },
+  kelp_bass: { src: "/species-photos/kelp_bass.jpg", credit: "CDFW CA Marine Species Portal (ID illustration, Amadeo Bachar)", license: W, sourceUrl: "https://marinespecies.wildlife.ca.gov/kelp-bass/false/" },
+  spotted_sand_bass: { src: "/species-photos/spotted_sand_bass.jpg", credit: "CDFW CA Marine Species Portal (ID illustration, Amadeo Bachar)", license: W, sourceUrl: "https://marinespecies.wildlife.ca.gov/spotted-sand-bass/false/" },
+  california_sheephead: { src: "/species-photos/california_sheephead.jpg", credit: "CDFW CA Marine Species Portal (ID illustration, Amadeo Bachar)", license: W, sourceUrl: "https://marinespecies.wildlife.ca.gov/california-sheephead/false/" },
+  lingcod: { src: "/species-photos/lingcod.jpg", credit: "CDFW CA Marine Species Portal (ID illustration, Amadeo Bachar)", license: W, sourceUrl: "https://marinespecies.wildlife.ca.gov/lingcod/false/" },
+  cabezon: { src: "/species-photos/cabezon.jpg", credit: "CDFW CA Marine Species Portal (ID illustration, Amadeo Bachar)", license: W, sourceUrl: "https://marinespecies.wildlife.ca.gov/cabezon/false/" },
+  kelp_greenling: { src: "/species-photos/kelp_greenling.jpg", credit: "CDFW CA Marine Species Portal (ID illustration, Amadeo Bachar)", license: W, sourceUrl: "https://marinespecies.wildlife.ca.gov/kelp-greenling/false/" },
+  ocean_whitefish: { src: "/species-photos/ocean_whitefish.jpg", credit: "CDFW CA Marine Species Portal (ID illustration, Amadeo Bachar)", license: W, sourceUrl: "https://marinespecies.wildlife.ca.gov/ocean-whitefish/false/" },
+  giant_sea_bass: { src: "/species-photos/giant_sea_bass.jpg", credit: "CDFW CA Marine Species Portal (ID illustration, Amadeo Bachar)", license: W, sourceUrl: "https://marinespecies.wildlife.ca.gov/giant-sea-bass/false/" },
+  leopard_shark: { src: "/species-photos/leopard_shark.jpg", credit: "CDFW CA Marine Species Portal (ID illustration, Amadeo Bachar)", license: W, sourceUrl: "https://marinespecies.wildlife.ca.gov/leopard-shark/false/" },
+  california_scorpionfish: { src: "/species-photos/california_scorpionfish.jpg", credit: "CDFW CA Marine Species Portal (ID illustration, Amadeo Bachar)", license: W, sourceUrl: "https://marinespecies.wildlife.ca.gov/california-scorpionfish/false/" },
+  vermilion_rockfish: { src: "/species-photos/vermilion_rockfish.jpg", credit: "CDFW CA Marine Species Portal (ID illustration, Amadeo Bachar)", license: W, sourceUrl: "https://marinespecies.wildlife.ca.gov/vermilion-rockfish/false/" },
+  copper_rockfish: { src: "/species-photos/copper_rockfish.jpg", credit: "CDFW CA Marine Species Portal (ID illustration, Amadeo Bachar)", license: W, sourceUrl: "https://marinespecies.wildlife.ca.gov/copper-rockfish/false/" },
+  canary_rockfish: { src: "/species-photos/canary_rockfish.jpg", credit: "CDFW CA Marine Species Portal (ID illustration, Amadeo Bachar)", license: W, sourceUrl: "https://marinespecies.wildlife.ca.gov/canary-rockfish/false/" },
+  yelloweye_rockfish: { src: "/species-photos/yelloweye_rockfish.jpg", credit: "CDFW CA Marine Species Portal (ID illustration, Amadeo Bachar)", license: W, sourceUrl: "https://marinespecies.wildlife.ca.gov/yelloweye-rockfish/false/" },
+  cowcod: { src: "/species-photos/cowcod.jpg", credit: "CDFW CA Marine Species Portal (ID illustration, Amadeo Bachar)", license: W, sourceUrl: "https://marinespecies.wildlife.ca.gov/cowcod/false/" },
+  blue_rockfish: { src: "/species-photos/blue_rockfish.jpg", credit: "CDFW CA Marine Species Portal (ID illustration, Amadeo Bachar)", license: W, sourceUrl: "https://marinespecies.wildlife.ca.gov/blue-rockfish/false/" },
+  black_rockfish: { src: "/species-photos/black_rockfish.jpg", credit: "CDFW CA Marine Species Portal (ID illustration, Amadeo Bachar)", license: W, sourceUrl: "https://marinespecies.wildlife.ca.gov/black-rockfish/false/" },
+  olive_rockfish: { src: "/species-photos/olive_rockfish.jpg", credit: "CDFW CA Marine Species Portal (ID illustration, Amadeo Bachar)", license: W, sourceUrl: "https://marinespecies.wildlife.ca.gov/olive-rockfish/false/" },
+  gopher_rockfish: { src: "/species-photos/gopher_rockfish.jpg", credit: "CDFW CA Marine Species Portal (ID illustration, Amadeo Bachar)", license: W, sourceUrl: "https://marinespecies.wildlife.ca.gov/gopher-rockfish/false/" },
+  bocaccio: { src: "/species-photos/bocaccio.jpg", credit: "CDFW CA Marine Species Portal (ID illustration, Amadeo Bachar)", license: W, sourceUrl: "https://marinespecies.wildlife.ca.gov/bocaccio/false/" },
   bronzespotted_rockfish: { src: "/species-photos/bronzespotted_rockfish.jpg", credit: "guppies.za.net", license: S, sourceUrl: "https://www.guppies.za.net/species.aspx?name=bronzespotted-rockfish-sebastes-gilli&fid=10136" },
-  quillback_rockfish: { src: "/species-photos/quillback_rockfish.jpg", credit: "Oceanlight", license: S, sourceUrl: "http://www.oceanlight.com/lightbox.php?sp=sebastes_maliger" },
-  chinook_salmon: { src: "/species-photos/chinook_salmon.jpg", credit: "NIWA (NZ freshwater fish atlas)", license: S, sourceUrl: "https://niwa.co.nz/freshwater/nz-freshwater-fish-database/niwa-atlas-nz-freshwater-fishes/chinook-salmon" },
-  coho_salmon: { src: "/species-photos/coho_salmon.jpg", credit: "PICRYL (public domain collection)", license: P, sourceUrl: "https://picryl.com/media/salmon-coho-fish-oncorhynchus-kisutch-d60384" },
+  quillback_rockfish: { src: "/species-photos/quillback_rockfish.jpg", credit: "CDFW CA Marine Species Portal (ID illustration, Amadeo Bachar)", license: W, sourceUrl: "https://marinespecies.wildlife.ca.gov/quillback-rockfish/false/" },
+  chinook_salmon: { src: "/species-photos/chinook_salmon.jpg", credit: "CDFW CA Marine Species Portal (ID illustration, Amadeo Bachar)", license: W, sourceUrl: "https://marinespecies.wildlife.ca.gov/chinook-salmon/false/" },
+  coho_salmon: { src: "/species-photos/coho_salmon.jpg", credit: "CDFW CA Marine Species Portal (ID illustration, Amadeo Bachar)", license: W, sourceUrl: "https://marinespecies.wildlife.ca.gov/coho-salmon/false/" },
+  yellowtail_rockfish: { src: "/species-photos/yellowtail_rockfish.jpg", credit: "CDFW CA Marine Species Portal (ID illustration, Amadeo Bachar)", license: W, sourceUrl: "https://marinespecies.wildlife.ca.gov/yellowtail-rockfish/false/" },
+  widow_rockfish: { src: "/species-photos/widow_rockfish.jpg", credit: "CDFW CA Marine Species Portal (ID illustration, Amadeo Bachar)", license: W, sourceUrl: "https://marinespecies.wildlife.ca.gov/widow-rockfish/false/" },
+  china_rockfish: { src: "/species-photos/china_rockfish.jpg", credit: "CDFW CA Marine Species Portal (ID illustration, Amadeo Bachar)", license: W, sourceUrl: "https://marinespecies.wildlife.ca.gov/china-rockfish/false/" },
+  grass_rockfish: { src: "/species-photos/grass_rockfish.jpg", credit: "CDFW CA Marine Species Portal (ID illustration, Amadeo Bachar)", license: W, sourceUrl: "https://marinespecies.wildlife.ca.gov/grass-rockfish/false/" },
+  calico_rockfish: { src: "/species-photos/calico_rockfish.jpg", credit: "CDFW CA Marine Species Portal (ID illustration, Amadeo Bachar)", license: W, sourceUrl: "https://marinespecies.wildlife.ca.gov/calico-rockfish/false/" },
+  brown_rockfish: { src: "/species-photos/brown_rockfish.jpg", credit: "CDFW CA Marine Species Portal (ID illustration, Amadeo Bachar)", license: W, sourceUrl: "https://marinespecies.wildlife.ca.gov/brown-rockfish/false/" },
+  treefish: { src: "/species-photos/treefish.jpg", credit: "CDFW CA Marine Species Portal (ID illustration, Amadeo Bachar)", license: W, sourceUrl: "https://marinespecies.wildlife.ca.gov/treefish/false/" },
+  starry_flounder: { src: "/species-photos/starry_flounder.jpg", credit: "CDFW CA Marine Species Portal (ID illustration, Amadeo Bachar)", license: W, sourceUrl: "https://marinespecies.wildlife.ca.gov/starry-flounder/false/" },
+  pacific_halibut: { src: "/species-photos/pacific_halibut.jpg", credit: "CDFW CA Marine Species Portal (ID illustration, Amadeo Bachar)", license: W, sourceUrl: "https://marinespecies.wildlife.ca.gov/pacific-halibut/false/" },
+  striped_bass: { src: "/species-photos/striped_bass.jpg", credit: "CDFW CA Marine Species Portal (ID illustration, Amadeo Bachar)", license: W, sourceUrl: "https://marinespecies.wildlife.ca.gov/striped-bass/false/" },
+  white_sturgeon: { src: "/species-photos/white_sturgeon.jpg", credit: "CDFW CA Marine Species Portal (ID illustration, Amadeo Bachar)", license: W, sourceUrl: "https://marinespecies.wildlife.ca.gov/white-sturgeon/false/" },
 };
 
 export function speciesPhoto(speciesId: string): SpeciesPhoto | null {

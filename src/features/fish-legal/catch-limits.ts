@@ -113,6 +113,41 @@ export function limitLines(
   return lines;
 }
 
+/**
+ * Kept-fish audit (founder report 2026-09-02: "today's limits didn't count my fish").
+ * The page shows every kept tally TODAY — each one either names the line it counts
+ * against, or is labeled UNMETERED. A kept row never silently disappears: if the pack
+ * carries no limit for that species, the page says so in words instead of pretending
+ * the fish was never logged.
+ */
+export interface AuditLine {
+  readonly speciesId: string;
+  readonly kept: number;
+  /** Limit lines this species feeds (species cap and/or group aggregate). */
+  readonly countsAgainst: readonly string[];
+  /** True when no bag_limit row covers the species directly or via a group. */
+  readonly unmetered: boolean;
+}
+
+export function keptAudit(bundle: RegBundle, keptToday: ReadonlyMap<string, number>): readonly AuditLine[] {
+  return [...keptToday.entries()].map(([speciesId, kept]) => {
+    const countsAgainst: string[] = [];
+    for (const r of bundle.rules) {
+      if (r.speciesId === speciesId && r.kind === "bag_limit" && r.bagDaily !== null) {
+        countsAgainst.push(`species cap (${r.bagDaily}/day)`);
+      }
+    }
+    for (const g of bundle.groups) {
+      if (!g.memberSpeciesIds.includes(speciesId)) continue;
+      const memberBag = bundle.rules.find(
+        (r) => r.regGroupId === g.id && r.kind === "bag_limit" && r.bagDaily !== null,
+      );
+      if (memberBag?.bagDaily) countsAgainst.push(`${g.name} (${memberBag.bagDaily}/day combined)`);
+    }
+    return { speciesId, kept, countsAgainst, unmetered: countsAgainst.length === 0 };
+  });
+}
+
 function stateOf(retained: number, limit: number): LimitLine["state"] {
   if (retained > limit) return "over";
   if (retained === limit) return "reached";

@@ -11,6 +11,8 @@
 import type { RegionId } from "@/core/ontology/regions";
 import { SOCAL } from "./reg-data";
 import { FLORIDA } from "./florida-pack";
+import { NORCAL } from "./norcal-pack";
+import { CA_FRESHWATER } from "./california-freshwater-pack";
 import type { RegPack, RegArea, RegGroup, RegRule } from "./types";
 
 export type RegBundle = {
@@ -25,6 +27,12 @@ export interface BundledPack {
   readonly regionId: RegionId;
   /** Displayed where the law speaks jurisdiction ("Florida — FWC"). */
   readonly jurisdictionLabel: string;
+  /**
+   * Founder ask (2026-09-02): rules surfaces name the jurisdiction they answer for at
+   * a glance ("Species & limits — FL"), so switching Settings region visibly retells
+   * which state's law the page is reading. Short state-code chips only.
+   */
+  readonly shortCode: string;
   /** Area the species pages use when GPS hasn't been resolved yet. */
   readonly primaryAreaId: string;
   readonly data: RegBundle;
@@ -32,14 +40,30 @@ export interface BundledPack {
 
 export const PACKS: readonly BundledPack[] = [
   {
+    regionId: "northern_california",
+    jurisdictionLabel: "Northern California — CDFW (US)",
+    shortCode: "NorCal",
+    primaryAreaId: "ca-ocean-northern",
+    data: NORCAL,
+  },
+  {
+    regionId: "california_freshwater",
+    jurisdictionLabel: "California Freshwater — CDFW (US)",
+    shortCode: "CA·FW",
+    primaryAreaId: "ca-fresh-statewide",
+    data: CA_FRESHWATER,
+  },
+  {
     regionId: "southern_california",
     jurisdictionLabel: "California — CDFW (US)",
+    shortCode: "SoCal",
     primaryAreaId: "ca-ocean-southern",
     data: SOCAL,
   },
   {
     regionId: "florida",
     jurisdictionLabel: "Florida — FWC (US)",
+    shortCode: "FL",
     primaryAreaId: "fl-state-waters",
     data: FLORIDA,
   },
