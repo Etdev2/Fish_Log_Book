@@ -18,14 +18,19 @@ import type { RegArea, RegGroup, RegPack, RegRule } from "./types";
 
 export const WASHINGTON_PACK: RegPack = {
   id: "washington-2026-09-02",
-  version: 2,
+  version: 3,
   publishedAt: "2026-09-02T12:00:00Z",
   notes:
     "Washington ocean Marine Areas 1-4 (WDFW news release March 5, 2026) — v2 deepens " +
     "with the inside-waters doctrine (no rockfish 6-13, barbless hooks 5-13), Puget " +
     "Sound halibut windows (1/day, 6/yr, catch record card), the North Coast 20-fathom " +
     "retention list, the C-shaped yelloweye conservation area, wolf-eel closure, and " +
-    "the five-additional-flatfish rule. Salmon and shellfish remain unshipped.",
+    "the five-additional-flatfish rule. v3 lands the Puget Sound pamphlet tables for " +
+    "Marine Areas 9, 10 and 13 verbatim (2026-27 book, updated June 18 2026): 15 " +
+    "bottomfish daily, >120ft fishing prohibited, descending device required, lingcod " +
+    "May 1-Jun 15 slot 26-36 in (spear May 21-Jun 15, hook-and-line from May 1), " +
+    "cabezon May 1-Nov 30 @18 in @1, rockfish closed, cod/pollock/hake/wolf-eel closed, " +
+    "salmon headline windows as notes. Crab/shrimp tables still pending.",
 };
 
 const A = {
@@ -54,7 +59,7 @@ const D1 = {
   updated: "2026-03-05",
 } as const;
 const VERIFIED = "2026-09-02";
-const pv = 2;
+const pv = 3;
 
 function rule(
   r: Omit<RegRule, "packVersion" | "regGroupId"> & Partial<Pick<RegRule, "regGroupId">>,
@@ -140,6 +145,53 @@ export const WA_AREAS: readonly RegArea[] = [
       " 48-11'N 125-11'W → 48-04'N 125-11'W → 48-04'N 124-59'W → 48-00'N 124-59'W → " +
       "48-00'N 125-18'W → back).",
   },
+  // ——— v3 (deepen pass): Puget Sound pamphlet areas (2026-27 book, updated 06-18-2026) ———
+  {
+    id: "wa-ma-9",
+    authority: "wdfw",
+    kind: "ocean_region",
+    name: "Marine Area 9 — Admiralty Inlet",
+    polygon: [
+      [-122.75, 48.05], [-122.4, 47.95], [-122.35, 48.0], [-122.35, 48.3], [-122.75, 48.3],
+      [-122.75, 48.05],
+    ],
+    sourceUrl: "https://www.eregulations.com/washington/fishing/marine-area-9",
+    verifiedAt: VERIFIED,
+    notes:
+      "Envelope. Legal: south of Partridge Point–Point Wilson line, south and west of " +
+      "Possession Point 110° true to shipwreck, north of Hood Canal Bridge and north of " +
+      "the Apple Cove Point–Edwards Point line.",
+  },
+  {
+    id: "wa-ma-10",
+    authority: "wdfw",
+    kind: "ocean_region",
+    name: "Marine Area 10 — Seattle / Bremerton",
+    polygon: [
+      [-122.5, 47.55], [-122.3, 47.55], [-122.3, 47.95], [-122.5, 47.95], [-122.5, 47.55],
+    ],
+    sourceUrl: "https://www.eregulations.com/washington/fishing/marine-area-10",
+    verifiedAt: VERIFIED,
+    notes:
+      "Envelope. Legal: Apple Cove Point–Edwards Point to a true east-west line through " +
+      "the north tip of Vashon Island. DOH fish-consumption advisories apply — check " +
+      "doh.wa.gov/fishmap.",
+  },
+  {
+    id: "wa-ma-13",
+    authority: "wdfw",
+    kind: "ocean_region",
+    name: "Marine Area 13 — South Puget Sound",
+    polygon: [
+      [-122.65, 47.1], [-122.35, 47.1], [-122.3, 47.28], [-122.65, 47.28],
+    ],
+    sourceUrl: "https://www.eregulations.com/washington/fishing/marine-area-13",
+    verifiedAt: VERIFIED,
+    notes:
+      "Envelope. Legal: all waters south of the northernmost Tacoma Narrows Bridge. " +
+      "Halibut closed; Toliva Shoal + Budd Inlet sub-areas have their own salmon rows " +
+      "in the pamphlet (headline rows shipped as notes).",
+  },
 ];
 
 export const WA_GROUPS: readonly RegGroup[] = [
@@ -171,6 +223,99 @@ export const WA_GROUPS: readonly RegGroup[] = [
 
 const CLOSING_TERCET =
   "Anglers cannot possess copper rockfish, quillback rockfish, and vermilion rockfish in May, June, and July.";
+
+/** 2026-27 pamphlet "Bottomfish" block, identical wording in MA 9, 10, 11, 12, 13. */
+function soundBottomfishRules(areaId: string, opts: { bag: number; area9?: boolean }): RegRule[] {
+  const pamphlet = {
+    url: `https://www.eregulations.com/washington/fishing/${areaId.toLowerCase().replace("wa-", "")}`,
+    title: `WDFW — 2026-2027 Washington Sport Fishing Rules (${areaId.replace("wa-", "Marine Area ")})`,
+    updated: "2026-06-18",
+  } as const;
+  const tag = areaId.replace("wa-", "");
+  const rs = (r: Omit<RegRule, "packVersion" | "regGroupId" | "regAreaId"> & Partial<Pick<RegRule, "regGroupId">>): RegRule =>
+    rule({ regAreaId: areaId, ...r });
+  void opts;
+  return [
+    rs({
+      id: `${tag}-bottomfish-15`, speciesId: null, regGroupId: "wa-bottomfish", kind: "bag_limit",
+      verbatim:
+        "Bottomfish: Year-round season. Daily limit is a total of 15 bottomfish subject to individual limits and seasons shown below. Fishing for bottomfish prohibited in waters deeper than 120 feet. Descending device required onboard vessels.",
+      sourceUrl: pamphlet.url, sourceTitle: pamphlet.title, sourceUpdatedAt: pamphlet.updated, verifiedAt: VERIFIED,
+      seasonStart: null, seasonEnd: null, bagDaily: 15, possessionLimit: null, bagSharesWithGroup: true,
+      minSizeIn: null, maxSizeIn: null, sizeMeasure: null, platformScope: null, depthNote: "No bottomfish deeper than 120 ft.",
+      checkInseason: true, staleAfterDays: 30,
+    }),
+    rs({
+      id: `${tag}-lingcod-season`, speciesId: "lingcod", kind: "bag_limit",
+      verbatim:
+        "Lingcod — May 1-June 15: Hook and line season. Min. size 26 in. Max. size 36 in. Daily limit 1. May 21-June 15: Spearfishing season. Max. size 36 in. Daily limit 1.",
+      sourceUrl: pamphlet.url, sourceTitle: pamphlet.title, sourceUpdatedAt: pamphlet.updated, verifiedAt: VERIFIED,
+      seasonStart: "05-01", seasonEnd: "06-15", bagDaily: 1, possessionLimit: null, bagSharesWithGroup: false,
+      minSizeIn: 26, maxSizeIn: 36, sizeMeasure: "total_length", platformScope: "boat", depthNote: "Spear window opens May 21 (26-36 in slot; max 36).",
+      checkInseason: true, staleAfterDays: 30,
+    }),
+    rs({
+      id: `${tag}-lingcod-closed`, speciesId: "lingcod", kind: "season",
+      verbatim:
+        "Lingcod — May 1-June 15: Hook and line season, May 21-June 15 spearfishing (outside those pamphlet windows lingcod retention is closed in this Marine Area).",
+      sourceUrl: pamphlet.url, sourceTitle: pamphlet.title, sourceUpdatedAt: pamphlet.updated, verifiedAt: VERIFIED,
+      seasonStart: "01-01", seasonEnd: "04-30", bagDaily: 0, possessionLimit: null, bagSharesWithGroup: false,
+      minSizeIn: null, maxSizeIn: null, sizeMeasure: null, platformScope: null, depthNote: null,
+      checkInseason: true, staleAfterDays: 30,
+    }),
+    rs({
+      id: `${tag}-lingcod-closed2`, speciesId: "lingcod", kind: "season",
+      verbatim:
+        "Lingcod — May 1-June 15: Hook and line season, May 21-June 15 spearfishing (outside these windows lingcod retention is closed in this Marine Area — see the pamphlet table).",
+      sourceUrl: pamphlet.url, sourceTitle: pamphlet.title, sourceUpdatedAt: pamphlet.updated, verifiedAt: VERIFIED,
+      seasonStart: "06-16", seasonEnd: "12-31", bagDaily: 0, possessionLimit: null, bagSharesWithGroup: false,
+      minSizeIn: null, maxSizeIn: null, sizeMeasure: null, platformScope: null, depthNote: null,
+      checkInseason: true, staleAfterDays: 30,
+    }),
+    rs({
+      id: `${tag}-surfperch`, speciesId: "surfperch", kind: "bag_limit",
+      verbatim:
+        "Surfperch: Year-round. No min. size. Daily limit 10. Except shiner perch daily limit 15: not included in bottomfish limit.",
+      sourceUrl: pamphlet.url, sourceTitle: pamphlet.title, sourceUpdatedAt: pamphlet.updated, verifiedAt: VERIFIED,
+      seasonStart: null, seasonEnd: null, bagDaily: 10, possessionLimit: null, bagSharesWithGroup: false,
+      minSizeIn: null, maxSizeIn: null, sizeMeasure: null, platformScope: null, depthNote: "Shiner perch 15/day, not in the bottomfish count.",
+      checkInseason: true, staleAfterDays: 60,
+    }),
+    rs({
+      id: `${tag}-rockfish-closed`, speciesId: "rockfish", kind: "prohibited",
+      verbatim: "Rockfish: CLOSED — CLOSED to fishing for, retaining, or possessing.",
+      sourceUrl: pamphlet.url, sourceTitle: pamphlet.title, sourceUpdatedAt: pamphlet.updated, verifiedAt: VERIFIED,
+      seasonStart: null, seasonEnd: null, bagDaily: 0, possessionLimit: 0, bagSharesWithGroup: false,
+      minSizeIn: null, maxSizeIn: null, sizeMeasure: null, platformScope: null, depthNote: null,
+      checkInseason: false, staleAfterDays: 120,
+    }),
+    rs({
+      id: `${tag}-cod-hake-wolfeel-closed`, speciesId: "pacific_cod", kind: "prohibited",
+      verbatim: "Pacific Cod, Pollock, Hake, and Wolf-Eel: Year-round — CLOSED to retention.",
+      sourceUrl: pamphlet.url, sourceTitle: pamphlet.title, sourceUpdatedAt: pamphlet.updated, verifiedAt: VERIFIED,
+      seasonStart: null, seasonEnd: null, bagDaily: 0, possessionLimit: 0, bagSharesWithGroup: false,
+      minSizeIn: null, maxSizeIn: null, sizeMeasure: null, platformScope: null, depthNote: "Also covers pollock, hake, wolf-eel.",
+      checkInseason: false, staleAfterDays: 120,
+    }),
+    rs({
+      id: `${tag}-sharks-closed`, speciesId: "sixgill_shark", kind: "prohibited",
+      verbatim:
+        "Sixgill, Sevengill, and Thresher Sharks: CLOSED — CLOSED to fishing for, retaining, or possessing. Sixgill shark may not be removed from the water.",
+      sourceUrl: pamphlet.url, sourceTitle: pamphlet.title, sourceUpdatedAt: pamphlet.updated, verifiedAt: VERIFIED,
+      seasonStart: null, seasonEnd: null, bagDaily: 0, possessionLimit: 0, bagSharesWithGroup: false,
+      minSizeIn: null, maxSizeIn: null, sizeMeasure: null, platformScope: null, depthNote: null,
+      checkInseason: true, staleAfterDays: 60,
+    }),
+    rs({
+      id: `${tag}-cabezon`, speciesId: "cabezon", kind: "bag_limit",
+      verbatim: "Cabezon: May 1-Nov. 30 — Min. size 18 in. Daily limit 1.",
+      sourceUrl: pamphlet.url, sourceTitle: pamphlet.title, sourceUpdatedAt: pamphlet.updated, verifiedAt: VERIFIED,
+      seasonStart: "05-01", seasonEnd: "11-30", bagDaily: 1, possessionLimit: null, bagSharesWithGroup: false,
+      minSizeIn: 18, maxSizeIn: null, sizeMeasure: "total_length", platformScope: null, depthNote: null,
+      checkInseason: true, staleAfterDays: 30,
+    }),
+  ];
+}
 
 export const WA_RULES: readonly RegRule[] = [
   rule({
@@ -443,6 +588,47 @@ export const WA_RULES: readonly RegRule[] = [
     seasonStart: null, seasonEnd: null, bagDaily: 1, possessionLimit: null, bagSharesWithGroup: false,
     minSizeIn: null, maxSizeIn: null, sizeMeasure: null, platformScope: null, depthNote: "Six fish annual bag limit; catch record card required.",
     checkInseason: true, staleAfterDays: 7,
+  }),
+  // ——— v3 (deepen pass): Puget Sound pamphlet tables, verbatim (2026-27 book) ———
+  ...soundBottomfishRules("wa-ma-9", {
+    bag: 15, area9: true,
+  }),
+  ...soundBottomfishRules("wa-ma-10", { bag: 15 }),
+  ...soundBottomfishRules("wa-ma-13", { bag: 15 }),
+  rule({
+    id: "wa-ma9-salmon-note", speciesId: null, regAreaId: "wa-ma-9", kind: "note",
+    verbatim:
+      "Salmon (Entire Area, MA9 Admiralty Inlet): July 16-July 18: Chinook - min. size 22 in. Other salmon species - no min. size. Daily limit 2 including no more than 1 Chinook. Release chum, wild coho, and wild Chinook. July 19-July 31: CLOSED. Aug. 1-Sept. 18: no min. size, daily limit 2, release Chinook, chum, and wild coho. Sept. 19-Sept. 30: no min. size, daily limit 2, release Chinook and chum. (Edmonds Pier and Northern Hood Canal run separate tables; Admiralty Head Marine Preserve and Keystone Conservation Area: year-round CLOSED.)",
+    sourceUrl: "https://www.eregulations.com/washington/fishing/marine-area-9", sourceTitle: "WDFW — 2026-2027 Washington Sport Fishing Rules (Marine Area 9)", sourceUpdatedAt: "2026-06-18", verifiedAt: VERIFIED,
+    seasonStart: null, seasonEnd: null, bagDaily: null, possessionLimit: null, bagSharesWithGroup: false,
+    minSizeIn: null, maxSizeIn: null, sizeMeasure: null, platformScope: null, depthNote: null,
+    checkInseason: true, staleAfterDays: 7,
+  }),
+  rule({
+    id: "wa-ma10-salmon-note", speciesId: null, regAreaId: "wa-ma-10", kind: "note",
+    verbatim:
+      "Salmon (Entire Area, MA10 Seattle/Bremerton): June 1-July 22: no min. size, daily limit 2, release Chinook and chum. July 23-July 25: Chinook min. 22 in, daily limit 2 incl. ≤1 Chinook, release chum and wild Chinook. July 26-Sept. 30: no min. size, daily limit 2, release Chinook and chum. Oct. 1-Nov. 15: no min. size, daily limit 2, release Chinook. Nov. 16-Mar. 30: CLOSED. Mar. 31-Apr. 30: open Wed.-Sat. only, Chinook min. 22 in, daily limit 2 incl. ≤1 Chinook, release chum and wild Chinook. (Shilshole/West Elliott Bay, East Elliott Bay, Harbor Island, Sinclair Inlet/Port Orchard, Agate Pass, and the four piers run separate tables.)",
+    sourceUrl: "https://www.eregulations.com/washington/fishing/marine-area-10", sourceTitle: "WDFW — 2026-2027 Washington Sport Fishing Rules (Marine Area 10)", sourceUpdatedAt: "2026-06-18", verifiedAt: VERIFIED,
+    seasonStart: null, seasonEnd: null, bagDaily: null, possessionLimit: null, bagSharesWithGroup: false,
+    minSizeIn: null, maxSizeIn: null, sizeMeasure: null, platformScope: null, depthNote: null,
+    checkInseason: true, staleAfterDays: 7,
+  }),
+  rule({
+    id: "wa-ma13-salmon-note", speciesId: null, regAreaId: "wa-ma-13", kind: "note",
+    verbatim:
+      "Salmon (Entire Area, MA13 South Puget Sound): July 1-Sept. 30: Chinook - min. size 20 in. Other salmon species - no min. size. Daily limit 2. Release chum, wild coho, and wild Chinook. Oct. 1-June 30: Chinook - min. size 22 in. Other salmon species - no min. size. Daily limit 2. Release chum, wild coho, and wild Chinook. Anglers may fish with two poles with Two-Pole Endorsement. (Toliva Shoal, Northern/Southern Budd Inlet, and Fox Island Pier run separate tables.)",
+    sourceUrl: "https://www.eregulations.com/washington/fishing/marine-area-13", sourceTitle: "WDFW — 2026-2027 Washington Sport Fishing Rules (Marine Area 13)", sourceUpdatedAt: "2026-06-18", verifiedAt: VERIFIED,
+    seasonStart: null, seasonEnd: null, bagDaily: null, possessionLimit: null, bagSharesWithGroup: false,
+    minSizeIn: null, maxSizeIn: null, sizeMeasure: null, platformScope: null, depthNote: null,
+    checkInseason: true, staleAfterDays: 7,
+  }),
+  rule({
+    id: "wa-ma13-halibut-closed", speciesId: "pacific_halibut", regAreaId: "wa-ma-13", kind: "prohibited",
+    verbatim: "Pacific Halibut (Marine Area 13): CLOSED — CLOSED to fishing for, retaining, or possessing.",
+    sourceUrl: "https://www.eregulations.com/washington/fishing/marine-area-13", sourceTitle: "WDFW — 2026-2027 Washington Sport Fishing Rules (Marine Area 13)", sourceUpdatedAt: "2026-06-18", verifiedAt: VERIFIED,
+    seasonStart: null, seasonEnd: null, bagDaily: 0, possessionLimit: 0, bagSharesWithGroup: false,
+    minSizeIn: null, maxSizeIn: null, sizeMeasure: null, platformScope: null, depthNote: null,
+    checkInseason: false, staleAfterDays: 120,
   }),
 ];
 
