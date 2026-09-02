@@ -16,7 +16,7 @@ import { usePathname } from "next/navigation";
  * the optional quick-mark action are pinned as one unit and cannot overlap each other.
  */
 /**
- * Six destinations now, by founder decision (regulations spec §16, 2026-09-01): "Rules"
+ * Six destinations now, by founder decision (regulations spec §16, then the Fish Legal\n * expansion spec §2, 2026-09-02): nav label "Legal" (founder-locked, "Fish Legal" is the\n * section name on pages; at 320px the bar reads verbs, so the test pins wording). "Rules"
  * earns the spot between Tide and Settings because a-law question beats a settings visit
  * when a fish flops in the well. The old ceiling ("five, and the fifth is the talk")
  * lived in this comment block and in shell-nav.test.ts; both were updated together —
@@ -32,7 +32,7 @@ export const SHELL_ROUTES = [
   { href: "/setup", label: "Setup" },
   { href: "/log", label: "Log" },
   { href: "/tides", label: "Tide" },
-  { href: "/regulations", label: "Rules" },
+  { href: "/fish-legal", label: "Legal" },
   { href: "/settings", label: "Settings" },
 ] as const;
 

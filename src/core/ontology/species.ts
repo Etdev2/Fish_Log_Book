@@ -107,6 +107,7 @@ export const SPECIES: readonly Species[] = [
   { id: "southern_flounder", commonName: "Southern flounder", scientificName: "Paralichthys lethostigma", isGroup: false, rollsUpTo: null, waterClass: "salt", takeStatus: "regulated", sortOrder: 426 },
   { id: "sheepshead", commonName: "Sheepshead", scientificName: "Archosargus probatocephalus", isGroup: false, rollsUpTo: null, waterClass: "salt", takeStatus: "regulated", sortOrder: 427 },
   { id: "permit", commonName: "Permit", scientificName: "Trachinotus falcatus", isGroup: false, rollsUpTo: null, waterClass: "salt", takeStatus: "regulated", sortOrder: 428 },
+  { id: "florida_pompano", commonName: "Florida pompano", scientificName: "Trachinotus carolinus", isGroup: false, rollsUpTo: null, waterClass: "salt", takeStatus: "regulated", sortOrder: 429 },
   { id: "atlantic_bonefish", commonName: "Bonefish", scientificName: "Albula vulpes", isGroup: false, rollsUpTo: null, waterClass: "salt", takeStatus: "regulated", sortOrder: 429 },
 
   // Florida / Gulf offshore (430s)

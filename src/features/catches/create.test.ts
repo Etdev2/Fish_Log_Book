@@ -46,6 +46,7 @@ const record: CatchRecord = {
   notes: "meter marks at 250",
   tags: ["night bite"],
   favorite: false,
+  regulation_snapshot: null,
   capture_mode: "live",
   client_created_at: NOW,
   created_at: NOW,
