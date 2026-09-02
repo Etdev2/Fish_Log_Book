@@ -18,7 +18,7 @@ import type { RegArea, RegGroup, RegPack, RegRule } from "./types";
 
 export const WASHINGTON_PACK: RegPack = {
   id: "washington-2026-09-02",
-  version: 4,
+  version: 5,
   publishedAt: "2026-09-02T12:00:00Z",
   notes:
     "Washington ocean Marine Areas 1-4 (WDFW news release March 5, 2026) — v2 deepens " +
@@ -30,7 +30,7 @@ export const WASHINGTON_PACK: RegPack = {
     "bottomfish daily, >120ft fishing prohibited, descending device required, lingcod " +
     "May 1-Jun 15 slot 26-36 in (spear May 21-Jun 15, hook-and-line from May 1), " +
     "cabezon May 1-Nov 30 @18 in @1, rockfish closed, cod/pollock/hake/wolf-eel closed, " +
-    "salmon headline windows as notes. v4 lands the Crab Rules page verbatim: Puget Sound (Dungeness 5 @ 6.25 in males hardshell / Red Rock 6 @ 5 in / Tanner 6 @ 4.5 in; CRC + endorsement; MA12 south of Ayock Point + MA13 closed to crab in 2026), Pacific Ocean (Dungeness 6 @ 6 in + Red Rock 6 @ 5 in; pot window Dec 1-Sep 15, year-round other gear; Willapa Bay pots Nov 15-Sep 15), Columbia River estuary (Dungeness 12 @ 5.75 in, year-round all gear), European green crab report-and-release. Shrimp still pending.",
+    "salmon headline windows as notes. v4 lands the Crab Rules page verbatim: Puget Sound (Dungeness 5 @ 6.25 in males hardshell / Red Rock 6 @ 5 in / Tanner 6 @ 4.5 in; CRC + endorsement; MA12 south of Ayock Point + MA13 closed to crab in 2026), Pacific Ocean (Dungeness 6 @ 6 in + Red Rock 6 @ 5 in; pot window Dec 1-Sep 15, year-round other gear; Willapa Bay pots Nov 15-Sep 15), Columbia River estuary (Dungeness 12 @ 5.75 in, year-round all gear), European green crab report-and-release. v5 lands the Shrimp Rules page verbatim: Puget Sound 80 spot shrimp/day cap inside a 10-lb all-species combined limit with 2026 spot closures (MA 8-1/8-2/9/10/11/13) as prohibited rows; Pacific Ocean 25-lb combined (max 200 spot, year-round); mesh/head-retention/pot-count gear doctrine.",
 };
 
 const A = {
@@ -59,10 +59,15 @@ const D1 = {
   updated: "2026-03-05",
 } as const;
 const VERIFIED = "2026-09-02";
-const pv = 4;
+const pv = 5;
 const C2 = {
   url: "https://www.eregulations.com/washington/fishing/crab-rules",
   title: "WDFW — 2026-2027 Washington Sport Fishing Rules (Crab Rules)",
+  updated: "2026-06-18",
+} as const;
+const S2 = {
+  url: "https://www.eregulations.com/washington/fishing/shrimp-rules",
+  title: "WDFW — 2026-2027 Washington Sport Fishing Rules (Shrimp Rules)",
   updated: "2026-06-18",
 } as const;
 
@@ -828,6 +833,97 @@ export const WA_RULES: readonly RegRule[] = [
     seasonStart: null, seasonEnd: null, bagDaily: 6, possessionLimit: null, bagSharesWithGroup: false,
     minSizeIn: 5, maxSizeIn: null, sizeMeasure: "carapace_width", platformScope: null, depthNote: "Either sex, hardshell.",
     checkInseason: true, staleAfterDays: 14,
+  }),
+  // ——— v5 (deepen pass): Shrimp Rules page verbatim (2026-27 book, updated 2026-06-18) ———
+  rule({
+    id: "wa-ps-shrimp-spot-bag", speciesId: "spot_shrimp", regAreaId: "wa-ma-5-13-inside", kind: "bag_limit",
+    verbatim:
+      "Puget Sound (Marine Areas 5-13 and Marine Area 4 east of the Bonilla-Tatoosh line): Daily limit of 80 spot shrimp. Daily limit of 10 pounds, heads and tails, of all shrimp species combined (maximum of 80 spot shrimp — if open for spot shrimp). First opening date will occur in May.",
+    sourceUrl: S2.url, sourceTitle: S2.title, sourceUpdatedAt: S2.updated, verifiedAt: VERIFIED,
+    seasonStart: null, seasonEnd: null, bagDaily: 80, possessionLimit: null, bagSharesWithGroup: false,
+    minSizeIn: null, maxSizeIn: null, sizeMeasure: null, platformScope: null,
+    depthNote: "Capped inside a 10-lb all-species combined daily limit; first opening occurs in May (dates announced late March/early April).",
+    checkInseason: true, staleAfterDays: 7,
+  }),
+  rule({
+    id: "wa-ps-shrimp-gear-note", speciesId: null, regAreaId: "wa-ma-5-13-inside", kind: "gear",
+    verbatim:
+      "Shrimp (Puget Sound): minimum mesh size for shrimp pots is 1\" mesh. June 1 through October 15: minimum mesh is 1\", unless the area is closed for spot shrimp but open for coonstripe and pink shrimp, then minimum mesh is ½\"; in those areas all spot shrimp caught must be returned to the water immediately. If retaining non-spot shrimp, all shrimp heads (spot and non-spot) must be retained in the field until ashore and finished fishing for the day. All Areas: each harvester must have a separate container for their catch; no minimum carapace size; maximum of two shrimp pots per person, no more than four shrimp pots per boat.",
+    sourceUrl: S2.url, sourceTitle: S2.title, sourceUpdatedAt: S2.updated, verifiedAt: VERIFIED,
+    seasonStart: null, seasonEnd: null, bagDaily: null, possessionLimit: null, bagSharesWithGroup: false,
+    minSizeIn: null, maxSizeIn: null, sizeMeasure: null, platformScope: null, depthNote: null,
+    checkInseason: true, staleAfterDays: 30,
+  }),
+  rule({
+    id: "wa-ps-shrimp-season-note", speciesId: null, regAreaId: "wa-ma-5-13-inside", kind: "season",
+    verbatim:
+      "Marine Areas 4 (east of Bonilla-Tatoosh line), 5, 6, 7 East, 7 South, 7 West, 8-1, 8-2, 9, 10, 11, 12, Discovery Bay Shrimp Area: For shrimp season open dates and times go to wdfw.wa.gov/fishing/shellfishing-regulations/shrimp/areas. The dates for the upcoming 2027 season will be announced and available in late March or early April to accommodate co-management obligations, account for extreme tides, and complete pre-season test fishing and quota setting. Discovery Bay Shrimp Area: waters south of a line from McCurdy Point on the Quimper Peninsula to the northern tip of Protection Island then to Rocky Point on the Miller Peninsula and all waters of Discovery Bay.",
+    sourceUrl: S2.url, sourceTitle: S2.title, sourceUpdatedAt: S2.updated, verifiedAt: VERIFIED,
+    seasonStart: null, seasonEnd: null, bagDaily: null, possessionLimit: null, bagSharesWithGroup: false,
+    minSizeIn: null, maxSizeIn: null, sizeMeasure: null, platformScope: null, depthNote: null,
+    checkInseason: true, staleAfterDays: 7,
+  }),
+  rule({
+    id: "wa-ps-spot-closed-2026", speciesId: "spot_shrimp", regAreaId: "wa-ma-5-13-inside", kind: "prohibited",
+    verbatim:
+      "During 2026 Marine Areas 8-1, 8-2, 9, 10, 11, and 13 have been CLOSED to spot shrimp harvest.",
+    sourceUrl: S2.url, sourceTitle: S2.title, sourceUpdatedAt: S2.updated, verifiedAt: VERIFIED,
+    seasonStart: null, seasonEnd: null, bagDaily: 0, possessionLimit: 0, bagSharesWithGroup: false,
+    minSizeIn: null, maxSizeIn: null, sizeMeasure: null, platformScope: null,
+    depthNote: "Spot closed (2026 book year) in 8-1/8-2/9/10/11/13; coonstripe + pink stay open there — ½\" mesh + immediate spot release rules apply.",
+    checkInseason: true, staleAfterDays: 7,
+  }),
+  rule({
+    id: "wa-ma9-spotshrimp-closed", speciesId: "spot_shrimp", regAreaId: "wa-ma-9", kind: "prohibited",
+    verbatim: "During 2026 Marine Areas 8-1, 8-2, 9, 10, 11, and 13 have been CLOSED to spot shrimp harvest.",
+    sourceUrl: S2.url, sourceTitle: S2.title, sourceUpdatedAt: S2.updated, verifiedAt: VERIFIED,
+    seasonStart: null, seasonEnd: null, bagDaily: 0, possessionLimit: 0, bagSharesWithGroup: false,
+    minSizeIn: null, maxSizeIn: null, sizeMeasure: null, platformScope: null, depthNote: null,
+    checkInseason: true, staleAfterDays: 7,
+  }),
+  rule({
+    id: "wa-ma10-spotshrimp-closed", speciesId: "spot_shrimp", regAreaId: "wa-ma-10", kind: "prohibited",
+    verbatim: "During 2026 Marine Areas 8-1, 8-2, 9, 10, 11, and 13 have been CLOSED to spot shrimp harvest.",
+    sourceUrl: S2.url, sourceTitle: S2.title, sourceUpdatedAt: S2.updated, verifiedAt: VERIFIED,
+    seasonStart: null, seasonEnd: null, bagDaily: 0, possessionLimit: 0, bagSharesWithGroup: false,
+    minSizeIn: null, maxSizeIn: null, sizeMeasure: null, platformScope: null, depthNote: null,
+    checkInseason: true, staleAfterDays: 7,
+  }),
+  rule({
+    id: "wa-ma13-spotshrimp-closed", speciesId: "spot_shrimp", regAreaId: "wa-ma-13", kind: "prohibited",
+    verbatim: "During 2026 Marine Areas 8-1, 8-2, 9, 10, 11, and 13 have been CLOSED to spot shrimp harvest.",
+    sourceUrl: S2.url, sourceTitle: S2.title, sourceUpdatedAt: S2.updated, verifiedAt: VERIFIED,
+    seasonStart: null, seasonEnd: null, bagDaily: 0, possessionLimit: 0, bagSharesWithGroup: false,
+    minSizeIn: null, maxSizeIn: null, sizeMeasure: null, platformScope: null, depthNote: null,
+    checkInseason: true, staleAfterDays: 7,
+  }),
+  rule({
+    id: "wa-ocean-shrimp-bag", speciesId: null, regAreaId: "wa-ma-1-4-coastal", kind: "bag_limit",
+    verbatim:
+      "Pacific Ocean (Marine Areas 1-3 and Marine Area 4 west of the Bonilla-Tatoosh line): Daily limit of 25 pounds, heads and tails, of all shrimp species combined (maximum of 200 spot shrimp). Shrimp heads may be removed, but must be retained while in the field, until ashore and finished fishing for the day. The minimum mesh size for shrimp pots is 1\" mesh.",
+    sourceUrl: S2.url, sourceTitle: S2.title, sourceUpdatedAt: S2.updated, verifiedAt: VERIFIED,
+    seasonStart: null, seasonEnd: null, bagDaily: null, possessionLimit: null, bagSharesWithGroup: false,
+    minSizeIn: null, maxSizeIn: null, sizeMeasure: null, platformScope: null,
+    depthNote: "25 lb combined (heads+tails); spot component capped at 200 individuals.",
+    checkInseason: true, staleAfterDays: 30,
+  }),
+  rule({
+    id: "wa-ocean-shrimp-season", speciesId: "spot_shrimp", regAreaId: "wa-ma-1-4-coastal", kind: "season",
+    verbatim:
+      "Pacific Ocean Marine Areas 1-3 and 4 (west of Bonilla-Tatoosh line) — All Species: Year-round. Open daily. Note: Pacific Ocean shrimp grounds are located a considerable distance from shore (30 miles or more) and as a result are generally inaccessible by the casual sport fisher.",
+    sourceUrl: S2.url, sourceTitle: S2.title, sourceUpdatedAt: S2.updated, verifiedAt: VERIFIED,
+    seasonStart: null, seasonEnd: null, bagDaily: null, possessionLimit: null, bagSharesWithGroup: false,
+    minSizeIn: null, maxSizeIn: null, sizeMeasure: null, platformScope: "boat", depthNote: "Grounds 30+ mi offshore.",
+    checkInseason: false, staleAfterDays: 60,
+  }),
+  rule({
+    id: "wa-ocean-spot-cap", speciesId: "spot_shrimp", regAreaId: "wa-ma-1-4-coastal", kind: "bag_limit",
+    verbatim:
+      "Pacific Ocean (Marine Areas 1-3 and Marine Area 4 west of the Bonilla-Tatoosh line): Daily limit of 25 pounds, heads and tails, of all shrimp species combined — maximum of 200 spot shrimp.",
+    sourceUrl: S2.url, sourceTitle: S2.title, sourceUpdatedAt: S2.updated, verifiedAt: VERIFIED,
+    seasonStart: null, seasonEnd: null, bagDaily: 200, possessionLimit: null, bagSharesWithGroup: false,
+    minSizeIn: null, maxSizeIn: null, sizeMeasure: null, platformScope: null, depthNote: "Spot component cap inside the 25-lb combined limit.",
+    checkInseason: true, staleAfterDays: 30,
   }),
 ];
 

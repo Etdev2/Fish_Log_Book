@@ -208,6 +208,9 @@ export const SPECIES: readonly Species[] = [
   { id: "european_green_crab", commonName: "European green crab (invasive)", scientificName: "Carcinus maenas", isGroup: false, rollsUpTo: null, waterClass: "salt", takeStatus: "regulated", sortOrder: 489 },
   { id: "red_rock_crab", commonName: "Red rock crab", scientificName: "Cancer productus", isGroup: false, rollsUpTo: null, waterClass: "salt", takeStatus: "regulated", sortOrder: 490 },
   { id: "tanner_crab", commonName: "Tanner crab", scientificName: "Chionoecetes bairdi", isGroup: false, rollsUpTo: null, waterClass: "salt", takeStatus: "regulated", sortOrder: 491 },
+  { id: "spot_shrimp", commonName: "Spot shrimp", scientificName: "Pandalus platyceros", isGroup: false, rollsUpTo: null, waterClass: "salt", takeStatus: "regulated", sortOrder: 492 },
+  { id: "coonstripe_shrimp", commonName: "Coonstripe shrimp (dock/humpback)", scientificName: "Pandalus danae / P. hypsinotus", isGroup: false, rollsUpTo: null, waterClass: "salt", takeStatus: "regulated", sortOrder: 493 },
+  { id: "pink_shrimp", commonName: "Pink shrimp", scientificName: "Pandalus eous / P. jordani", isGroup: false, rollsUpTo: null, waterClass: "salt", takeStatus: "regulated", sortOrder: 494 },
   { id: "razor_clam", commonName: "Razor clam", scientificName: "Siliqua patula", isGroup: false, rollsUpTo: null, waterClass: "salt", takeStatus: "regulated", sortOrder: 490 },
   { id: "alligator_gar", commonName: "Alligator gar", scientificName: "Atractosteus spatula", isGroup: false, rollsUpTo: null, waterClass: "salt", takeStatus: "regulated", sortOrder: 660 },
 ];
