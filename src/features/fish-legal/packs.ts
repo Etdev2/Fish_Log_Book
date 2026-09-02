@@ -13,6 +13,12 @@ import { SOCAL } from "./reg-data";
 import { FLORIDA } from "./florida-pack";
 import { NORCAL } from "./norcal-pack";
 import { CA_FRESHWATER } from "./california-freshwater-pack";
+import { TEXAS } from "./texas-pack";
+import { LOUISIANA } from "./louisiana-pack";
+import { MISSISSIPPI } from "./mississippi-pack";
+import { ALABAMA } from "./alabama-pack";
+import { BAJA_CALIFORNIA } from "./baja-pack";
+import { BAJA_CALIFORNIA_SUR } from "./bcs-pack";
 import type { RegPack, RegArea, RegGroup, RegRule } from "./types";
 
 export type RegBundle = {
@@ -66,6 +72,58 @@ export const PACKS: readonly BundledPack[] = [
     shortCode: "FL",
     primaryAreaId: "fl-state-waters",
     data: FLORIDA,
+  },
+  // ——— States expansion wave 1 (2026-09-02): Gulf + Baja. Verbatims live in each pack.
+  {
+    regionId: "texas",
+    jurisdictionLabel: "Texas — TPWD (US)",
+    shortCode: "TX",
+    primaryAreaId: "tx-gulf",
+    data: TEXAS,
+  },
+  {
+    regionId: "louisiana",
+    jurisdictionLabel: "Louisiana — LDWF (US)",
+    shortCode: "LA",
+    primaryAreaId: "la-gulf",
+    data: LOUISIANA,
+  },
+  {
+    regionId: "mississippi",
+    jurisdictionLabel: "Mississippi — MDMR (US)",
+    shortCode: "MS",
+    primaryAreaId: "ms-gulf",
+    data: MISSISSIPPI,
+  },
+  {
+    regionId: "alabama",
+    jurisdictionLabel: "Alabama — ADCNR (US)",
+    shortCode: "AL",
+    primaryAreaId: "al-gulf",
+    data: ALABAMA,
+  },
+  {
+    regionId: "baja_california",
+    jurisdictionLabel: "Baja California — CONAPESCA (MX)",
+    shortCode: "MX·BC",
+    primaryAreaId: "mx-baja-california",
+    data: BAJA_CALIFORNIA,
+  },
+  {
+    regionId: "baja_california_sur",
+    jurisdictionLabel: "Baja California Sur — CONAPESCA (MX)",
+    shortCode: "MX·BCS",
+    primaryAreaId: "mx-baja-california-sur",
+    data: BAJA_CALIFORNIA_SUR,
+  },
+  {
+    // Legacy region (pre-wave lister's "Cabo") — Cabo San Lucas is in BCS; the BCS
+    // pack answers for it identically (NOM-017 is federal).
+    regionId: "cabo_baja",
+    jurisdictionLabel: "Baja California Sur — CONAPESCA (MX)",
+    shortCode: "MX·BCS",
+    primaryAreaId: "mx-baja-california-sur",
+    data: BAJA_CALIFORNIA_SUR,
   },
 ];
 

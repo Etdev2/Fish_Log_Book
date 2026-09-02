@@ -26,6 +26,13 @@ export type RegionId =
   | "great_lakes"
   /** California inland waters (CDFW statewide defaults; named waters override). */
   | "california_freshwater"
+  /** Gulf + Mexico wave (2026-09-02 states expansion). Mexico splits like CA. */
+  | "texas"
+  | "louisiana"
+  | "mississippi"
+  | "alabama"
+  | "baja_california"
+  | "baja_california_sur"
   /** Angler-defined home water: nothing is pre-judged, Recent builds the picture. */
   | "custom";
 
@@ -46,6 +53,12 @@ export const REGIONS: readonly Region[] = [
   { id: "northeast", label: "Northeast", hint: "Stripers, blues, fluke, tog, cod." },
   { id: "great_lakes", label: "Great Lakes", hint: "Walleye, salmon and trout, perch, bass." },
   { id: "california_freshwater", label: "California — Freshwater", hint: "Lakes, rivers, Delta: bass, trout, striper, sturgeon." },
+  { id: "texas", label: "Texas", hint: "Galveston to Padre Island: redfish, specks, flounder." },
+  { id: "louisiana", label: "Louisiana", hint: "The marsh: reds, speckled trout, snapper." },
+  { id: "mississippi", label: "Mississippi", hint: "Biloxi & the Sound: trout, reds, reef fish." },
+  { id: "alabama", label: "Alabama", hint: "Orange Beach & Mobile Bay: snapper, specks, reds." },
+  { id: "baja_california", label: "Baja California (MX)", hint: "Tijuana to Punta Eugenia: yellowtail, doggies." },
+  { id: "baja_california_sur", label: "Baja California Sur (MX)", hint: "La Paz to Cabo: dorado, roosters, marlin." },
   { id: "custom", label: "Custom / anywhere else", hint: "No regional suggestions — search finds everything." },
 ];
 
@@ -72,6 +85,31 @@ const BY_REGION: Record<RegionId, readonly string[]> = {
     "catfish",
     "white_sturgeon",
     "steelhead",
+  ],
+  texas: [
+    "red_drum", "spotted_seatrout", "southern_flounder", "black_drum",
+    "sheepshead", "red_snapper", "king_mackerel", "spanish_mackerel",
+    "cobia", "common_snook",
+  ],
+  louisiana: [
+    "red_drum", "spotted_seatrout", "southern_flounder", "sheepshead",
+    "black_drum", "red_snapper", "gray_snapper", "greater_amberjack",
+  ],
+  mississippi: [
+    "spotted_seatrout", "red_drum", "southern_flounder", "sheepshead",
+    "red_snapper", "gray_snapper", "king_mackerel", "spanish_mackerel",
+  ],
+  alabama: [
+    "red_snapper", "spotted_seatrout", "red_drum", "southern_flounder",
+    "sheepshead", "king_mackerel", "gray_triggerfish", "cobia",
+  ],
+  baja_california: [
+    "yellowtail", "dorado", "california_halibut", "white_seabass",
+    "kelp_bass", "bluefin_tuna", "roosterfish", "wahoo",
+  ],
+  baja_california_sur: [
+    "striped_marlin", "dorado", "roosterfish", "yellowfin_tuna",
+    "wahoo", "yellowtail", "sierra_mackerel", "sailfish",
   ],
   northern_california: [
     "striped_bass",

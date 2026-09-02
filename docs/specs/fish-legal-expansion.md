@@ -96,6 +96,33 @@ Landed, gates green (412/412, tsc/eslint/build clean, 10-route smoke 200):
   sRGB ≤900px ~50–90 KB. Florida species remain on their prior sources (FWC-swap is
   the analogous next batch).
 
+## Wave: US states + Mexico (2026-09-02, wave 1 = Gulf + Baja)
+
+Locked with the founder: 24 US coastal states + Mexico, flagship-only (8–15 rules per
+state), verified-or-nothing, States ADD to Settings (existing regions untouched, saved
+settings never break), Mexico split Baja California / Baja California Sur like
+NorCal/SoCal. **Wave 1 lands**: Texas, Louisiana, Mississippi, Alabama, Baja
+California, Baja California Sur (+ legacy `cabo_baja` resolves to BCS). All rules are
+primary-sourced on the day of authoring: TPWD Outdoor Annual 2026–27 per-species pages
+("Valid Sep 1, 2026 through Aug 31, 2027"), LDWF 2025 booklet + species pages, MDMR
+Recreational Catch Limits card, ADCNR/MRC releases + 2025 snapper-season closure, and
+NOM-017-PESC-1994 (DOF) for both Mexico packs. Waves 2–4 (South Atlantic, Mid-Atlantic,
+New England, Pacific NW, AK/HI) follow as PRs of 5–6 packs each.
+
+Key findings encoded:
+- TX speckled trout: 3/day, 15–20" slot (post-March 2025 reset, confirmed against the
+  2026–27 Annual page), tag system quoted; redfish 3/day 20–28 + tag bonus.
+- LA: trout 15/day 13–20 slot with ≤2 over 20 **inside** the creel; redfish 4/day 18–27,
+  no oversize allowance; for-hire captain/crew creel = 0 for both.
+- MS: 15/15 trout, 3@18–30 reds, flounder 10@12; Tails n’ Scales reporting is law.
+- AL: 6/day 15–22 slot trout; **November flounder closure**; red snapper is announced
+  every spring against the 664,552-lb quota (2025 ran to Dec 31); Snapper Check prior
+  to landing is legally mandatory.
+- MX: NOM-017 composition — 10/day, ≤5 of a kind; billfish/shark **1/day = 5 of the
+  10**; tarpon/dorado/rooster **2/day = 5 each**; ≥4-day trips cap at 3 days' quota;
+  spearfishing 5/day; catch-and-release beyond quota is explicitly lawful (4.10). No
+  BC/BCS catch-limit divergence exists — state split maps to envelopes only.
+
 ## Standing debts (handoff carries these)
 
 1. Photo-licensing compliance pass (Wikimedia/NOAA-only) before any public release —
