@@ -215,11 +215,27 @@ export function regulationCard(
   platform: PlatformScope,
 ): RegulationCard | null {
   const { rules, groups } = rulesForSpecies(pack, areaId, speciesId);
-  // Group exceptions live in the GMA; if the caller asked the ocean region for an
-  // RCG member, also fold the GMA group rows in (the two areas share a coastline).
+  // Companion-area fold (spec §3): an ocean region and its GMA share a coastline —
+  // species bag/size rows live on the ocean region, group season/depth rows on the
+  // GMA. Whichever side the caller asked, fold the other side in. The five CDFW GMA
+  // settings regions (2026-09-02, "break up California even further") need the
+  // reverse direction: ask a GMA, pick up the ocean-size/bag rows.
+  const COMPANION_AREA: Record<string, string> = {
+    "ca-ocean-southern": "ca-gma-southern",
+    "ca-gma-southern": "ca-ocean-southern",
+    // The plain Northern California region spans the Northern + Mendocino GMAs;
+    // their 2026 windows are identical (CDFW June 2026 table), so Northern GMA's
+    // season rows read true for both.
+    "ca-ocean-northern": "ca-gma-northern",
+    "ca-gma-northern": "ca-ocean-northern",
+    "ca-gma-mendocino": "ca-ocean-northern",
+    "ca-gma-san-francisco": "ca-ocean-northern",
+    "ca-gma-central": "ca-ocean-northern",
+  };
+  const companion = COMPANION_AREA[areaId];
   const { rules: gmaRules, groups: gmaGroups } =
-    areaId === "ca-ocean-southern"
-      ? rulesForSpecies(pack, "ca-gma-southern", speciesId)
+    companion !== undefined && companion !== areaId
+      ? rulesForSpecies(pack, companion, speciesId)
       : { rules: [] as readonly RegRule[], groups: [] as readonly RegGroup[] };
   const allRules = [...rules, ...gmaRules];
   const allGroups = [...groups, ...gmaGroups.filter((g) => !groups.some((x) => x.id === g.id))];
