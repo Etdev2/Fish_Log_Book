@@ -337,13 +337,21 @@ These are the owner's words, recorded as rulings. They supersede the correspondi
 > use any of the keys, and a big part of this app is meant to be used locally without
 > internet so I'd like to use JSON and IndexedDB as much as we can."*
 
-**Ruling:** Supabase is not provisioned. No keys. Storage stays JSON + IndexedDB. The schema
-is added once the shell exists and we know what we are actually storing.
+**Ruling:** Supabase is not provisioned **right now**. No keys. Storage stays JSON +
+IndexedDB. The schema is added once the shell exists and we know what we are actually
+storing.
+
+> **Clarified by the owner after this was first written:** *"I'm not saying we're not gonna
+> implement a database. I'm just saying we're not gonna implement a database right now."*
+> An earlier draft of this section said the server path was "withdrawn, not deferred." That
+> was too strong and is corrected here: **a database is still the plan — it is deferred
+> until the shell tells us what we are storing.** Everything below stands, except that the
+> server work is *paused*, not cancelled, and the twelve migrations are the head start on it.
 
 **Consequences — this is the largest re-sequence since the project started:**
 
 1. **Nothing is blocked any more.** Yesterday's entire critical path — provision Supabase →
-   wire auth → write the flusher — is **withdrawn, not deferred-and-blocking**. The three
+   wire auth → write the flusher — is **paused, and no longer blocking anything**. The three
    items that carried "Blocked" in yesterday's action table were all blocked on a server
    that is now deliberately not coming.
 2. **Trip start/end — the denominator — is unblocked and becomes the top feature item.** It
@@ -401,8 +409,10 @@ in question were **Tackle Box** (pre-meeting, the trigger) and **Fish Legal** (p
 | 6 | Local export / backup to a file | `head-dev` | Promoted by ruling A — the only backup that will exist |
 | 7 | Legal-snapshot season rollup | `ceo` spec → `head-dev` | Needs no server; buildable now |
 
-**Withdrawn from the plan** (not deferred — withdrawn, by ruling A): Supabase provisioning,
-auth wiring, retiring `LOCAL_ANGLER_ID`, the outbox flusher, end-to-end RLS validation.
+**Paused by ruling A — still the plan, just not now:** Supabase provisioning, auth wiring,
+retiring `LOCAL_ANGLER_ID`, the outbox flusher, end-to-end RLS validation. These resume when
+the shell has settled and we know what we are storing; the twelve migrations are the head
+start. What changed is that none of them blocks anything today.
 
 ---
 

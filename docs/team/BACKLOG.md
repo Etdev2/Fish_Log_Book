@@ -45,10 +45,11 @@ this list; both are recorded in
 - Billing/subscription integration — `cfo`
 - Android
 
-## Withdrawn, not deferred (ruling A)
+## Paused by ruling A — still the plan, not cancelled
 Supabase provisioning · auth wiring · retiring `LOCAL_ANGLER_ID` · the outbox flusher ·
-end-to-end RLS validation. The twelve written migrations stay as design artifacts and are
-the schema we adopt when the shell is settled. Revisit when a server is actually wanted.
+end-to-end RLS validation. A database **is** coming; it is deferred until the shell tells us
+what we are storing. The twelve written migrations are the head start on it, not discarded
+work. What changed is that none of these blocks anything today.
 
 ## Anti-features — do not propose (ROADMAP Part 3)
 Ads · selling or aggregating location data · paywalling logging · any gamified engagement
