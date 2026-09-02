@@ -148,6 +148,15 @@ export const SPECIES: readonly Species[] = [
   { id: "black_crappie", commonName: "Black crappie", scientificName: "Pomoxis nigromaculatus", isGroup: false, rollsUpTo: null, waterClass: "fresh", takeStatus: "regulated", sortOrder: 511 },
   { id: "bluegill", commonName: "Bluegill", scientificName: "Lepomis macrochirus", isGroup: false, rollsUpTo: null, waterClass: "fresh", takeStatus: "open", sortOrder: 512 },
   { id: "channel_catfish", commonName: "Channel catfish", scientificName: "Ictalurus punctatus", isGroup: false, rollsUpTo: "catfish", waterClass: "fresh", takeStatus: "open", sortOrder: 513 },
+  /* Gulf/Atlantic wave-1 additions (states expansion): regulated saltwater staples the
+   * TX/LA/MS/AL packs name directly. */
+  { id: "black_drum", commonName: "Black drum", scientificName: "Pogonias cromis", isGroup: false, rollsUpTo: null, waterClass: "salt", takeStatus: "regulated", sortOrder: 437 },
+  { id: "tripletail", commonName: "Tripletail", scientificName: "Lobotes surinamensis", isGroup: false, rollsUpTo: null, waterClass: "salt", takeStatus: "regulated", sortOrder: 438 },
+  { id: "gray_triggerfish", commonName: "Gray triggerfish", scientificName: "Balistes capriscus", isGroup: false, rollsUpTo: null, waterClass: "salt", takeStatus: "regulated", sortOrder: 439 },
+  { id: "vermilion_snapper", commonName: "Vermilion snapper (beeliner)", scientificName: "Rhomboplites aurorubens", isGroup: false, rollsUpTo: null, waterClass: "salt", takeStatus: "regulated", sortOrder: 440 },
+  { id: "lane_snapper", commonName: "Lane snapper", scientificName: "Lutjanus synagris", isGroup: false, rollsUpTo: null, waterClass: "salt", takeStatus: "regulated", sortOrder: 441 },
+  { id: "mutton_snapper", commonName: "Mutton snapper", scientificName: "Lutjanus analis", isGroup: false, rollsUpTo: null, waterClass: "salt", takeStatus: "regulated", sortOrder: 442 },
+  { id: "sand_seatrout", commonName: "Sand seatrout (white trout)", scientificName: "Cynoscion arenarius", isGroup: false, rollsUpTo: null, waterClass: "salt", takeStatus: "open", sortOrder: 443 },
 ];
 
 const BY_ID = new Map(SPECIES.map((s) => [s.id, s]));

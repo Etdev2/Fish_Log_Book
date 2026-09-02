@@ -5,6 +5,19 @@ import { describe, expect, it } from "vitest";
 
 import { SOCAL } from "./reg-data";
 import { FLORIDA } from "./florida-pack";
+import { NORCAL } from "./norcal-pack";
+import { CA_FRESHWATER } from "./california-freshwater-pack";
+import { TEXAS } from "./texas-pack";
+import { LOUISIANA } from "./louisiana-pack";
+import { MISSISSIPPI } from "./mississippi-pack";
+import { ALABAMA } from "./alabama-pack";
+import { BAJA_CALIFORNIA } from "./baja-pack";
+import { BAJA_CALIFORNIA_SUR } from "./bcs-pack";
+
+const LATER_BUNDLES = [
+  NORCAL, CA_FRESHWATER, TEXAS, LOUISIANA, MISSISSIPPI, ALABAMA,
+  BAJA_CALIFORNIA, BAJA_CALIFORNIA_SUR,
+];
 
 /*
  * The regulations dataset exists twice by design: the SQL pack (server source of truth,
@@ -63,5 +76,17 @@ describe("pack ↔ migration parity (Fish Legal: both packs)", () => {
 
   it("bundle pack versions match the migration's reg_pack versions", () => {
     expect(sql).toContain(`'socal-2026-09-01', ${SOCAL.pack.version}`);
+  });
+
+  it("every later pack's rule verbatim sentence exists in its migration", () => {
+    const missing = LATER_BUNDLES.flatMap((b) => b.rules).filter((r) => !sql.includes(r.verbatim));
+    expect(missing.map((r) => r.id)).toEqual([]);
+  });
+
+  it("every later pack's area + pack ids exist in its migration", () => {
+    for (const b of LATER_BUNDLES) {
+      for (const a of b.areas) expect(sql).toContain(`'${a.id}'`);
+      expect(sql).toContain(`'${b.pack.id}', ${b.pack.version}`);
+    }
   });
 });
