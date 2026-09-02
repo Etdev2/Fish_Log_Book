@@ -242,6 +242,12 @@ a rate** and **#4** — both edge toward "condition matching" under D14's letter
 
 Trimmed from yesterday's eight — three are moot or overtaken.
 
+> **Answered in the meeting — see §9.** Items 2 and 3 below were ruled on by the owner and
+> are recorded as D-2026-09-02-A (no hosted database yet; local-first JSON + IndexedDB) and
+> D-2026-09-02-B (web first, then native — both, sequentially). They are left in place here
+> so the question and its answer sit together. **§9's rulings win.** Item 1 was clarified
+> and is still open; items 4 and 5 are still open.
+
 1. **Scope freeze: yes or no, in writing.** Asked for yesterday, understood, and two
    surfaces shipped anyway. Recommendation: freeze new top-level surfaces until the flusher
    and trip start/end are both done. *"Understood" is what happened yesterday.*
@@ -315,6 +321,88 @@ is safe everywhere.
 **Still not verified, and stated plainly per the rule from §2:** nobody has looked at this
 map in a browser. The colours are proven to resolve; the map has not been seen. That check
 belongs with the field protocol and Playwright work, not to an assertion in this document.
+
+---
+
+## 9. Owner decisions — given in the meeting, 2026-09-02
+
+These are the owner's words, recorded as rulings. They supersede the corresponding items in
+§6 and re-sequence §4.
+
+### D-2026-09-02-A · No hosted database yet. Local-first, on purpose.
+
+> *"I decided not to implement a database right now because it's a little too much overhead
+> and I don't want to overcomplicate things right now… once we got the shell kind of in
+> place then we could add the schema and we could know what we're working with, so we won't
+> use any of the keys, and a big part of this app is meant to be used locally without
+> internet so I'd like to use JSON and IndexedDB as much as we can."*
+
+**Ruling:** Supabase is not provisioned. No keys. Storage stays JSON + IndexedDB. The schema
+is added once the shell exists and we know what we are actually storing.
+
+**Consequences — this is the largest re-sequence since the project started:**
+
+1. **Nothing is blocked any more.** Yesterday's entire critical path — provision Supabase →
+   wire auth → write the flusher — is **withdrawn, not deferred-and-blocking**. The three
+   items that carried "Blocked" in yesterday's action table were all blocked on a server
+   that is now deliberately not coming.
+2. **Trip start/end — the denominator — is unblocked and becomes the top feature item.** It
+   never needed a server; it is pure local work. `biostat`'s standing objection (*"we record
+   numerators with no denominator"*) can be answered now instead of after an integration
+   project. `/trip/[id]` is still placeholder text.
+3. **The "Backed up" string moves from important to non-negotiable.** It was a temporary lie
+   pending the flusher. With no server by design it is a *permanent* lie. Every screen must
+   read **"Saved on this phone."** No user-facing string may claim a state the code cannot
+   observe (proposed house rule, yesterday §4).
+4. **Export becomes the durability story, not a nicety.** With no server, clearing site data
+   destroys every record the product has. Export-to-file is now the only backup that exists.
+   It was parked as *"export as a trust feature, free"*; it is promoted to real work.
+5. **The twelve migrations already written stay as design artifacts**, unapplied. They are
+   not wasted — they are the schema we adopt when the shell tells us what we are storing.
+   `LOCAL_ANGLER_ID` is correct for now and is no longer a defect to retire.
+6. **RLS remains unexercised, and that is now fine** — there is no session to exercise it
+   with. It stops being a live concern and becomes a Phase-2 concern.
+7. **`analytics.trip_effort` is a Postgres view, so trip effort needs a local equivalent.**
+   Computing effort from local trip rows is `biostat`'s to specify before the UI lands.
+
+### D-2026-09-02-B · Web first, then native. Not a fork.
+
+> *"Right now we're just getting our work on web app and then after we're done with that
+> we're gonna move over to native so we're gonna have native and web. I'm just doing web
+> right now cause it's easy for me to test on my phone without having my computer or Xcode."*
+
+**Ruling:** The D15 "fork" of §6 was a false choice. It is not (a) *or* (b) — it is (b)
+**then** (a), sequentially, and both ship. The web app is not a throwaway prototype and not
+a repositioning; it is the first client, chosen because the owner can test it one-handed on
+a real phone today without a Mac or Xcode.
+
+**Consequences:** the web app's quality bar rises — it is a shipping client, not a spec —
+and the "deciding by drift" warning is void, because a decision was made. The Watch remains
+the dominant unknown, unchanged. **Real-phone testing is now available every day**, which
+retires the standing complaint that *nothing has ever been held in a hand* — `ux-ui`'s field
+protocol becomes immediately useful rather than aspirational.
+
+### D-2026-09-02-C · Scope freeze — clarified, awaiting the owner's word
+
+The owner asked what a freeze is. Recorded plainly: it is an *ordering* rule, not a ban on
+ideas — do not start a new top-level area until the half-built ones work. The two surfaces
+in question were **Tackle Box** (pre-meeting, the trigger) and **Fish Legal** (post-meeting,
+8 routes). Both are good work; only the ordering was ever in question. **Still open.**
+
+### Revised order of work, after these rulings
+
+| # | Work | Owner | Note |
+|---|---|---|---|
+| 1 | ~~Unbreak `main`~~ | `head-dev` | **Done** — §8 |
+| 2 | CI: `npm run verify` on every PR, then required | `test-agent` | Unchanged. More important now the web app is a shipping client |
+| 3 | Live NOAA tide fetch + offline cache | `head-dev` + `biostat` | Fixture dies **2026-09-04**. Must cache — the app is offline-first by ruling A |
+| 4 | "Backed up" → "Saved on this phone" | `head-dev` | Promoted. Permanently true under ruling A |
+| 5 | **Trip start/end, incl. blank trips — the denominator** | `head-dev` + `biostat` | **Unblocked by ruling A.** Top feature item |
+| 6 | Local export / backup to a file | `head-dev` | Promoted by ruling A — the only backup that will exist |
+| 7 | Legal-snapshot season rollup | `ceo` spec → `head-dev` | Needs no server; buildable now |
+
+**Withdrawn from the plan** (not deferred — withdrawn, by ruling A): Supabase provisioning,
+auth wiring, retiring `LOCAL_ANGLER_ID`, the outbox flusher, end-to-end RLS validation.
 
 ---
 
