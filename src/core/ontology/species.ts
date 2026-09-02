@@ -210,6 +210,28 @@ export const SPECIES: readonly Species[] = [
   { id: "tanner_crab", commonName: "Tanner crab", scientificName: "Chionoecetes bairdi", isGroup: false, rollsUpTo: null, waterClass: "salt", takeStatus: "regulated", sortOrder: 491 },
   { id: "razor_clam", commonName: "Razor clam", scientificName: "Siliqua patula", isGroup: false, rollsUpTo: null, waterClass: "salt", takeStatus: "regulated", sortOrder: 490 },
   { id: "alligator_gar", commonName: "Alligator gar", scientificName: "Atractosteus spatula", isGroup: false, rollsUpTo: null, waterClass: "salt", takeStatus: "regulated", sortOrder: 660 },
+
+  // ——— Atlantic wave (2026-09-03): Northeast flagships for the MA DMF pack ———
+  { id: "scup", commonName: "Scup (porgy)", scientificName: "Stenotomus chrysops", isGroup: false, rollsUpTo: null, waterClass: "salt", takeStatus: "regulated", sortOrder: 661 },
+  { id: "haddock", commonName: "Haddock", scientificName: "Melanogrammus aeglefinus", isGroup: false, rollsUpTo: null, waterClass: "salt", takeStatus: "regulated", sortOrder: 662 },
+  { id: "winter_flounder", commonName: "Winter flounder", scientificName: "Pseudopleuronectes americanus", isGroup: false, rollsUpTo: null, waterClass: "salt", takeStatus: "regulated", sortOrder: 663 },
+  { id: "yellowtail_flounder", commonName: "Yellowtail flounder", scientificName: "Limanda ferruginea", isGroup: false, rollsUpTo: null, waterClass: "salt", takeStatus: "regulated", sortOrder: 664 },
+  { id: "american_plaice", commonName: "American plaice (dab)", scientificName: "Hippoglossoides platessoides", isGroup: false, rollsUpTo: null, waterClass: "salt", takeStatus: "regulated", sortOrder: 665 },
+  { id: "witch_flounder", commonName: "Witch flounder (grey sole)", scientificName: "Glyptocephalus cynoglossus", isGroup: false, rollsUpTo: null, waterClass: "salt", takeStatus: "regulated", sortOrder: 666 },
+  { id: "windowpane_flounder", commonName: "Windowpane flounder", scientificName: "Scophthalmus aquosus", isGroup: false, rollsUpTo: null, waterClass: "salt", takeStatus: "protected", sortOrder: 667 },
+  { id: "ocean_pout", commonName: "Ocean pout", scientificName: "Zoarces americanus", isGroup: false, rollsUpTo: null, waterClass: "salt", takeStatus: "protected", sortOrder: 668 },
+  { id: "atlantic_wolffish", commonName: "Wolffish", scientificName: "Anarhichas lupus", isGroup: false, rollsUpTo: null, waterClass: "salt", takeStatus: "protected", sortOrder: 669 },
+  { id: "atlantic_halibut", commonName: "Atlantic halibut", scientificName: "Hippoglossus hippoglossus", isGroup: false, rollsUpTo: null, waterClass: "salt", takeStatus: "regulated", sortOrder: 670 },
+  { id: "monkfish", commonName: "Monkfish (goosefish)", scientificName: "Lophius americanus", isGroup: false, rollsUpTo: null, waterClass: "salt", takeStatus: "open", sortOrder: 671 },
+  { id: "acadian_redfish", commonName: "Redfish (Acadian / ocean perch)", scientificName: "Sebastes fasciatus", isGroup: false, rollsUpTo: null, waterClass: "salt", takeStatus: "open", sortOrder: 672 },
+  { id: "atlantic_mackerel", commonName: "Atlantic mackerel", scientificName: "Scomber scombrus", isGroup: false, rollsUpTo: null, waterClass: "salt", takeStatus: "regulated", sortOrder: 673 },
+  { id: "american_eel", commonName: "American eel", scientificName: "Anguilla rostrata", isGroup: false, rollsUpTo: null, waterClass: "salt", takeStatus: "regulated", sortOrder: 674 },
+  { id: "white_perch", commonName: "White perch", scientificName: "Morone americana", isGroup: false, rollsUpTo: null, waterClass: "salt", takeStatus: "regulated", sortOrder: 675 },
+  { id: "atlantic_bonito", commonName: "Atlantic bonito", scientificName: "Sarda sarda", isGroup: false, rollsUpTo: null, waterClass: "salt", takeStatus: "regulated", sortOrder: 676 },
+  { id: "spiny_dogfish", commonName: "Spiny dogfish", scientificName: "Squalus acanthias", isGroup: false, rollsUpTo: null, waterClass: "salt", takeStatus: "open", sortOrder: 677 },
+  { id: "american_shad", commonName: "American shad", scientificName: "Alosa sapidissima", isGroup: false, rollsUpTo: null, waterClass: "salt", takeStatus: "regulated", sortOrder: 678 },
+  { id: "river_herring", commonName: "River herring (alewife/blueback)", scientificName: "Alosa pseudoharengus / A. aestivalis", isGroup: false, rollsUpTo: null, waterClass: "salt", takeStatus: "protected", sortOrder: 679 },
+  { id: "rainbow_smelt", commonName: "Rainbow smelt", scientificName: "Osmerus mordax", isGroup: false, rollsUpTo: null, waterClass: "salt", takeStatus: "regulated", sortOrder: 680 },
 ];
 
 const BY_ID = new Map(SPECIES.map((s) => [s.id, s]));
