@@ -8,6 +8,23 @@ import { RCA_50FM_LINE, REG_AREAS } from "../reg-data";
 import type { RegArea } from "../types";
 
 /**
+ * Resolve a design token to a concrete colour before handing it to Leaflet.
+ *
+ * Leaflet styles paths with `setAttribute('stroke', …)` / `setAttribute('fill', …)`,
+ * i.e. SVG *presentation attributes*. Chromium resolves `var()` there (checked), but
+ * that is not a safe assumption on WebKit, and WebKit is the engine this product is
+ * aimed at. Resolving here keeps `tokens.json` the single source of truth (ADR 005 §2)
+ * without betting the map's legibility on presentation-attribute `var()` support.
+ *
+ * Plain CSS properties are unaffected — `style.background = "var(--…)"` is safe
+ * everywhere and is left as-is below.
+ */
+function tokenColor(name: string): string {
+  const value = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+  return value || `var(${name})`;
+}
+
+/**
  * The actual Leaflet surface for BoundaryMap — split out so Next can `ssr:false` it
  * (Leaflet reads `window`). No tile layer**: the pack carries its own geometry, and
  * offshore means no network. An ocean-blue panel with the simplified lines is honest
@@ -53,13 +70,13 @@ export default function BoundaryLeaflet({
     // A plain ocean panel instead of tiles. This is a boundary map, not a chart.
     map.createPane("ocean");
     const oceanPane = map.getPane("ocean")!;
-    oceanPane.style.background = "#0b2a3a";
-    hostRef.current.style.background = "#0b2a3a";
+    oceanPane.style.background = "var(--color-map-ocean)";
+    hostRef.current.style.background = "var(--color-map-ocean)";
 
     const gmaArea = areas.find((a) => a.kind === "groundfish_management_area") ?? areas[0];
     layerRefs.current.gma = L.polygon(
       (gmaArea.polygon ?? []).map(([lng, lat]) => [lat, lng] as [number, number]),
-      { color: "#7dd3fc", weight: 2, fillOpacity: 0.08, dashArray: "4 6" },
+      { color: tokenColor("--color-map-boundary-gma"), weight: 2, fillOpacity: 0.08, dashArray: "4 6" },
     )
       .addTo(map)
       .bindTooltip("Southern Management Area (simplified)", { sticky: true });
@@ -67,7 +84,7 @@ export default function BoundaryLeaflet({
     if (showRca) {
       layerRefs.current.rca = L.polyline(
         RCA_50FM_LINE.points.map(([lng, lat]) => [lat, lng] as [number, number]),
-        { color: "#f59e0b", weight: 3, dashArray: "8 6" },
+        { color: tokenColor("--color-map-boundary-rca"), weight: 3, dashArray: "8 6" },
       )
         .addTo(map)
         .bindTooltip("50-fm RCA boundary — simplified waypoints", { sticky: true });
@@ -78,7 +95,7 @@ export default function BoundaryLeaflet({
       .map((area) =>
         L.polygon(
           (area.polygon ?? []).map(([lng, lat]) => [lat, lng] as [number, number]),
-          { color: "#ef4444", weight: 2, fillOpacity: 0.18 },
+          { color: tokenColor("--color-map-area-closed"), weight: 2, fillOpacity: 0.18 },
         )
           .addTo(map)
           .bindTooltip(`${area.name} (simplified)`, { sticky: true }),
@@ -88,7 +105,7 @@ export default function BoundaryLeaflet({
     if (mpa?.polygon) {
       layerRefs.current.mpa = L.polygon(
         (mpa.polygon ?? []).map(([lng, lat]) => [lat, lng] as [number, number]),
-        { color: "#a78bfa", weight: 2, fillOpacity: 0.2 },
+        { color: tokenColor("--color-map-area-protected"), weight: 2, fillOpacity: 0.2 },
       ).bindTooltip(`${mpa.name} (simplified inset)`, { sticky: true });
     }
 
@@ -127,16 +144,16 @@ export default function BoundaryLeaflet({
     if (position) {
       const marker = L.circleMarker([position.lat, position.lng], {
         radius: 7,
-        color: "#111827",
+        color: tokenColor("--color-map-position-stroke"),
         weight: 2,
-        fillColor: "#fb923c",
+        fillColor: tokenColor("--color-map-position-fill"),
         fillOpacity: 1,
       })
         .addTo(map)
         .bindTooltip("YOU ARE HERE", { sticky: true });
       const ring = L.circle([position.lat, position.lng], {
         radius: position.accuracy,
-        color: "#fb923c",
+        color: tokenColor("--color-map-position-fill"),
         weight: 1,
         fillOpacity: 0.06,
       }).addTo(map);
@@ -149,7 +166,7 @@ export default function BoundaryLeaflet({
     <div
       ref={hostRef}
       className="h-72 w-full rounded-lg"
-      style={{ background: "#0b2a3a" }}
+      style={{ background: "var(--color-map-ocean)" }}
       aria-label="Boundary map: management area, RCA line, conservation areas, and your position when GPS is on"
     />
   );
