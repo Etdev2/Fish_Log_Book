@@ -21,6 +21,17 @@
   --color-error-red: #FF8A80;
   --color-error-red-fill: #C1443A;
   --color-focus-ring: #3FC7E0;
+  --color-status-keep: #48CE8A;
+  --color-status-keep-fill: #0D2419;
+  --color-status-restricted: #C9B4FF;
+  --color-status-restricted-fill: #241A3B;
+  --color-status-release: #FF8A80;
+  --color-status-release-fill: #3E1210;
+  --color-status-unknown: #C2CFD7;
+  --color-status-unknown-fill: #1B242B;
+  --color-status-unverified: #E8B55F;
+  --color-status-unverified-fill: #32240D;
+  --color-ink-on-status: #06090B;
 
   --font-ui: var(--font-archivo), 'Helvetica Neue', sans-serif;
   --font-mono: var(--font-ibm-plex-mono), ui-monospace, monospace;
@@ -101,6 +112,17 @@
     --color-error-red: #FF8A80;
     --color-error-red-fill: #C1443A;
     --color-focus-ring: #3FC7E0;
+    --color-status-keep: #48CE8A;
+    --color-status-keep-fill: #0D2419;
+    --color-status-restricted: #C9B4FF;
+    --color-status-restricted-fill: #241A3B;
+    --color-status-release: #FF8A80;
+    --color-status-release-fill: #3E1210;
+    --color-status-unknown: #C2CFD7;
+    --color-status-unknown-fill: #1B242B;
+    --color-status-unverified: #E8B55F;
+    --color-status-unverified-fill: #32240D;
+    --color-ink-on-status: #06090B;
   }
 }
 
