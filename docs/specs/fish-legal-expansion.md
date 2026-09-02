@@ -123,6 +123,28 @@ Key findings encoded:
   spearfishing 5/day; catch-and-release beyond quota is explicitly lawful (4.10). No
   BC/BCS catch-limit divergence exists — state split maps to envelopes only.
 
+### Digest pass (same day, pack version 2)
+
+Founder asked for full digests over flagship: **TX, LA, MS, AL, BC, BCS are now digest-
+complete** (156 rules, 85 KB SQL in `20260902140000_v2_gulf_baja_full_digest.sql`,
+strategy DELETE-by-area + insert-from-bundle, pack reg_pack rows upsert to version 2).
+Every row on each agency's full table is encoded verbatim:
+- TX: every Annual saltwater page (grouper incl. goliath/nassau 0-bags, trigger 20/16,
+  marlin/sailfish size-only rows, tarpon 85", shark per-class minima + prohibited list,
+  mullet Oct–Jan >12" ban, alligator gar + reporting, 2× possession doctrine).
+- LA: complete LDWF saltwater tables — cobia 1@36 ≤2/vessel, flounder **no-possession
+  Oct 15–Nov 30** (corrects wave-1's slot guess), red snapper 4/day subject-to-change,
+  full grouper/mutton/lane/vermilion aggregate quotes, HMS size rows, shark governance,
+  EEZ gear rules, ROLP landing permit note, prohibited species list.
+- MS: reef/pelagic/shark tables in full (per-vessel tarpon & grouper caps, 20-reef
+  aggregate verbatim), billfish LJFL minima note row.
+- AL: July 2025 creel card in full — **red drum bull allowance removed (2025 rule)**
+  corrected; cobia 1/person ≤2/vessel corrected; grouper 4-aggregate with 2-red/2-gag
+  caps; snook 1@28; tarpon $67 tag; shark table + 220-3-.77 pier-chumming ban;
+  stripers-in-MRD note; license/requirements note; party-boat no-creel note.
+- MX: billfish per-species rows (marlin/sail) share the 1-a-day ceiling, tarpon/dorado/
+  rooster 2-a-day tier, spear 5, 3-day cap, C&R clause, freshwater 5/day (4.7.2).
+
 ## Standing debts (handoff carries these)
 
 1. Photo-licensing compliance pass (Wikimedia/NOAA-only) before any public release —

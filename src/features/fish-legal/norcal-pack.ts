@@ -20,14 +20,37 @@ import type { RegArea, RegGroup, RegPack, RegRule } from "./types";
 
 export const NORCAL_PACK: RegPack = {
   id: "norcal-2026-09-01",
-  version: 1,
+  version: 2,
   publishedAt: "2026-09-01T12:00:00Z",
   notes:
-    "Northern California (CDFW 2026): from the U.S.–Oregon line to 40°10′ N (Cape " +
-    "Mendocino) — groundfish table-verified; statewide rows (halibut, lingcod bag, no- " +
-    "retention quartet) restated verbatim from the summary. Saltwater only; rivers and " +
-    "salmon checks live behind checkInseason, not invented seasons.",
+    "Northern California (CDFW, Groundfish Summary updated June 23 2026): v2 adds the " +
+    "GMA layer — Northern, Mendocino, San Francisco and Central Groundfish Management " +
+    "Areas are now first-class areas with their own season windows (identical 2026 " +
+    "tables, verbatim), Cordell Bank prohibition, and the GMA-crossing possession rule. " +
+    "Saltwater only; river/salmon checks stay check-in-season.",
 };
+
+/** Latitude-band envelopes; the legal boundaries ARE latitude lines (§27.25–27.45). */
+function latBand(id: string, name: string, latS: number, latN: number, note: string): RegArea {
+  return {
+    id,
+    authority: "cdfw",
+    kind: "groundfish_management_area",
+    name,
+    polygon: [
+      [-124.6, latS], [-123.4, latS], [-123.0, latS + 0.2], [-122.9, latS + 0.3],
+      [-122.4, latS + 0.4], [-121.8, latS + 0.5], [-121.6, latS + 0.7],
+      [-121.0, (latS + latN) / 2], [-122.3, latN - 0.5], [-123.6, latN - 0.2],
+      [-124.2, latN - 0.1], [-124.6, latN], [-124.6, latS],
+    ],
+    sourceUrl: "https://wildlife.ca.gov/Fishing/Ocean/Regulations/Groundfish-Summary",
+    verifiedAt: VERIFIED0,
+    notes: note,
+  };
+}
+const VERIFIED0 = "2026-09-01";
+const SRC_GMA = "https://wildlife.ca.gov/Fishing/Ocean/Regulations/Groundfish-Summary";
+const GMA_T = "CDFW — Summary of Recreational Groundfish Fishing Regulations (updated June 23, 2026)";
 
 export const NC_AREAS: readonly RegArea[] = [
   {
@@ -44,6 +67,24 @@ export const NC_AREAS: readonly RegArea[] = [
     verifiedAt: "2026-09-01",
     notes: "Envelope for pack resolution; coast-anchored east edge, open-ocean west edge.",
   },
+  // ———— v2: the Groundfish Management Area layer — legal boundaries ARE latitude
+  // lines (CCR T14 §27.25–27.45); envelopes are honest bands between them.
+  {
+    id: "ca-gma-northern",
+    authority: "cdfw",
+    kind: "groundfish_management_area",
+    name: "Northern GMA — California-Oregon border to Cape Mendocino (40°10′ N)",
+    polygon: [
+      [-124.42, 40.17], [-124.3, 40.44], [-124.28, 40.77], [-124.2, 41.05],
+      [-124.24, 41.74], [-124.2, 42.0], [-125.5, 42.0], [-125.5, 40.17],
+    ],
+    sourceUrl: SRC_GMA,
+    verifiedAt: VERIFIED0,
+    notes: "CCR T14 §27.25(a). Same ring as the pack envelope; GMA rules carry the 2026 season table.",
+  },
+  latBand("ca-gma-mendocino", "Mendocino GMA — Cape Mendocino (40°10′ N) to Point Arena (38°57.5′ N)", 38.96, 40.16, "CCR T14 §27.30(a). 2026 table identical to Northern."),
+  latBand("ca-gma-san-francisco", "San Francisco GMA — Point Arena (38°57.5′ N) to Pigeon Point (37°11′ N)", 37.19, 38.955, "CCR T14 §27.35(a). Cordell Bank: ALL groundfish fishing prohibited inside (NMFS compliance guide, June 2026)."),
+  latBand("ca-gma-central", "Central GMA — Pigeon Point (37°11′ N) to Point Conception (34°27′ N)", 34.46, 37.18, "CCR T14 §27.40(a). South of here the SoCal pack's Southern GMA season table rules."),
 ];
 
 export const NC_GROUPS: readonly RegGroup[] = [
@@ -195,9 +236,98 @@ export const NC_RULES: readonly RegRule[] = [
   }),
 ];
 
+// ———— v2 GMA layer rules — verbatim season windows for Mendocino / San Francisco /
+// Central GMAs (June 23, 2026 table cells), shared verbatim text, area-scoped. ————
+function gmaSeasonRules(gmaId: string): RegRule[] {
+  const near = (gmaId === "ca-gma-san-francisco")
+    ? " with the Cordell Bank all-groundfish prohibition applying inside its footprint"
+    : "";
+  return [
+    rule({
+      id: `${gmaId}-rcg-closed`, regGroupId: "rcg-complex-norcal", speciesId: null, regAreaId: gmaId, kind: "season",
+      verbatim:
+        "Nearshore Rockfish, Cabezon, and Greenlings (CCR T14 §1.91(a)(1): black, black and yellow, blue, brown, calico, China, copper, gopher, grass, kelp, and olive rockfishes; treefish; Cabezon and Greenlings per §28.28/§28.29): Jan 1 - Mar 31 — Closed, unlawful to possess in all waters. April 1 - December 31: Open all depths.",
+      sourceUrl: SRC_GMA, sourceTitle: GMA_T, sourceUpdatedAt: "2026-06-23", verifiedAt: VERIFIED0,
+      seasonStart: "01-01", seasonEnd: "03-31", bagDaily: null, possessionLimit: null, bagSharesWithGroup: false,
+      minSizeIn: null, maxSizeIn: null, sizeMeasure: null, platformScope: "boat", depthNote: null,
+      checkInseason: false, staleAfterDays: 60,
+    }),
+    rule({
+      id: `${gmaId}-rcg-open`, regGroupId: "rcg-complex-norcal", speciesId: null, regAreaId: gmaId, kind: "season",
+      verbatim:
+        "Nearshore Rockfish, Cabezon, and Greenlings: April 1 - December 31 — Open all depths." + near,
+      sourceUrl: SRC_GMA, sourceTitle: GMA_T, sourceUpdatedAt: "2026-06-23", verifiedAt: VERIFIED0,
+      seasonStart: "04-01", seasonEnd: "12-31", bagDaily: null, possessionLimit: null, bagSharesWithGroup: false,
+      minSizeIn: null, maxSizeIn: null, sizeMeasure: null, platformScope: "boat", depthNote: null,
+      checkInseason: false, staleAfterDays: 60,
+    }),
+    rule({
+      id: `${gmaId}-shelf-closed`, speciesId: null, regAreaId: gmaId, kind: "season",
+      verbatim:
+        "Shelf and Slope Rockfish and Lingcod (shelf per §1.91(a)(3); slope per §1.91(a)(4); lingcod per §28.27): Jan 1 - Mar 31 — Closed, unlawful to possess in all waters. April 1 - December 31: Open all depths.",
+      sourceUrl: SRC_GMA, sourceTitle: GMA_T, sourceUpdatedAt: "2026-06-23", verifiedAt: VERIFIED0,
+      seasonStart: "01-01", seasonEnd: "03-31", bagDaily: null, possessionLimit: null, bagSharesWithGroup: false,
+      minSizeIn: null, maxSizeIn: null, sizeMeasure: null, platformScope: "boat", depthNote: null,
+      checkInseason: false, staleAfterDays: 60,
+    }),
+    rule({
+      id: `${gmaId}-shelf-open`, speciesId: null, regAreaId: gmaId, kind: "season",
+      verbatim:
+        "Shelf and Slope Rockfish and Lingcod: April 1 - December 31 — Open all depths." + near,
+      sourceUrl: SRC_GMA, sourceTitle: GMA_T, sourceUpdatedAt: "2026-06-23", verifiedAt: VERIFIED0,
+      seasonStart: "04-01", seasonEnd: "12-31", bagDaily: null, possessionLimit: null, bagSharesWithGroup: false,
+      minSizeIn: null, maxSizeIn: null, sizeMeasure: null, platformScope: "boat", depthNote: null,
+      checkInseason: false, staleAfterDays: 60,
+    }),
+    rule({
+      id: `${gmaId}-bag-note`, regGroupId: "rcg-complex-norcal", speciesId: null, regAreaId: gmaId, kind: "note",
+      verbatim:
+        "Statewide daily bag limits: RCG Complex — 10 fish in combination per person, except copper rockfish 1 per person, vermilion/sunset rockfish 2 per person combined (outside the Northern Management Area; 4 per person inside it), canary rockfish 2 per person. Lingcod: 2 per person, 22-inch minimum total length. No retention of bronzespotted rockfish, cowcod, quillback rockfish, or yelloweye rockfish at any time (§28.55).",
+      sourceUrl: SRC_GMA, sourceTitle: GMA_T, sourceUpdatedAt: "2026-06-23", verifiedAt: VERIFIED0,
+      seasonStart: null, seasonEnd: null, bagDaily: 10, possessionLimit: 10, bagSharesWithGroup: true,
+      minSizeIn: null, maxSizeIn: null, sizeMeasure: null, platformScope: null, depthNote: null,
+      checkInseason: false, staleAfterDays: 60,
+    }),
+  ];
+}
+
+export const NC_GMA_RULES: readonly RegRule[] = [
+  ...gmaSeasonRules("ca-gma-northern"),
+  ...gmaSeasonRules("ca-gma-mendocino"),
+  ...gmaSeasonRules("ca-gma-san-francisco"),
+  ...gmaSeasonRules("ca-gma-central"),
+  rule({
+    id: "nc-cordell-bank", speciesId: null, regAreaId: "ca-gma-san-francisco", kind: "prohibited",
+    verbatim:
+      "Cordell Bank: all groundfish fishing is prohibited to protect sensitive habitat (see the NMFS compliance guide, June 2026).",
+    sourceUrl: SRC_GMA, sourceTitle: GMA_T, sourceUpdatedAt: "2026-06-23", verifiedAt: VERIFIED0,
+    seasonStart: null, seasonEnd: null, bagDaily: null, possessionLimit: null, bagSharesWithGroup: false,
+    minSizeIn: null, maxSizeIn: null, sizeMeasure: null, platformScope: null, depthNote: null,
+    checkInseason: false, staleAfterDays: 60,
+  }),
+  rule({
+    id: "nc-gma-crossing", speciesId: null, regAreaId: "ca-gma-central", kind: "note",
+    verbatim:
+      "It is unlawful to possess a groundfish species or species group within a Groundfish Management Area where the take and possession of those species are prohibited in all waters of that Groundfish Management Area or in excess of the bag limit of that Groundfish Management Area, regardless of if the groundfish species or species group were taken in a different Groundfish Management Area where the take or possession is authorized (CCR T14 §27.20(b)(1)(A)(1)).",
+    sourceUrl: SRC_GMA, sourceTitle: GMA_T, sourceUpdatedAt: "2026-06-23", verifiedAt: VERIFIED0,
+    seasonStart: null, seasonEnd: null, bagDaily: null, possessionLimit: null, bagSharesWithGroup: false,
+    minSizeIn: null, maxSizeIn: null, sizeMeasure: null, platformScope: null, depthNote: null,
+    checkInseason: false, staleAfterDays: 60,
+  }),
+  rule({
+    id: "nc-shore-diver-exempt", speciesId: null, regAreaId: "ca-gma-central", kind: "note",
+    verbatim:
+      "Shore-based anglers and spear divers are exempt from seasons and depths. Divers and shore-based anglers are exempt from season and depth restrictions affecting the RCG Complex and other federally managed groundfish (CCR T14, §27.20(b)(1)(C) and (b)(1)(D)). No vessel or watercraft may be used to assist in take under the shore exemption.",
+    sourceUrl: SRC_GMA, sourceTitle: GMA_T, sourceUpdatedAt: "2026-06-23", verifiedAt: VERIFIED0,
+    seasonStart: null, seasonEnd: null, bagDaily: null, possessionLimit: null, bagSharesWithGroup: false,
+    minSizeIn: null, maxSizeIn: null, sizeMeasure: null, platformScope: "shore", depthNote: null,
+    checkInseason: false, staleAfterDays: 60,
+  }),
+];
+
 export const NORCAL = {
   pack: NORCAL_PACK,
   areas: NC_AREAS,
   groups: NC_GROUPS,
-  rules: NC_RULES,
+  rules: [...NC_RULES, ...NC_GMA_RULES],
 };

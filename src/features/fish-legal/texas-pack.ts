@@ -13,13 +13,13 @@ import type { RegArea, RegGroup, RegPack, RegRule } from "./types";
 
 export const TEXAS_PACK: RegPack = {
   id: "texas-2026-09-01",
-  version: 1,
+  version: 2,
   publishedAt: "2026-09-01T12:00:00Z",
   notes:
-    "Texas (TPWD Outdoor Annual 2026-2027, valid Sep 1 2026–Aug 31 2027): flagship " +
-    "inshore + reef species with verbatim clause text; 2026-27 red snapper federal " +
-    "season flagged check-in-season. Tags (Red Drum Tag, Spotted Seatrout Tag) are the " +
-    "paper exception layer and are quoted, not modeled.",
+    "Texas (TPWD Outdoor Annual 2026-2027, valid Sep 1 2026–Aug 31 2027): FULL saltwater " +
+    "digest (v2) — every per-species page in the Annual's saltwater bag/length section is " +
+    "encoded here with its own clause text. 2026-27 red snapper federal season flagged " +
+    "check-in-season. Tags (Red Drum Tag, Spotted Seatrout Tag) quoted, not modeled.",
 };
 
 const TX_T = "https://tpwd.texas.gov/regulations/outdoor-annual/fishing/saltwater-fishing/bag-length-limits/";
@@ -226,6 +226,119 @@ export const TX_RULES: readonly RegRule[] = [
     seasonStart: null, seasonEnd: null, bagDaily: 1, possessionLimit: 2, bagSharesWithGroup: false,
     minSizeIn: null, maxSizeIn: null, sizeMeasure: null, platformScope: null, depthNote: null,
     checkInseason: false, staleAfterDays: 60,
+  }),
+  // ———— Digest-pass additions (v2) — every remaining TPWD Annual saltwater page ————
+  rule({
+    id: "tx-black-grouper-bag", speciesId: "black_grouper", regAreaId: "tx-gulf", kind: "bag_limit",
+    verbatim: "Black grouper — Daily Bag: 4. Min Length: 24 inches. Max Length: No limit.",
+    sourceUrl: `${TX_T}grouper-bag-length-limits`, sourceTitle: "TPWD Outdoor Annual 2026-2027 — Grouper Bag & Length Limits",
+    sourceUpdatedAt: V, verifiedAt: VERIFIED,
+    seasonStart: null, seasonEnd: null, bagDaily: 4, possessionLimit: 8, bagSharesWithGroup: false,
+    minSizeIn: 24, maxSizeIn: null, sizeMeasure: "total_length", platformScope: null, depthNote: null,
+    checkInseason: false, staleAfterDays: 60,
+  }),
+  rule({
+    id: "tx-gag-bag", speciesId: "gag_grouper", regAreaId: "tx-gulf", kind: "bag_limit",
+    verbatim: "Gag grouper — Daily Bag: 2. Min Length: 24 inches. Max Length: No limit.",
+    sourceUrl: `${TX_T}grouper-bag-length-limits`, sourceTitle: "TPWD Outdoor Annual 2026-2027 — Grouper Bag & Length Limits",
+    sourceUpdatedAt: V, verifiedAt: VERIFIED,
+    seasonStart: null, seasonEnd: null, bagDaily: 2, possessionLimit: 4, bagSharesWithGroup: false,
+    minSizeIn: 24, maxSizeIn: null, sizeMeasure: "total_length", platformScope: null, depthNote: null,
+    checkInseason: false, staleAfterDays: 60,
+  }),
+  rule({
+    id: "tx-goliath-cnr", speciesId: "goliath_grouper", regAreaId: "tx-gulf", kind: "prohibited",
+    verbatim: "Goliath grouper (formerly called Jewfish) — Daily Bag: 0 (catch and release only).",
+    sourceUrl: `${TX_T}grouper-bag-length-limits`, sourceTitle: "TPWD Outdoor Annual 2026-2027 — Grouper Bag & Length Limits",
+    sourceUpdatedAt: V, verifiedAt: VERIFIED,
+    seasonStart: null, seasonEnd: null, bagDaily: null, possessionLimit: null, bagSharesWithGroup: false,
+    minSizeIn: null, maxSizeIn: null, sizeMeasure: null, platformScope: null, depthNote: null,
+    checkInseason: false, staleAfterDays: 90,
+  }),
+  rule({
+    id: "tx-nassau-cnr", speciesId: null, regAreaId: "tx-gulf", kind: "prohibited",
+    verbatim: "Nassau grouper — Daily Bag: 0 (catch and release only).",
+    sourceUrl: `${TX_T}grouper-bag-length-limits`, sourceTitle: "TPWD Outdoor Annual 2026-2027 — Grouper Bag & Length Limits",
+    sourceUpdatedAt: V, verifiedAt: VERIFIED,
+    seasonStart: null, seasonEnd: null, bagDaily: null, possessionLimit: null, bagSharesWithGroup: false,
+    minSizeIn: null, maxSizeIn: null, sizeMeasure: null, platformScope: null, depthNote: null,
+    checkInseason: false, staleAfterDays: 90,
+  }),
+  rule({
+    id: "tx-gray-triggerfish-bag", speciesId: "gray_triggerfish", regAreaId: "tx-gulf", kind: "bag_limit",
+    verbatim: "Gray triggerfish — Daily Bag: 20. Min Length: 16 inches. Max Length: No limit.",
+    sourceUrl: `${TX_T}triggerfish-bag-length-limits`, sourceTitle: "TPWD Outdoor Annual 2026-2027 — Triggerfish Bag & Length Limits",
+    sourceUpdatedAt: V, verifiedAt: VERIFIED,
+    seasonStart: null, seasonEnd: null, bagDaily: 20, possessionLimit: 40, bagSharesWithGroup: false,
+    minSizeIn: 16, maxSizeIn: null, sizeMeasure: "fork_length", platformScope: null, depthNote: null,
+    checkInseason: false, staleAfterDays: 60,
+  }),
+  rule({
+    id: "tx-blue-marlin-min", speciesId: "blue_marlin", regAreaId: "tx-gulf", kind: "min_size",
+    verbatim: "Blue marlin — Daily Bag: No limit. Min Length: 131 inches. Max Length: No limit.",
+    sourceUrl: `${TX_T}marlin-bag-length-limits`, sourceTitle: "TPWD Outdoor Annual 2026-2027 — Marlin Bag & Length Limits",
+    sourceUpdatedAt: V, verifiedAt: VERIFIED,
+    seasonStart: null, seasonEnd: null, bagDaily: null, possessionLimit: null, bagSharesWithGroup: false,
+    minSizeIn: 131, maxSizeIn: null, sizeMeasure: "alternate_total_length", platformScope: null, depthNote: "Lower-jaw fork length (LJFL).",
+    checkInseason: false, staleAfterDays: 90,
+  }),
+  rule({
+    id: "tx-white-marlin-min", speciesId: "white_marlin", regAreaId: "tx-gulf", kind: "min_size",
+    verbatim: "White marlin — Daily Bag: No limit. Min Length: 86 inches. Max Length: No limit.",
+    sourceUrl: `${TX_T}marlin-bag-length-limits`, sourceTitle: "TPWD Outdoor Annual 2026-2027 — Marlin Bag & Length Limits",
+    sourceUpdatedAt: V, verifiedAt: VERIFIED,
+    seasonStart: null, seasonEnd: null, bagDaily: null, possessionLimit: null, bagSharesWithGroup: false,
+    minSizeIn: 86, maxSizeIn: null, sizeMeasure: "alternate_total_length", platformScope: null, depthNote: "Lower-jaw fork length (LJFL).",
+    checkInseason: false, staleAfterDays: 90,
+  }),
+  rule({
+    id: "tx-sailfish-min", speciesId: "sailfish", regAreaId: "tx-gulf", kind: "min_size",
+    verbatim: "Sailfish — Daily Bag: No limit. Min Length: 84 inches. Max Length: No limit.",
+    sourceUrl: `${TX_T}sailfish-bag-length-limits`, sourceTitle: "TPWD Outdoor Annual 2026-2027 — Sailfish Bag & Length Limits",
+    sourceUpdatedAt: V, verifiedAt: VERIFIED,
+    seasonStart: null, seasonEnd: null, bagDaily: null, possessionLimit: null, bagSharesWithGroup: false,
+    minSizeIn: 84, maxSizeIn: null, sizeMeasure: "alternate_total_length", platformScope: null, depthNote: "Lower-jaw fork length (LJFL).",
+    checkInseason: false, staleAfterDays: 90,
+  }),
+  rule({
+    id: "tx-tarpon-bag", speciesId: "atlantic_tarpon", regAreaId: "tx-gulf", kind: "bag_limit",
+    verbatim: "Tarpon — Daily Bag: 1. Min Length: 85 inches. Max Length: No limit.",
+    sourceUrl: `${TX_T}tarpon-bag-length-limits`, sourceTitle: "TPWD Outdoor Annual 2026-2027 — Tarpon Bag & Length Limits",
+    sourceUpdatedAt: V, verifiedAt: VERIFIED,
+    seasonStart: null, seasonEnd: null, bagDaily: 1, possessionLimit: 2, bagSharesWithGroup: false,
+    minSizeIn: 85, maxSizeIn: null, sizeMeasure: "total_length", platformScope: null, depthNote: null,
+    checkInseason: false, staleAfterDays: 90,
+  }),
+  rule({
+    id: "tx-mullet-rule-note", speciesId: "striped_mullet", regAreaId: "tx-gulf", kind: "note",
+    verbatim:
+      "Mullet — all species, their hybrids and subspecies: Daily Bag: No limit. Min Length: No limit. Max Length: 12 inches. May not take from public waters, or possess on board a boat, mullet over 12 inches during October, November, December, and January. No limits apply during other months.",
+    sourceUrl: `${TX_T}mullet-bag-length-limits`, sourceTitle: "TPWD Outdoor Annual 2026-2027 — Mullet Bag & Length Limits",
+    sourceUpdatedAt: V, verifiedAt: VERIFIED,
+    seasonStart: null, seasonEnd: null, bagDaily: null, possessionLimit: null, bagSharesWithGroup: false,
+    minSizeIn: null, maxSizeIn: 12, sizeMeasure: "total_length", platformScope: null,
+    depthNote: ">12” ban applies only Oct–Jan.",
+    checkInseason: false, staleAfterDays: 90,
+  }),
+  rule({
+    id: "tx-alligator-gar-bag", speciesId: "alligator_gar", regAreaId: "tx-gulf", kind: "bag_limit",
+    verbatim:
+      "Alligator gar — Daily Bag: 1. Min Length: No limit. Max Length: No limit. Special restrictions include mandatory harvest reporting (TPWD gar page).",
+    sourceUrl: `${TX_T}gar-bag-length-limits-saltwater`, sourceTitle: "TPWD Outdoor Annual 2026-2027 — Gar Bag & Length Limits (saltwater)",
+    sourceUpdatedAt: V, verifiedAt: VERIFIED,
+    seasonStart: null, seasonEnd: null, bagDaily: 1, possessionLimit: 2, bagSharesWithGroup: false,
+    minSizeIn: null, maxSizeIn: null, sizeMeasure: null, platformScope: null, depthNote: null,
+    checkInseason: true, staleAfterDays: 60,
+  }),
+  rule({
+    id: "tx-possession-general", speciesId: null, regAreaId: "tx-gulf", kind: "note",
+    verbatim:
+      "TPWD gloss on every species page: the possession limit is equal to double the daily bag limit unless otherwise noted; bag and length limits apply to listed saltwater species; there are no bag, possession, or length limits on game or nongame fish except as listed. Limits apply to aquatic life caught in Texas public waters out to 9 nautical miles, and to EEZ-caught aquatic life possessed in state waters or landed in Texas. It is unlawful to possess aquatic life in Texas waters that was illegally taken in federal waters.",
+    sourceUrl: TX_T.slice(0, -1), sourceTitle: "TPWD Outdoor Annual 2026-2027 — Bag & Length Limits (limits and restrictions block)",
+    sourceUpdatedAt: V, verifiedAt: VERIFIED,
+    seasonStart: null, seasonEnd: null, bagDaily: null, possessionLimit: null, bagSharesWithGroup: false,
+    minSizeIn: null, maxSizeIn: null, sizeMeasure: null, platformScope: null, depthNote: null,
+    checkInseason: false, staleAfterDays: 90,
   }),
 ];
 
