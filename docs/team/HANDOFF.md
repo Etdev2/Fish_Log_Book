@@ -4,9 +4,17 @@
 Written to be self-contained. If you are picking this up cold, read this file top to
 bottom before touching anything.
 
-**Last updated:** 2026-08-28 (late)
-**Project state:** design and research complete for V1 scope. **No application code
-written yet.** The Next.js app in `src/` is an unmodified starter skeleton.
+**Last updated:** 2026-09-01 (pm, architect + ux-ui review)
+**Project state:** design and research complete for V1 scope; the app build is underway.
+The Next.js app in `src/` is **no longer a starter skeleton**: as of 2026-09-01 it has a
+design-token system, the shell (nav, backup badge, quick mark), an immersive tide screen
+with cached fixtures, the tackle-box inventory, a fish-log MVP with Quick Log and setup
+screens, and the local offline store (`idb`) plus outbox/uuidv7 core — 303 passing tests.
+Sync to Supabase is **not** wired yet: every screen's backup badge reads "Saved on this
+device", which is the truth. The next large piece is the outbox flusher and the schema
+migrations validating against a live project (two no-reply rulings sit with the owner —
+Supabase region + offline scope, and the live-tide-data decision; the tide fixture window
+expires **2026-09-04**).
 
 ---
 

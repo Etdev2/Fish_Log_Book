@@ -10,19 +10,24 @@
  * There is no red banner here and there never will be.
  *
  * TODO(ADR 004 §1): read the real count from the outbox store once src/core/sync/store.ts
- * exists. Until then this reports a settled state rather than inventing a number.
+ * exists. Until then the only honest answer is `local-only`: every write lives on this
+ * device and nothing has ever reached a server, so the glass says "Saved on this device"
+ * — never "Backed up" next to a green dot while zero bytes have been backed up.
  */
 export type BackupState =
+  | { kind: "local-only" }
   | { kind: "settled" }
   | { kind: "waiting"; count: number }
   | { kind: "needs-attention"; count: number };
 
 export function readBackupState(): BackupState {
-  return { kind: "settled" };
+  return { kind: "local-only" };
 }
 
 export function describeBackupState(state: BackupState): string {
   switch (state.kind) {
+    case "local-only":
+      return "Saved on this device";
     case "settled":
       return "Backed up";
     case "waiting":
