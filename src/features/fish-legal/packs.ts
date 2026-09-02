@@ -21,6 +21,8 @@ import { BAJA_CALIFORNIA } from "./baja-pack";
 import { BAJA_CALIFORNIA_SUR } from "./bcs-pack";
 import { OREGON } from "./oregon-pack";
 import { WASHINGTON } from "./washington-pack";
+import { ALASKA } from "./alaska-pack";
+import { HAWAII } from "./hawaii-pack";
 import type { RegPack, RegArea, RegGroup, RegRule } from "./types";
 
 export type RegBundle = {
@@ -181,6 +183,22 @@ export const PACKS: readonly BundledPack[] = [
     shortCode: "WA",
     primaryAreaId: "wa-ma-1-4-coastal",
     data: WASHINGTON,
+  },
+  // ——— Wave 4 (2026-09-02): Alaska Southeast (ADF&G Region 1 general saltwater) and
+  // Hawaii's DLNR statewide table with the Maui HAR 13-95.1 split.
+  {
+    regionId: "alaska",
+    jurisdictionLabel: "Alaska — ADF&G Southeast (US)",
+    shortCode: "AK·SE",
+    primaryAreaId: "ak-se-state",
+    data: ALASKA,
+  },
+  {
+    regionId: "hawaii",
+    jurisdictionLabel: "Hawaii — DLNR DAR (US)",
+    shortCode: "HI",
+    primaryAreaId: "hi-statewide",
+    data: HAWAII,
   },
 ];
 

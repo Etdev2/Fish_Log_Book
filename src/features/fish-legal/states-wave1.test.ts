@@ -101,8 +101,21 @@ describe("states expansion wave 1 (Gulf + Baja)", () => {
       // Verified-or-nothing: every shipped rule carries the agency's own sentence.
       expect(bundle!.data.rules.every((r) => r.verbatim.length > 20), id).toBe(true);
     }
-    // Alaska is a Settings region with species leads but no pack until ADF&G verbatims.
-    expect(regionById("alaska")).not.toBeNull();
-    expect(packForRegion("alaska")).toBeNull();
+  });
+
+  it("Wave 4: Alaska and Hawaii resolve to verified ADF&G / DLNR packs", () => {
+    const W4 = [
+      { id: "alaska", area: "ak-se-state", authority: "ADF&G" },
+      { id: "hawaii", area: "hi-statewide", authority: "DLNR" },
+    ] as const;
+    for (const { id, area, authority } of W4) {
+      const bundle = packForRegion(id);
+      expect(bundle, id).not.toBeNull();
+      expect(bundle!.primaryAreaId, id).toBe(area);
+      expect(bundle!.jurisdictionLabel, id).toContain(authority);
+      expect(bundle!.data.rules.every((r) => r.verbatim.length > 20), id).toBe(true);
+    }
+    // Alaska leads with salmon species that must exist in the vocabulary.
+    expect(popularSpeciesIds("alaska").every((s) => speciesById(s) !== null)).toBe(true);
   });
 });

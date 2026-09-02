@@ -163,8 +163,8 @@ const BY_REGION: Record<RegionId, readonly string[]> = {
     "coho_salmon", "pacific_halibut", "surfperch", "sablefish", "kelp_greenling",
   ],
   alaska: [
-    "chinook_salmon", "coho_salmon", "pacific_halibut", "lingcod", "rockfish",
-    "yelloweye_rockfish",
+    "chinook_salmon", "coho_salmon", "sockeye_salmon", "pink_salmon", "pacific_halibut",
+    "lingcod", "yelloweye_rockfish", "sablefish", "dolly_varden", "rockfish",
   ],
   northern_california: [
     "striped_bass",
