@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { JurisdictionChip } from "./jurisdiction-chip";
 import { useMemo } from "react";
 
 import { useNow } from "@/lib/time/use-now";
@@ -80,7 +81,10 @@ export function SpeciesRulesPage({ speciesId }: { speciesId: string }) {
             </figcaption>
           </figure>
         ) : null}
-        <h1 className="text-h1">{name}</h1>
+        <div className="flex items-center gap-2">
+          <h1 className="text-h1">{name}</h1>
+          <JurisdictionChip prefix="Species" />
+        </div>
         <p className="mt-1 text-caption text-text-muted">
           {bundle ? `${bundle.jurisdictionLabel} · ` : `No pack for ${regionLabel} · `}
           {dateKey} ·{" "}
