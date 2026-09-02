@@ -30,6 +30,8 @@ export interface LocalPreference<T> {
   use: () => readonly [T, (next: T) => void];
   /** Sets the value from outside React. */
   set: (next: T) => void;
+  /** Reads the value outside React (snapshot builders, engine calls). */
+  read: () => T;
   readonly defaultValue: T;
 }
 
@@ -93,5 +95,5 @@ export function createLocalPreference<T>(options: {
     return [value, update] as const;
   }
 
-  return { use, set, defaultValue };
+  return { use, set, read, defaultValue };
 }

@@ -14,6 +14,7 @@ import type {
   Outcome,
 } from "@/core/rules/catch/types";
 import { uuidv7 } from "@/core/sync/uuid";
+import { snapshotForNewCatch } from "@/features/fish-legal/regulation-snapshot";
 import { buildCatchSnapshot } from "./conditions";
 import { attachPhotos } from "./media";
 import {
@@ -405,6 +406,7 @@ export async function logCatch(
     notes: draft.notes,
     tags: draft.tags,
     favorite: false,
+    regulation_snapshot: (() => { const s = snapshotForNewCatch(draft.speciesId, localDateOf(caughtAt, zone)); return s ? { ...s } as Record<string, unknown> : null; })(),
     capture_mode: isBackfill ? "backfill" : "live",
     client_created_at: nowIso,
     created_at: nowIso,
@@ -502,6 +504,19 @@ export async function updateCatchFromDraft(
     presentation: draft.presentation,
     notes: draft.notes,
     tags: draft.tags,
+    // §18 snapshot refreshes on edit: same law the angler alleges today for THIS species
+    // on the CATCH's day. Pack version survival is the historical record.
+    regulation_snapshot: (() => {
+      const s = draft.speciesId && existing.species_id !== null || draft.speciesId
+        ? (() => {
+            const sz = draft.speciesId
+              ? snapshotForNewCatch(draft.speciesId, localDateOf(caughtAt, zone))
+              : null;
+            return sz ? ({ ...sz } as Record<string, unknown>) : null;
+          })()
+        : existing.regulation_snapshot;
+      return s;
+    })(),
     client_updated_at: nowIso,
   };
 
@@ -662,6 +677,7 @@ export async function logQuickMark(state: LogSnapshot): Promise<LogResult> {
     presentation: null,
     notes: null,
     tags: [],
+    regulation_snapshot: null,
     favorite: false,
     capture_mode: "live",
     client_created_at: nowIso,

@@ -38,6 +38,7 @@ import {
 import { MeasurementField } from "./measurement-field";
 import { useNow } from "@/lib/time/use-now";
 import { SpeciesPicker } from "./species-picker";
+import { LimitBanner } from "@/features/fish-legal/components/limit-banner";
 
 /**
  * Quick Log — the screen the whole feature is judged on (spec §2, §4).
@@ -321,6 +322,12 @@ function LogForm({
           setSpeciesId(null);
         }}
       />
+
+      {/* Fish Legal §12: limit posture for the fish in hand — informational, and only
+        when the disposition is "kept". Rendering nothing = no counted rule, not "fine". */}
+      {speciesId ? (
+        <LimitBanner speciesId={speciesId} disposition={disposition} quantity={quantity} />
+      ) : null}
 
       {rods.length > 0 ? (
         <PresetPicker

@@ -54,6 +54,7 @@ function record(overrides: Partial<CatchRecord> = {}): CatchRecord {
     notes: null,
     tags: [],
     favorite: false,
+    regulation_snapshot: null,
     capture_mode: "live",
     client_created_at: NOW,
     created_at: NOW,

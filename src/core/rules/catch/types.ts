@@ -105,6 +105,12 @@ export interface CatchRecord {
   readonly tags: readonly string[];
   readonly favorite: boolean;
 
+  /**
+   * Fish Legal §18: the regulation pack reading at log time. Written by the app from
+   * the day-and-species card, stored verbatim, never rewritten when the law changes.
+   * Null = nothing verified was knowable (same stance as "No verified data").
+   */
+  readonly regulation_snapshot: Record<string, unknown> | null;
   readonly capture_mode: CaptureMode;
   readonly client_created_at: string;
   readonly created_at: string;

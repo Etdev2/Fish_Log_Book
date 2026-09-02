@@ -126,6 +126,17 @@ water is; freshwater packs consume the same tables when they land — no migrati
 
 ## 7. What this enables next (in order)
 
+**2026-09-02 update — the founder's "Fish Legal expansion" spec landed as Phases 1+2+3
+in a single PR.** The pack model above becomes multi-jurisdiction through
+`src/features/fish-legal/packs.ts` (region → pack registry, one row per jurisdiction).
+Catch rows carry `regulation_snapshot` (spec §18). Boundary alerts run on a pure
+transition state machine (`boundary-alerts.ts`). The species-photo question is answered
+with bundled local files + per-image attribution (`species-photos.ts`) — licensing debt
+recorded honestly in the module header. See docs/specs/fish-legal-expansion.md for the
+full section-by-section landing.
+
+
+
 1. ~~SoCal starter dataset (this session)~~ → **shipped** (tables + SoCal rows, PR #21).
 2. ~~A read-only "Regulations" browser~~ → **SHIPPED, 2026-09-01** as one PR per founder's
    instruction: regulations home ("My current regulations" header: area + date + mode +
