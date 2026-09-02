@@ -19,7 +19,7 @@ import type { RegArea, RegGroup, RegPack, RegRule } from "./types";
 
 export const HAWAII_PACK: RegPack = {
   id: "hawaii-2026-09-02",
-  version: 1,
+  version: 2,
   publishedAt: "2026-09-02T18:00:00Z",
   notes:
     "Hawaii (DLNR DAR statewide table): moi 11 in @ 15 closed Jun–Aug; 'ama'ama 11 in " +
@@ -35,8 +35,13 @@ const A = {
   title: "DLNR Division of Aquatic Resources — Marine Fishes and Other Vertebrates (HAR 13-95, 13-95.1, 13-94, 13-74)",
   updated: null,
 } as const;
+const A2 = {
+  url: "https://dlnr.hawaii.gov/dar/fishing/fishing-regulations/regulated-areas/regulated-fishing-areas-on-hawaii/",
+  title: "DLNR Division of Aquatic Resources — Regulated Fishing Areas on Hawai'i Island (HAR 13-29/13-33/13-35/13-37/13-47/13-60.4)",
+  updated: null,
+} as const;
 const VERIFIED = "2026-09-02";
-const pv = 1;
+const pv = 2;
 
 function rule(
   r: Omit<RegRule, "packVersion" | "regGroupId"> & Partial<Pick<RegRule, "regGroupId">>,
@@ -74,6 +79,76 @@ export const HI_AREAS: readonly RegArea[] = [
     sourceUrl: A.url,
     verifiedAt: VERIFIED,
     notes: "Envelope around Maui Nui waters; Maui carries its own size/bag rules.",
+  },
+  // ——— v2 (deepen pass): Regulated Fishing Areas (verbatim from DLNR pages) ———
+  {
+    id: "hi-west-hawaii-rfma",
+    authority: "hawaii_dar",
+    kind: "conservation_area",
+    name: "West Hawai'i Regional Fishery Management Area (Ka Lae, Ka'ū to 'Ūpolu Point, North Kohala)",
+    polygon: [
+      [-156.08, 18.92], [-155.68, 19.75], [-156.05, 20.26], [-155.95, 19.0],
+      [-155.99, 18.94], [-156.08, 18.92],
+    ],
+    sourceUrl: A2.url,
+    verifiedAt: VERIFIED,
+    notes:
+      "HAR 13-60.4. Extends Ka Lae (South Point) to 'Ūpolu Point and seaward to the " +
+      "State's management limit; includes the Kahalu'u Bay, Waiaua Bay, and Kikaua–" +
+      "Makalawena Fish Replenishment Areas (fresh fish replenishment subareas not yet " +
+      "mapped). Pāku'iku'ī take prohibited through 12/17/26.",
+  },
+  {
+    id: "hi-milolii-cbsfa",
+    authority: "hawaii_dar",
+    kind: "conservation_area",
+    name: "Miloli'i Community-Based Subsistence Fishing Area",
+    polygon: null,
+    sourceUrl: A2.url,
+    verifiedAt: VERIFIED,
+    notes:
+      "Polygons not yet mapped; the special regs row carries the verbatim walk-through. " +
+      "HAR chapter: Miloli'i CBSFA (DAR).",
+  },
+  {
+    id: "hi-kealakekua-mlcd",
+    authority: "hawaii_dar",
+    kind: "conservation_area",
+    name: "Kealakekua Bay Marine Life Conservation District (Cook Point to Manini Beach Point)",
+    polygon: null,
+    sourceUrl: A2.url,
+    verifiedAt: VERIFIED,
+    notes: "HAR 13-29 / 13-60.4. Subzone B is the retractable 'allowed fishing' strip.",
+  },
+  {
+    id: "hi-lapakahi-mlcd",
+    authority: "hawaii_dar",
+    kind: "conservation_area",
+    name: "Lapakahi Marine Life Conservation District (Koai'e Cove & Subzone B)",
+    polygon: null,
+    sourceUrl: A2.url,
+    verifiedAt: VERIFIED,
+    notes: "HAR 13-33 / 13-60.4. Subzone B hooks-and-thrownet only.",
+  },
+  {
+    id: "hi-oldkona-mlcd",
+    authority: "hawaii_dar",
+    kind: "conservation_area",
+    name: "Old Kona Airport Marine Life Conservation District",
+    polygon: null,
+    sourceUrl: A2.url,
+    verifiedAt: VERIFIED,
+    notes: "HAR 13-37 / 13-60.4. No Boating Zone inside; mooring 3-hour cap.",
+  },
+  {
+    id: "hi-waialea-mlcd",
+    authority: "hawaii_dar",
+    kind: "conservation_area",
+    name: "Waialea Bay Marine Life Conservation District (Kānekanaka Point to north of 'Ōhai Point)",
+    polygon: null,
+    sourceUrl: A2.url,
+    verifiedAt: VERIFIED,
+    notes: "HAR 13-35 / 13-60.4. Hook-and-line finfish permitted from pole.",
   },
 ];
 
@@ -275,6 +350,61 @@ export const HI_RULES: readonly RegRule[] = [
     verbatim:
       "Regulated Fishing Areas (West Hawaii Regional Fishery Management Area, Miloli'i Community-Based Subsistence Fishing Area, Hilo Bay, Kailua Bay, and others) carry their own permitted/prohibited lists and can be stricter than the statewide table — see DLNR DAR regulated-areas pages. Sea turtles (honu) and Hawaiian monk seals: no open season; unlawful to molest, kill, capture, or possess. (HRS 195D-4)",
     sourceUrl: A.url, sourceTitle: A.title, sourceUpdatedAt: A.updated, verifiedAt: VERIFIED,
+    seasonStart: null, seasonEnd: null, bagDaily: null, possessionLimit: null, bagSharesWithGroup: false,
+    minSizeIn: null, maxSizeIn: null, sizeMeasure: null, platformScope: null, depthNote: null,
+    checkInseason: false, staleAfterDays: 180,
+  }),
+  // ——— v2 (deepen pass): Regulated Fishing Areas verbatim ———
+  rule({
+    id: "hi-westhawaii-rfma-doctrine", speciesId: null, regAreaId: "hi-west-hawaii-rfma", kind: "note",
+    verbatim:
+      "The West Hawai'i Regional Fishery Management Area (FRA) extends along the west coast of the Island of Hawaii from Ka Lae, Ka'ū (South Point) to 'Ūpolu Point, North Kohala, and from the highwater mark on shore seaward to the limit of the State's management authority. It includes the Fish Replenishment Areas, Netting Restricted Areas, and Marine Reserve depicted in the accompanying maps and described fully in the administrative rule (available at DAR). Pāku'iku'i: take prohibited in West Hawaii Regional Fishery Management Area through 12/17/26. (HAR 13-60.4)",
+    sourceUrl: A2.url, sourceTitle: A2.title, sourceUpdatedAt: A2.updated, verifiedAt: VERIFIED,
+    seasonStart: null, seasonEnd: null, bagDaily: null, possessionLimit: null, bagSharesWithGroup: false,
+    minSizeIn: null, maxSizeIn: null, sizeMeasure: null, platformScope: null, depthNote: null,
+    checkInseason: false, staleAfterDays: 180,
+  }),
+  rule({
+    id: "hi-milolii-cbsfa-note", speciesId: null, regAreaId: "hi-milolii-cbsfa", kind: "note",
+    verbatim:
+      "Miloli'i Community-Based Subsistence Fishing Area — From July through February the bag limit for kole is 20 per person per day, and minimum size is five inches. From June through February the minimum size for these species is 14 inches and maximum size is 20 inches, and the bag limit is one fish per person per day. [Uhu:] To take or possess more than three other uhu per person per day; only one may be a terminal-phase uhu. ['Ula:] To take or possess more than two ula per person per day. ['Opihi:] To take or possess more 'opihi makaiauli and 'opihi 'ālinalina (with shell) than can fit in a one-gallon size bag per person per day. Pāku'iku'i: take prohibited before July 1, 2027; beginning July 1, 2027 pāku'iku'i bag limit is five per person per day, and minimum size is five inches. ['Ū'ū:] To take or possess any 'ū'ū from April through June. (DLNR regulated areas, Miloli'i CBSFA row.)",
+    sourceUrl: A2.url, sourceTitle: A2.title, sourceUpdatedAt: A2.updated, verifiedAt: VERIFIED,
+    seasonStart: null, seasonEnd: null, bagDaily: null, possessionLimit: null, bagSharesWithGroup: false,
+    minSizeIn: null, maxSizeIn: null, sizeMeasure: null, platformScope: null, depthNote: null,
+    checkInseason: false, staleAfterDays: 90,
+  }),
+  rule({
+    id: "hi-kealakekua-mlcd-note", speciesId: null, regAreaId: "hi-kealakekua-mlcd", kind: "note",
+    verbatim:
+      "Kealakekua Bay MLCD — The Kealakekua Bay Marine Life Conservation District is located offshore of the Kealakekua Bay Historical State Park on the western coast of the island of Hawai'i, from the highwater mark seaward to a line from Cook Point to Manini Beach Point. Permitted within Subzone B only: to fish for, take or possess any finfish with or by the use of hook-and-line and thrownet, provided that any legal fishing device or method except traps may be used for the taking of akule, 'ōpelu and crustaceans. Prohibited: to fish for, take or injure marine life (including eggs), except as indicated in 'Permitted' activities above. (HAR 13-29, HAR 13-60.4)",
+    sourceUrl: A2.url, sourceTitle: A2.title, sourceUpdatedAt: A2.updated, verifiedAt: VERIFIED,
+    seasonStart: null, seasonEnd: null, bagDaily: null, possessionLimit: null, bagSharesWithGroup: false,
+    minSizeIn: null, maxSizeIn: null, sizeMeasure: null, platformScope: null, depthNote: null,
+    checkInseason: false, staleAfterDays: 180,
+  }),
+  rule({
+    id: "hi-lapakahi-mlcd-note", speciesId: null, regAreaId: "hi-lapakahi-mlcd", kind: "note",
+    verbatim:
+      "Lapakahi MLCD — encompasses Subzone A (Koai'e Cove) and Subzone B, extending approximately 500 feet offshore of the Lapakahi State Historical Park. Permitted within Subzone B only: to fish for, take or possess any 'ōpelu by lift or 'ōpelu net, or any finfish or crustacean by hook-and-line or thrownet. Prohibited: to fish for, take or injure any marine life (including eggs), or possess in the water any device that may be used for the taking of marine life. (HAR 13-33, HAR 13-60.4)",
+    sourceUrl: A2.url, sourceTitle: A2.title, sourceUpdatedAt: A2.updated, verifiedAt: VERIFIED,
+    seasonStart: null, seasonEnd: null, bagDaily: null, possessionLimit: null, bagSharesWithGroup: false,
+    minSizeIn: null, maxSizeIn: null, sizeMeasure: null, platformScope: null, depthNote: null,
+    checkInseason: false, staleAfterDays: 180,
+  }),
+  rule({
+    id: "hi-oldkona-mlcd-note", speciesId: null, regAreaId: "hi-oldkona-mlcd", kind: "note",
+    verbatim:
+      "Old Kona Airport MLCD — Permitted: to fish for, take, possess or remove akule by handline at night, and 'ōpelu by lift or 'ōpelu net method; to fish for, take, possess or remove any finfish for home consumption by throw net or pole-and-line (without reel) with bait from shore. Prohibited except as permitted: to fish for, take, injure, kill, possess or remove any marine life, including live sea shell and 'opihi, live coral, algae or limu. No anchoring; a No Boating Zone applies. (HAR 13-37, HAR 13-60.4)",
+    sourceUrl: A2.url, sourceTitle: A2.title, sourceUpdatedAt: A2.updated, verifiedAt: VERIFIED,
+    seasonStart: null, seasonEnd: null, bagDaily: null, possessionLimit: null, bagSharesWithGroup: false,
+    minSizeIn: null, maxSizeIn: null, sizeMeasure: null, platformScope: null, depthNote: null,
+    checkInseason: false, staleAfterDays: 180,
+  }),
+  rule({
+    id: "hi-waialea-mlcd-note", speciesId: null, regAreaId: "hi-waialea-mlcd", kind: "note",
+    verbatim:
+      "Waialea Bay MLCD — located offshore of Waialea Bay along the northwestern coast of the island of Hawai'i, from the highwater mark seaward to a line from Kānekanaka Point to the point immediately north of 'Ōhai Point. Permitted: to have or possess any fishing pole and hook-and-line, and to fish for, take or possess any finfish using such gear. Prohibited: to fish for, take or injure any marine life (including eggs), or possess in the water any device that may be used for the taking of marine life, except as indicated in permitted activities above. (HAR 13-35, HAR 13-60.4)",
+    sourceUrl: A2.url, sourceTitle: A2.title, sourceUpdatedAt: A2.updated, verifiedAt: VERIFIED,
     seasonStart: null, seasonEnd: null, bagDaily: null, possessionLimit: null, bagSharesWithGroup: false,
     minSizeIn: null, maxSizeIn: null, sizeMeasure: null, platformScope: null, depthNote: null,
     checkInseason: false, staleAfterDays: 180,
