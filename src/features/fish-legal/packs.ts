@@ -19,6 +19,8 @@ import { MISSISSIPPI } from "./mississippi-pack";
 import { ALABAMA } from "./alabama-pack";
 import { BAJA_CALIFORNIA } from "./baja-pack";
 import { BAJA_CALIFORNIA_SUR } from "./bcs-pack";
+import { OREGON } from "./oregon-pack";
+import { WASHINGTON } from "./washington-pack";
 import type { RegPack, RegArea, RegGroup, RegRule } from "./types";
 
 export type RegBundle = {
@@ -124,6 +126,22 @@ export const PACKS: readonly BundledPack[] = [
     shortCode: "MX·BCS",
     primaryAreaId: "mx-baja-california-sur",
     data: BAJA_CALIFORNIA_SUR,
+  },
+  // ——— Pacific Northwest wave (2026-09-02): WA OR coasts, flagship-first. Alaska has
+  // region entry by design but no pack until ADF&G verbatims land.
+  {
+    regionId: "oregon",
+    jurisdictionLabel: "Oregon — ODFW (US)",
+    shortCode: "OR",
+    primaryAreaId: "or-marine",
+    data: OREGON,
+  },
+  {
+    regionId: "washington",
+    jurisdictionLabel: "Washington — WDFW (US)",
+    shortCode: "WA",
+    primaryAreaId: "wa-ma-1-4-coastal",
+    data: WASHINGTON,
   },
 ];
 
