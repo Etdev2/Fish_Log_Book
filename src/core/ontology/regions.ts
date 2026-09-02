@@ -41,6 +41,11 @@ export type RegionId =
   | "alabama"
   | "baja_california"
   | "baja_california_sur"
+  /** Pacific Northwest wave (2026-09-02). Alaska leads with species but ships no
+   *  regulations pack yet — the honest "no verified pack" state, not a hidden one. */
+  | "oregon"
+  | "washington"
+  | "alaska"
   /** Angler-defined home water: nothing is pre-judged, Recent builds the picture. */
   | "custom";
 
@@ -72,6 +77,9 @@ export const REGIONS: readonly Region[] = [
   { id: "alabama", label: "Alabama", hint: "Orange Beach & Mobile Bay: snapper, specks, reds." },
   { id: "baja_california", label: "Baja California (MX)", hint: "Tijuana to Punta Eugenia: yellowtail, doggies." },
   { id: "baja_california_sur", label: "Baja California Sur (MX)", hint: "La Paz to Cabo: dorado, roosters, marlin." },
+  { id: "oregon", label: "Oregon coast", hint: "Newport to Brookings: rockfish 4-fish marine bag, lingcod 3 @ 22\"+, halibut windows." },
+  { id: "washington", label: "Washington coast", hint: "Ilwaco to Neah Bay: bottomfish aggregate 9, rockfish sub-limits, halibut days." },
+  { id: "alaska", label: "Alaska", hint: "Salmon and halibut country. Regulations pack not yet shipped — check ADF&G." },
   { id: "custom", label: "Custom / anywhere else", hint: "No regional suggestions — search finds everything." },
 ];
 
@@ -144,6 +152,19 @@ const BY_REGION: Record<RegionId, readonly string[]> = {
   baja_california_sur: [
     "striped_marlin", "dorado", "roosterfish", "yellowfin_tuna",
     "wahoo", "yellowtail", "sierra_mackerel", "sailfish",
+  ],
+  oregon: [
+    "rockfish", "black_rockfish", "lingcod", "cabezon", "kelp_greenling",
+    "chinook_salmon", "coho_salmon", "pacific_halibut", "flatfish", "striped_bass",
+    "white_sturgeon", "barred_surfperch",
+  ],
+  washington: [
+    "rockfish", "black_rockfish", "lingcod", "cabezon", "chinook_salmon",
+    "coho_salmon", "pacific_halibut", "surfperch", "sablefish", "kelp_greenling",
+  ],
+  alaska: [
+    "chinook_salmon", "coho_salmon", "pacific_halibut", "lingcod", "rockfish",
+    "yelloweye_rockfish",
   ],
   northern_california: [
     "striped_bass",

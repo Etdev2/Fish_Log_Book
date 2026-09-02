@@ -83,4 +83,26 @@ describe("states expansion wave 1 (Gulf + Baja)", () => {
       expect(bundle!.jurisdictionLabel, id).toContain("CDFW");
     }
   });
+
+  it("PNW wave: Oregon and Washington have regions, verified packs, and focus areas; Alaska lands packless", () => {
+    const PNW = [
+      { id: "oregon", area: "or-marine", authority: "ODFW" },
+      { id: "washington", area: "wa-ma-1-4-coastal", authority: "WDFW" },
+    ] as const;
+    for (const { id, area, authority } of PNW) {
+      expect(regionById(id), id).not.toBeNull();
+      const pops = popularSpeciesIds(id as Parameters<typeof popularSpeciesIds>[0]);
+      expect(pops.length).toBeGreaterThan(5);
+      expect(pops.every((s) => speciesById(s) !== null), id).toBe(true);
+      const bundle = packForRegion(id);
+      expect(bundle, id).not.toBeNull();
+      expect(bundle!.primaryAreaId, id).toBe(area);
+      expect(bundle!.jurisdictionLabel, id).toContain(authority);
+      // Verified-or-nothing: every shipped rule carries the agency's own sentence.
+      expect(bundle!.data.rules.every((r) => r.verbatim.length > 20), id).toBe(true);
+    }
+    // Alaska is a Settings region with species leads but no pack until ADF&G verbatims.
+    expect(regionById("alaska")).not.toBeNull();
+    expect(packForRegion("alaska")).toBeNull();
+  });
 });

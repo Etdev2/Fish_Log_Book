@@ -169,6 +169,22 @@ export const SPECIES: readonly Species[] = [
   { id: "striped_mullet", commonName: "Striped mullet", scientificName: "Mugil cephalus", isGroup: false, rollsUpTo: null, waterClass: "salt", takeStatus: "regulated", sortOrder: 452 },
   { id: "almaco_jack", commonName: "Almaco jack", scientificName: "Seriola rivoliana", isGroup: false, rollsUpTo: null, waterClass: "salt", takeStatus: "regulated", sortOrder: 453 },
   { id: "lesser_amberjack", commonName: "Lesser amberjack", scientificName: "Seriola fasciata", isGroup: false, rollsUpTo: null, waterClass: "salt", takeStatus: "regulated", sortOrder: 454 },
+  // ——— Pacific Northwest wave (WA/OR, 2026-09-02): WDFW/ODFW bottomfish vocabulary.
+  { id: "canary_rockfish", commonName: "Canary rockfish", scientificName: "Sebastes pinniger", isGroup: false, rollsUpTo: "rockfish", waterClass: "salt", takeStatus: "regulated", sortOrder: 456 },
+  { id: "blue_rockfish", commonName: "Blue rockfish", scientificName: "Sebastes mystinus", isGroup: false, rollsUpTo: "rockfish", waterClass: "salt", takeStatus: "regulated", sortOrder: 457 },
+  { id: "black_rockfish", commonName: "Black rockfish", scientificName: "Sebastes melanops", isGroup: false, rollsUpTo: "rockfish", waterClass: "salt", takeStatus: "regulated", sortOrder: 458 },
+  { id: "yellowtail_rockfish", commonName: "Yellowtail rockfish", scientificName: "Sebastes flavidus", isGroup: false, rollsUpTo: "rockfish", waterClass: "salt", takeStatus: "regulated", sortOrder: 459 },
+  { id: "widow_rockfish", commonName: "Widow rockfish", scientificName: "Sebastes entomelas", isGroup: false, rollsUpTo: "rockfish", waterClass: "salt", takeStatus: "regulated", sortOrder: 460 },
+  { id: "bocaccio", commonName: "Bocaccio", scientificName: "Sebastes paucispinis", isGroup: false, rollsUpTo: "rockfish", waterClass: "salt", takeStatus: "regulated", sortOrder: 461 },
+  { id: "copper_rockfish", commonName: "Copper rockfish", scientificName: "Sebastes caurinus", isGroup: false, rollsUpTo: "rockfish", waterClass: "salt", takeStatus: "regulated", sortOrder: 462 },
+  { id: "quillback_rockfish", commonName: "Quillback rockfish", scientificName: "Sebastes maliger", isGroup: false, rollsUpTo: "rockfish", waterClass: "salt", takeStatus: "regulated", sortOrder: 463 },
+  { id: "vermilion_rockfish", commonName: "Vermilion rockfish", scientificName: "Sebastes miniatus", isGroup: false, rollsUpTo: "rockfish", waterClass: "salt", takeStatus: "regulated", sortOrder: 464 },
+  { id: "yelloweye_rockfish", commonName: "Yelloweye rockfish", scientificName: "Sebastes ruberrimus", isGroup: false, rollsUpTo: "rockfish", waterClass: "salt", takeStatus: "protected", sortOrder: 465 },
+  { id: "sablefish", commonName: "Sablefish (black cod)", scientificName: "Anoplopoma fimbria", isGroup: false, rollsUpTo: null, waterClass: "salt", takeStatus: "regulated", sortOrder: 466 },
+  { id: "pacific_cod", commonName: "Pacific cod", scientificName: "Gadus macrocephalus", isGroup: false, rollsUpTo: null, waterClass: "salt", takeStatus: "regulated", sortOrder: 467 },
+  { id: "shiner_perch", commonName: "Shiner perch", scientificName: "Cymatogaster aggregata", isGroup: false, rollsUpTo: "surfperch", waterClass: "salt", takeStatus: "open", sortOrder: 468 },
+  { id: "sixgill_shark", commonName: "Sixgill shark", scientificName: "Hexanchus griseus", isGroup: false, rollsUpTo: null, waterClass: "salt", takeStatus: "protected", sortOrder: 469 },
+  { id: "flatfish", commonName: "Flatfish (sole, sanddab, flounder)", scientificName: "Pleuronectidae", isGroup: true, rollsUpTo: null, waterClass: "salt", takeStatus: "open", sortOrder: 470 },
   { id: "alligator_gar", commonName: "Alligator gar", scientificName: "Atractosteus spatula", isGroup: false, rollsUpTo: null, waterClass: "salt", takeStatus: "regulated", sortOrder: 660 },
 ];
 
