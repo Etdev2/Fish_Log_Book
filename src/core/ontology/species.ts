@@ -157,6 +157,19 @@ export const SPECIES: readonly Species[] = [
   { id: "lane_snapper", commonName: "Lane snapper", scientificName: "Lutjanus synagris", isGroup: false, rollsUpTo: null, waterClass: "salt", takeStatus: "regulated", sortOrder: 441 },
   { id: "mutton_snapper", commonName: "Mutton snapper", scientificName: "Lutjanus analis", isGroup: false, rollsUpTo: null, waterClass: "salt", takeStatus: "regulated", sortOrder: 442 },
   { id: "sand_seatrout", commonName: "Sand seatrout (white trout)", scientificName: "Cynoscion arenarius", isGroup: false, rollsUpTo: null, waterClass: "salt", takeStatus: "open", sortOrder: 443 },
+  /* Gulf digest pass (v2 packs): reef and HMS species named by the full digests. */
+  { id: "red_grouper", commonName: "Red grouper", scientificName: "Epinephelus morio", isGroup: false, rollsUpTo: null, waterClass: "salt", takeStatus: "regulated", sortOrder: 444 },
+  { id: "black_grouper", commonName: "Black grouper", scientificName: "Mycteroperca bonaci", isGroup: false, rollsUpTo: null, waterClass: "salt", takeStatus: "regulated", sortOrder: 445 },
+  { id: "scamp", commonName: "Scamp", scientificName: "Mycteroperca phenax", isGroup: false, rollsUpTo: null, waterClass: "salt", takeStatus: "regulated", sortOrder: 446 },
+  { id: "warsaw_grouper", commonName: "Warsaw grouper", scientificName: "Epinephelus nigritus", isGroup: false, rollsUpTo: null, waterClass: "salt", takeStatus: "regulated", sortOrder: 447 },
+  { id: "speckled_hind", commonName: "Speckled hind (kitty mitchell)", scientificName: "Epinephelus drummondhayi", isGroup: false, rollsUpTo: null, waterClass: "salt", takeStatus: "regulated", sortOrder: 448 },
+  { id: "white_marlin", commonName: "White marlin", scientificName: "Kajikia albida", isGroup: false, rollsUpTo: null, waterClass: "salt", takeStatus: "regulated", sortOrder: 449 },
+  { id: "swordfish", commonName: "Swordfish", scientificName: "Xiphias gladius", isGroup: false, rollsUpTo: null, waterClass: "salt", takeStatus: "regulated", sortOrder: 450 },
+  { id: "bigeye_tuna", commonName: "Bigeye tuna", scientificName: "Thunnus obesus", isGroup: false, rollsUpTo: null, waterClass: "salt", takeStatus: "regulated", sortOrder: 451 },
+  { id: "striped_mullet", commonName: "Striped mullet", scientificName: "Mugil cephalus", isGroup: false, rollsUpTo: null, waterClass: "salt", takeStatus: "regulated", sortOrder: 452 },
+  { id: "almaco_jack", commonName: "Almaco jack", scientificName: "Seriola rivoliana", isGroup: false, rollsUpTo: null, waterClass: "salt", takeStatus: "regulated", sortOrder: 453 },
+  { id: "lesser_amberjack", commonName: "Lesser amberjack", scientificName: "Seriola fasciata", isGroup: false, rollsUpTo: null, waterClass: "salt", takeStatus: "regulated", sortOrder: 454 },
+  { id: "alligator_gar", commonName: "Alligator gar", scientificName: "Atractosteus spatula", isGroup: false, rollsUpTo: null, waterClass: "salt", takeStatus: "regulated", sortOrder: 660 },
 ];
 
 const BY_ID = new Map(SPECIES.map((s) => [s.id, s]));

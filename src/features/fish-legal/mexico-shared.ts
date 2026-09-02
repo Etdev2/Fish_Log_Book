@@ -124,6 +124,33 @@ export function mexicoFederalRules(regAreaId: string): readonly RegRule[] {
       checkInseason: false, staleAfterDays: 90,
     }),
     rule({
+      id: `mx-blue-marlin-1-${regAreaId}`, speciesId: "blue_marlin", regAreaId, kind: "bag_limit",
+      verbatim:
+        "Cuando se trate de marlin, pez vela, pez espada y tiburón, el límite máximo por pescador y día será de un solo ejemplar de cualquiera de estas especies... (Blue marlin: ONE billfish/shark total of any of the four species per day, counting as five of the day's ten.)",
+      sourceUrl: NOM.url, sourceTitle: NOM.title, sourceUpdatedAt: NOM.updated, verifiedAt: VERIFIED,
+      seasonStart: null, seasonEnd: null, bagDaily: 1, possessionLimit: 1, bagSharesWithGroup: false,
+      minSizeIn: null, maxSizeIn: null, sizeMeasure: null, platformScope: null, depthNote: "Shared with marlin/sailfish/shark group — one total.",
+      checkInseason: false, staleAfterDays: 90,
+    }),
+    rule({
+      id: `mx-shark-1-${regAreaId}`, speciesId: null, regAreaId, kind: "note",
+      verbatim:
+        "Cuando se trate de marlin, pez vela, pez espada y tiburón, el límite máximo por pescador y día será de un solo ejemplar de cualquiera de estas especies (sharks share the one-per-day billfish/shark ceiling, counting as five of the day's ten).",
+      sourceUrl: NOM.url, sourceTitle: NOM.title, sourceUpdatedAt: NOM.updated, verifiedAt: VERIFIED,
+      seasonStart: null, seasonEnd: null, bagDaily: 1, possessionLimit: 1, bagSharesWithGroup: false,
+      minSizeIn: null, maxSizeIn: null, sizeMeasure: null, platformScope: null, depthNote: "Billfish + shark composite.",
+      checkInseason: false, staleAfterDays: 90,
+    }),
+    rule({
+      id: `mx-fresh-5-${regAreaId}`, speciesId: null, regAreaId, kind: "note",
+      verbatim:
+        "4.7.2 Tratándose de especies de agua dulce, el límite máximo permisible será de cinco ejemplares por pescador por día. (Freshwater species: five per person per day.)",
+      sourceUrl: NOM.url, sourceTitle: NOM.title, sourceUpdatedAt: NOM.updated, verifiedAt: VERIFIED,
+      seasonStart: null, seasonEnd: null, bagDaily: 5, possessionLimit: 5, bagSharesWithGroup: false,
+      minSizeIn: null, maxSizeIn: null, sizeMeasure: null, platformScope: null, depthNote: "Continental (fresh) waters tier.",
+      checkInseason: false, staleAfterDays: 90,
+    }),
+    rule({
       id: `mx-tallas-${regAreaId}`, speciesId: null, regAreaId, kind: "note",
       verbatim:
         "4.11 La práctica de la pesca deportivo recreativa queda sujeta a las tallas y pesos mínimos de captura por especie y zona, que establezca la Secretaría... medidas que se notificarán mediante avisos publicados en el Diario Oficial de la Federación. (Minimum sizes/weights by species and zone are set by DOF notices — check the current Diario Oficial notice before keeping unusual species.)",

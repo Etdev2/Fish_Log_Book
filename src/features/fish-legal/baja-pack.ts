@@ -7,10 +7,10 @@ import { mexicoFederalRules } from "./mexico-shared";
 
 export const BAJA_PACK: RegPack = {
   id: "baja-california-2026-09-01",
-  version: 1,
+  version: 2,
   publishedAt: "2026-09-01T12:00:00Z",
   notes:
-    "Baja California (CONAPESCA / NOM-017-PESC-1994): federal sport catch ceilings apply " +
+    "Baja California v2 (CONAPESCA / NOM-017-PESC-1994): federal sport catch ceilings apply " +
     "nationwide — identical clauses as Baja California Sur. Envelope covers the Pacific " +
     "coast (Tijuana–Punta Eugenia) and the Upper Gulf side to 28° N.",
 };

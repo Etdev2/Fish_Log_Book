@@ -8,10 +8,10 @@ import { mexicoFederalRules } from "./mexico-shared";
 
 export const BCS_PACK: RegPack = {
   id: "baja-california-sur-2026-09-01",
-  version: 1,
+  version: 2,
   publishedAt: "2026-09-01T12:00:00Z",
   notes:
-    "Baja California Sur (CONAPESCA / NOM-017-PESC-1994): federal sport catch ceilings; " +
+    "Baja California Sur v2 (CONAPESCA / NOM-017-PESC-1994): federal sport catch ceilings; " +
     "same clauses as Baja California (no state-level catch-limit divergence found — " +
     "state differences are in licensing/boat permits, not bags). Envelope covers La Paz " +
     "to Cabo San Lucas.",

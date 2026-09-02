@@ -12,16 +12,17 @@ import type { RegArea, RegGroup, RegPack, RegRule } from "./types";
 
 export const ALABAMA_PACK: RegPack = {
   id: "alabama-2026-09-01",
-  version: 1,
+  version: 2,
   publishedAt: "2026-09-01T12:00:00Z",
   notes:
-    "Alabama (ADCNR Marine Resources Division): inshore flagship slots verified against " +
-    "agency releases; red snapper via Snapper Check + announced season; sheepshead 2025 " +
-    "reduction (10→8) quoted from the regulation-change reports. Snapper Check is " +
-    "mandatory before landing — read the note row before your first snapper trip.",
+    "Alabama (ADCNR Saltwater Recreational Size & Creel Limits card, July 2025 PDF): " +
+    "v2 = FULL digest — every row on the agency card plus the 220-3-.77 shark rule and the " +
+    "announced quota-season snapper mechanism. Snapper Check before landing is law.",
 };
 
 const OA = "https://www.outdooralabama.com";
+const CARD = `${OA}/fishing/saltwater-recreational-size-creel-limits`;
+const CARD_T = "ADCNR — Saltwater Recreational Size & Creel Limits (July 2025 card)";
 const VERIFIED = "2026-09-02";
 const pv = 1;
 
@@ -59,11 +60,11 @@ export const AL_RULES: readonly RegRule[] = [
   rule({
     id: "al-red-drum-bag", speciesId: "red_drum", regAreaId: "al-gulf", kind: "bag_limit",
     verbatim:
-      "Red drum (redfish): 3 daily per person; 16–26 inch total-length slot; an allowance for one fish larger than 26 inches (bull red) is included. (2025 Advisory Board proposed removing the oversize allowance — verify before keeping a bull red.)",
-    sourceUrl: `${OA}/node/2632`, sourceTitle: "ADCNR — Seatrout, Flounder Limits Change August 1 (agency text)", sourceUpdatedAt: "2019-07-02", verifiedAt: VERIFIED,
+      "Red Drum (Redfish): 16” min. - 26” max TL; 3 per person. The July 2025 card carries NO over-slot allowance (the former bull-red exception was removed in the 2025 rule cycle — 16-26 slot only).",
+    sourceUrl: CARD, sourceTitle: CARD_T, sourceUpdatedAt: "2025-07-01", verifiedAt: VERIFIED,
     seasonStart: null, seasonEnd: null, bagDaily: 3, possessionLimit: 3, bagSharesWithGroup: false,
-    minSizeIn: 16, maxSizeIn: 26, sizeMeasure: "total_length", platformScope: null, depthNote: "One bull red >26” allowed inside the 3 (pending 2025 proposed change).",
-    checkInseason: true, staleAfterDays: 60,
+    minSizeIn: 16, maxSizeIn: 26, sizeMeasure: "total_length", platformScope: null, depthNote: null,
+    checkInseason: false, staleAfterDays: 60,
   }),
   rule({
     id: "al-flounder-open", speciesId: "southern_flounder", regAreaId: "al-gulf", kind: "bag_limit",
@@ -85,11 +86,11 @@ export const AL_RULES: readonly RegRule[] = [
   rule({
     id: "al-sheepshead-bag", speciesId: "sheepshead", regAreaId: "al-gulf", kind: "bag_limit",
     verbatim:
-      "Sheepshead: 12-inch fork length minimum; bag 8 per person per day — reduced from 10 in 2025 due to increased fishing pressure (verify the 2026 card; the reduction was approved in the 2025 regulation cycle).",
-    sourceUrl: `${OA}/fishing/saltwater-fishing-and-reports`, sourceTitle: "ADCNR — saltwater fishing reports & limits", sourceUpdatedAt: null, verifiedAt: VERIFIED,
+      "Sheepshead: 12” min. FL; 8 per person (reduced from 10 in 2025 due to increased fishing pressure).",
+    sourceUrl: CARD, sourceTitle: CARD_T, sourceUpdatedAt: "2025-07-01", verifiedAt: VERIFIED,
     seasonStart: null, seasonEnd: null, bagDaily: 8, possessionLimit: 8, bagSharesWithGroup: false,
     minSizeIn: 12, maxSizeIn: null, sizeMeasure: "fork_length", platformScope: null, depthNote: null,
-    checkInseason: true, staleAfterDays: 60,
+    checkInseason: false, staleAfterDays: 60,
   }),
   rule({
     id: "al-red-snapper-note", speciesId: "red_snapper", regAreaId: "al-gulf", kind: "note",
@@ -103,16 +104,16 @@ export const AL_RULES: readonly RegRule[] = [
   }),
   rule({
     id: "al-king-mackerel-bag", speciesId: "king_mackerel", regAreaId: "al-gulf", kind: "bag_limit",
-    verbatim: "King mackerel: 24-inch fork length minimum; 3 per person per day (Alabama creel card; federal Gulf migratory-group rules control in federal waters).",
-    sourceUrl: `${OA}/fishing/saltwater-fishing-and-reports`, sourceTitle: "ADCNR — saltwater fishing reports & limits", sourceUpdatedAt: null, verifiedAt: VERIFIED,
+    verbatim: "King Mackerel: 24” min. FL; 3 per person.",
+    sourceUrl: CARD, sourceTitle: CARD_T, sourceUpdatedAt: "2025-07-01", verifiedAt: VERIFIED,
     seasonStart: null, seasonEnd: null, bagDaily: 3, possessionLimit: 3, bagSharesWithGroup: false,
     minSizeIn: 24, maxSizeIn: null, sizeMeasure: "fork_length", platformScope: null, depthNote: null,
     checkInseason: false, staleAfterDays: 60,
   }),
   rule({
     id: "al-spanish-mackerel-bag", speciesId: "spanish_mackerel", regAreaId: "al-gulf", kind: "bag_limit",
-    verbatim: "Spanish mackerel: 15 per person per day; no minimum size in Alabama state rules (federal Gulf rules apply offshore).",
-    sourceUrl: `${OA}/fishing/saltwater-fishing-and-reports`, sourceTitle: "ADCNR — saltwater fishing reports & limits", sourceUpdatedAt: null, verifiedAt: VERIFIED,
+    verbatim: "Spanish Mackerel: none (no size limit); 15 per person.",
+    sourceUrl: CARD, sourceTitle: CARD_T, sourceUpdatedAt: "2025-07-01", verifiedAt: VERIFIED,
     seasonStart: null, seasonEnd: null, bagDaily: 15, possessionLimit: 15, bagSharesWithGroup: false,
     minSizeIn: null, maxSizeIn: null, sizeMeasure: null, platformScope: null, depthNote: null,
     checkInseason: false, staleAfterDays: 60,
@@ -127,9 +128,9 @@ export const AL_RULES: readonly RegRule[] = [
   }),
   rule({
     id: "al-cobia-bag", speciesId: "cobia", regAreaId: "al-gulf", kind: "bag_limit",
-    verbatim: "Cobia: 36 inches fork length; 2 per person per day (MRD approval notice; consistent with federal regulations).",
-    sourceUrl: `${OA}/node/2632`, sourceTitle: "ADCNR — Seatrout, Flounder Limits Change August 1 (agency text)", sourceUpdatedAt: "2019-07-02", verifiedAt: VERIFIED,
-    seasonStart: null, seasonEnd: null, bagDaily: 2, possessionLimit: 2, bagSharesWithGroup: false,
+    verbatim: "Cobia (Ling): 36” min. FL; 1 per person, not to exceed 2 per vessel.",
+    sourceUrl: CARD, sourceTitle: CARD_T, sourceUpdatedAt: "2025-07-01", verifiedAt: VERIFIED,
+    seasonStart: null, seasonEnd: null, bagDaily: 1, possessionLimit: 1, bagSharesWithGroup: false,
     minSizeIn: 36, maxSizeIn: null, sizeMeasure: "fork_length", platformScope: null, depthNote: null,
     checkInseason: false, staleAfterDays: 60,
   }),
@@ -149,6 +150,170 @@ export const AL_RULES: readonly RegRule[] = [
     seasonStart: null, seasonEnd: null, bagDaily: null, possessionLimit: null, bagSharesWithGroup: false,
     minSizeIn: null, maxSizeIn: null, sizeMeasure: null, platformScope: null, depthNote: null,
     checkInseason: false, staleAfterDays: 90,
+  }),
+  // ———— Digest-pass additions (v2) — the full July 2025 ADCNR creel card ————
+  rule({
+    id: "al-pompano-bag", speciesId: "florida_pompano", regAreaId: "al-gulf", kind: "bag_limit",
+    verbatim: "Florida Pompano: 12” min. TL; 3 per person.",
+    sourceUrl: CARD, sourceTitle: CARD_T, sourceUpdatedAt: "2025-07-01", verifiedAt: VERIFIED,
+    seasonStart: null, seasonEnd: null, bagDaily: 3, possessionLimit: 3, bagSharesWithGroup: false,
+    minSizeIn: 12, maxSizeIn: null, sizeMeasure: "total_length", platformScope: null, depthNote: null,
+    checkInseason: false, staleAfterDays: 60,
+  }),
+  rule({
+    id: "al-gag-bag", speciesId: "gag_grouper", regAreaId: "al-gulf", kind: "bag_limit",
+    verbatim: "Gag Grouper: 24” min TL; 2 per person (mixed species grouper aggregate creel limit: 4 per person; no more than 2 red and 2 gag grouper may be included in the grouper aggregate). Alabama state waters open and close along with federal regulations for this species.",
+    sourceUrl: CARD, sourceTitle: CARD_T, sourceUpdatedAt: "2025-07-01", verifiedAt: VERIFIED,
+    seasonStart: null, seasonEnd: null, bagDaily: 2, possessionLimit: 2, bagSharesWithGroup: true,
+    minSizeIn: 24, maxSizeIn: null, sizeMeasure: "total_length", platformScope: null, depthNote: "4-grouper aggregate; state follows federal open/close.",
+    checkInseason: true, staleAfterDays: 60,
+  }),
+  rule({
+    id: "al-red-grouper-bag", speciesId: "red_grouper", regAreaId: "al-gulf", kind: "bag_limit",
+    verbatim: "Red Grouper: 20” min TL; 2 per person (grouper aggregate 4; ≤2 red).",
+    sourceUrl: CARD, sourceTitle: CARD_T, sourceUpdatedAt: "2025-07-01", verifiedAt: VERIFIED,
+    seasonStart: null, seasonEnd: null, bagDaily: 2, possessionLimit: 2, bagSharesWithGroup: true,
+    minSizeIn: 20, maxSizeIn: null, sizeMeasure: "total_length", platformScope: null, depthNote: null,
+    checkInseason: true, staleAfterDays: 60,
+  }),
+  rule({
+    id: "al-black-grouper-bag", speciesId: "black_grouper", regAreaId: "al-gulf", kind: "bag_limit",
+    verbatim: "Black Grouper: 24” min TL; 4 per person (grouper aggregate 4).",
+    sourceUrl: CARD, sourceTitle: CARD_T, sourceUpdatedAt: "2025-07-01", verifiedAt: VERIFIED,
+    seasonStart: null, seasonEnd: null, bagDaily: 4, possessionLimit: 4, bagSharesWithGroup: true,
+    minSizeIn: 24, maxSizeIn: null, sizeMeasure: "total_length", platformScope: null, depthNote: null,
+    checkInseason: true, staleAfterDays: 60,
+  }),
+  rule({
+    id: "al-scamp-bag", speciesId: "scamp", regAreaId: "al-gulf", kind: "bag_limit",
+    verbatim: "Scamp: 16” min TL; 4 per person (grouper aggregate 4).",
+    sourceUrl: CARD, sourceTitle: CARD_T, sourceUpdatedAt: "2025-07-01", verifiedAt: VERIFIED,
+    seasonStart: null, seasonEnd: null, bagDaily: 4, possessionLimit: 4, bagSharesWithGroup: true,
+    minSizeIn: 16, maxSizeIn: null, sizeMeasure: "total_length", platformScope: null, depthNote: null,
+    checkInseason: true, staleAfterDays: 60,
+  }),
+  rule({
+    id: "al-aj-bag", speciesId: "greater_amberjack", regAreaId: "al-gulf", kind: "bag_limit",
+    verbatim: "Greater Amberjack: 34” min FL; 1 per person. Alabama state waters open and close along with federal regulations for this species.",
+    sourceUrl: CARD, sourceTitle: CARD_T, sourceUpdatedAt: "2025-07-01", verifiedAt: VERIFIED,
+    seasonStart: null, seasonEnd: null, bagDaily: 1, possessionLimit: 1, bagSharesWithGroup: false,
+    minSizeIn: 34, maxSizeIn: null, sizeMeasure: "fork_length", platformScope: null, depthNote: "Snapper Check reporting applies.",
+    checkInseason: true, staleAfterDays: 60,
+  }),
+  rule({
+    id: "al-striper-note", speciesId: "striped_bass", regAreaId: "al-gulf", kind: "bag_limit",
+    verbatim: "Striped Bass: 16” min TL; 2 per person (only two striped bass are allowed within MRD jurisdiction).",
+    sourceUrl: CARD, sourceTitle: CARD_T, sourceUpdatedAt: "2025-07-01", verifiedAt: VERIFIED,
+    seasonStart: null, seasonEnd: null, bagDaily: 2, possessionLimit: 2, bagSharesWithGroup: false,
+    minSizeIn: 16, maxSizeIn: null, sizeMeasure: "total_length", platformScope: null, depthNote: "MRD jurisdiction only.",
+    checkInseason: false, staleAfterDays: 60,
+  }),
+  rule({
+    id: "al-lesser-aj-agg", speciesId: "lesser_amberjack", regAreaId: "al-gulf", kind: "bag_limit",
+    verbatim: "Lesser Amberjack & Banded Rudderfish: 14” - 22” FL; Reef Fish Aggregate (20-fish aggregate creel limit for reef fish species without other bag limits — grunts, porgies, gray triggerfish, lane snapper, etc.).",
+    sourceUrl: CARD, sourceTitle: CARD_T, sourceUpdatedAt: "2025-07-01", verifiedAt: VERIFIED,
+    seasonStart: null, seasonEnd: null, bagDaily: 20, possessionLimit: 20, bagSharesWithGroup: true,
+    minSizeIn: 14, maxSizeIn: 22, sizeMeasure: "fork_length", platformScope: null, depthNote: "Inside the 20 reef-fish aggregate.",
+    checkInseason: false, staleAfterDays: 60,
+  }),
+  rule({
+    id: "al-yellowfin-tuna-bag", speciesId: "yellowfin_tuna", regAreaId: "al-gulf", kind: "bag_limit",
+    verbatim: "Yellowfin Tuna: 27” min CFL; 3 per person. Bigeye Tuna: 27” min CFL; no creel limit.",
+    sourceUrl: CARD, sourceTitle: CARD_T, sourceUpdatedAt: "2025-07-01", verifiedAt: VERIFIED,
+    seasonStart: null, seasonEnd: null, bagDaily: 3, possessionLimit: 3, bagSharesWithGroup: false,
+    minSizeIn: 27, maxSizeIn: null, sizeMeasure: "fork_length", platformScope: null, depthNote: "CFL.",
+    checkInseason: false, staleAfterDays: 60,
+  }),
+  rule({
+    id: "al-snook-bag", speciesId: "common_snook", regAreaId: "al-gulf", kind: "bag_limit",
+    verbatim: "Snook: 28” min TL; 1 per person (2025 rule).",
+    sourceUrl: CARD, sourceTitle: CARD_T, sourceUpdatedAt: "2025-07-01", verifiedAt: VERIFIED,
+    seasonStart: null, seasonEnd: null, bagDaily: 1, possessionLimit: 1, bagSharesWithGroup: false,
+    minSizeIn: 28, maxSizeIn: null, sizeMeasure: "total_length", platformScope: null, depthNote: null,
+    checkInseason: false, staleAfterDays: 60,
+  }),
+  rule({
+    id: "al-vermilion-snapper-bag", speciesId: "vermilion_snapper", regAreaId: "al-gulf", kind: "bag_limit",
+    verbatim: "Vermilion Snapper (beeliner): 10” min. TL; 10 per person. Alabama state waters open and close along with federal regulations.",
+    sourceUrl: CARD, sourceTitle: CARD_T, sourceUpdatedAt: "2025-07-01", verifiedAt: VERIFIED,
+    seasonStart: null, seasonEnd: null, bagDaily: 10, possessionLimit: 10, bagSharesWithGroup: false,
+    minSizeIn: 10, maxSizeIn: null, sizeMeasure: "total_length", platformScope: null, depthNote: null,
+    checkInseason: false, staleAfterDays: 60,
+  }),
+  rule({
+    id: "al-lane-snapper-agg", speciesId: "lane_snapper", regAreaId: "al-gulf", kind: "bag_limit",
+    verbatim: "Lane Snapper: 10” min. TL; Reef Fish aggregate (20 fish aggregate for reef species without other limits). 2025 change: minimum size increased to 10 inches TL to align with federal.",
+    sourceUrl: CARD, sourceTitle: CARD_T, sourceUpdatedAt: "2025-07-01", verifiedAt: VERIFIED,
+    seasonStart: null, seasonEnd: null, bagDaily: 20, possessionLimit: 20, bagSharesWithGroup: true,
+    minSizeIn: 10, maxSizeIn: null, sizeMeasure: "total_length", platformScope: null, depthNote: null,
+    checkInseason: false, staleAfterDays: 60,
+  }),
+  rule({
+    id: "al-gray-snapper-bag", speciesId: "gray_snapper", regAreaId: "al-gulf", kind: "bag_limit",
+    verbatim: "Gray Snapper (mangrove, black): 12” min. TL; 10 per person. Alabama state waters open and close along with federal regulations.",
+    sourceUrl: CARD, sourceTitle: CARD_T, sourceUpdatedAt: "2025-07-01", verifiedAt: VERIFIED,
+    seasonStart: null, seasonEnd: null, bagDaily: 10, possessionLimit: 10, bagSharesWithGroup: false,
+    minSizeIn: 12, maxSizeIn: null, sizeMeasure: "total_length", platformScope: null, depthNote: null,
+    checkInseason: false, staleAfterDays: 60,
+  }),
+  rule({
+    id: "al-tarpon-rule", speciesId: "atlantic_tarpon", regAreaId: "al-gulf", kind: "note",
+    verbatim: "Tarpon: 60” min. TL; $67.00 tag required to possess, kill or harvest each tarpon.",
+    sourceUrl: CARD, sourceTitle: CARD_T, sourceUpdatedAt: "2025-07-01", verifiedAt: VERIFIED,
+    seasonStart: null, seasonEnd: null, bagDaily: null, possessionLimit: null, bagSharesWithGroup: false,
+    minSizeIn: 60, maxSizeIn: null, sizeMeasure: "total_length", platformScope: null, depthNote: "Harvest only with the $67 tag.",
+    checkInseason: false, staleAfterDays: 60,
+  }),
+  rule({
+    id: "al-shark-table", speciesId: null, regAreaId: "al-gulf", kind: "note",
+    verbatim:
+      "Sharks (Alabama card): Atlantic sharpnose and bonnethead — no size limit, 1 per person per day each. Great, smooth and scalloped hammerhead — 78” min FL, 1 per person per day. All other shark species — 54” min FL, 1 per person per day. Shortfin mako possession prohibited (2025). Per rule 220-3-.77: it is unlawful within 300 feet of the shoreline, or on a public pier, or on a private pier where an unsafe condition is created, to fish for or target sharks by chumming or bloodbaiting, and it is unlawful to target sharks from any pier or beach in a manner that presents an unsafe condition to others.",
+    sourceUrl: CARD, sourceTitle: CARD_T, sourceUpdatedAt: "2025-07-01", verifiedAt: VERIFIED,
+    seasonStart: null, seasonEnd: null, bagDaily: null, possessionLimit: null, bagSharesWithGroup: false,
+    minSizeIn: null, maxSizeIn: null, sizeMeasure: null, platformScope: null, depthNote: null,
+    checkInseason: false, staleAfterDays: 60,
+  }),
+  rule({
+    id: "al-skates-rays-rule", speciesId: null, regAreaId: "al-gulf", kind: "gear",
+    verbatim: "Skates and Rays: 3 per person. Full retention when using bow, spear, or gig, and it shall be unlawful to remove the tail from any released skate or ray.",
+    sourceUrl: CARD, sourceTitle: CARD_T, sourceUpdatedAt: "2025-07-01", verifiedAt: VERIFIED,
+    seasonStart: null, seasonEnd: null, bagDaily: 3, possessionLimit: 3, bagSharesWithGroup: false,
+    minSizeIn: null, maxSizeIn: null, sizeMeasure: null, platformScope: null, depthNote: null,
+    checkInseason: false, staleAfterDays: 60,
+  }),
+  rule({
+    id: "al-mullet-rule", speciesId: "striped_mullet", regAreaId: "al-gulf", kind: "note",
+    verbatim: "Mullet: Oct. 24 - Dec. 31, 25 mullet per person from the shoreline or 25 per boat; no mullet by cast net or snagging in Theodore Industrial Canal, Dog River, Fowl River, and their tributaries.",
+    sourceUrl: CARD, sourceTitle: CARD_T, sourceUpdatedAt: "2025-07-01", verifiedAt: VERIFIED,
+    seasonStart: null, seasonEnd: null, bagDaily: null, possessionLimit: null, bagSharesWithGroup: false,
+    minSizeIn: null, maxSizeIn: null, sizeMeasure: null, platformScope: null, depthNote: "Seasonal shore/boat cap Oct 24–Dec 31.",
+    checkInseason: false, staleAfterDays: 60,
+  }),
+  rule({
+    id: "al-prohibited-species", speciesId: null, regAreaId: "al-gulf", kind: "prohibited",
+    verbatim:
+      "Prohibited Species: Goliath grouper (jewfish), Nassau grouper, Atlantic angel shark, bigeye sand tiger shark, bigeye sixgill shark, bigeye thresher shark, bignose shark, Caribbean reef shark, Caribbean sharpnose shark, Galapagos shark, narrowtooth shark, night shark, sevengill shark, sixgill shark, dusky shark, longfin mako shark, shortfin mako shark, sand tiger shark, basking shark, whale shark, white shark, smalltail shark, smalltooth sawfish, largetooth sawfish, spotted eagle ray, Atlantic manta, and sandbar shark (unless the fisherman possesses a NOAA Fisheries sandbar shark research permit).",
+    sourceUrl: CARD, sourceTitle: CARD_T, sourceUpdatedAt: "2025-07-01", verifiedAt: VERIFIED,
+    seasonStart: null, seasonEnd: null, bagDaily: null, possessionLimit: null, bagSharesWithGroup: false,
+    minSizeIn: null, maxSizeIn: null, sizeMeasure: null, platformScope: null, depthNote: null,
+    checkInseason: false, staleAfterDays: 90,
+  }),
+  rule({
+    id: "al-license-note", speciesId: null, regAreaId: "al-gulf", kind: "note",
+    verbatim:
+      "A saltwater fishing license is required for ALL persons fishing or possessing fish in saltwater areas of Alabama (residents and non-residents under 16 exempt; residents 65+ exempt but must register with the Alabama Saltwater Angler Registry). A Gulf Reef Fish Endorsement applies to reef fish anglers; Snapper Check reporting is mandatory before landing red snapper, greater amberjack, and gray triggerfish.",
+    sourceUrl: CARD, sourceTitle: CARD_T, sourceUpdatedAt: "2025-07-01", verifiedAt: VERIFIED,
+    seasonStart: null, seasonEnd: null, bagDaily: null, possessionLimit: null, bagSharesWithGroup: false,
+    minSizeIn: null, maxSizeIn: null, sizeMeasure: null, platformScope: null, depthNote: null,
+    checkInseason: false, staleAfterDays: 60,
+  }),
+  rule({
+    id: "al-party-boat-rule", speciesId: null, regAreaId: "al-gulf", kind: "note",
+    verbatim: "Captain and crew of Alabama Commercial Party Boats shall not retain bag limits of fish harvested in state waters.",
+    sourceUrl: CARD, sourceTitle: CARD_T, sourceUpdatedAt: "2025-07-01", verifiedAt: VERIFIED,
+    seasonStart: null, seasonEnd: null, bagDaily: null, possessionLimit: null, bagSharesWithGroup: false,
+    minSizeIn: null, maxSizeIn: null, sizeMeasure: null, platformScope: "boat", depthNote: null,
+    checkInseason: false, staleAfterDays: 60,
   }),
 ];
 

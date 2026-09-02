@@ -13,13 +13,13 @@ import type { RegArea, RegGroup, RegPack, RegRule } from "./types";
 
 export const MISSISSIPPI_PACK: RegPack = {
   id: "mississippi-2026-09-01",
-  version: 1,
+  version: 2,
   publishedAt: "2026-09-01T12:00:00Z",
   notes:
-    "Mississippi (MDMR Recreational Catch Limits card): inshore + reef flagship species " +
-    "with the agency table's own numbers; red snapper reporting (Tails n' Scales) and " +
-    "announced season are quoted. State waters = 9 nm south of the barrier islands for " +
-    "state for-hire boats; federal Gulf rules apply beyond.",
+    "Mississippi (MDMR Recreational Catch Limits card): v2 = FULL digest — inshore, reef, " +
+    "pelagic and shark tables verbatim. Red snapper season announced annually (Tails n' " +
+    "Scales reporting legal). State waters for for-hire extend 9 nm south of the barrier " +
+    "islands; federal Gulf rules apply beyond.",
 };
 
 const MS = { url: "https://dmr.ms.gov/recreational-catch-limits/", title: "MDMR — Recreational Catch Limits (official quick card)", updated: null };
@@ -168,6 +168,120 @@ export const MS_RULES: readonly RegRule[] = [
   rule({
     id: "ms-no-sale", speciesId: null, regAreaId: "ms-gulf", kind: "note",
     verbatim: "It is illegal to sell any seafood taken with a recreational license.",
+    sourceUrl: MS.url, sourceTitle: MS.title, sourceUpdatedAt: MS.updated, verifiedAt: VERIFIED,
+    seasonStart: null, seasonEnd: null, bagDaily: null, possessionLimit: null, bagSharesWithGroup: false,
+    minSizeIn: null, maxSizeIn: null, sizeMeasure: null, platformScope: null, depthNote: null,
+    checkInseason: false, staleAfterDays: 90,
+  }),
+  // ———— Digest-pass additions (v2) — remaining MDMR card tables verbatim ————
+  rule({
+    id: "ms-mutton-snapper-bag", speciesId: "mutton_snapper", regAreaId: "ms-gulf", kind: "bag_limit",
+    verbatim: "Mutton Snapper: 18 TL minimum; 5 bag/possession; counts in the 10 Snapper Aggregate (with gray, schoolmaster, cubera, dog, mahogany and yellowtail snappers at 12 TL).",
+    sourceUrl: MS.url, sourceTitle: MS.title, sourceUpdatedAt: MS.updated, verifiedAt: VERIFIED,
+    seasonStart: null, seasonEnd: null, bagDaily: 5, possessionLimit: 5, bagSharesWithGroup: true,
+    minSizeIn: 18, maxSizeIn: null, sizeMeasure: "total_length", platformScope: null, depthNote: "10-snapper aggregate per card.",
+    checkInseason: false, staleAfterDays: 60,
+  }),
+  rule({
+    id: "ms-gag-bag", speciesId: "gag_grouper", regAreaId: "ms-gulf", kind: "bag_limit",
+    verbatim: "Gag Grouper: 24 TL minimum; 2 bag/possession; counts in the 4 Grouper Aggregate.",
+    sourceUrl: MS.url, sourceTitle: MS.title, sourceUpdatedAt: MS.updated, verifiedAt: VERIFIED,
+    seasonStart: null, seasonEnd: null, bagDaily: 2, possessionLimit: 2, bagSharesWithGroup: true,
+    minSizeIn: 24, maxSizeIn: null, sizeMeasure: "total_length", platformScope: null, depthNote: "4-grouper aggregate per card.",
+    checkInseason: false, staleAfterDays: 60,
+  }),
+  rule({
+    id: "ms-red-grouper-bag", speciesId: "red_grouper", regAreaId: "ms-gulf", kind: "bag_limit",
+    verbatim: "Red and Yellowfin Groupers: 20 TL minimum; 4 bag/possession; counts in the 4 Grouper Aggregate.",
+    sourceUrl: MS.url, sourceTitle: MS.title, sourceUpdatedAt: MS.updated, verifiedAt: VERIFIED,
+    seasonStart: null, seasonEnd: null, bagDaily: 4, possessionLimit: 4, bagSharesWithGroup: true,
+    minSizeIn: 20, maxSizeIn: null, sizeMeasure: "total_length", platformScope: null, depthNote: null,
+    checkInseason: false, staleAfterDays: 60,
+  }),
+  rule({
+    id: "ms-black-grouper-bag", speciesId: "black_grouper", regAreaId: "ms-gulf", kind: "bag_limit",
+    verbatim: "Black Grouper: 24 TL minimum; 4 bag/possession (4 Grouper Aggregate applies).",
+    sourceUrl: MS.url, sourceTitle: MS.title, sourceUpdatedAt: MS.updated, verifiedAt: VERIFIED,
+    seasonStart: null, seasonEnd: null, bagDaily: 4, possessionLimit: 4, bagSharesWithGroup: true,
+    minSizeIn: 24, maxSizeIn: null, sizeMeasure: "total_length", platformScope: null, depthNote: null,
+    checkInseason: false, staleAfterDays: 60,
+  }),
+  rule({
+    id: "ms-scamp-min", speciesId: "scamp", regAreaId: "ms-gulf", kind: "min_size",
+    verbatim: "Scamp: 16 TL minimum (4 Grouper Aggregate applies).",
+    sourceUrl: MS.url, sourceTitle: MS.title, sourceUpdatedAt: MS.updated, verifiedAt: VERIFIED,
+    seasonStart: null, seasonEnd: null, bagDaily: null, possessionLimit: null, bagSharesWithGroup: false,
+    minSizeIn: 16, maxSizeIn: null, sizeMeasure: "total_length", platformScope: null, depthNote: null,
+    checkInseason: false, staleAfterDays: 60,
+  }),
+  rule({
+    id: "ms-warsaw-cap", speciesId: "warsaw_grouper", regAreaId: "ms-gulf", kind: "bag_limit",
+    verbatim: "Warsaw Grouper: No minimum size; 1 per vessel (4 Grouper Aggregate applies).",
+    sourceUrl: MS.url, sourceTitle: MS.title, sourceUpdatedAt: MS.updated, verifiedAt: VERIFIED,
+    seasonStart: null, seasonEnd: null, bagDaily: 1, possessionLimit: 1, bagSharesWithGroup: true,
+    minSizeIn: null, maxSizeIn: null, sizeMeasure: null, platformScope: "boat", depthNote: "Per VESSEL, not per person.",
+    checkInseason: false, staleAfterDays: 60,
+  }),
+  rule({
+    id: "ms-speckled-hind-cap", speciesId: "speckled_hind", regAreaId: "ms-gulf", kind: "bag_limit",
+    verbatim: "Speckled Hind: No minimum size; 1 per vessel (4 Grouper Aggregate applies).",
+    sourceUrl: MS.url, sourceTitle: MS.title, sourceUpdatedAt: MS.updated, verifiedAt: VERIFIED,
+    seasonStart: null, seasonEnd: null, bagDaily: 1, possessionLimit: 1, bagSharesWithGroup: true,
+    minSizeIn: null, maxSizeIn: null, sizeMeasure: null, platformScope: "boat", depthNote: "Per VESSEL.",
+    checkInseason: false, staleAfterDays: 60,
+  }),
+  rule({
+    id: "ms-goliath-nassau-notake", speciesId: "goliath_grouper", regAreaId: "ms-gulf", kind: "prohibited",
+    verbatim: "Goliath Grouper: No Take. Nassau Grouper: No Take.",
+    sourceUrl: MS.url, sourceTitle: MS.title, sourceUpdatedAt: MS.updated, verifiedAt: VERIFIED,
+    seasonStart: null, seasonEnd: null, bagDaily: null, possessionLimit: null, bagSharesWithGroup: false,
+    minSizeIn: null, maxSizeIn: null, sizeMeasure: null, platformScope: null, depthNote: null,
+    checkInseason: false, staleAfterDays: 90,
+  }),
+  rule({
+    id: "ms-hogfish-bag", speciesId: "hogfish", regAreaId: "ms-gulf", kind: "bag_limit",
+    verbatim: "Hogfish: 14 FL minimum; 5 bag/possession.",
+    sourceUrl: MS.url, sourceTitle: MS.title, sourceUpdatedAt: MS.updated, verifiedAt: VERIFIED,
+    seasonStart: null, seasonEnd: null, bagDaily: 5, possessionLimit: 5, bagSharesWithGroup: false,
+    minSizeIn: 14, maxSizeIn: null, sizeMeasure: "fork_length", platformScope: null, depthNote: null,
+    checkInseason: false, staleAfterDays: 60,
+  }),
+  rule({
+    id: "ms-lesser-aj-bag", speciesId: "lesser_amberjack", regAreaId: "ms-gulf", kind: "bag_limit",
+    verbatim: "Lesser Amberjack and Banded Rudderfish: 14 FL to 22 FL; 5 bag/possession; 5 Fish Aggregate applies.",
+    sourceUrl: MS.url, sourceTitle: MS.title, sourceUpdatedAt: MS.updated, verifiedAt: VERIFIED,
+    seasonStart: null, seasonEnd: null, bagDaily: 5, possessionLimit: 5, bagSharesWithGroup: false,
+    minSizeIn: 14, maxSizeIn: 22, sizeMeasure: "fork_length", platformScope: null, depthNote: null,
+    checkInseason: false, staleAfterDays: 60,
+  }),
+  rule({
+    id: "ms-yellowfin-tuna-bag", speciesId: "yellowfin_tuna", regAreaId: "ms-gulf", kind: "bag_limit",
+    verbatim: "Yellowfin Tuna: 27 CFL minimum; 3 bag/possession.",
+    sourceUrl: MS.url, sourceTitle: MS.title, sourceUpdatedAt: MS.updated, verifiedAt: VERIFIED,
+    seasonStart: null, seasonEnd: null, bagDaily: 3, possessionLimit: 3, bagSharesWithGroup: false,
+    minSizeIn: 27, maxSizeIn: null, sizeMeasure: "fork_length", platformScope: null, depthNote: "Curved fork length.",
+    checkInseason: false, staleAfterDays: 60,
+  }),
+  rule({
+    id: "ms-billfish-note", speciesId: "blue_marlin", regAreaId: "ms-gulf", kind: "note",
+    verbatim: "Blue Marlin: 99 Lower Jaw FL, no limit. White Marlin: 66 Lower Jaw FL, no limit. Sailfish: 63 Lower Jaw FL, no limit. Swordfish: 47 Lower Jaw FL, no limit. Longbill Spearfish: No Take.",
+    sourceUrl: MS.url, sourceTitle: MS.title, sourceUpdatedAt: MS.updated, verifiedAt: VERIFIED,
+    seasonStart: null, seasonEnd: null, bagDaily: null, possessionLimit: null, bagSharesWithGroup: false,
+    minSizeIn: 99, maxSizeIn: null, sizeMeasure: "alternate_total_length", platformScope: null, depthNote: "LJFL minima; HMS permits per federal rules.",
+    checkInseason: false, staleAfterDays: 90,
+  }),
+  rule({
+    id: "ms-sharks-note", speciesId: null, regAreaId: "ms-gulf", kind: "note",
+    verbatim:
+      "Sharks (MDMR card): Large Coastals and Pelagics (blacktip, spinner, bull, tiger, lemon, nurse, scalloped/great/smooth hammerhead, shortfin mako, porbeagle, thresher, blue, oceanic whitetip): 37 TL minimum; 1 per person up to 3 per vessel. Small Coastals (Atlantic sharpnose, finetooth, blacknose, bonnethead): 25 TL minimum; 4 bag/possession. Prohibited from harvest: Sand Tiger, Bigeye Sand Tiger, Whale, Basking, White, Dusky, Bignose, Galapagos, Night, Caribbean Reef, Narrowtooth, Caribbean Sharpnose, Smalltail, Atlantic Angel, Longfin Mako, Bigeye Thresher, Sevengill, Sixgill, Bigeye Sixgill, Sandbar, and Silky.",
+    sourceUrl: MS.url, sourceTitle: MS.title, sourceUpdatedAt: MS.updated, verifiedAt: VERIFIED,
+    seasonStart: null, seasonEnd: null, bagDaily: null, possessionLimit: null, bagSharesWithGroup: false,
+    minSizeIn: null, maxSizeIn: null, sizeMeasure: null, platformScope: null, depthNote: null,
+    checkInseason: false, staleAfterDays: 60,
+  }),
+  rule({
+    id: "ms-dorado-note", speciesId: "dorado", regAreaId: "ms-gulf", kind: "note",
+    verbatim: "Dolphin (Mahi Mahi): No Limit; No Limit.",
     sourceUrl: MS.url, sourceTitle: MS.title, sourceUpdatedAt: MS.updated, verifiedAt: VERIFIED,
     seasonStart: null, seasonEnd: null, bagDaily: null, possessionLimit: null, bagSharesWithGroup: false,
     minSizeIn: null, maxSizeIn: null, sizeMeasure: null, platformScope: null, depthNote: null,
