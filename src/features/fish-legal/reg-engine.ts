@@ -26,10 +26,25 @@ export function platformFor(mode: FishingMode): PlatformScope {
   return "boat";
 }
 
-/** Inclusive [start, end] on YYYY-MM-DD; null bound = unbounded (year-round). */
+/**
+ * Inclusive [start, end]; null bound = unbounded (year-round).
+ *
+ * Both rule bounds and the dateKey may be full "YYYY-MM-DD" or "MM-DD" — the 24-state
+ * species tables carry recurring "(book-year)" MM-DD seasons while the SQL packs pin
+ * the federal-book year. Compares on MM-DD so either form reads correctly.
+ *
+ * Year-wrap: when start > end the season spans New Year's (WA crab pots Dec 1 →
+ * Sep 15; Willapa Nov 15 → Sep 15). In-window then means date ≥ start OR date ≤ end.
+ */
+const mmdd = (s: string): string => (s.length >= 10 ? s.slice(5) : s);
+
 export function inSeasonWindow(rule: RegRule, dateKey: string): boolean {
-  if (rule.seasonStart && dateKey < rule.seasonStart) return false;
-  if (rule.seasonEnd && dateKey > rule.seasonEnd) return false;
+  const s = rule.seasonStart === null ? null : mmdd(rule.seasonStart);
+  const e = rule.seasonEnd === null ? null : mmdd(rule.seasonEnd);
+  const d = mmdd(dateKey);
+  if (s !== null && e !== null && s > e) return d >= s || d <= e;
+  if (s !== null && d < s) return false;
+  if (e !== null && d > e) return false;
   return true;
 }
 

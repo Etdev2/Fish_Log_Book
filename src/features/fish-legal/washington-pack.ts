@@ -775,8 +775,8 @@ export const WA_RULES: readonly RegRule[] = [
     verbatim:
       "Grays Harbor, and Marine Areas 1-3 and 4 (west of Bonilla-Tatoosh line) — Dungeness and Red Rock Crab: Open December 1 to September 15 for Pot Gear. Open year-round to other gear.",
     sourceUrl: C2.url, sourceTitle: C2.title, sourceUpdatedAt: C2.updated, verifiedAt: VERIFIED,
-    seasonStart: null, seasonEnd: null, bagDaily: null, possessionLimit: null, bagSharesWithGroup: false,
-    minSizeIn: null, maxSizeIn: null, sizeMeasure: null, platformScope: null, depthNote: "Pot gear window Dec 1-Sep 15 (wraps the calendar year); non-pot gear year-round.",
+    seasonStart: "12-01", seasonEnd: "09-15", bagDaily: null, possessionLimit: null, bagSharesWithGroup: false,
+    minSizeIn: null, maxSizeIn: null, sizeMeasure: null, platformScope: null, depthNote: "Pot-gear window (wraps the calendar year); non-pot gear year-round.",
     checkInseason: true, staleAfterDays: 30,
   }),
   rule({
@@ -784,8 +784,8 @@ export const WA_RULES: readonly RegRule[] = [
     verbatim:
       "Willapa Bay — Dungeness and Red Rock Crab: November 15 to September 15 for Pot Gear. Open year-round to other gear.",
     sourceUrl: C2.url, sourceTitle: C2.title, sourceUpdatedAt: C2.updated, verifiedAt: VERIFIED,
-    seasonStart: null, seasonEnd: null, bagDaily: null, possessionLimit: null, bagSharesWithGroup: false,
-    minSizeIn: null, maxSizeIn: null, sizeMeasure: null, platformScope: null, depthNote: "Pot gear window Nov 15-Sep 15 (wraps the calendar year); non-pot gear year-round.",
+    seasonStart: "11-15", seasonEnd: "09-15", bagDaily: null, possessionLimit: null, bagSharesWithGroup: false,
+    minSizeIn: null, maxSizeIn: null, sizeMeasure: null, platformScope: null, depthNote: "Pot-gear window (wraps the calendar year); non-pot gear year-round.",
     checkInseason: true, staleAfterDays: 30,
   }),
   rule({

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { SOCAL } from "./reg-data";
-import { platformFor, regulationCard } from "./reg-engine";
+import { inSeasonWindow, platformFor, regulationCard } from "./reg-engine";
 
 const TODAY = "2026-09-01"; // pack verification day — Southern region page's own stamp
 
@@ -115,5 +115,27 @@ describe("regulation engine (founder §4/§15 verdict ladder)", () => {
   it("platform mapping: kayak is a vessel, spearfishing is the diver carve-out", () => {
     expect(platformFor("kayak")).toBe("boat");
     expect(platformFor("spearfishing")).toBe("diver");
+  });
+});
+
+describe("inSeasonWindow year-wrap + mixed MM-DD/YYYY-MM-DD forms", () => {
+  const wrapRule = { seasonStart: "12-01", seasonEnd: "09-15" } as Parameters<typeof inSeasonWindow>[0];
+  it("a wrapped window (Dec 1 → Sep 15) matches both sides of New Year's", () => {
+    expect(inSeasonWindow(wrapRule, "2026-12-01")).toBe(true);  // opening day
+    expect(inSeasonWindow(wrapRule, "2027-01-15")).toBe(true);  // mid-winter
+    expect(inSeasonWindow(wrapRule, "2027-09-15")).toBe(true);  // closing day
+    expect(inSeasonWindow(wrapRule, "2026-10-01")).toBe(false); // the old bug: Oct read as in-season
+    expect(inSeasonWindow(wrapRule, "2026-11-30")).toBe(false); // eve of open
+  });
+  it("MM-DD rule bounds compare correctly against YYYY-MM-DD dateKeys", () => {
+    const md = { seasonStart: "05-01", seasonEnd: "06-15" } as Parameters<typeof inSeasonWindow>[0];
+    expect(inSeasonWindow(md, "2026-05-01")).toBe(true);
+    expect(inSeasonWindow(md, "2027-06-20")).toBe(false); // year must not leak
+  });
+  it("full-date bounds still compare as full dates", () => {
+    const fd = { seasonStart: "2026-09-01", seasonEnd: "2026-09-30" } as Parameters<typeof inSeasonWindow>[0];
+    expect(inSeasonWindow(fd, "2026-09-15")).toBe(true);
+    expect(inSeasonWindow(fd, "2026-10-01")).toBe(false);
+    expect(inSeasonWindow(fd, "2027-09-15")).toBe(true); // recurring by month-day
   });
 });
