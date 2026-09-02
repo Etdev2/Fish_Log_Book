@@ -5,7 +5,7 @@ import { useEffect, useRef } from "react";
 import { saveConditionSnapshot } from "@/features/catches/store";
 import type { ConditionSnapshotRecord } from "@/features/catches/conditions";
 import { catchTideFillAt } from "@/core/rules/tide";
-import { loadTideSeriesFixture } from "../queries/tide-series";
+import { loadTideSeries } from "../queries/tide-series";
 import type { UnitSystem } from "@/features/catches/format";
 
 /** Schema tide_state → words. Kept here (not in conditions/format) because that module
@@ -52,24 +52,32 @@ export function CatchTidePanel({
     if (attempted.current === snapshot.id) return;
     attempted.current = snapshot.id;
 
-    const atMs = Date.parse(snapshot.observed_at);
-    const fill = catchTideFillAt(loadTideSeriesFixture(), atMs);
-    if (fill === null) return; // outside the cached window: stays pending
-    void saveConditionSnapshot({
-      ...(snapshot as unknown as Record<string, unknown>),
-      tide_height_m: fill.heightM,
-      tide_rate_m_per_hr: fill.rateMPerHr,
-      tide_state: fill.state,
-      tide_pct_through_cycle: fill.pctThroughCycle,
-      twelfths_hour: fill.twelfthsHour,
-      tide_range_m: fill.rangeM,
-      tide_curve: fill.curve,
-      provenance: {
-        ...snapshot.provenance,
-        tide: "computed on device from the cached tide series at view time",
-      },
-      client_updated_at: new Date().toISOString(),
-    } as unknown as { id: string } & Record<string, unknown>);
+    let cancelled = false;
+    void (async () => {
+      const series = await loadTideSeries();
+      if (cancelled) return;
+      const atMs = Date.parse(snapshot.observed_at);
+      const fill = catchTideFillAt(series, atMs);
+      if (fill === null) return; // outside the loaded window: stays pending
+      void saveConditionSnapshot({
+        ...(snapshot as unknown as Record<string, unknown>),
+        tide_height_m: fill.heightM,
+        tide_rate_m_per_hr: fill.rateMPerHr,
+        tide_state: fill.state,
+        tide_pct_through_cycle: fill.pctThroughCycle,
+        twelfths_hour: fill.twelfthsHour,
+        tide_range_m: fill.rangeM,
+        tide_curve: fill.curve,
+        provenance: {
+          ...snapshot.provenance,
+          tide: "computed on device from the cached tide series at view time",
+        },
+        client_updated_at: new Date().toISOString(),
+      } as unknown as { id: string } & Record<string, unknown>);
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, [snapshot]);
 
   if (!snapshot || snapshot.water_class !== "salt") return null;

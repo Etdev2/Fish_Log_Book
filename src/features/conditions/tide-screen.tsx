@@ -10,6 +10,7 @@ import {
   readTideAt,
   turnsIn,
   type TideMotion,
+  type TidePredictionSeries,
 } from "@/core/rules/tide";
 import { daylightSpans, moonPhaseAt, sunEventsFor } from "@/core/rules/astro";
 import { useNow } from "@/lib/time/use-now";
@@ -17,7 +18,7 @@ import { useUnitPreference } from "@/features/settings/units";
 import { useLog } from "@/features/catches/store";
 import { speciesLabel } from "@/core/ontology/species";
 
-import { STATION_LOCATION, STATION_TIME_ZONE, TIDE_SELECTED_AT, loadTideSeriesFixture } from "./queries/tide-series";
+import { STATION_LOCATION, STATION_TIME_ZONE, TIDE_SELECTED_AT, loadTideSeries, loadTideSeriesFixture } from "./queries/tide-series";
 import { useLocalTimeZone } from "./use-local-time-zone";
 import { SourcedValue, unwrapSourced } from "./components/sourced-value";
 import { MoonPhaseVisual } from "./components/moon-phase-visual";
@@ -47,6 +48,15 @@ type SheetName = "station" | "moon" | "tide" | "dates";
 /** Under a minute apart is "now" — the clock only advances every 30s anyway. */
 const AT_NOW_TOLERANCE_MS = 60_000;
 
+/** Placeholder while `loadTideSeries()` is still resolving. Never rendered as data — every
+ *  read of it is gated behind `hasSamples`/`loading` below. */
+const EMPTY_LOADING_SERIES: TidePredictionSeries = {
+  station: { id: "", name: "", timeZone: STATION_TIME_ZONE, datum: "MLLW" },
+  samples: [],
+  provider: "noaa-coops",
+  retrievedAt: null,
+};
+
 /**
  * The tide screen: one screen, no vertical scrolling, the curve as the instrument.
  *
@@ -67,15 +77,38 @@ const AT_NOW_TOLERANCE_MS = 60_000;
  * read-head is anywhere else.
  */
 export function TideScreen() {
-  const series = useMemo(() => loadTideSeriesFixture(), []);
-  // Defensive: the fixture is never empty, but the live NOAA fetch that will replace it
-  // (ADR 006 §2) can fail or return an empty window, and every line below indexes
-  // `samples[0]`/`[length - 1]`. Guard once here so an empty feed renders an honest
-  // empty state instead of a screen of NaNs.
+  // `null` = still loading (the network/cache/fixture chain in `loadTideSeries()` is
+  // async). `loadingSeries` stands in for it below so every hook still runs unconditionally
+  // on every render — conditionally skipping hooks ahead of an early return is the bug this
+  // structure exists to avoid.
+  const [loadedSeries, setLoadedSeries] = useState<TidePredictionSeries | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    void loadTideSeries().then((loaded) => {
+      if (!cancelled) setLoadedSeries(loaded);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+  const loading = loadedSeries === null;
+  // Defensive: a real series is never empty by the time it reaches here, but the live NOAA
+  // fetch (ADR 006 §2) can fail with no cache and an expired fixture, and every line below
+  // indexes `samples[0]`/`[length - 1]`. `EMPTY_LOADING_SERIES` stands in while `loading` is
+  // true so every hook below still runs unconditionally, and the same empty-series shape
+  // covers both "still loading" and "loaded but genuinely empty" — `loading` distinguishes
+  // the two only for which message the empty-state screen shows.
+  const series = loadedSeries ?? EMPTY_LOADING_SERIES;
   const hasSamples = series.samples.length > 0;
   const seriesStart = hasSamples ? Number(series.samples[0].at) : 0;
   const seriesEnd = hasSamples ? Number(series.samples[series.samples.length - 1].at) : 0;
   const initialAt = hasSamples ? Math.max(seriesStart, Math.min(seriesEnd, Number(TIDE_SELECTED_AT))) : 0;
+  // `core/rules/tide/` functions assume the `tideSeries()` non-empty contract (ADR 006 §2)
+  // and index `samples[0]` unconditionally — they must never see `EMPTY_LOADING_SERIES`.
+  // While loading (or genuinely empty), every hook below still has to run to keep hook
+  // order stable, so they read this non-empty stand-in instead; none of its output reaches
+  // the screen, because the `!hasSamples` branch below returns before any of it renders.
+  const safeSeries = hasSamples ? series : loadTideSeriesFixture();
 
   const [unit] = useUnitPreference();
   const now = useNow();
@@ -150,7 +183,10 @@ export function TideScreen() {
     () => daylightSpans(instant(seriesStart), instant(seriesEnd), STATION_LOCATION),
     [seriesStart, seriesEnd],
   );
-  const turns = useMemo(() => turnsIn(series, instant(seriesStart), instant(seriesEnd)), [series, seriesStart, seriesEnd]);
+  const turns = useMemo(
+    () => turnsIn(safeSeries, instant(seriesStart), instant(seriesEnd)),
+    [safeSeries, seriesStart, seriesEnd],
+  );
 
   const sunMarkers: SunMarker[] = useMemo(() => {
     const markers: SunMarker[] = [];
@@ -164,7 +200,7 @@ export function TideScreen() {
     return markers;
   }, [spans]);
 
-  const reading = readTideAt(series, instant(selectedAt));
+  const reading = readTideAt(safeSeries, instant(selectedAt));
   const selectedMoon = useMemo(() => moonPhaseAt(instant(selectedAt)), [selectedAt]);
   const selectedSun = useMemo(() => sunEventsFor(instant(selectedAt), STATION_LOCATION), [selectedAt]);
   const selectedPhase = useMemo(
@@ -172,16 +208,16 @@ export function TideScreen() {
     [spans, selectedAt],
   );
 
-  const nextTurn = reading?.nextTurn ?? nextTurnAfter(series, instant(selectedAt));
-  const nextSlack = nextSlackAfter(series, instant(selectedAt));
+  const nextTurn = reading?.nextTurn ?? nextTurnAfter(safeSeries, instant(selectedAt));
+  const nextSlack = nextSlackAfter(safeSeries, instant(selectedAt));
   const slackIsSooner =
     nextSlack !== null && (nextTurn === null || Number(unwrapSourced(nextSlack).centre) < Number(nextTurn.at));
 
   const phaseNote = selectedPhase === "night" ? ", in darkness" : selectedPhase === "civil-twilight" ? ", near dawn or dusk" : "";
   const selectedHeightForText = useMemo(() => {
-    const height = heightAt(series, instant(selectedAt));
+    const height = heightAt(safeSeries, instant(selectedAt));
     return height ? unwrapSourced(height) : null;
-  }, [series, selectedAt]);
+  }, [safeSeries, selectedAt]);
   const valueText =
     selectedHeightForText !== null
       ? `${formatHeight(selectedHeightForText, unit)} at ${clock(instant(selectedAt), displayTimeZone)}, ${dayLabel(instant(selectedAt), displayTimeZone)}${phaseNote}`
@@ -197,9 +233,11 @@ export function TideScreen() {
     return (
       <section className="tide-screen">
         <div className="tide-empty">
-          <p className="tide-empty-title">No tide predictions loaded</p>
+          <p className="tide-empty-title">{loading ? "Loading tide predictions…" : "No tide predictions loaded"}</p>
           <p className="tide-empty-note">
-            The prediction window is empty. Check the station feed and try again.
+            {loading
+              ? "Fetching the latest NOAA tide data, or reading it from this device's cache."
+              : "The prediction window is empty. Check the station feed and try again."}
           </p>
         </div>
       </section>
