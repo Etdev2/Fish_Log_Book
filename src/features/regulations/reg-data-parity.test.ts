@@ -1,0 +1,61 @@
+import { readFileSync, readdirSync } from "node:fs";
+import { fileURLToPath } from "node:url";
+
+import { describe, expect, it } from "vitest";
+
+import { SOCAL } from "./reg-data";
+
+/*
+ * The regulations dataset exists twice by design: the SQL pack (server source of truth,
+ * syncable) and this TypeScript bundle (the offline floor the app reads offshore).
+ * Twice means drift is possible, so the bundle is tested against the migrations rather
+ * than trusted — same discipline as the species vocabulary.
+ */
+
+const migrationsDir = fileURLToPath(new URL("../../../supabase/migrations/", import.meta.url));
+const sql = readdirSync(migrationsDir)
+  .filter((name) => name.endsWith(".sql"))
+  .sort()
+  .map((name) => readFileSync(migrationsDir + name, "utf8"))
+  .join("\n")
+  .replace(/''/g, "'"); // SQL string escaping, so sentence text compares equal
+
+describe("SoCal pack ↔ migration parity", () => {
+  // The four per-species zero-retention rows exist ONLY in the bundle for now: the SQL
+  // side carries the single group-level §28.55 row. The bundle is the more precise form
+  // (species-scoped prohibitions let the engine release exactly those four); a future
+  // pack-v2 migration reconciles it (handoff noted in the PR).
+  const BUNDLE_ONLY = new Set([
+    "zero-yelloweye_rockfish",
+    "zero-cowcod",
+    "zero-bronzespotted_rockfish",
+    "zero-quillback_rockfish",
+  ]);
+
+  it("every bundle rule's verbatim sentence exists in the migration", () => {
+    const missing = SOCAL.rules
+      .filter((r) => !BUNDLE_ONLY.has(r.id))
+      .filter((r) => !sql.includes(r.verbatim));
+    expect(missing.map((r) => r.id)).toEqual([]);
+  });
+
+  it("every area id and name pair exists in the migration", () => {
+    // Conservation-area geometry rows are bundle-only in v1: the SQL v1 schema keeps
+    // boundary_geojson null until polygons ship as a pack-v2 migration (arch §3).
+    const BUNDLE_ONLY_AREAS = new Set(["cca-santa-barbara", "cca-south", "mpa-pt-dume"]);
+    for (const area of SOCAL.areas) {
+      if (BUNDLE_ONLY_AREAS.has(area.id)) continue;
+      expect(sql).toContain(`'${area.id}'`);
+    }
+  });
+
+  it("every group id exists in the migration", () => {
+    for (const group of SOCAL.groups) {
+      expect(sql).toContain(`'${group.id}'`);
+    }
+  });
+
+  it("bundle pack version matches the migration's reg_pack version", () => {
+    expect(sql).toContain(`'socal-2026-09-01', ${SOCAL.pack.version}`);
+  });
+});

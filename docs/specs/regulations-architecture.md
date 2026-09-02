@@ -58,15 +58,25 @@ the area. No geocoding, no network, works in a canyon. A device-local "home regi
 preference (the ADR 007 §4 mechanism) decides what an angler with no fix sees. Errors
 fail toward *showing the source page*, never toward guessing a stricter or looser rule.
 
-**Map approach (the deferred decision, now taken):**
-- v1: no interactive map screen. Region boundaries are simplified polygons (tens of KB,
-  single-precision WGS84 rings) used for *resolution*, rendered at most as a static
-  inset caption ("You were in: Southern Management Area").
-- MPA/GEA overlay: **out of v1 scope** — CDFW's own interactive map
-  (wildlife.ca.gov/OceanSportfishMap) is the linked authority; we deep-link it. Bundling
-  MPA polygons means tracking closure changes that beat any staleness banner we can write.
+**Map approach — FOUNDER OVERRIDE, 2026-09-01 (this section now describes shipped reality):**
+  the founder's spec §8–§10 ("GPS → area resolution, YOU ARE HERE, overlay toggles,
+  boundary-approach warnings") wins over my earlier v1 "no interactive map" stance;
+  the regulations PR ships the map alongside the first pages.
+- Interactive map ships in v1, on **Leaflet with NO tile layer**: an ocean-colored panel
+  plus the pack's simplified polygons/polylines. Zero network, zero basemap tiles, works
+  at any depth of signal. Lines are labeled "simplified" everywhere they render, and the
+  50-fm RCA is declared up front as a **coordinate-defined line** — its authority is the
+  CFR waypoint list, our drawing is orientation, never the legal statement (spec §9).
+- Shipped overlays: Southern Management Area ring, the SoCal RCA boundary polyline, the
+  two Cowcod Conservation Areas, and ONE example MPA inset (Point Dume) as a styling
+  proof. The full MPA/GEA inventory stays with CDFW's official interactive map, which is
+  deep-linked from the same page — 800+ MPA polygons kept current is not a floor-bundle
+  job (spec §10's "small overlays only" allowance applied).
+- Boundary proximity: when GPS gives a fix inside ~0.5 nm of the RCA line, the page
+  states the distance to the line and which side reads as allowed today. Accuracy is
+  shown (±m) and declared as orientation-grade math (equirectangular), not survey.
 - This keeps the map consistent with the offline-first ADRs (004/006): all data lives in
-  the pack; the only network object is an outbound link the user explicitly taps.
+  the pack; the only network objects are outbound links the user explicitly taps.
 
 ## 4. The pack model (how data arrives and ages)
 
@@ -116,13 +126,18 @@ water is; freshwater packs consume the same tables when they land — no migrati
 
 ## 7. What this enables next (in order)
 
-1. SoCal starter dataset (this session) — tables + verified rows + provenance fields.
-2. A read-only "Regulations" browser: species → rule → source, staleness banner logic,
-   "No verified data" state. (UI, after review.)
+1. ~~SoCal starter dataset (this session)~~ → **shipped** (tables + SoCal rows, PR #21).
+2. ~~A read-only "Regulations" browser~~ → **SHIPPED, 2026-09-01** as one PR per founder's
+   instruction: regulations home ("My current regulations" header: area + date + mode +
+   dataset stamp), Species & Limits with search → verdict cards, the bundled pack as
+   the offline floor, the Rockfish ID decision tree, and the §8–§10 boundary map
+   (Leaflet, no tiles) — sixth nav destination "Rules" included per spec §16.
 3. Catch-context adornment: on a catch detail page, the *area-resolved* "Regulations in
-   effect — verified <date>" card. Only after §2's provenance UI has shipped and proven
-   boring.
-4. Synced pack updates (server-curated diffs) once row counts justify the wire.
+   effect — verified <date>" card. The RegulationCard component + regulationCard engine
+   now exist; wiring them onto catch pages is the next slice.
+4. Synced pack updates (server-curated diffs) once row counts justify the wire. The
+   v1 pack is bundle-only; SQL ⇄ bundle parity is currently **test-guarded**
+   (`reg-data-parity.test.ts`) and full SQL ingest is the remaining §12 item.
 
 ## 8. Failure modes we are explicitly accepting
 
