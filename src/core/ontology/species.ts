@@ -203,6 +203,10 @@ export const SPECIES: readonly Species[] = [
   { id: "opakapaka", commonName: "'Opakapaka", scientificName: "Etelis carbunculus", isGroup: false, rollsUpTo: null, waterClass: "salt", takeStatus: "regulated", sortOrder: 485 },
   { id: "ehu", commonName: "Ehu ('ula'ula)", scientificName: "Etelis marshalli", isGroup: false, rollsUpTo: null, waterClass: "salt", takeStatus: "regulated", sortOrder: 486 },
   { id: "hapuu", commonName: "Hapu'u (Hawaiian grouper)", scientificName: "Epinephelus quernus", isGroup: false, rollsUpTo: null, waterClass: "salt", takeStatus: "regulated", sortOrder: 487 },
+  // ——— PNW deepen v2 (2026-09-02): shellfish vocabulary for the OR crab/clam rows.
+  { id: "dungeness_crab", commonName: "Dungeness crab", scientificName: "Metacarcinus magister", isGroup: false, rollsUpTo: null, waterClass: "salt", takeStatus: "regulated", sortOrder: 488 },
+  { id: "european_green_crab", commonName: "European green crab (invasive)", scientificName: "Carcinus maenas", isGroup: false, rollsUpTo: null, waterClass: "salt", takeStatus: "regulated", sortOrder: 489 },
+  { id: "razor_clam", commonName: "Razor clam", scientificName: "Siliqua patula", isGroup: false, rollsUpTo: null, waterClass: "salt", takeStatus: "regulated", sortOrder: 490 },
   { id: "alligator_gar", commonName: "Alligator gar", scientificName: "Atractosteus spatula", isGroup: false, rollsUpTo: null, waterClass: "salt", takeStatus: "regulated", sortOrder: 660 },
 ];
 

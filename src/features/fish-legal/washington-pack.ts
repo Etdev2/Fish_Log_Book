@@ -18,15 +18,14 @@ import type { RegArea, RegGroup, RegPack, RegRule } from "./types";
 
 export const WASHINGTON_PACK: RegPack = {
   id: "washington-2026-09-02",
-  version: 1,
+  version: 2,
   publishedAt: "2026-09-02T12:00:00Z",
   notes:
-    "Washington ocean Marine Areas 1–4 (WDFW news release March 5, 2026): 2026 coastal " +
-    "bottomfish aggregate 9/day (≤7 rockfish, ≤5 canary; 2 lingcod; 1 cabezon; no min " +
-    "sizes), copper/quillback/vermilion possession prohibited May–July, yelloweye " +
-    "prohibited year-round, descending device mandatory on boats, surfperch 12 / shiner " +
-    "15, halibut 1/day per the federal Area 2A plan. Marine Areas 5–13 (Puget Sound) " +
-    "and salmon/shellfish not yet shipped.",
+    "Washington ocean Marine Areas 1-4 (WDFW news release March 5, 2026) — v2 deepens " +
+    "with the inside-waters doctrine (no rockfish 6-13, barbless hooks 5-13), Puget " +
+    "Sound halibut windows (1/day, 6/yr, catch record card), the North Coast 20-fathom " +
+    "retention list, the C-shaped yelloweye conservation area, wolf-eel closure, and " +
+    "the five-additional-flatfish rule. Salmon and shellfish remain unshipped.",
 };
 
 const A = {
@@ -39,8 +38,23 @@ const B = {
   title: "NOAA Fisheries — 2026 Pacific Halibut Recreational Fishery (final rule, Area 2A)",
   updated: "2026-05-01",
 } as const;
+const B1 = {
+  url: "https://wdfw.wa.gov/fishing/regulations/halibut",
+  title: "WDFW — Recreational bottomfish and halibut fisheries page",
+  updated: "2026-03-05",
+} as const;
+const C1 = {
+  url: "https://wdfw.wa.gov/fishing/regulations/halibut/north-coast",
+  title: "WDFW — North coast halibut and bottomfish seasons and regulations",
+  updated: "2026-03-05",
+} as const;
+const D1 = {
+  url: "https://wdfw.wa.gov/fishing/regulations/halibut/puget-sound",
+  title: "WDFW — Puget Sound/Strait of Juan de Fuca halibut seasons and regulations",
+  updated: "2026-03-05",
+} as const;
 const VERIFIED = "2026-09-02";
-const pv = 1;
+const pv = 2;
 
 function rule(
   r: Omit<RegRule, "packVersion" | "regGroupId"> & Partial<Pick<RegRule, "regGroupId">>,
@@ -78,6 +92,53 @@ export const WA_AREAS: readonly RegArea[] = [
     sourceUrl: A.url,
     verifiedAt: VERIFIED,
     notes: "Year-round bottomfish here; rockfish retention limited to the four named species.",
+  },
+  // ——— v2 (deepen pass): inside-waters + north-coast doctrine areas ———
+  {
+    id: "wa-ma-5-13-inside",
+    authority: "wdfw",
+    kind: "ocean_region",
+    name: "Marine Areas 5–13 — Puget Sound, Strait of Juan de Fuca, San Juan Islands, Hood Canal",
+    polygon: [
+      [-123.96, 49.0], [-123.1, 48.9], [-122.8, 48.45], [-122.4, 48.9], [-122.3, 49.15],
+      [-123.7, 49.15], [-123.96, 49.0],
+    ],
+    sourceUrl: A.url,
+    verifiedAt: VERIFIED,
+    notes:
+      "Envelope over the inside waters. v1 doctrine: rockfish are off-limits in Areas " +
+      "6-13, barbless hooks required Areas 5-13. Area-by-area pamphlet tables pending.",
+  },
+  {
+    id: "wa-ma-5-10-halibut",
+    authority: "wdfw",
+    kind: "ocean_region",
+    name: "Puget Sound & Strait of Juan de Fuca halibut (Marine Areas 5–10)",
+    polygon: null,
+    sourceUrl: A.url,
+    verifiedAt: VERIFIED,
+    notes:
+      "Halibut subarea per WDFW's Puget Sound page (2026 quota 80,512 lb). Shares the " +
+      "inside-water envelope; separate id so halibut rules don't muddy the bottomfish area.",
+  },
+  {
+    // The verbatim coordinate-defined box (WDFW North Coast page). C-shaped.
+    id: "wa-yrca",
+    authority: "wdfw",
+    kind: "conservation_area",
+    name: "Yelloweye Rockfish Conservation Area (C-shaped, off Cape Flattery)",
+    polygon: [
+      [-125.3, 48.3], [-124.9833, 48.3], [-124.9833, 48.1833], [-125.1833, 48.1833],
+      [-125.1833, 48.0667], [-124.9833, 48.0667], [-124.9833, 48.0], [-125.3, 48.0],
+      [-125.3, 48.3],
+    ],
+    sourceUrl: A.url,
+    verifiedAt: VERIFIED,
+    notes:
+      "Closed to recreational bottomfish AND halibut fishing. Coordinates verbatim from " +
+      "WDFW's North Coast page (48-18'N 125-18'W → 48-18'N 124-59'W → 48-11'N 124-59'W →" +
+      " 48-11'N 125-11'W → 48-04'N 125-11'W → 48-04'N 124-59'W → 48-00'N 124-59'W → " +
+      "48-00'N 125-18'W → back).",
   },
 ];
 
@@ -310,6 +371,78 @@ export const WA_RULES: readonly RegRule[] = [
     seasonStart: null, seasonEnd: null, bagDaily: 0, possessionLimit: 0, bagSharesWithGroup: false,
     minSizeIn: null, maxSizeIn: null, sizeMeasure: null, platformScope: null, depthNote: null,
     checkInseason: true, staleAfterDays: 60,
+  }),
+  // ——— v2 (deepen pass): North Coast + inside-waters doctrine ———
+  rule({
+    id: "wa14-flatfish-plus5", speciesId: "flatfish", regAreaId: "wa-ma-1-4-coastal", kind: "note",
+    verbatim:
+      "West of the Bonnilla-Tatoosh line: Recreational bottomfish is open from the second Saturday in March through the third Saturday in October, which is March 14 - October 17, 2026. Daily limit is a total of 9 bottomfish regardless of species, subject to individual limits shown below. In addition to the nine bottomfish daily limit, anglers can retain five additional flatfish. East of the Bonilla-Tatoosh line: Open year-round. In addition to the nine bottomfish daily limit, anglers can retain five additional flatfish.",
+    sourceUrl: C1.url, sourceTitle: C1.title, sourceUpdatedAt: C1.updated, verifiedAt: VERIFIED,
+    seasonStart: null, seasonEnd: null, bagDaily: 5, possessionLimit: null, bagSharesWithGroup: false,
+    minSizeIn: null, maxSizeIn: null, sizeMeasure: null, platformScope: null, depthNote: "Five additional flatfish on top of the 9-bottomfish aggregate.",
+    checkInseason: true, staleAfterDays: 30,
+  }),
+  rule({
+    id: "wa34-20fm-restriction", speciesId: null, regGroupId: "wa-bottomfish", regAreaId: "wa-ma-1-4-coastal", kind: "note",
+    verbatim:
+      "In Marine Area 3 and Marine Area 4 (west of the Bonilla-Tatoosh line) effective June 1 through July 31, recreational fishing for bottomfish is prohibited seaward of a boundary line approximating the 20-fm (120 ft.) depth contour. Beginning June 1, on days open to the Pacific halibut fishery, the following bottomfish can be retained seaward of 20 fathoms: lingcod, sablefish, Pacific cod, bocaccio, silvergray rockfish, canary rockfish, widow rockfish, and yellowtail rockfish. Yellowtail and widow rockfish retention is allowed seaward of 20 fathoms at all times during the month of July.",
+    sourceUrl: C1.url, sourceTitle: C1.title, sourceUpdatedAt: C1.updated, verifiedAt: VERIFIED,
+    seasonStart: "06-01", seasonEnd: "07-31", bagDaily: null, possessionLimit: null, bagSharesWithGroup: false,
+    minSizeIn: null, maxSizeIn: null, sizeMeasure: null, platformScope: "boat", depthNote: "Offshore of ~20 fathoms, June 1 - July 31: only the named bottomfish list may be retained.",
+    checkInseason: true, staleAfterDays: 14,
+  }),
+  rule({
+    id: "wa34c-yrca-closed", speciesId: null, regGroupId: "wa-bottomfish", regAreaId: "wa-yrca", kind: "prohibited",
+    verbatim:
+      "A \"C-shaped\" yelloweye rockfish conservation area that is closed to recreational bottomfish and halibut fishing is defined by the following coordinates in the order listed: 48°18' N lat, 125°18' W long; 48°18' N, 124°59' W; 48°11' N, 124°59' W; 48°11' N, 125°11' W; 48°04' N, 125°11' W; 48°04' N, 124°59' W; 48°00' N, 124°59' W; 48°00' N, 125°18' W; and connecting back to 48°18' N, 125°18' W.",
+    sourceUrl: C1.url, sourceTitle: C1.title, sourceUpdatedAt: C1.updated, verifiedAt: VERIFIED,
+    seasonStart: null, seasonEnd: null, bagDaily: 0, possessionLimit: 0, bagSharesWithGroup: false,
+    minSizeIn: null, maxSizeIn: null, sizeMeasure: null, platformScope: null, depthNote: null,
+    checkInseason: false, staleAfterDays: 120,
+  }),
+  rule({
+    id: "wa34-wolfeel-closed", speciesId: null, regAreaId: "wa-ma-1-4-coastal", kind: "prohibited",
+    verbatim: "Wolf-eel — Closed to retention.",
+    sourceUrl: C1.url, sourceTitle: C1.title, sourceUpdatedAt: C1.updated, verifiedAt: VERIFIED,
+    seasonStart: null, seasonEnd: null, bagDaily: 0, possessionLimit: 0, bagSharesWithGroup: false,
+    minSizeIn: null, maxSizeIn: null, sizeMeasure: null, platformScope: null, depthNote: null,
+    checkInseason: true, staleAfterDays: 60,
+  }),
+  rule({
+    id: "wa-ma613-rockfish-prohibited", speciesId: "rockfish", regAreaId: "wa-ma-5-13-inside", kind: "prohibited",
+    verbatim:
+      "Recreational anglers are reminded that it is unlawful to fish for, retain, or possess rockfish in Washington marine areas 6 through 13.",
+    sourceUrl: B1.url, sourceTitle: B1.title, sourceUpdatedAt: B1.updated, verifiedAt: VERIFIED,
+    seasonStart: null, seasonEnd: null, bagDaily: 0, possessionLimit: 0, bagSharesWithGroup: false,
+    minSizeIn: null, maxSizeIn: null, sizeMeasure: null, platformScope: null, depthNote: null,
+    checkInseason: true, staleAfterDays: 60,
+  }),
+  rule({
+    id: "wa-ma513-barbless", speciesId: null, regAreaId: "wa-ma-5-13-inside", kind: "gear",
+    verbatim:
+      "Reminder that Barbless Hooks are required for all species in Marine Areas 5 through 13—including for halibut and bottomfish—except when using forage fish jig gear to target forage fish (herring, sandlance, anchovy, sardine and smelt).",
+    sourceUrl: B1.url, sourceTitle: B1.title, sourceUpdatedAt: B1.updated, verifiedAt: VERIFIED,
+    seasonStart: null, seasonEnd: null, bagDaily: null, possessionLimit: null, bagSharesWithGroup: false,
+    minSizeIn: null, maxSizeIn: null, sizeMeasure: null, platformScope: null, depthNote: null,
+    checkInseason: false, staleAfterDays: 120,
+  }),
+  rule({
+    id: "wa-ps-halibut-season", speciesId: "pacific_halibut", regAreaId: "wa-ma-5-10-halibut", kind: "season",
+    verbatim:
+      "Marine Area 5-10. The 2026 season dates are as follows: April 2 through June 30, seven days per week. August 16 through September 30, seven days per week. Fishing may close before September 30 if the quota is taken.",
+    sourceUrl: D1.url, sourceTitle: D1.title, sourceUpdatedAt: D1.updated, verifiedAt: VERIFIED,
+    seasonStart: null, seasonEnd: null, bagDaily: null, possessionLimit: null, bagSharesWithGroup: false,
+    minSizeIn: null, maxSizeIn: null, sizeMeasure: null, platformScope: null, depthNote: null,
+    checkInseason: true, staleAfterDays: 7,
+  }),
+  rule({
+    id: "wa-ps-halibut-bag", speciesId: "pacific_halibut", regAreaId: "wa-ma-5-10-halibut", kind: "bag_limit",
+    verbatim:
+      "In all marine areas open to halibut fishing, there is a one-fish daily catch limit and no minimum size restriction. There is a six fish annual bag limit. Anglers must record their catch on a WDFW catch record card.",
+    sourceUrl: D1.url, sourceTitle: D1.title, sourceUpdatedAt: D1.updated, verifiedAt: VERIFIED,
+    seasonStart: null, seasonEnd: null, bagDaily: 1, possessionLimit: null, bagSharesWithGroup: false,
+    minSizeIn: null, maxSizeIn: null, sizeMeasure: null, platformScope: null, depthNote: "Six fish annual bag limit; catch record card required.",
+    checkInseason: true, staleAfterDays: 7,
   }),
 ];
 

@@ -18,19 +18,24 @@
  *       (NOAA West Coast: final rule published 2026-05-01, Area 2A 2026 CSP)
  *   E = https://myodfw.com/sites/default/files/2018-06/2018-groundfish%20fishery%20what%20can%20i%20keep-07012018%20update.pdf
  *       (ODFW flyer: mandatory descending-device rule)
+ *   v2 deepen adds: ODFW "Start crabbing" / Dungeness crab species page, ODFW Marine
+ *   Zone crabbing & clamming report (Aug 27 2026), ODFW European green crab note.
  */
 import type { RegArea, RegGroup, RegPack, RegRule } from "./types";
 
 export const OREGON_PACK: RegPack = {
   id: "oregon-2026-09-02",
-  version: 1,
+  version: 2,
   publishedAt: "2026-09-02T12:00:00Z",
   notes:
     "Oregon ocean (ODFW): 2026 marine bottomfish table verbatim — general marine 4/day " +
     "all depths year-round, canary 2 sub-bag, cabezon 1 (Jul–Dec, 16-inch), lingcod 3 " +
     "(22-inch), sablefish 10, flatfish 25, offshore long-leader 10, halibut per the " +
     "federal Area 2A catch-sharing plan. Yelloweye and quillback rockfish retention " +
-    "prohibited; descending device mandatory on boats. Salmon/shellfish not yet shipped.",
+    "prohibited; descending device mandatory on boats. v2 deepens: multi-species/salmon- " +
+    "hook doctrine, 30-fathom descender use, and shellfish — Dungeness (males >=5.75in, " +
+    "ocean closed Oct 16-Nov 30, 3 pots, license 12+), green crab 35/day, razor clam " +
+    "Clatsop seasonal closure Jul 15-Sep 30 + first-15 keep.",
 };
 
 const A = {
@@ -59,7 +64,7 @@ const E = {
   updated: "2018-07-01",
 } as const;
 const VERIFIED = "2026-09-02";
-const pv = 1;
+const pv = 2;
 
 function rule(
   r: Omit<RegRule, "packVersion" | "regGroupId"> & Partial<Pick<RegRule, "regGroupId">>,
@@ -295,6 +300,70 @@ export const OR_RULES: readonly RegRule[] = [
     seasonStart: "05-01", seasonEnd: "10-31", bagDaily: 2, possessionLimit: null, bagSharesWithGroup: false,
     minSizeIn: null, maxSizeIn: null, sizeMeasure: null, platformScope: "boat", depthNote: null,
     checkInseason: true, staleAfterDays: 14,
+  }),
+  // ——— v2 (deepen pass): groundfish-combination doctrine + shellfish ———
+  rule({
+    id: "or-descender-30fm", speciesId: "rockfish", regAreaId: "or-marine", kind: "note",
+    verbatim:
+      "Yelloweye and quillback rockfish are prohibited at all times and in all waters. Descending devices are mandatory; and must be used to release any rockfish outside of the 30-fathom regulatory line.",
+    sourceUrl: A.url, sourceTitle: A.title, sourceUpdatedAt: A.updated, verifiedAt: VERIFIED,
+    seasonStart: null, seasonEnd: null, bagDaily: null, possessionLimit: null, bagSharesWithGroup: false,
+    minSizeIn: null, maxSizeIn: null, sizeMeasure: null, platformScope: "boat", depthNote: "Rockfish released outside 30 fathoms must go down on a descending device.",
+    checkInseason: true, staleAfterDays: 30,
+  }),
+  rule({
+    id: "or-multispecies-halibut-longleader", speciesId: null, regAreaId: "or-marine", kind: "note",
+    verbatim:
+      "The multi-species rule prohibits fishing for, or taking and retaining any species of salmon, Pacific halibut or marine fish while possessing on board any species not allowed to be taken in the area at that time. Anglers are reminded that once salmon are on board, anglers are restricted to no more than 2 single point barbless hooks at all times when angling for salmon in the ocean or when angling for other species if a salmon has already been retained.",
+    sourceUrl: A.url, sourceTitle: A.title, sourceUpdatedAt: A.updated, verifiedAt: VERIFIED,
+    seasonStart: null, seasonEnd: null, bagDaily: null, possessionLimit: null, bagSharesWithGroup: false,
+    minSizeIn: null, maxSizeIn: null, sizeMeasure: null, platformScope: "boat", depthNote: null,
+    checkInseason: true, staleAfterDays: 30,
+  }),
+  rule({
+    id: "or-dungeness-rule", speciesId: "dungeness_crab", regAreaId: "or-marine", kind: "gear",
+    verbatim:
+      "Only male crab 5-3/4 inches or larger may be kept. You can have up to three different pots, traps or rings in the water at one time. While crabbing in Oregon's bays and estuaries is open year-round, the ocean off the Oregon coast is closed to crabbing from Oct. 16 to Nov. 30. Everyone 12 years or older will need a shellfish license to clam or crab in Oregon.",
+    sourceUrl: "https://myodfw.com/articles/start-crabbing", sourceTitle: "ODFW — Start crabbing (measuring, season, gear)", sourceUpdatedAt: null, verifiedAt: VERIFIED,
+    seasonStart: null, seasonEnd: null, bagDaily: null, possessionLimit: null, bagSharesWithGroup: false,
+    minSizeIn: 5.75, maxSizeIn: null, sizeMeasure: "total_length", platformScope: null, depthNote: "Males only; ocean closed Oct 16 - Nov 30; measure across the back, in front of the spine (not tip to tip).",
+    checkInseason: true, staleAfterDays: 60,
+  }),
+  rule({
+    id: "or-sh-crab-license-note", speciesId: "dungeness_crab", regAreaId: "or-marine", kind: "note",
+    verbatim:
+      "Always check for closures at the ODA Shellfish Safety page before harvesting shellfish, which includes clams, crabs and mussels. Call the ODA shellfish safety hotline at 1-800-448-2474. Recreational crabbers are prohibited from using certain line markings that are required in other fisheries (marine life entanglement prevention). Buoys must be marked in the ocean and bays.",
+    sourceUrl: "https://myodfw.com/recreation-report/crabbing-clamming-report/marine-zone", sourceTitle: "ODFW — Marine Zone Crabbing & Clamming Report", sourceUpdatedAt: "2026-08-27", verifiedAt: VERIFIED,
+    seasonStart: null, seasonEnd: null, bagDaily: null, possessionLimit: null, bagSharesWithGroup: false,
+    minSizeIn: null, maxSizeIn: null, sizeMeasure: null, platformScope: null, depthNote: null,
+    checkInseason: true, staleAfterDays: 14,
+  }),
+  rule({
+    id: "or-green-crab", speciesId: "european_green_crab", regAreaId: "or-marine", kind: "bag_limit",
+    verbatim:
+      "European green crab — the daily catch limit for European green crab is 35 per person per day; European green crab can be any size or sex. The Oregon Fish and Wildlife Commission increased the daily bag limit to 35 crab to help native shellfish.",
+    sourceUrl: C.url, sourceTitle: "ODFW — European green crab (species page / Marine Zone recreation report)", sourceUpdatedAt: "2026-08-27", verifiedAt: VERIFIED,
+    seasonStart: null, seasonEnd: null, bagDaily: 35, possessionLimit: null, bagSharesWithGroup: false,
+    minSizeIn: null, maxSizeIn: null, sizeMeasure: null, platformScope: null, depthNote: "Any size, any sex — invasive removal encouraged.",
+    checkInseason: false, staleAfterDays: 180,
+  }),
+  rule({
+    id: "or-razor-clam-clatsop", speciesId: "razor_clam", regAreaId: "or-marine", kind: "season",
+    verbatim:
+      "Annual conservation closure for razor clams north of Tillamook Head (Clatsop Beaches) begins July 15 and goes through September 30. The season will reopen October 1 unless there is a closure for toxin levels.",
+    sourceUrl: "https://myodfw.com/recreation-report/crabbing-clamming-report/marine-zone", sourceTitle: "ODFW — Marine Zone Crabbing & Clamming Report", sourceUpdatedAt: "2026-08-27", verifiedAt: VERIFIED,
+    seasonStart: "07-15", seasonEnd: "09-30", bagDaily: 0, possessionLimit: null, bagSharesWithGroup: false,
+    minSizeIn: null, maxSizeIn: null, sizeMeasure: null, platformScope: null, depthNote: "North of Tillamook Head (Clatsop Beaches) only; other beaches remain open except toxin closures.",
+    checkInseason: true, staleAfterDays: 30,
+  }),
+  rule({
+    id: "or-razor-first15", speciesId: "razor_clam", regAreaId: "or-marine", kind: "note",
+    verbatim:
+      "Clammers need to remember to keep the first 15 they dig, regardless of size or condition. (Razor clams.)",
+    sourceUrl: "https://myodfw.com/recreation-report/crabbing-clamming-report/marine-zone", sourceTitle: "ODFW — Marine Zone Crabbing & Clamming Report", sourceUpdatedAt: "2026-08-27", verifiedAt: VERIFIED,
+    seasonStart: null, seasonEnd: null, bagDaily: 15, possessionLimit: null, bagSharesWithGroup: false,
+    minSizeIn: null, maxSizeIn: null, sizeMeasure: null, platformScope: null, depthNote: "Keep the first 15 dug — wastage is prohibited.",
+    checkInseason: true, staleAfterDays: 60,
   }),
 ];
 
