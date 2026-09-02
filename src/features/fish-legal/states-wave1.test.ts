@@ -65,4 +65,22 @@ describe("states expansion wave 1 (Gulf + Baja)", () => {
       expect(pops.every((s) => speciesById(s) !== null)).toBe(true);
     }
   });
+
+  it("California's five GMAs are selectable Settings regions with packs and a GMA focus area", () => {
+    const GMAS = [
+      { id: "ca_gma_northern", area: "ca-gma-northern" },
+      { id: "ca_gma_mendocino", area: "ca-gma-mendocino" },
+      { id: "ca_gma_san_francisco", area: "ca-gma-san-francisco" },
+      { id: "ca_gma_central", area: "ca-gma-central" },
+      { id: "ca_gma_southern", area: "ca-gma-southern" },
+    ] as const;
+    for (const { id, area } of GMAS) {
+      expect(regionById(id), id).not.toBeNull();
+      expect(popularSpeciesIds(id).every((s) => speciesById(s) !== null), id).toBe(true);
+      const bundle = packForRegion(id);
+      expect(bundle, id).not.toBeNull();
+      expect(bundle!.primaryAreaId, id).toBe(area);
+      expect(bundle!.jurisdictionLabel, id).toContain("CDFW");
+    }
+  });
 });

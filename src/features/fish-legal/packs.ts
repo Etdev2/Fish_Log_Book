@@ -47,6 +47,45 @@ export interface BundledPack {
 }
 
 export const PACKS: readonly BundledPack[] = [
+  // ——— CDFW Groundfish Management Areas (founder ask 2026-09-02: California broken
+  // into its five management units). Each GMA region reads the same verified NorCal /
+  // SoCal bundle — the GMA season/depth rows live inside those packs — with the pack's
+  // focus narrowed to its own GMA area.
+  {
+    regionId: "ca_gma_northern",
+    jurisdictionLabel: "California — Northern GMA — CDFW (US)",
+    shortCode: "CA·N",
+    primaryAreaId: "ca-gma-northern",
+    data: NORCAL,
+  },
+  {
+    regionId: "ca_gma_mendocino",
+    jurisdictionLabel: "California — Mendocino GMA — CDFW (US)",
+    shortCode: "CA·M",
+    primaryAreaId: "ca-gma-mendocino",
+    data: NORCAL,
+  },
+  {
+    regionId: "ca_gma_san_francisco",
+    jurisdictionLabel: "California — San Francisco GMA — CDFW (US)",
+    shortCode: "CA·SF",
+    primaryAreaId: "ca-gma-san-francisco",
+    data: NORCAL,
+  },
+  {
+    regionId: "ca_gma_central",
+    jurisdictionLabel: "California — Central GMA — CDFW (US)",
+    shortCode: "CA·C",
+    primaryAreaId: "ca-gma-central",
+    data: NORCAL,
+  },
+  {
+    regionId: "ca_gma_southern",
+    jurisdictionLabel: "California — Southern GMA — CDFW (US)",
+    shortCode: "CA·S",
+    primaryAreaId: "ca-gma-southern",
+    data: SOCAL,
+  },
   {
     regionId: "northern_california",
     jurisdictionLabel: "Northern California — CDFW (US)",

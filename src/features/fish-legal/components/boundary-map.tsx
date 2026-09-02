@@ -15,6 +15,7 @@ import { distanceToLineM, pointInRing, sideOfLine } from "../geospatial";
 import { regulationCard } from "../reg-engine";
 import { RCA_50FM_LINE, REG_AREAS, SOCAL } from "../reg-data";
 import { FLORIDA } from "../florida-pack";
+import { NORCAL } from "../norcal-pack";
 import { platformFor } from "../reg-engine";
 import { useFishingModePreference } from "../prefs";
 import { useRegionPreference } from "@/features/settings/region";
@@ -66,7 +67,29 @@ export function BoundaryMap() {
     return `${get("year")}-${get("month")}-${get("day")}`;
   }, [now, zone]);
 
-  const isCalifornia = region === "southern_california";
+  // Founder ask (2026-09-02): California fishes by Groundfish Management Area. The
+  // view config pairs each CA region (plain NorCal/SoCal and the five GMA entries)
+  // with its bundle, its focus area, and a map center. Regions with no verified
+  // California pack keep the Florida overview fallback. The 50-fm RCA ribbon is a
+  // Southern-GMA window, so it shows for the two southern reads only.
+  const caView = useMemo(() => {
+    const isSoCal = region === "southern_california" || region === "ca_gma_southern";
+    if (isSoCal) {
+      return { bundle: SOCAL, areaId: "ca-gma-southern", areas: REG_AREAS, center: [33.6, -118.8] as const, showRca: true };
+    }
+    const norcalCenters: Record<string, { areaId: string; center: readonly [number, number] }> = {
+      northern_california: { areaId: "ca-gma-northern", center: [39.5, -124.0] },
+      ca_gma_northern: { areaId: "ca-gma-northern", center: [40.6, -124.3] },
+      ca_gma_mendocino: { areaId: "ca-gma-mendocino", center: [39.5, -123.9] },
+      ca_gma_san_francisco: { areaId: "ca-gma-san-francisco", center: [38.0, -123.2] },
+      ca_gma_central: { areaId: "ca-gma-central", center: [35.8, -121.8] },
+    };
+    const nc = norcalCenters[region];
+    if (nc) return { bundle: NORCAL, ...nc, areas: NORCAL.areas, showRca: false };
+    return null;
+  }, [region]);
+  const isCalifornia = caView !== null;
+
   // Today's groundfish reading drives the ribbon — a generic rockfish member's card is
   // the complex's voice this day (boat/shore decides the exemption copy). CA-ONLY:
   // Florida's pack has no 50-fm RCA row, and a Florida page that renders a California
@@ -74,9 +97,9 @@ export function BoundaryMap() {
   const rcgCard = useMemo(
     () =>
       isCalifornia
-        ? regulationCard(SOCAL, "ca-gma-southern", "rockfish", dateKey, platform)
+        ? regulationCard(caView.bundle, caView.areaId, "rockfish", dateKey, platform)
         : null,
-    [isCalifornia, dateKey, platform],
+    [isCalifornia, caView, dateKey, platform],
   );
 
   const ribbon = useMemo(() => {
@@ -102,12 +125,12 @@ export function BoundaryMap() {
     const irlArea = FLORIDA.areas.find((a) => a.id === "fl-irl-cnr")!;
     const inIrl = irlArea.polygon ? pointInRing(pt, irlArea.polygon) : false;
     return {
-      rcaSide: isCalifornia ? sideOfLine(pt, RCA_50FM_LINE.points) : null,
-      rcaDistanceM: isCalifornia ? distanceToLineM(pt, RCA_50FM_LINE.points) : null,
+      rcaSide: caView?.showRca ? sideOfLine(pt, RCA_50FM_LINE.points) : null,
+      rcaDistanceM: caView?.showRca ? distanceToLineM(pt, RCA_50FM_LINE.points) : null,
       inCca: ccaHit,
       inIrl,
     };
-  }, [position, isCalifornia]);
+  }, [position, caView]);
 
   const watch = () => {
     if (!("geolocation" in navigator)) {
@@ -123,7 +146,7 @@ export function BoundaryMap() {
         // says GPS is jurisdiction-agnostic — "you're fishing in a Florida no-take" must
         // work even when Settings are still California).
         const folded = foldAcrossBundle(
-          [...SOCAL.areas, ...FLORIDA.areas],
+          [...SOCAL.areas, ...NORCAL.areas, ...FLORIDA.areas],
           zoneWatches.current,
           [pos.coords.longitude, pos.coords.latitude],
           new Date(pos.timestamp).toISOString(),
@@ -231,9 +254,9 @@ export function BoundaryMap() {
           <BoundaryLeaflet
             position={position}
             layers={layers}
-            areas={isCalifornia ? REG_AREAS : FLORIDA.areas}
-            center={isCalifornia ? [33.6, -118.8] : [26.5, -82.5]}
-            showRca={isCalifornia}
+            areas={caView ? caView.areas : FLORIDA.areas}
+            center={caView ? ([caView.center[0], caView.center[1]] as const) : ([26.5, -82.5] as const)}
+            showRca={caView?.showRca ?? false}
           />
         </div>
         <div className="mt-3 flex flex-wrap items-center gap-3">
