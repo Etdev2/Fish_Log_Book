@@ -18,7 +18,7 @@ export type RuleKind =
   | "prohibited"
   | "note";
 
-export type SizeMeasure = "total_length" | "fork_length" | "alternate_total_length";
+export type SizeMeasure = "total_length" | "fork_length" | "alternate_total_length" | "carapace_width";
 
 /** Founder spec §3 mode selector; CDFW groundfish law only distinguishes boat/shore/diver. */
 export type FishingMode = "boat" | "kayak" | "shore" | "spearfishing";

@@ -18,7 +18,7 @@ import type { RegArea, RegGroup, RegPack, RegRule } from "./types";
 
 export const WASHINGTON_PACK: RegPack = {
   id: "washington-2026-09-02",
-  version: 3,
+  version: 4,
   publishedAt: "2026-09-02T12:00:00Z",
   notes:
     "Washington ocean Marine Areas 1-4 (WDFW news release March 5, 2026) — v2 deepens " +
@@ -30,7 +30,7 @@ export const WASHINGTON_PACK: RegPack = {
     "bottomfish daily, >120ft fishing prohibited, descending device required, lingcod " +
     "May 1-Jun 15 slot 26-36 in (spear May 21-Jun 15, hook-and-line from May 1), " +
     "cabezon May 1-Nov 30 @18 in @1, rockfish closed, cod/pollock/hake/wolf-eel closed, " +
-    "salmon headline windows as notes. Crab/shrimp tables still pending.",
+    "salmon headline windows as notes. v4 lands the Crab Rules page verbatim: Puget Sound (Dungeness 5 @ 6.25 in males hardshell / Red Rock 6 @ 5 in / Tanner 6 @ 4.5 in; CRC + endorsement; MA12 south of Ayock Point + MA13 closed to crab in 2026), Pacific Ocean (Dungeness 6 @ 6 in + Red Rock 6 @ 5 in; pot window Dec 1-Sep 15, year-round other gear; Willapa Bay pots Nov 15-Sep 15), Columbia River estuary (Dungeness 12 @ 5.75 in, year-round all gear), European green crab report-and-release. Shrimp still pending.",
 };
 
 const A = {
@@ -59,7 +59,12 @@ const D1 = {
   updated: "2026-03-05",
 } as const;
 const VERIFIED = "2026-09-02";
-const pv = 3;
+const pv = 4;
+const C2 = {
+  url: "https://www.eregulations.com/washington/fishing/crab-rules",
+  title: "WDFW — 2026-2027 Washington Sport Fishing Rules (Crab Rules)",
+  updated: "2026-06-18",
+} as const;
 
 function rule(
   r: Omit<RegRule, "packVersion" | "regGroupId"> & Partial<Pick<RegRule, "regGroupId">>,
@@ -192,6 +197,50 @@ export const WA_AREAS: readonly RegArea[] = [
       "Halibut closed; Toliva Shoal + Budd Inlet sub-areas have their own salmon rows " +
       "in the pamphlet (headline rows shipped as notes).",
   },
+  // ——— v4 (deepen pass): crab doctrine areas (Crab Rules page, updated 2026-06-18) ———
+  {
+    id: "wa-ps-crab",
+    authority: "wdfw",
+    kind: "ocean_region",
+    name: "Puget Sound crab — Marine Areas 4 (east of Bonilla-Tatoosh), 5, 6, 7 South/North, 8-1, 8-2, 9, 10, 11, 12 (north of Ayock Point)",
+    polygon: [
+      [-123.96, 49.0], [-123.1, 48.9], [-122.8, 48.45], [-122.4, 48.9], [-122.3, 49.15],
+      [-123.7, 49.15], [-123.96, 49.0],
+    ],
+    sourceUrl: C2.url,
+    verifiedAt: VERIFIED,
+    notes:
+      "Seasons are announced each spring (test fishery + co-management); limits/shape per " +
+      "the Crab Rules page. Envelope matches the inside-waters area; MA 12 south of Ayock " +
+      "Point and MA 13 are closed to crab harvest in 2026.",
+  },
+  {
+    id: "wa-willapa-bay",
+    authority: "wdfw",
+    kind: "ocean_region",
+    name: "Willapa Bay (crab/shellfish estuary)",
+    polygon: [
+      [-124.1, 46.55], [-123.9, 46.6], [-123.85, 46.75], [-124.0, 46.95],
+      [-124.15, 46.8], [-124.1, 46.55],
+    ],
+    sourceUrl: C2.url,
+    verifiedAt: VERIFIED,
+    notes: "Envelope. Full bay fish tables pending; v4 ships the pamphlet crab lines only.",
+  },
+  {
+    id: "wa-columbia-river",
+    authority: "wdfw",
+    kind: "ocean_region",
+    name: "Columbia River — east of the jetty tips upstream to the Tongue Point–Rocky Point line (crab estuary)",
+    polygon: [
+      [-124.06, 46.24], [-123.7, 46.24], [-123.7, 46.32], [-124.06, 46.32], [-124.06, 46.24],
+    ],
+    sourceUrl: C2.url,
+    verifiedAt: VERIFIED,
+    notes:
+      "Salmonid-estuarine reach; v4 ships the year-round crab table only. Freshwater " +
+      "upstream rules are out of the salt pack's scope.",
+  },
 ];
 
 export const WA_GROUPS: readonly RegGroup[] = [
@@ -225,16 +274,16 @@ const CLOSING_TERCET =
   "Anglers cannot possess copper rockfish, quillback rockfish, and vermilion rockfish in May, June, and July.";
 
 /** 2026-27 pamphlet "Bottomfish" block, identical wording in MA 9, 10, 11, 12, 13. */
-function soundBottomfishRules(areaId: string, opts: { bag: number; area9?: boolean }): RegRule[] {
+function soundBottomfishRules(areaId: string): RegRule[] {
+  const n = areaId.replace("wa-ma-", "");
   const pamphlet = {
-    url: `https://www.eregulations.com/washington/fishing/${areaId.toLowerCase().replace("wa-", "")}`,
-    title: `WDFW — 2026-2027 Washington Sport Fishing Rules (${areaId.replace("wa-", "Marine Area ")})`,
+    url: `https://www.eregulations.com/washington/fishing/marine-area-${n}`,
+    title: `WDFW — 2026-2027 Washington Sport Fishing Rules (Marine Area ${n})`,
     updated: "2026-06-18",
   } as const;
   const tag = areaId.replace("wa-", "");
   const rs = (r: Omit<RegRule, "packVersion" | "regGroupId" | "regAreaId"> & Partial<Pick<RegRule, "regGroupId">>): RegRule =>
     rule({ regAreaId: areaId, ...r });
-  void opts;
   return [
     rs({
       id: `${tag}-bottomfish-15`, speciesId: null, regGroupId: "wa-bottomfish", kind: "bag_limit",
@@ -590,11 +639,9 @@ export const WA_RULES: readonly RegRule[] = [
     checkInseason: true, staleAfterDays: 7,
   }),
   // ——— v3 (deepen pass): Puget Sound pamphlet tables, verbatim (2026-27 book) ———
-  ...soundBottomfishRules("wa-ma-9", {
-    bag: 15, area9: true,
-  }),
-  ...soundBottomfishRules("wa-ma-10", { bag: 15 }),
-  ...soundBottomfishRules("wa-ma-13", { bag: 15 }),
+  ...soundBottomfishRules("wa-ma-9"),
+  ...soundBottomfishRules("wa-ma-10"),
+  ...soundBottomfishRules("wa-ma-13"),
   rule({
     id: "wa-ma9-salmon-note", speciesId: null, regAreaId: "wa-ma-9", kind: "note",
     verbatim:
@@ -629,6 +676,158 @@ export const WA_RULES: readonly RegRule[] = [
     seasonStart: null, seasonEnd: null, bagDaily: 0, possessionLimit: 0, bagSharesWithGroup: false,
     minSizeIn: null, maxSizeIn: null, sizeMeasure: null, platformScope: null, depthNote: null,
     checkInseason: false, staleAfterDays: 120,
+  }),
+  // ——— v4 (deepen pass): Crab Rules page verbatim (2026-27 book, updated 2026-06-18) ———
+  rule({
+    id: "wa-ps-crab-core-note", speciesId: null, regAreaId: "wa-ps-crab", kind: "note",
+    verbatim:
+      "Crab (Puget Sound): A catch record card (CRC) and a crab endorsement are required for Dungeness crab in Puget Sound only. Any harvest after Labor Day must be recorded on a winter CRC. Must release all softshell crab (underside of shell flexes with finger pressure). Fishing instruments must not penetrate the shell. It is unlawful to possess crab in the field without retaining the back shell. May not retain any species of crab other than Dungeness, Red Rock, and Tanner.",
+    sourceUrl: C2.url, sourceTitle: C2.title, sourceUpdatedAt: C2.updated, verifiedAt: VERIFIED,
+    seasonStart: null, seasonEnd: null, bagDaily: null, possessionLimit: null, bagSharesWithGroup: false,
+    minSizeIn: null, maxSizeIn: null, sizeMeasure: null, platformScope: null, depthNote: null,
+    checkInseason: false, staleAfterDays: 90,
+  }),
+  rule({
+    id: "wa-ps-crab-season-note", speciesId: null, regAreaId: "wa-ps-crab", kind: "note",
+    verbatim:
+      "Marine Areas 4 (east of the Bonilla-Tatoosh line), 5, 6, 7 South, 7 North, 8-1, 8-2, 9, 10, 11 and 12 (North of Ayock Point): For seasons go to wdfw.wa.gov/fishing/shellfishing-regulations/crab#marine-area. The dates for the season will be available in late May or early June to accommodate co-management obligations and complete preseason test fishing and quota setting. All Dungeness crab kept must be immediately recorded on a catch record card in ink. (Padilla Bay: crab fishing within 25 yards of the Burlington-Northern railroad trestles at the north end of Swinomish Slough is only allowed from one hour before official sunrise to one hour after official sunset.)",
+    sourceUrl: C2.url, sourceTitle: C2.title, sourceUpdatedAt: C2.updated, verifiedAt: VERIFIED,
+    seasonStart: null, seasonEnd: null, bagDaily: null, possessionLimit: null, bagSharesWithGroup: false,
+    minSizeIn: null, maxSizeIn: null, sizeMeasure: null, platformScope: null, depthNote: null,
+    checkInseason: true, staleAfterDays: 7,
+  }),
+  rule({
+    id: "wa-ps-dungeness-bag", speciesId: "dungeness_crab", regAreaId: "wa-ps-crab", kind: "bag_limit",
+    verbatim: "Dungeness Crab (Puget Sound Daily Limits/Rules): 5 crabs, 6¼\" minimum size, males only, and in hardshell condition.",
+    sourceUrl: C2.url, sourceTitle: C2.title, sourceUpdatedAt: C2.updated, verifiedAt: VERIFIED,
+    seasonStart: null, seasonEnd: null, bagDaily: 5, possessionLimit: null, bagSharesWithGroup: false,
+    minSizeIn: 6.25, maxSizeIn: null, sizeMeasure: "carapace_width", platformScope: null,
+    depthNote: "Males only, hardshell condition; CRC endorsement required; record in ink immediately.",
+    checkInseason: true, staleAfterDays: 14,
+  }),
+  rule({
+    id: "wa-ps-redrock-bag", speciesId: "red_rock_crab", regAreaId: "wa-ps-crab", kind: "bag_limit",
+    verbatim: "Red Rock Crab (Puget Sound Daily Limits/Rules): 6 crabs, 5\" minimum size, of either sex, and in hardshell condition.",
+    sourceUrl: C2.url, sourceTitle: C2.title, sourceUpdatedAt: C2.updated, verifiedAt: VERIFIED,
+    seasonStart: null, seasonEnd: null, bagDaily: 6, possessionLimit: null, bagSharesWithGroup: false,
+    minSizeIn: 5, maxSizeIn: null, sizeMeasure: "carapace_width", platformScope: null, depthNote: "Either sex, hardshell.",
+    checkInseason: true, staleAfterDays: 14,
+  }),
+  rule({
+    id: "wa-ps-tanner-bag", speciesId: "tanner_crab", regAreaId: "wa-ps-crab", kind: "bag_limit",
+    verbatim: "Tanner Crab (Puget Sound Daily Limits/Rules): 6 crabs, 4½\" minimum size, of either sex, and in hardshell condition. Measure at the widest portion of the shell.",
+    sourceUrl: C2.url, sourceTitle: C2.title, sourceUpdatedAt: C2.updated, verifiedAt: VERIFIED,
+    seasonStart: null, seasonEnd: null, bagDaily: 6, possessionLimit: null, bagSharesWithGroup: false,
+    minSizeIn: 4.5, maxSizeIn: null, sizeMeasure: "carapace_width", platformScope: null, depthNote: "Either sex, hardshell; measure at widest portion of shell.",
+    checkInseason: true, staleAfterDays: 14,
+  }),
+  rule({
+    id: "wa-ps-greencrab-prohibited", speciesId: "european_green_crab", regAreaId: "wa-ps-crab", kind: "prohibited",
+    verbatim:
+      "European Green Crab — Help Stop the Spread: If caught please REPORT and RELEASE (it is illegal to retain or transport them alive). European green crabs are classified as prohibited species and it is illegal to retain/harvest them. Report: wdfw.wa.gov/greencrab, WA Invasives app, 1-888-WDFW-AIS, ais@wdfw.wa.gov.",
+    sourceUrl: C2.url, sourceTitle: C2.title, sourceUpdatedAt: C2.updated, verifiedAt: VERIFIED,
+    seasonStart: null, seasonEnd: null, bagDaily: 0, possessionLimit: 0, bagSharesWithGroup: false,
+    minSizeIn: null, maxSizeIn: null, sizeMeasure: null, platformScope: null, depthNote: "Report-and-release; keeps-of-molt allowed.",
+    checkInseason: false, staleAfterDays: 365,
+  }),
+  rule({
+    id: "wa-ma13-crab-closed", speciesId: "dungeness_crab", regAreaId: "wa-ma-13", kind: "prohibited",
+    verbatim: "Marine Areas 12 (south of Ayock Point), and 13 — Dungeness, Red Rock, and Tanner Crab: Closed to crab harvest in 2026.",
+    sourceUrl: C2.url, sourceTitle: C2.title, sourceUpdatedAt: C2.updated, verifiedAt: VERIFIED,
+    seasonStart: null, seasonEnd: null, bagDaily: 0, possessionLimit: 0, bagSharesWithGroup: false,
+    minSizeIn: null, maxSizeIn: null, sizeMeasure: null, platformScope: null, depthNote: "All crab harvest closed 2026 (book year).",
+    checkInseason: true, staleAfterDays: 30,
+  }),
+  rule({
+    id: "wa-ma13-redrock-closed", speciesId: "red_rock_crab", regAreaId: "wa-ma-13", kind: "prohibited",
+    verbatim: "Marine Areas 12 (south of Ayock Point), and 13 — Dungeness, Red Rock, and Tanner Crab: Closed to crab harvest in 2026.",
+    sourceUrl: C2.url, sourceTitle: C2.title, sourceUpdatedAt: C2.updated, verifiedAt: VERIFIED,
+    seasonStart: null, seasonEnd: null, bagDaily: 0, possessionLimit: 0, bagSharesWithGroup: false,
+    minSizeIn: null, maxSizeIn: null, sizeMeasure: null, platformScope: null, depthNote: "All crab harvest closed 2026 (book year).",
+    checkInseason: true, staleAfterDays: 30,
+  }),
+  rule({
+    id: "wa-ma13-tanner-closed", speciesId: "tanner_crab", regAreaId: "wa-ma-13", kind: "prohibited",
+    verbatim: "Marine Areas 12 (south of Ayock Point), and 13 — Dungeness, Red Rock, and Tanner Crab: Closed to crab harvest in 2026.",
+    sourceUrl: C2.url, sourceTitle: C2.title, sourceUpdatedAt: C2.updated, verifiedAt: VERIFIED,
+    seasonStart: null, seasonEnd: null, bagDaily: 0, possessionLimit: 0, bagSharesWithGroup: false,
+    minSizeIn: null, maxSizeIn: null, sizeMeasure: null, platformScope: null, depthNote: "All crab harvest closed 2026 (book year).",
+    checkInseason: true, staleAfterDays: 30,
+  }),
+  rule({
+    id: "wa-ocean-dungeness-bag", speciesId: "dungeness_crab", regAreaId: "wa-ma-1-4-coastal", kind: "bag_limit",
+    verbatim: "Dungeness Crab (Pacific Ocean Daily Limits/Rules): 6 crabs, 6\" minimum size, males only, and in hardshell condition.",
+    sourceUrl: C2.url, sourceTitle: C2.title, sourceUpdatedAt: C2.updated, verifiedAt: VERIFIED,
+    seasonStart: null, seasonEnd: null, bagDaily: 6, possessionLimit: null, bagSharesWithGroup: false,
+    minSizeIn: 6, maxSizeIn: null, sizeMeasure: "carapace_width", platformScope: null, depthNote: "Males only, hardshell.",
+    checkInseason: true, staleAfterDays: 14,
+  }),
+  rule({
+    id: "wa-ocean-redrock-bag", speciesId: "red_rock_crab", regAreaId: "wa-ma-1-4-coastal", kind: "bag_limit",
+    verbatim: "Red Rock Crab (Pacific Ocean Daily Limits/Rules): 6 crabs, 5\" minimum size, of either sex, and in hardshell condition.",
+    sourceUrl: C2.url, sourceTitle: C2.title, sourceUpdatedAt: C2.updated, verifiedAt: VERIFIED,
+    seasonStart: null, seasonEnd: null, bagDaily: 6, possessionLimit: null, bagSharesWithGroup: false,
+    minSizeIn: 5, maxSizeIn: null, sizeMeasure: "carapace_width", platformScope: null, depthNote: "Either sex, hardshell.",
+    checkInseason: true, staleAfterDays: 14,
+  }),
+  rule({
+    id: "wa-ocean-crab-pot-season", speciesId: null, regAreaId: "wa-ma-1-4-coastal", kind: "season",
+    verbatim:
+      "Grays Harbor, and Marine Areas 1-3 and 4 (west of Bonilla-Tatoosh line) — Dungeness and Red Rock Crab: Open December 1 to September 15 for Pot Gear. Open year-round to other gear.",
+    sourceUrl: C2.url, sourceTitle: C2.title, sourceUpdatedAt: C2.updated, verifiedAt: VERIFIED,
+    seasonStart: null, seasonEnd: null, bagDaily: null, possessionLimit: null, bagSharesWithGroup: false,
+    minSizeIn: null, maxSizeIn: null, sizeMeasure: null, platformScope: null, depthNote: "Pot gear window Dec 1-Sep 15 (wraps the calendar year); non-pot gear year-round.",
+    checkInseason: true, staleAfterDays: 30,
+  }),
+  rule({
+    id: "wa-willapa-crab-pot-season", speciesId: null, regAreaId: "wa-willapa-bay", kind: "season",
+    verbatim:
+      "Willapa Bay — Dungeness and Red Rock Crab: November 15 to September 15 for Pot Gear. Open year-round to other gear.",
+    sourceUrl: C2.url, sourceTitle: C2.title, sourceUpdatedAt: C2.updated, verifiedAt: VERIFIED,
+    seasonStart: null, seasonEnd: null, bagDaily: null, possessionLimit: null, bagSharesWithGroup: false,
+    minSizeIn: null, maxSizeIn: null, sizeMeasure: null, platformScope: null, depthNote: "Pot gear window Nov 15-Sep 15 (wraps the calendar year); non-pot gear year-round.",
+    checkInseason: true, staleAfterDays: 30,
+  }),
+  rule({
+    id: "wa-willapa-dungeness-bag", speciesId: "dungeness_crab", regAreaId: "wa-willapa-bay", kind: "bag_limit",
+    verbatim: "Dungeness Crab (Pacific Ocean Daily Limits/Rules): 6 crabs, 6\" minimum size, males only, and in hardshell condition. (Willapa Bay runs the Pacific Ocean limits block per the Crab Rules area table.)",
+    sourceUrl: C2.url, sourceTitle: C2.title, sourceUpdatedAt: C2.updated, verifiedAt: VERIFIED,
+    seasonStart: null, seasonEnd: null, bagDaily: 6, possessionLimit: null, bagSharesWithGroup: false,
+    minSizeIn: 6, maxSizeIn: null, sizeMeasure: "carapace_width", platformScope: null, depthNote: "Males only, hardshell.",
+    checkInseason: true, staleAfterDays: 14,
+  }),
+  rule({
+    id: "wa-willapa-redrock-bag", speciesId: "red_rock_crab", regAreaId: "wa-willapa-bay", kind: "bag_limit",
+    verbatim: "Red Rock Crab (Pacific Ocean Daily Limits/Rules): 6 crabs, 5\" minimum size, of either sex, and in hardshell condition. (Willapa Bay runs the Pacific Ocean limits block per the Crab Rules area table.)",
+    sourceUrl: C2.url, sourceTitle: C2.title, sourceUpdatedAt: C2.updated, verifiedAt: VERIFIED,
+    seasonStart: null, seasonEnd: null, bagDaily: 6, possessionLimit: null, bagSharesWithGroup: false,
+    minSizeIn: 5, maxSizeIn: null, sizeMeasure: "carapace_width", platformScope: null, depthNote: "Either sex, hardshell.",
+    checkInseason: true, staleAfterDays: 14,
+  }),
+  rule({
+    id: "wa-col-crab-season", speciesId: null, regAreaId: "wa-columbia-river", kind: "season",
+    verbatim:
+      "East of a line from exposed end of north and south jetty upstream to a line between Tongue Point and Rocky Point — Dungeness and Red Rock Crab: Open year-round to all gear. Crab fishers may fish for crab in Oregon waters under Oregon rules and land into Washington ports of the Columbia River. A resident license from either state is required.",
+    sourceUrl: C2.url, sourceTitle: C2.title, sourceUpdatedAt: C2.updated, verifiedAt: VERIFIED,
+    seasonStart: null, seasonEnd: null, bagDaily: null, possessionLimit: null, bagSharesWithGroup: false,
+    minSizeIn: null, maxSizeIn: null, sizeMeasure: null, platformScope: null, depthNote: "OR reciprocity: WA/OR resident license valid; landings allowed into WA ports.",
+    checkInseason: true, staleAfterDays: 60,
+  }),
+  rule({
+    id: "wa-col-dungeness-bag", speciesId: "dungeness_crab", regAreaId: "wa-columbia-river", kind: "bag_limit",
+    verbatim: "Dungeness Crab (Columbia River Daily Limits/Rules): 12 crabs, 5¾\" minimum size, males only, and in hardshell condition.",
+    sourceUrl: C2.url, sourceTitle: C2.title, sourceUpdatedAt: C2.updated, verifiedAt: VERIFIED,
+    seasonStart: null, seasonEnd: null, bagDaily: 12, possessionLimit: null, bagSharesWithGroup: false,
+    minSizeIn: 5.75, maxSizeIn: null, sizeMeasure: "carapace_width", platformScope: null, depthNote: "Males only, hardshell.",
+    checkInseason: true, staleAfterDays: 14,
+  }),
+  rule({
+    id: "wa-col-redrock-bag", speciesId: "red_rock_crab", regAreaId: "wa-columbia-river", kind: "bag_limit",
+    verbatim: "Red Rock Crab (Columbia River Daily Limits/Rules): 6 crabs, 5\" minimum size, of either sex, and in hardshell condition.",
+    sourceUrl: C2.url, sourceTitle: C2.title, sourceUpdatedAt: C2.updated, verifiedAt: VERIFIED,
+    seasonStart: null, seasonEnd: null, bagDaily: 6, possessionLimit: null, bagSharesWithGroup: false,
+    minSizeIn: 5, maxSizeIn: null, sizeMeasure: "carapace_width", platformScope: null, depthNote: "Either sex, hardshell.",
+    checkInseason: true, staleAfterDays: 14,
   }),
 ];
 
