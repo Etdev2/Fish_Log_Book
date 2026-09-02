@@ -18,6 +18,14 @@ import { speciesById, SPECIES, type Species } from "./species";
 export type RegionId =
   | "southern_california"
   | "northern_california"
+  /** CDFW Groundfish Management Areas — the founder ask (2026-09-02): California
+   *  broken into its five real management units, not one "California". Additive:
+   *  the plain northern/southern entries stay for anglers who don't think in GMAs. */
+  | "ca_gma_northern"
+  | "ca_gma_mendocino"
+  | "ca_gma_san_francisco"
+  | "ca_gma_central"
+  | "ca_gma_southern"
   | "florida"
   | "hawaii"
   | "cabo_baja"
@@ -46,6 +54,11 @@ export interface Region {
 export const REGIONS: readonly Region[] = [
   { id: "southern_california", label: "Southern California", hint: "Kelp bed, reef and offshore staples." },
   { id: "northern_california", label: "Northern California", hint: "Salmon, stripers, halibut, rockfish." },
+  { id: "ca_gma_northern", label: "CA · Northern GMA", hint: "OR border to Cape Mendocino (40°10′ N): rockfish closed Jan–Mar, open all depths Apr–Dec." },
+  { id: "ca_gma_mendocino", label: "CA · Mendocino GMA", hint: "Cape Mendocino to Point Arena: rockfish closed Jan–Mar, open all depths Apr–Dec." },
+  { id: "ca_gma_san_francisco", label: "CA · San Francisco GMA", hint: "Point Arena to Pigeon Point: Cordell Bank closed to all groundfish." },
+  { id: "ca_gma_central", label: "CA · Central GMA", hint: "Pigeon Point to Point Conception: rockfish closed Jan–Mar, open all depths Apr–Dec." },
+  { id: "ca_gma_southern", label: "CA · Southern GMA", hint: "Point Conception to Mexico: 50-fm RCA split Jul–Dec for boat groundfish." },
   { id: "florida", label: "Florida", hint: "Snook, redfish, tarpon, reef and bluewater." },
   { id: "hawaii", label: "Hawaii", hint: "Ahi, ono, mahi, ulua, marlin." },
   { id: "cabo_baja", label: "Cabo / Baja", hint: "Marlin, dorado, tuna, roosterfish." },
@@ -63,6 +76,27 @@ export const REGIONS: readonly Region[] = [
 ];
 
 const BY_REGION: Record<RegionId, readonly string[]> = {
+  ca_gma_northern: [
+    "rockfish", "lingcod", "pacific_halibut", "chinook_salmon",
+    "coho_salmon", "california_halibut", "striped_bass", "leopard_shark",
+  ],
+  ca_gma_mendocino: [
+    "rockfish", "lingcod", "pacific_halibut", "chinook_salmon",
+    "coho_salmon", "california_halibut", "striped_bass", "leopard_shark",
+  ],
+  ca_gma_san_francisco: [
+    "rockfish", "lingcod", "striped_bass", "chinook_salmon",
+    "california_halibut", "leopard_shark", "barred_surfperch", "white_sturgeon",
+  ],
+  ca_gma_central: [
+    "rockfish", "lingcod", "california_halibut", "barred_surfperch",
+    "striped_bass", "leopard_shark", "chinook_salmon", "cabezon",
+  ],
+  ca_gma_southern: [
+    "kelp_bass", "barred_sand_bass", "california_halibut", "barred_surfperch",
+    "spotfin_croaker", "rockfish", "lingcod", "california_sheephead",
+    "yellowtail", "white_seabass", "pacific_bonito", "bluefin_tuna",
+  ],
   southern_california: [
     "kelp_bass",
     "barred_sand_bass",
