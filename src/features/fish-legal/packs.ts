@@ -30,6 +30,12 @@ import { NEW_JERSEY } from "./new-jersey-pack";
 import { CONNECTICUT } from "./connecticut-pack";
 import { NEW_HAMPSHIRE } from "./new-hampshire-pack";
 import { MAINE } from "./maine-pack";
+import { DELAWARE } from "./delaware-pack";
+import { MARYLAND } from "./maryland-pack";
+import { VIRGINIA } from "./virginia-pack";
+import { NORTH_CAROLINA } from "./north-carolina-pack";
+import { SOUTH_CAROLINA } from "./south-carolina-pack";
+import { GEORGIA } from "./georgia-pack";
 import type { RegPack, RegArea, RegGroup, RegRule } from "./types";
 
 export type RegBundle = {
@@ -255,6 +261,48 @@ export const PACKS: readonly BundledPack[] = [
     shortCode: "ME",
     primaryAreaId: "me-coast",
     data: MAINE,
+  },
+  {
+    regionId: "delaware",
+    jurisdictionLabel: "Delaware — DNREC (US)",
+    shortCode: "DE",
+    primaryAreaId: "de-tidal",
+    data: DELAWARE,
+  },
+  {
+    regionId: "maryland",
+    jurisdictionLabel: "Maryland — DNR (US)",
+    shortCode: "MD",
+    primaryAreaId: "md-atlantic",
+    data: MARYLAND,
+  },
+  {
+    regionId: "virginia",
+    jurisdictionLabel: "Virginia — MRC (US)",
+    shortCode: "VA",
+    primaryAreaId: "va-coast",
+    data: VIRGINIA,
+  },
+  {
+    regionId: "north_carolina",
+    jurisdictionLabel: "North Carolina — DMF (US)",
+    shortCode: "NC",
+    primaryAreaId: "nc-coastal",
+    data: NORTH_CAROLINA,
+  },
+  {
+    regionId: "south_carolina",
+    jurisdictionLabel: "South Carolina — DNR (US)",
+    shortCode: "SC",
+    primaryAreaId: "sc-state-waters",
+    data: SOUTH_CAROLINA,
+  },
+  {
+    regionId: "georgia",
+    jurisdictionLabel: "Georgia — CRD (US)",
+    shortCode: "GA",
+    primaryAreaId: "ga-state-waters",
+    data: GEORGIA,
   },
 ];
 

@@ -37,6 +37,12 @@ export type RegionId =
   | "maine"
   | "new_york"
   | "new_jersey"
+  | "delaware"
+  | "maryland"
+  | "virginia"
+  | "north_carolina"
+  | "south_carolina"
+  | "georgia"
   | "great_lakes"
   /** California inland waters (CDFW statewide defaults; named waters override). */
   | "california_freshwater"
@@ -81,6 +87,12 @@ export const REGIONS: readonly Region[] = [
   { id: "maine", label: "Maine", hint: "Head of tide to 3 miles: stripers, cod, haddock, blues." },
   { id: "new_york", label: "New York", hint: "Marine District: stripers, fluke, porgies, tautog LIS vs Bight." },
   { id: "new_jersey", label: "New Jersey", hint: "Cape May to Sandy Hook: stripers, fluke, sea bass, tautog." },
+  { id: "delaware", label: "Delaware", hint: "Bay and ocean: stripers, tautog, fluke, red drum." },
+  { id: "maryland", label: "Maryland", hint: "Ocean slot stripers; Chesapeake 19–24\" rockfish." },
+  { id: "virginia", label: "Virginia", hint: "Coastal stripers and sea bass; Bay seasons separate." },
+  { id: "north_carolina", label: "North Carolina", hint: "Red drum slot, short flounder windows, specks." },
+  { id: "south_carolina", label: "South Carolina", hint: "Red drum 18–25\" @1 after Act 231." },
+  { id: "georgia", label: "Georgia", hint: "Red drum, specks, flounder, inshore gamefish." },
   { id: "great_lakes", label: "Great Lakes", hint: "Walleye, salmon and trout, perch, bass." },
   { id: "california_freshwater", label: "California — Freshwater", hint: "Lakes, rivers, Delta: bass, trout, striper, sturgeon." },
   { id: "texas", label: "Texas", hint: "Galveston to Padre Island: redfish, specks, flounder." },
@@ -270,6 +282,30 @@ const BY_REGION: Record<RegionId, readonly string[]> = {
   new_jersey: [
     "striped_bass", "summer_flounder", "black_sea_bass", "tautog",
     "bluefish", "weakfish", "scup", "black_drum",
+  ],
+  delaware: [
+    "striped_bass", "tautog", "summer_flounder", "black_sea_bass",
+    "red_drum", "weakfish", "bluefish", "black_drum",
+  ],
+  maryland: [
+    "striped_bass", "summer_flounder", "bluefish", "tautog",
+    "black_sea_bass", "red_drum", "spotted_seatrout", "weakfish",
+  ],
+  virginia: [
+    "striped_bass", "black_sea_bass", "red_drum", "spotted_seatrout",
+    "cobia", "summer_flounder", "bluefish", "tautog",
+  ],
+  north_carolina: [
+    "red_drum", "spotted_seatrout", "southern_flounder", "sheepshead",
+    "black_drum", "bluefish", "weakfish", "striped_bass",
+  ],
+  south_carolina: [
+    "red_drum", "spotted_seatrout", "southern_flounder", "sheepshead",
+    "black_drum", "striped_bass", "bluefish", "weakfish",
+  ],
+  georgia: [
+    "red_drum", "spotted_seatrout", "southern_flounder", "striped_bass",
+    "sheepshead", "cobia", "black_drum", "weakfish",
   ],
   great_lakes: [
     "walleye",
