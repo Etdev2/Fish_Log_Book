@@ -1023,3 +1023,121 @@ A phase is complete only when:
 > same pull request. Break the work into the Phase 1 tickets, verify each concern, and
 > preserve Fish Legal, region switching, Quick Mark, catch snapshots, calendar, tide, map,
 > and setup behavior.
+
+---
+
+# Appendix — repository reality check (added by `coo`, 2026-09-03)
+
+Everything above section 43 is the founder's document. This appendix is not: it is what
+the repository actually contains today, checked against the spec's assumptions so an
+implementing agent meets these facts in a document rather than halfway through Ticket 5.
+Nothing here changes the spec. Three items need a founder or architect ruling before
+Phase 1 code starts.
+
+## 44. What Phase 1 can already build on
+
+Checked in `src/core/rules/catch/types.ts` and
+`supabase/migrations/20260828120000_v1_core_schema.sql`.
+
+| Spec need | Exists today as |
+|---|---|
+| Unique-species counting (§10) | `catch.species_id` → `species.id` |
+| Generic-group rule (§10, "generic rockfish") | `species.is_group` + `species.rolls_up_to` — the roll-up is already modeled |
+| Protected/prohibited exclusion (§11) | `species.take_status` — `open` / `protected` / `regulated` |
+| Saltwater/freshwater filter (§9.1) | `species.water_class` — `salt` / `fresh` / `both` |
+| Kept vs released counts, Responsible Release I (§9.2, §12) | `catch.disposition` — `kept` / `released` / `n/a` |
+| Personal bests by length and weight (§9.2) | `catch.length_mm`, `catch.weight_g`, with `catch.size_estimated` to qualify the claim |
+| Quick Mark double-credit rule (§10, §37) | `catch.resolution_state` (`unresolved` / `confirmed` / `dismissed`) + `dismissed_reason` |
+| Manual historical catches (§10) | `catch.capture_mode` — `live` / `backfill` |
+| Night Bite badge (§12) | `catch.caught_at` + `caught_tz` + `lat`/`lng` |
+| Soft-delete recalculation (§10) | `catch.deleted_at` on every table |
+| Trip association for games and wildlife (§19, §29.8) | `trip` table with `trip.id` on every catch |
+| Legal context snapshot for game scoring (§26) | `catch.regulation_snapshot`, frozen at log time |
+
+The passport can therefore be computed as a pure projection over existing rows, exactly
+as §28 requires. No second catch table is needed for Phase 1.
+
+## 45. Three gaps that need a decision, not just code
+
+### 45.1 There is no region on a catch — and that is deliberate
+
+`src/core/ontology/regions.ts` states the current rule outright: *"no region is part of
+the data model"*. Region is a device-local preference that decides which species chips
+surface first; it never restricts search, never filters, and is never written to a catch.
+That principle comes from ADR 007 §4 and the founder's own 2026-09-01 requirement #4
+(`docs/product/requests/2026-09-01-expansion-requirements.md`).
+
+This spec needs region in four places: the §9.1 region filter, the §8.2 "current region
+collection progress" card, the §11 geographic collections, and the §12 **New Waters I**
+badge ("valid catches in 3 eligible fishing regions"). None of them can read a field that
+does not exist.
+
+Three ways out, in the order I would prefer them:
+
+1. **Derive region from `catch.lat`/`lng` at read time.** Keeps region out of the data
+   model, which honors the existing decision. Costs a point-in-region test and needs an
+   honest "region unknown" bucket, because `lat`/`lng` are nullable and shore/backfill
+   catches often have neither.
+2. **Snapshot the region preference onto the catch at log time**, the way
+   `regulation_snapshot` and the gear labels already snapshot context. Cheap and exact,
+   but it records where the angler *said* they fish, not where the fish was, and it does
+   put region in the data model.
+3. **Drop region from Phase 1.** Ship species, family, and habitat collections; defer
+   geographic collections and New Waters I to Phase 2.
+
+**Ruling needed from `architect`, with the founder's sign-off, because option 2 reverses
+a stated principle.**
+
+### 45.2 There is no media table, so nothing can hold a photo
+
+The schema has no `media`, `photo`, or `attachment` table — the current tables are
+`angler`, `trip`, `catch`, `catch_gear`, `spot`, `tackle_item`, `trip_rig`,
+`trip_rig_gear`, `journal_entry`, `condition_snapshot`, the `reg_*` set, and the
+vocabularies. `docs/product/ROADMAP.md` A2 still lists photos as an unaccepted V2
+candidate.
+
+That blocks, in Phase 1, the **Photo Journal I** badge (§12) and the species photo
+gallery (§9.2); and in Phase 2, verification levels 1 and 2 entirely (§15), since both are
+defined by attached media. Phase 3 wildlife photos and §17 Fin ID inherit the same gap.
+
+Recommendation: cut **Photo Journal I** from the Phase 1 catalog and leave the gallery as
+an empty state, rather than growing Phase 1 to include media capture, storage, EXIF
+stripping (ROADMAP A2 is explicit that the privacy half matters), size limits, and offline
+upload. Media is its own spec.
+
+### 45.3 `species` has no family or category column
+
+§9.1 requires a "species family or category" filter and §11 defines family collections
+(bass, tuna, rockfish, sharks and rays, salmon and trout, flatfish, crustaceans). The
+`species` table carries `is_group` and `rolls_up_to` — a roll-up, not a taxonomy.
+
+Cheapest correct answer: express families as `passport_collections` rows of type
+`family` (§29.1) and drive the filter from collection membership. That keeps the taxonomy
+versioned and data-driven per §11, and adds no column to `species`.
+
+## 46. This spec reverses part of ROADMAP Part 3
+
+`docs/product/ROADMAP.md` Part 3 — "Deliberately NOT building" — currently rules out
+badges and gamified logging, leaderboards, social feeds, and photo-based fish ID. That
+section exists so the arguments are read before anyone re-proposes them, and this spec
+re-proposes several. It is the founder's call to make and this document is the newer one,
+so the spec stands; both files now carry the cross-reference.
+
+The roadmap's substantive objection deserves a straight answer, because it is a good one:
+
+> Gamification would bias the denominator — people log to protect a streak, and stop
+> logging once it breaks. Our entire statistical claim rests on the log being an unbiased
+> record of when someone fished. If any engagement mechanic is ever added, it must reward
+> *confirming a trip honestly*, never reward catching or logging more.
+
+This spec already answers most of it, and says so in its own words: §12 refuses streak
+badges for the same reason the roadmap gives, §14 refuses to block or interrupt logging,
+§26 refuses to reward retention, and §34 closes with "do not optimize badge counts at the
+expense of accurate catch data".
+
+What is left unanswered is narrower: **Species Explorer I–III and Species Sprint reward
+catching more, which is the one thing the roadmap says an engagement mechanic must never
+do.** `biostat` should say whether a unique-species count actually biases the effort
+denominator the correlation engine depends on, or whether the bias is confined to
+frequency-based mechanics such as streaks. That answer is worth having before the badge
+catalog is finalized, not after anglers have a year of history under it.

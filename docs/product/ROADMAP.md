@@ -102,16 +102,30 @@ Rough effort: **S** = days, **M** = weeks, **L** = a month or more.
 
 Recorded so nobody proposes them again without reading why.
 
-- **Streaks, badges, gamified logging.** This is the dangerous one. Gamification would
-  bias the denominator — people log to protect a streak, and stop logging once it breaks.
-  Our entire statistical claim rests on the log being an unbiased record of when someone
+> **Partly reversed 2026-09-03 by the founder.** `docs/specs/fishing-passport-wildlife-boat-games.md`
+> proposes badges, a species collection, wildlife sighting logs, photo-assisted
+> identification, and private boat games. It is the newer founder document, so it stands;
+> the reasoning below is kept because the spec must keep answering it. That spec's §46
+> records which objections it answers and which one is still open. The bullets it touches
+> are marked below.
+
+- **Streaks, badges, gamified logging.** *(Revisited — passport spec §12–§14, §46. Streaks
+  stay dead by the founder's own choice; achievement badges are now in scope.)* This is the
+  dangerous one. Gamification would bias the denominator — people log to protect a streak,
+  and stop logging once it breaks. Our entire statistical claim rests on the log being an unbiased record of when someone
   fished. **Rewarding logging corrupts the data we are selling.** If any engagement
   mechanic is ever added, it must reward *confirming a trip honestly*, never reward
   catching or logging more.
-- **Social feed, following, public catches.** Anglers do not share spots.
-- **Leaderboards.** Same reason as streaks, worse.
+- **Social feed, following, public catches.** Anglers do not share spots. *(Still true.
+  The passport spec keeps games private and non-wagering, lists a public feed under its own
+  §41 non-goals, and gates public anything behind moderation and privacy controls — §30.)*
+- **Leaderboards.** Same reason as streaks, worse. *(Global leaderboards remain out —
+  passport spec §41. Private per-boat scoreboards inside one trip are Phase 4 and are not
+  the same thing.)*
 - **Fish identification from photos.** Different product, enormous effort, and wrong
-  answers are worse than no feature.
+  answers are worse than no feature. *(Revisited — passport spec §15–§17 keeps AI as a
+  ranked suggestion that never sets verification status or a legal conclusion. Phase 2+,
+  and it needs a media table that does not exist yet — see that spec's §45.2.)*
 - **A full Tide Alert clone.** Already in `SPEC.md` §6. We need tide *data*, not a
   competing tide *viewer*.
 - **Generic fishing advice.** Competes with every blog on the internet and trades away the
