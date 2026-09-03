@@ -197,6 +197,7 @@ export function RegulationsHome() {
         <HomeCard href="/fish-legal/species" title="Species & limits" body="Pick a fish; get the 2-second answer." />
         <HomeCard href="/fish-legal/limits" title="Today's limits" body="What you're carrying vs. what the day allows." />
         <HomeCard href="/fish-legal/rockfish" title="Rockfish ID" body="Six questions; likely species with confidence, not verdicts." />
+        <HomeCard href="/fin-id" title="Whale & dolphin ID" body="What surfaced next to the boat, and how far back to stay." />
         <HomeCard href="/fish-legal/boundaries" title="Depth & boundary rules" body="Lines that change the answer as you move." />
         <HomeCard href="/fish-legal/offline" title="Offline & sources" body="What's on this device, when verified, where the law lives." />
         <HomeCard href="/fish-legal/alerts" title="Fish Legal alerts" body="Boundary transitions & limit warnings, logged on-device." />
