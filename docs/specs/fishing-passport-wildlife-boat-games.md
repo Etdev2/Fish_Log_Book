@@ -1427,6 +1427,18 @@ excluded from completion wherever it sits.
 New collections in the same pass: **Grouper and sea bass**, **Marlin** (blue, black, striped,
 white), and **Pelagic** (the tunas, billfish, dorado, wahoo and company).
 
-Still open, noted not fixed: red drum, black drum and the seatrout are also Sciaenidae and
-could join Croaker. They were not part of the request, and moving fish people think of as
-"redfish" into a croaker collection is a product call rather than a taxonomic one.
+### 49.3 Red drum and seatrout stay out of Croaker — resolved by the Texas rules
+
+Raised as open, then settled by deferring to the regulator, at the founder's direction.
+Red drum, black drum and the seatrout are Sciaenidae, so a taxonomist would file them with
+the croakers. **TPWD does not**, and our own Fish Legal pack already carries the proof:
+`texas-pack.ts` cites the Outdoor Annual at `.../drum-bag-length-limits` and
+`.../seatrout-bag-length-limits` — Texas manages **Drum** and **Seatrout** as separate
+categories, and there is no croaker umbrella over either.
+
+A second reason points the same way: every member of the Croaker collection is a Pacific
+fish (corbina, yellowfin and spotfin croaker, white croaker, queenfish). Dropping a Gulf
+redfish into it would make a coastal collection incoherent as well as unfamiliar.
+
+So Croaker keeps white seabass and nothing else moves. If a drum collection is ever wanted,
+TPWD's own grouping — red drum with black drum — is the shape to copy, not Sciaenidae.
