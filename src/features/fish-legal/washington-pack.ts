@@ -925,6 +925,89 @@ export const WA_RULES: readonly RegRule[] = [
     minSizeIn: null, maxSizeIn: null, sizeMeasure: null, platformScope: null, depthNote: "Spot component cap inside the 25-lb combined limit.",
     checkInseason: true, staleAfterDays: 30,
   }),
+  // ——— v6 (deepen pass): structured chinook season rows for MA 9/10/13, promoted from
+  // the v3 headline notes. Windows quoted verbatim; wild-vs-hatchery clauses stay in
+  // depthNote because the engine cannot tell a wild chinook from a hatchery one. ———
+  rule({
+    id: "wa-ma9-chinook-opener", speciesId: "chinook_salmon", regAreaId: "wa-ma-9", kind: "season",
+    verbatim:
+      "Salmon (Entire Area, MA9): July 16-July 18: Chinook - min. size 22 in. Other salmon species - no min. size. Daily limit 2 including no more than 1 Chinook. Release chum, wild coho, and wild Chinook.",
+    sourceUrl: "https://www.eregulations.com/washington/fishing/marine-area-9", sourceTitle: "WDFW — 2026-2027 Washington Sport Fishing Rules (Marine Area 9)", sourceUpdatedAt: "2026-06-18", verifiedAt: VERIFIED,
+    seasonStart: "07-16", seasonEnd: "07-18", bagDaily: 1, possessionLimit: null, bagSharesWithGroup: false,
+    minSizeIn: 22, maxSizeIn: null, sizeMeasure: "total_length", platformScope: null, depthNote: "Hatchery chinook only (release wild); salmon aggregate 2; release chum + wild coho.",
+    checkInseason: true, staleAfterDays: 7,
+  }),
+  rule({
+    id: "wa-ma9-chinook-closed-summer", speciesId: "chinook_salmon", regAreaId: "wa-ma-9", kind: "prohibited",
+    verbatim:
+      "Salmon (Entire Area, MA9): July 19-July 31: CLOSED. Aug. 1-Sept. 18: no min. size, daily limit 2, release Chinook, chum, and wild coho. Sept. 19-Sept. 30: no min. size, daily limit 2, release Chinook and chum.",
+    sourceUrl: "https://www.eregulations.com/washington/fishing/marine-area-9", sourceTitle: "WDFW — 2026-2027 Washington Sport Fishing Rules (Marine Area 9)", sourceUpdatedAt: "2026-06-18", verifiedAt: VERIFIED,
+    seasonStart: "07-19", seasonEnd: "09-30", bagDaily: 0, possessionLimit: 0, bagSharesWithGroup: false,
+    minSizeIn: null, maxSizeIn: null, sizeMeasure: null, platformScope: null, depthNote: "Chinook release Jul 19-Sep 30 (Jul 19-31 all-salmon CLOSED outright).",
+    checkInseason: true, staleAfterDays: 7,
+  }),
+  rule({
+    id: "wa-ma10-chinook-release-early", speciesId: "chinook_salmon", regAreaId: "wa-ma-10", kind: "prohibited",
+    verbatim:
+      "Salmon (Entire Area, MA10): June 1-July 22: no min. size, daily limit 2, release Chinook and chum.",
+    sourceUrl: "https://www.eregulations.com/washington/fishing/marine-area-10", sourceTitle: "WDFW — 2026-2027 Washington Sport Fishing Rules (Marine Area 10)", sourceUpdatedAt: "2026-06-18", verifiedAt: VERIFIED,
+    seasonStart: "06-01", seasonEnd: "07-22", bagDaily: 0, possessionLimit: 0, bagSharesWithGroup: false,
+    minSizeIn: null, maxSizeIn: null, sizeMeasure: null, platformScope: null, depthNote: "Chinook release; other salmon 2/day.",
+    checkInseason: true, staleAfterDays: 7,
+  }),
+  rule({
+    id: "wa-ma10-chinook-opener", speciesId: "chinook_salmon", regAreaId: "wa-ma-10", kind: "season",
+    verbatim:
+      "Salmon (Entire Area, MA10): July 23-July 25: Chinook min. 22 in, daily limit 2 including no more than 1 Chinook, release chum and wild Chinook.",
+    sourceUrl: "https://www.eregulations.com/washington/fishing/marine-area-10", sourceTitle: "WDFW — 2026-2027 Washington Sport Fishing Rules (Marine Area 10)", sourceUpdatedAt: "2026-06-18", verifiedAt: VERIFIED,
+    seasonStart: "07-23", seasonEnd: "07-25", bagDaily: 1, possessionLimit: null, bagSharesWithGroup: false,
+    minSizeIn: 22, maxSizeIn: null, sizeMeasure: "total_length", platformScope: null, depthNote: "Hatchery chinook only (release wild); salmon aggregate 2; release chum.",
+    checkInseason: true, staleAfterDays: 7,
+  }),
+  rule({
+    id: "wa-ma10-chinook-release-late", speciesId: "chinook_salmon", regAreaId: "wa-ma-10", kind: "prohibited",
+    verbatim:
+      "Salmon (Entire Area, MA10): July 26-Sept. 30: no min. size, daily limit 2, release Chinook and chum. Oct. 1-Nov. 15: no min. size, daily limit 2, release Chinook.",
+    sourceUrl: "https://www.eregulations.com/washington/fishing/marine-area-10", sourceTitle: "WDFW — 2026-2027 Washington Sport Fishing Rules (Marine Area 10)", sourceUpdatedAt: "2026-06-18", verifiedAt: VERIFIED,
+    seasonStart: "07-26", seasonEnd: "11-15", bagDaily: 0, possessionLimit: 0, bagSharesWithGroup: false,
+    minSizeIn: null, maxSizeIn: null, sizeMeasure: null, platformScope: null, depthNote: "Chinook release; other salmon 2/day (release chum through Sep 30).",
+    checkInseason: true, staleAfterDays: 7,
+  }),
+  rule({
+    id: "wa-ma10-salmon-closed-winter", speciesId: null, regAreaId: "wa-ma-10", kind: "season",
+    verbatim: "Salmon (Entire Area, MA10): Nov. 16-Mar. 30: CLOSED.",
+    sourceUrl: "https://www.eregulations.com/washington/fishing/marine-area-10", sourceTitle: "WDFW — 2026-2027 Washington Sport Fishing Rules (Marine Area 10)", sourceUpdatedAt: "2026-06-18", verifiedAt: VERIFIED,
+    seasonStart: "11-16", seasonEnd: "03-30", bagDaily: 0, possessionLimit: 0, bagSharesWithGroup: false,
+    minSizeIn: null, maxSizeIn: null, sizeMeasure: null, platformScope: null, depthNote: "All-salmon closed (window wraps New Year's).",
+    checkInseason: true, staleAfterDays: 7,
+  }),
+  rule({
+    id: "wa-ma10-chinook-spring", speciesId: "chinook_salmon", regAreaId: "wa-ma-10", kind: "season",
+    verbatim:
+      "Salmon (Entire Area, MA10): Mar. 31-Apr. 30: open Wed.-Sat. only, Chinook min. 22 in, daily limit 2 including no more than 1 Chinook, release chum and wild Chinook.",
+    sourceUrl: "https://www.eregulations.com/washington/fishing/marine-area-10", sourceTitle: "WDFW — 2026-2027 Washington Sport Fishing Rules (Marine Area 10)", sourceUpdatedAt: "2026-06-18", verifiedAt: VERIFIED,
+    seasonStart: "03-31", seasonEnd: "04-30", bagDaily: 1, possessionLimit: null, bagSharesWithGroup: false,
+    minSizeIn: 22, maxSizeIn: null, sizeMeasure: "total_length", platformScope: null, depthNote: "Wed-Sat only (weekday gate is not modeled); hatchery chinook only; aggregate 2.",
+    checkInseason: true, staleAfterDays: 7,
+  }),
+  rule({
+    id: "wa-ma13-chinook-summer", speciesId: "chinook_salmon", regAreaId: "wa-ma-13", kind: "season",
+    verbatim:
+      "Salmon (Entire Area, MA13): July 1-Sept. 30: Chinook - min. size 20 in. Other salmon species - no min. size. Daily limit 2. Release chum, wild coho, and wild Chinook.",
+    sourceUrl: "https://www.eregulations.com/washington/fishing/marine-area-13", sourceTitle: "WDFW — 2026-2027 Washington Sport Fishing Rules (Marine Area 13)", sourceUpdatedAt: "2026-06-18", verifiedAt: VERIFIED,
+    seasonStart: "07-01", seasonEnd: "09-30", bagDaily: 2, possessionLimit: null, bagSharesWithGroup: false,
+    minSizeIn: 20, maxSizeIn: null, sizeMeasure: "total_length", platformScope: null, depthNote: "Hatchery chinook only (release wild); salmon aggregate 2; release chum + wild coho.",
+    checkInseason: true, staleAfterDays: 7,
+  }),
+  rule({
+    id: "wa-ma13-chinook-winter", speciesId: "chinook_salmon", regAreaId: "wa-ma-13", kind: "season",
+    verbatim:
+      "Salmon (Entire Area, MA13): Oct. 1-June 30: Chinook - min. size 22 in. Other salmon species - no min. size. Daily limit 2. Release chum, wild coho, and wild Chinook. Anglers may fish with two poles with Two-Pole Endorsement.",
+    sourceUrl: "https://www.eregulations.com/washington/fishing/marine-area-13", sourceTitle: "WDFW — 2026-2027 Washington Sport Fishing Rules (Marine Area 13)", sourceUpdatedAt: "2026-06-18", verifiedAt: VERIFIED,
+    seasonStart: "10-01", seasonEnd: "06-30", bagDaily: 2, possessionLimit: null, bagSharesWithGroup: false,
+    minSizeIn: 22, maxSizeIn: null, sizeMeasure: "total_length", platformScope: null, depthNote: "Wraps New Year's; hatchery chinook only; two-pole endorsement allowed.",
+    checkInseason: true, staleAfterDays: 7,
+  }),
 ];
 
 export const WASHINGTON = {
