@@ -24,6 +24,9 @@ import { WASHINGTON } from "./washington-pack";
 import { ALASKA } from "./alaska-pack";
 import { HAWAII } from "./hawaii-pack";
 import { MASSACHUSETTS } from "./massachusetts-pack";
+import { RHODE_ISLAND } from "./rhode-island-pack";
+import { NEW_YORK } from "./new-york-pack";
+import { NEW_JERSEY } from "./new-jersey-pack";
 import type { RegPack, RegArea, RegGroup, RegRule } from "./types";
 
 export type RegBundle = {
@@ -207,6 +210,27 @@ export const PACKS: readonly BundledPack[] = [
     shortCode: "MA",
     primaryAreaId: "ma-statewide",
     data: MASSACHUSETTS,
+  },
+  {
+    regionId: "rhode_island",
+    jurisdictionLabel: "Rhode Island — DEM (US)",
+    shortCode: "RI",
+    primaryAreaId: "ri-statewide",
+    data: RHODE_ISLAND,
+  },
+  {
+    regionId: "new_york",
+    jurisdictionLabel: "New York — DEC (US)",
+    shortCode: "NY",
+    primaryAreaId: "ny-marine",
+    data: NEW_YORK,
+  },
+  {
+    regionId: "new_jersey",
+    jurisdictionLabel: "New Jersey — NJDEP (US)",
+    shortCode: "NJ",
+    primaryAreaId: "nj-marine",
+    data: NEW_JERSEY,
   },
 ];
 

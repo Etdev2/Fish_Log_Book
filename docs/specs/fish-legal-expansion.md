@@ -109,6 +109,12 @@ Recreational Catch Limits card, ADCNR/MRC releases + 2025 snapper-season closure
 NOM-017-PESC-1994 (DOF) for both Mexico packs. Waves 2–4 (South Atlantic, Mid-Atlantic,
 New England, Pacific NW, AK/HI) follow as PRs of 5–6 packs each.
 
+## Atlantic wave 1–2 (2026-09-03)
+
+- Wave 1: Massachusetts DMF (`northeast` region).
+- Wave 2: Rhode Island DEM, New York DEC, New Jersey DEP as additive Settings regions
+  `rhode_island` / `new_york` / `new_jersey`. `northeast` still resolves MA.
+
 Key findings encoded:
 - TX speckled trout: 3/day, 15–20" slot (post-March 2025 reset, confirmed against the
   2026–27 Annual page), tag system quoted; redfish 3/day 20–28 + tag bonus.
