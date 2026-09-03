@@ -20,11 +20,18 @@ import { NEW_JERSEY } from "./new-jersey-pack";
 import { CONNECTICUT } from "./connecticut-pack";
 import { NEW_HAMPSHIRE } from "./new-hampshire-pack";
 import { MAINE } from "./maine-pack";
+import { DELAWARE } from "./delaware-pack";
+import { MARYLAND } from "./maryland-pack";
+import { VIRGINIA } from "./virginia-pack";
+import { NORTH_CAROLINA } from "./north-carolina-pack";
+import { SOUTH_CAROLINA } from "./south-carolina-pack";
+import { GEORGIA } from "./georgia-pack";
 
 const LATER_BUNDLES = [
   NORCAL, CA_FRESHWATER, TEXAS, LOUISIANA, MISSISSIPPI, ALABAMA,
   BAJA_CALIFORNIA, BAJA_CALIFORNIA_SUR,
   CONNECTICUT, NEW_HAMPSHIRE, MAINE,
+  DELAWARE, MARYLAND, VIRGINIA, NORTH_CAROLINA, SOUTH_CAROLINA, GEORGIA,
 ];
 
 /*
