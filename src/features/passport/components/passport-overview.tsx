@@ -15,9 +15,14 @@ import { CARD_CLASS, SECONDARY_BUTTON } from "../ui-classes";
  * activity list and no "you're on a roll" copy.
  */
 export function PassportOverview() {
-  const { hydrated, totals, collections, badges, nearestGoals } = usePassport();
+  const { hydrated, totals, collections, badges, slams, nearestGoals } = usePassport();
   const earned = badges.filter((b) => b.earned);
   const newest = totals.latestNewSpecies;
+  const slamsDone = slams.filter((s) => s.standing.achieved).length;
+  // The single closest near miss, and only if someone has actually started one.
+  const nearestSlam = slams
+    .filter((s) => !s.standing.achieved && s.standing.closest !== null)
+    .sort((a, b) => (b.standing.closest?.have ?? 0) - (a.standing.closest?.have ?? 0))[0];
   const newestName =
     newest !== null ? (speciesById(newest.speciesId)?.commonName ?? newest.speciesId) : null;
 
@@ -108,6 +113,27 @@ export function PassportOverview() {
             </li>
           ))}
         </ul>
+      </section>
+
+      {/*
+        Slams sit above badges deliberately: a trifecta is the thing an angler actually
+        talks about in the parking lot, and the near-miss line is the strongest reason on
+        this page to go out again.
+      */}
+      <section className={`${CARD_CLASS} p-4`}>
+        <h2 className="text-h3">Slams</h2>
+        <p className="mt-2 text-body text-text-muted">
+          Several species, one day. {slamsDone} of {slams.length} done.
+        </p>
+        {nearestSlam !== undefined ? (
+          <p className="mt-2 text-caption text-text-muted">
+            Closest: {nearestSlam.definition.name} — {nearestSlam.standing.closest?.have} of{" "}
+            {nearestSlam.standing.required} on {nearestSlam.standing.closest?.localDate}.
+          </p>
+        ) : null}
+        <Link href="/passport/slams" className={`${SECONDARY_BUTTON} mt-3`}>
+          See slams
+        </Link>
       </section>
 
       <section className={`${CARD_CLASS} p-4`}>

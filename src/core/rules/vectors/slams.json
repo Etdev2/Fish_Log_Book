@@ -1,0 +1,135 @@
+{
+  "$comment": "Vectors for src/core/rules/slams/ (ADR 003 §4). Catches use the compact shape from slams.test.ts. 'day' is the catch's local_date — the one-day rule is a local calendar day, so a trip past midnight splits.",
+  "cases": [
+    {
+      "name": "three qualifying fish on one day is the Island Trifecta",
+      "slam": "socal-island-trifecta",
+      "catches": [
+        { "id": "a", "species": "yellowtail", "day": "2026-05-02" },
+        { "id": "b", "species": "white_seabass", "day": "2026-05-02" },
+        { "id": "c", "species": "california_halibut", "day": "2026-05-02" }
+      ],
+      "expect": { "achieved": true, "days": ["2026-05-02"], "closestHave": null }
+    },
+    {
+      "name": "the same three fish across three days is three good days, not a trifecta",
+      "slam": "socal-island-trifecta",
+      "catches": [
+        { "id": "a", "species": "yellowtail", "day": "2026-05-02" },
+        { "id": "b", "species": "white_seabass", "day": "2026-05-03" },
+        { "id": "c", "species": "california_halibut", "day": "2026-05-04" }
+      ],
+      "expect": { "achieved": false, "days": [], "closestHave": 1 }
+    },
+    {
+      "name": "two of three reports how close the best day got",
+      "slam": "socal-island-trifecta",
+      "catches": [
+        { "id": "a", "species": "yellowtail", "day": "2026-05-02" },
+        { "id": "b", "species": "white_seabass", "day": "2026-05-02" },
+        { "id": "c", "species": "california_halibut", "day": "2026-06-01" }
+      ],
+      "expect": { "achieved": false, "days": [], "closestHave": 2 }
+    },
+    {
+      "name": "a released fish counts — IGFA does not require keeping one either",
+      "slam": "socal-island-trifecta",
+      "catches": [
+        { "id": "a", "species": "yellowtail", "day": "2026-05-02", "disposition": "released" },
+        { "id": "b", "species": "white_seabass", "day": "2026-05-02", "disposition": "released" },
+        { "id": "c", "species": "california_halibut", "day": "2026-05-02", "disposition": "released" }
+      ],
+      "expect": { "achieved": true, "days": ["2026-05-02"], "closestHave": null }
+    },
+    {
+      "name": "two tunas fill the tuna slot once, not twice",
+      "slam": "socal-offshore-trifecta",
+      "catches": [
+        { "id": "a", "species": "bluefin_tuna", "day": "2026-07-04" },
+        { "id": "b", "species": "yellowfin_tuna", "day": "2026-07-04" },
+        { "id": "c", "species": "yellowtail", "day": "2026-07-04" }
+      ],
+      "expect": { "achieved": false, "days": [], "closestHave": 2 }
+    },
+    {
+      "name": "any marlin closes the marlin slot",
+      "slam": "socal-offshore-trifecta",
+      "catches": [
+        { "id": "a", "species": "bluefin_tuna", "day": "2026-07-04" },
+        { "id": "b", "species": "yellowtail", "day": "2026-07-04" },
+        { "id": "c", "species": "striped_marlin", "day": "2026-07-04" }
+      ],
+      "expect": { "achieved": true, "days": ["2026-07-04"], "closestHave": null }
+    },
+    {
+      "name": "any three of the four inshore fish is the grand slam",
+      "slam": "igfa-inshore-grand-slam",
+      "catches": [
+        { "id": "a", "species": "atlantic_tarpon", "day": "2026-06-10" },
+        { "id": "b", "species": "permit", "day": "2026-06-10" },
+        { "id": "c", "species": "common_snook", "day": "2026-06-10" }
+      ],
+      "expect": { "achieved": true, "days": ["2026-06-10"], "closestHave": null }
+    },
+    {
+      "name": "three of four is not the super grand slam",
+      "slam": "igfa-inshore-super-grand-slam",
+      "catches": [
+        { "id": "a", "species": "atlantic_tarpon", "day": "2026-06-10" },
+        { "id": "b", "species": "permit", "day": "2026-06-10" },
+        { "id": "c", "species": "common_snook", "day": "2026-06-10" }
+      ],
+      "expect": { "achieved": false, "days": [], "closestHave": 3 }
+    },
+    {
+      "name": "all four is",
+      "slam": "igfa-inshore-super-grand-slam",
+      "catches": [
+        { "id": "a", "species": "atlantic_tarpon", "day": "2026-06-10" },
+        { "id": "b", "species": "permit", "day": "2026-06-10" },
+        { "id": "c", "species": "common_snook", "day": "2026-06-10" },
+        { "id": "d", "species": "atlantic_bonefish", "day": "2026-06-10" }
+      ],
+      "expect": { "achieved": true, "days": ["2026-06-10"], "closestHave": null }
+    },
+    {
+      "name": "doing it twice records both days, most recent first",
+      "slam": "texas-slam",
+      "catches": [
+        { "id": "a", "species": "red_drum", "day": "2026-04-01" },
+        { "id": "b", "species": "spotted_seatrout", "day": "2026-04-01" },
+        { "id": "c", "species": "southern_flounder", "day": "2026-04-01" },
+        { "id": "d", "species": "red_drum", "day": "2026-09-15" },
+        { "id": "e", "species": "spotted_seatrout", "day": "2026-09-15" },
+        { "id": "f", "species": "southern_flounder", "day": "2026-09-15" }
+      ],
+      "expect": { "achieved": true, "days": ["2026-09-15", "2026-04-01"], "closestHave": null }
+    },
+    {
+      "name": "an unresolved quick mark cannot complete a slam",
+      "slam": "cape-cod-slam",
+      "catches": [
+        { "id": "a", "species": "striped_bass", "day": "2026-09-20" },
+        { "id": "b", "species": "bluefish", "day": "2026-09-20" },
+        { "id": "c", "species": "false_albacore", "day": "2026-09-20", "state": "unresolved" }
+      ],
+      "expect": { "achieved": false, "days": [], "closestHave": 2 }
+    },
+    {
+      "name": "deleting one fish takes the slam back",
+      "slam": "cape-cod-slam",
+      "catches": [
+        { "id": "a", "species": "striped_bass", "day": "2026-09-20" },
+        { "id": "b", "species": "bluefish", "day": "2026-09-20" },
+        { "id": "c", "species": "false_albacore", "day": "2026-09-20", "deleted": true }
+      ],
+      "expect": { "achieved": false, "days": [], "closestHave": 2 }
+    },
+    {
+      "name": "an empty log has no slams and no near misses",
+      "slam": "socal-island-trifecta",
+      "catches": [],
+      "expect": { "achieved": false, "days": [], "closestHave": null }
+    }
+  ]
+}

@@ -1320,3 +1320,66 @@ Same eight tickets from §36, resequenced by value and unblocked-ness:
 
 Blocked before code starts: the region ruling (§45.1) gates part of Ticket 2 and one badge;
 the media decision (§45.2) removes one badge from Ticket 5.
+
+## 48. Slams — several species, one day (founder request, 2026-09-03)
+
+Added after Phase 1 was built, at the founder's request, and shipped in the same slice.
+
+A slam is not a collection, and the distinction is the whole feature. A collection is a
+lifetime set filled in over years. A slam is a **day**: catch a yellowtail, a white seabass
+and a California halibut across three seasons and you have three good days; catch them
+between sunrise and sunset and you have the Island Trifecta.
+
+### 48.1 Why this does not need a region on a catch
+
+§45.1 cut geographic collections because no catch carries a region. Slams are
+region-flavoured and still ship, because **the species list is the geography**. Nobody
+catches a tarpon off Orange County or a white seabass off Montauk, so qualification is
+decided by the fish alone. The angler's Settings region only decides which slams surface
+first — the "picker of defaults, never a filter" stance of ADR 007 §4, used as intended.
+
+A SoCal angler who takes one week in the Keys is therefore still credited with the Inshore
+Grand Slam, which is correct and would not have been true of a region-gated design.
+
+### 48.2 The rule
+
+- **One day** is `catch.local_date`, already stored, already computed in the catch's own
+  timezone. A trip past midnight splits, which is what "in one day" means to a tournament.
+- **A slam is a pool, not a checklist.** The IGFA Inshore Grand Slam is *any three* of
+  bonefish, permit, snook and tarpon — so a definition is a set of categories plus how many
+  distinct ones a day must produce. That expresses "these exact three" and "any three of
+  four" without a second model.
+- **A category may be a group.** "Any tuna" and "any billfish" are single slots: two
+  different tunas in a day fill the tuna slot once.
+- **Released fish count.** IGFA does not require keeping one either.
+- Near misses are shown ("two of three on 14 June"). A fact about the log, not a nudge.
+
+### 48.3 The safeguard that matters
+
+A slam is the most competitive thing in the product — a list of fish to go and get today.
+So **no protected species may appear on one** (§4.5, §11, decision §40.8), enforced by
+`validateSlams` and failed by the test suite rather than remembered by hand.
+
+The specific trap: "sea bass" in the Island Trifecta means **white seabass**. Giant sea
+bass is protected and is not a target. There is a test named after that confusion.
+
+### 48.4 What shipped
+
+Ten slams, each carrying its source so a house rule cannot pass as IGFA's:
+
+| Slam | Rule | Coast |
+|---|---|---|
+| Island Trifecta | Yellowtail + white seabass + California halibut | West (founder-specified) |
+| Offshore Trifecta | Yellowtail + any tuna + any marlin | West (founder-specified) |
+| Salmon Slam | Any 3 Pacific salmon | West (house rule) |
+| Inshore Grand Slam | Any 3 of bonefish, permit, snook, tarpon | East / Gulf (IGFA) |
+| Inshore Super Grand Slam | All 4 of the above | East / Gulf (IGFA) |
+| Offshore Grand Slam | Any 3 of billfish, dorado, tuna, wahoo | Both (IGFA) |
+| Offshore Super Grand Slam | All 4 of the above | Both (IGFA) |
+| Texas Slam | Redfish + speckled trout + flounder | Gulf |
+| Cape Cod Slam | Striped bass + bluefish + false albacore | East |
+| Cape Cod Grand Slam | The above plus Atlantic bonito | East |
+
+Sources: IGFA slam rules (igfa.org), the published SoCal trifecta (BDOutdoors), the Texas
+Saltwater Slam, and the Martha's Vineyard derby tradition. The two founder-specified
+trifectas and the Salmon Slam are marked as house rules, not IGFA categories.
