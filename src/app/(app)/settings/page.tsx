@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 
+import { PASSPORT_V1 } from "@/features/passport/flag";
 import { BackendDiagnostics } from "@/features/settings/components/backend-diagnostics";
 import { QuickMarkToggle } from "@/features/settings/components/quick-mark-toggle";
 import { RegionSelect } from "@/features/settings/components/region-select";
@@ -17,6 +18,27 @@ export default function SettingsPage() {
           Account and the platform selector (D26) land with the rest of the settings feature.
         </p>
       </section>
+
+      {/*
+        Passport's entry point. Spec §8.1 keeps it out of the nav bar in Phase 1 — the bar
+        is full at six and `shell-nav.test.ts` pins that — so it is reached from here, and
+        from a species' own page.
+      */}
+      {PASSPORT_V1 ? (
+        <section className="rounded-lg border border-hairline bg-surface p-4">
+          <h2 className="text-h3">Passport</h2>
+          <p className="mt-2 text-body text-text-muted">
+            Every species you have caught, your personal bests, and how far along each family is.
+            Built from catches you have already logged.
+          </p>
+          <Link
+            href="/passport"
+            className="mt-4 inline-flex min-h-touch-floor items-center justify-center rounded-md border border-border-interactive px-4 text-label text-text-link transition-colors hover:bg-surface-raised focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-3 focus-visible:outline-focus-ring active:scale-95 motion-reduce:transition-none"
+          >
+            Open Passport
+          </Link>
+        </section>
+      ) : null}
 
       <section className="rounded-lg border border-hairline bg-surface p-4">
         <h2 className="text-h3">Tackle</h2>
