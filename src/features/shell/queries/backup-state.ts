@@ -9,16 +9,22 @@
  * Offline is a normal state, not an error. An angler is offline for six hours by design.
  * There is no red banner here and there never will be.
  *
- * TODO(ADR 004 §1): read the real count from the outbox store once src/core/sync/store.ts
- * exists. Until then the only honest answer is `local-only`: every write lives on this
- * device and nothing has ever reached a server, so the glass says "Saved on this device"
- * — never "Backed up" next to a green dot while zero bytes have been backed up.
+ * Maps the outbox `BackupState` onto the badge vocabulary. "Backed up" is only
+ * earned when a server is configured *and* the queue is empty.
  */
+import type { BackupState as OutboxBackup } from "@/core/sync/outbox";
+
 export type BackupState =
   | { kind: "local-only" }
   | { kind: "settled" }
   | { kind: "waiting"; count: number }
   | { kind: "needs-attention"; count: number };
+
+export function fromOutboxBackup(outbox: OutboxBackup, serverConfigured: boolean): BackupState {
+  if (outbox.kind === "needs_attention") return { kind: "needs-attention", count: outbox.count };
+  if (outbox.kind === "waiting") return { kind: "waiting", count: outbox.count };
+  return serverConfigured ? { kind: "settled" } : { kind: "local-only" };
+}
 
 export function readBackupState(): BackupState {
   return { kind: "local-only" };
