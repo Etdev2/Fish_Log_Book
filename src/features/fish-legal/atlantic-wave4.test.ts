@@ -47,9 +47,27 @@ describe("Atlantic wave 4 — DE / MD / VA / NC / SC / GA", () => {
     expect(regulationCard(MARYLAND, "md-atlantic", "summer_flounder", TODAY, "boat")!.minSizeIn).toBe(17.5);
   });
 
-  it("VA coastal stripers open Sep 3; BSB bag 15", () => {
+  it("VA coastal stripers open Sep 3; BSB 13 @15; tautog 16 @4; fluke 17.5 @4", () => {
     expect(regulationCard(VIRGINIA, "va-coast", "striped_bass", TODAY, "boat")!.bagDaily).toBe(1);
-    expect(regulationCard(VIRGINIA, "va-coast", "black_sea_bass", TODAY, "boat")!.bagDaily).toBe(15);
+    const bsb = regulationCard(VIRGINIA, "va-coast", "black_sea_bass", TODAY, "boat");
+    expect(bsb!.bagDaily).toBe(15);
+    expect(bsb!.minSizeIn).toBe(13);
+    expect(regulationCard(VIRGINIA, "va-coast", "tautog", TODAY, "boat")!.bagDaily).toBe(4);
+    expect(regulationCard(VIRGINIA, "va-coast", "summer_flounder", TODAY, "boat")!.minSizeIn).toBe(17.5);
+  });
+
+  it("VA Bay stripers closed Sep 3; cobia still open @1 43in; specks 5 @14", () => {
+    expect(regulationCard(VIRGINIA, "va-chesapeake", "striped_bass", TODAY, "boat")!.verdict).toBe("release");
+    const cobia = regulationCard(VIRGINIA, "va-coast", "cobia", TODAY, "boat");
+    expect(cobia!.bagDaily).toBe(1);
+    expect(cobia!.minSizeIn).toBe(43);
+    expect(regulationCard(VIRGINIA, "va-coast", "spotted_seatrout", TODAY, "boat")!.bagDaily).toBe(5);
+    expect(regulationCard(VIRGINIA, "va-coast", "red_drum", TODAY, "boat")!.maxSizeIn).toBe(26);
+  });
+
+  it("VA tautog closed late May; specks closed mid-April 2026", () => {
+    expect(regulationCard(VIRGINIA, "va-coast", "tautog", "2026-05-20", "boat")!.verdict).toBe("release");
+    expect(regulationCard(VIRGINIA, "va-coast", "spotted_seatrout", "2026-04-15", "boat")!.verdict).toBe("release");
   });
 
   it("NC flounder open Sep 1–14; red drum 18–27 @1; tarpon prohibited", () => {
