@@ -1,0 +1,428 @@
+{
+  "$comment": "Cross-client test vectors for src/core/rules/tide/height.ts. ADR 003 \u00a74. TWO KINDS OF AUTHORITY. (1) The samples are REAL published NOAA CO-OPS predictions for station 9410580 (Newport Bay Entrance, MLLW, metric) - at a sample instant the expected height IS the published number, so `heightAt` there is checked against NOAA, not against us. (2) Between samples the expected values were derived from Fritsch & Carlson, 'Monotone Piecewise Cubic Interpolation', SIAM J. Numer. Anal. 17(2) 1980 - the monotonicity-preserving tangent construction under the |(alpha,beta)| <= 3 constraint - reimplemented independently and evaluated with the standard cubic Hermite basis. None of these numbers came from running the TypeScript they police. `boundedBy` restates Fritsch-Carlson's own guarantee: the interpolant never leaves the range of the two samples bracketing it, which is the property that stops a curve inventing a water level NOAA never predicted.",
+  "covers": [
+    "tide/height.ts"
+  ],
+  "version": 1,
+  "sources": [
+    {
+      "id": "noaa-coops",
+      "name": "NOAA CO-OPS published tide predictions, station 9410580",
+      "url": "https://tidesandcurrents.noaa.gov/noaatidepredictions.html?id=9410580"
+    },
+    {
+      "id": "fritsch-carlson-1980",
+      "name": "Fritsch, F. N. and Carlson, R. E., Monotone Piecewise Cubic Interpolation, SIAM Journal on Numerical Analysis 17(2), 238-246, 1980"
+    }
+  ],
+  "station": {
+    "id": "9410580",
+    "name": "Newport Bay Entrance",
+    "timeZone": "America/Los_Angeles",
+    "datum": "MLLW"
+  },
+  "samples": [
+    [
+      1756252800000,
+      0.931,
+      null
+    ],
+    [
+      1756256400000,
+      1.244,
+      null
+    ],
+    [
+      1756260000000,
+      1.555,
+      null
+    ],
+    [
+      1756263600000,
+      1.778,
+      null
+    ],
+    [
+      1756266720000,
+      1.847,
+      "high"
+    ],
+    [
+      1756267200000,
+      1.845,
+      null
+    ],
+    [
+      1756270800000,
+      1.724,
+      null
+    ],
+    [
+      1756274400000,
+      1.43,
+      null
+    ],
+    [
+      1756278000000,
+      1.019,
+      null
+    ],
+    [
+      1756281600000,
+      0.581,
+      null
+    ],
+    [
+      1756285200000,
+      0.207,
+      null
+    ],
+    [
+      1756288800000,
+      -0.024,
+      null
+    ],
+    [
+      1756291380000,
+      -0.074,
+      "low"
+    ],
+    [
+      1756292400000,
+      -0.066,
+      null
+    ],
+    [
+      1756296000000,
+      0.08,
+      null
+    ],
+    [
+      1756299600000,
+      0.373,
+      null
+    ],
+    [
+      1756303200000,
+      0.736,
+      null
+    ],
+    [
+      1756306800000,
+      1.077,
+      null
+    ],
+    [
+      1756310400000,
+      1.312,
+      null
+    ],
+    [
+      1756313820000,
+      1.39,
+      "high"
+    ],
+    [
+      1756314000000,
+      1.389,
+      null
+    ],
+    [
+      1756317600000,
+      1.303,
+      null
+    ],
+    [
+      1756321200000,
+      1.093,
+      null
+    ],
+    [
+      1756324800000,
+      0.834,
+      null
+    ],
+    [
+      1756328400000,
+      0.61,
+      null
+    ],
+    [
+      1756332000000,
+      0.493,
+      null
+    ],
+    [
+      1756333020000,
+      0.487,
+      "low"
+    ],
+    [
+      1756335600000,
+      0.528,
+      null
+    ],
+    [
+      1756339200000,
+      0.715,
+      null
+    ],
+    [
+      1756342800000,
+      1.015,
+      null
+    ],
+    [
+      1756346400000,
+      1.356,
+      null
+    ],
+    [
+      1756350000000,
+      1.65,
+      null
+    ],
+    [
+      1756353600000,
+      1.814,
+      null
+    ],
+    [
+      1756355100000,
+      1.83,
+      "high"
+    ],
+    [
+      1756357200000,
+      1.796,
+      null
+    ],
+    [
+      1756360800000,
+      1.585,
+      null
+    ],
+    [
+      1756364400000,
+      1.223,
+      null
+    ],
+    [
+      1756368000000,
+      0.787,
+      null
+    ],
+    [
+      1756371600000,
+      0.376,
+      null
+    ],
+    [
+      1756375200000,
+      0.079,
+      null
+    ]
+  ],
+  "tolerance": 1e-09,
+  "heightAtSample": [
+    {
+      "at": 1756252800000,
+      "expectedM": 0.931,
+      "certainty": "published"
+    },
+    {
+      "at": 1756256400000,
+      "expectedM": 1.244,
+      "certainty": "published"
+    },
+    {
+      "at": 1756267200000,
+      "expectedM": 1.845,
+      "certainty": "published"
+    },
+    {
+      "at": 1756291380000,
+      "expectedM": -0.074,
+      "certainty": "published"
+    },
+    {
+      "at": 1756375200000,
+      "expectedM": 0.079,
+      "certainty": "published"
+    }
+  ],
+  "heightBetweenSamples": [
+    {
+      "at": 1756253700000,
+      "expectedM": 1.009296875,
+      "certainty": "interpolated",
+      "boundedBy": [
+        0.931,
+        1.244
+      ]
+    },
+    {
+      "at": 1756254600000,
+      "expectedM": 1.087625,
+      "certainty": "interpolated",
+      "boundedBy": [
+        0.931,
+        1.244
+      ]
+    },
+    {
+      "at": 1756255500000,
+      "expectedM": 1.165890625,
+      "certainty": "interpolated",
+      "boundedBy": [
+        0.931,
+        1.244
+      ]
+    },
+    {
+      "at": 1756264380000,
+      "expectedM": 1.807221875,
+      "certainty": "interpolated",
+      "boundedBy": [
+        1.778,
+        1.847
+      ]
+    },
+    {
+      "at": 1756265160000,
+      "expectedM": 1.828891667,
+      "certainty": "interpolated",
+      "boundedBy": [
+        1.778,
+        1.847
+      ]
+    },
+    {
+      "at": 1756265940000,
+      "expectedM": 1.842365625,
+      "certainty": "interpolated",
+      "boundedBy": [
+        1.778,
+        1.847
+      ]
+    },
+    {
+      "at": 1756271700000,
+      "expectedM": 1.66540625,
+      "certainty": "interpolated",
+      "boundedBy": [
+        1.43,
+        1.724
+      ]
+    },
+    {
+      "at": 1756272600000,
+      "expectedM": 1.595125,
+      "certainty": "interpolated",
+      "boundedBy": [
+        1.43,
+        1.724
+      ]
+    },
+    {
+      "at": 1756273500000,
+      "expectedM": 1.51578125,
+      "certainty": "interpolated",
+      "boundedBy": [
+        1.43,
+        1.724
+      ]
+    },
+    {
+      "at": 1756289445000,
+      "expectedM": -0.046968359,
+      "certainty": "interpolated",
+      "boundedBy": [
+        -0.074,
+        -0.024
+      ]
+    },
+    {
+      "at": 1756290090000,
+      "expectedM": -0.062471875,
+      "certainty": "interpolated",
+      "boundedBy": [
+        -0.074,
+        -0.024
+      ]
+    },
+    {
+      "at": 1756290735000,
+      "expectedM": -0.071239453,
+      "certainty": "interpolated",
+      "boundedBy": [
+        -0.074,
+        -0.024
+      ]
+    },
+    {
+      "at": 1756372500000,
+      "expectedM": 0.293734375,
+      "certainty": "interpolated",
+      "boundedBy": [
+        0.079,
+        0.376
+      ]
+    },
+    {
+      "at": 1756373400000,
+      "expectedM": 0.220375,
+      "certainty": "interpolated",
+      "boundedBy": [
+        0.079,
+        0.376
+      ]
+    },
+    {
+      "at": 1756374300000,
+      "expectedM": 0.150578125,
+      "certainty": "interpolated",
+      "boundedBy": [
+        0.079,
+        0.376
+      ]
+    }
+  ],
+  "outOfRange": [
+    {
+      "at": 1756252799999,
+      "expected": null
+    },
+    {
+      "at": 1756375200001,
+      "expected": null
+    }
+  ],
+  "rateAt": [
+    {
+      "at": 1756252800000,
+      "windowMs": 3600000,
+      "expectedMPerHour": 0.31325
+    },
+    {
+      "at": 1756258200000,
+      "windowMs": 3600000,
+      "expectedMPerHour": 0.311
+    },
+    {
+      "at": 1756266720000,
+      "windowMs": 3600000,
+      "expectedMPerHour": -0.003890802
+    },
+    {
+      "at": 1756279800000,
+      "windowMs": 3600000,
+      "expectedMPerHour": -0.438
+    },
+    {
+      "at": 1756375200000,
+      "windowMs": 3600000,
+      "expectedMPerHour": -0.28275
+    }
+  ]
+}

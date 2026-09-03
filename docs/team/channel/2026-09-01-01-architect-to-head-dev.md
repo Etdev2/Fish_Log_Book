@@ -1,7 +1,7 @@
 ### 2026-09-01 | architect -> head-dev
 
 Regulations & Fish ID structure is settled. Spec:
-`docs/specs/regulations-architecture.md`. Reasoning: ADR 007.
+`docs/specs/regulations-architecture.md`. Reasoning: ADR 008.
 
 Four things you need before you write a line, two of which are bugs waiting to happen:
 
@@ -35,7 +35,7 @@ Four things you need before you write a line, two of which are bugs waiting to h
    imported in that same file from `node_modules`, which the Next CSS guide permits and
    which does not touch the `*.module.css` tripwire. **No hex literals**: read map colours
    at runtime from the generated custom properties via `src/lib/tokens/read-token.ts`.
-   No tile layer, no basemap — vector geometry only. ADR 007 §5 explains why and what the
+   No tile layer, no basemap — vector geometry only. ADR 008 explains why and what the
    angler loses.
 
 Units: core is SI (mm, m). Fathom and inch conversion happens once, at package build time,

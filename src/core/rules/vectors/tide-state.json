@@ -1,0 +1,318 @@
+{
+  "$comment": "Cross-client test vectors for src/core/rules/tide/state.ts and src/core/rules/tide/catch-fill.ts. ADR 003 \u00a74. AUTHORITY: the documented assembly rules - motion thresholds from `constants.ts` (|rate| < 0.05 m/h slack, < 0.15 m/h near-slack, else signed rising/falling), cycle progress as the fraction between the two bracketing PUBLISHED turns, and the rule of twelfths in its classic 1-2-3-3-2-1 form (a standard piece of seamanship, not an invention of this codebase). `dailyRange` is the spread between the highest and lowest candidate in range, where the candidates are the published turns plus the two interpolated endpoints; the range is only `published` when both extremes landed on published marks. Reimplemented independently over real NOAA predictions.",
+  "covers": [
+    "tide/state.ts",
+    "tide/catch-fill.ts",
+    "tide/source.ts"
+  ],
+  "version": 1,
+  "sources": [
+    {
+      "id": "noaa-coops",
+      "name": "NOAA CO-OPS published tide predictions, station 9410580",
+      "url": "https://tidesandcurrents.noaa.gov/noaatidepredictions.html?id=9410580"
+    },
+    {
+      "id": "rule-of-twelfths",
+      "name": "Rule of twelfths (standard tidal seamanship approximation, 1-2-3-3-2-1 over the six hours of a semidiurnal leg)"
+    }
+  ],
+  "station": {
+    "id": "9410580",
+    "name": "Newport Bay Entrance",
+    "timeZone": "America/Los_Angeles",
+    "datum": "MLLW"
+  },
+  "samples": [
+    [
+      1756252800000,
+      0.931,
+      null
+    ],
+    [
+      1756256400000,
+      1.244,
+      null
+    ],
+    [
+      1756260000000,
+      1.555,
+      null
+    ],
+    [
+      1756263600000,
+      1.778,
+      null
+    ],
+    [
+      1756266720000,
+      1.847,
+      "high"
+    ],
+    [
+      1756267200000,
+      1.845,
+      null
+    ],
+    [
+      1756270800000,
+      1.724,
+      null
+    ],
+    [
+      1756274400000,
+      1.43,
+      null
+    ],
+    [
+      1756278000000,
+      1.019,
+      null
+    ],
+    [
+      1756281600000,
+      0.581,
+      null
+    ],
+    [
+      1756285200000,
+      0.207,
+      null
+    ],
+    [
+      1756288800000,
+      -0.024,
+      null
+    ],
+    [
+      1756291380000,
+      -0.074,
+      "low"
+    ],
+    [
+      1756292400000,
+      -0.066,
+      null
+    ],
+    [
+      1756296000000,
+      0.08,
+      null
+    ],
+    [
+      1756299600000,
+      0.373,
+      null
+    ],
+    [
+      1756303200000,
+      0.736,
+      null
+    ],
+    [
+      1756306800000,
+      1.077,
+      null
+    ],
+    [
+      1756310400000,
+      1.312,
+      null
+    ],
+    [
+      1756313820000,
+      1.39,
+      "high"
+    ],
+    [
+      1756314000000,
+      1.389,
+      null
+    ],
+    [
+      1756317600000,
+      1.303,
+      null
+    ],
+    [
+      1756321200000,
+      1.093,
+      null
+    ],
+    [
+      1756324800000,
+      0.834,
+      null
+    ],
+    [
+      1756328400000,
+      0.61,
+      null
+    ],
+    [
+      1756332000000,
+      0.493,
+      null
+    ],
+    [
+      1756333020000,
+      0.487,
+      "low"
+    ],
+    [
+      1756335600000,
+      0.528,
+      null
+    ],
+    [
+      1756339200000,
+      0.715,
+      null
+    ],
+    [
+      1756342800000,
+      1.015,
+      null
+    ],
+    [
+      1756346400000,
+      1.356,
+      null
+    ],
+    [
+      1756350000000,
+      1.65,
+      null
+    ],
+    [
+      1756353600000,
+      1.814,
+      null
+    ],
+    [
+      1756355100000,
+      1.83,
+      "high"
+    ],
+    [
+      1756357200000,
+      1.796,
+      null
+    ],
+    [
+      1756360800000,
+      1.585,
+      null
+    ],
+    [
+      1756364400000,
+      1.223,
+      null
+    ],
+    [
+      1756368000000,
+      0.787,
+      null
+    ],
+    [
+      1756371600000,
+      0.376,
+      null
+    ],
+    [
+      1756375200000,
+      0.079,
+      null
+    ]
+  ],
+  "tolerance": 1e-09,
+  "slackBelowMPerHour": 0.05,
+  "nearSlackBelowMPerHour": 0.15,
+  "readTideAt": [
+    {
+      "at": 1756260000000,
+      "heightM": 1.555,
+      "rateMPerHour": 0.275836538,
+      "motion": "rising",
+      "cycleProgress": null,
+      "ruleOfTwelfthsHour": null,
+      "twelfths": null
+    },
+    {
+      "at": 1756267620000,
+      "heightM": 1.838841799,
+      "rateMPerHour": -0.050972443,
+      "motion": "near-slack",
+      "cycleProgress": 0.03649635,
+      "ruleOfTwelfthsHour": 1,
+      "twelfths": 1
+    },
+    {
+      "at": 1756281600000,
+      "heightM": 0.581,
+      "rateMPerHour": -0.416625,
+      "motion": "falling",
+      "cycleProgress": 0.603406326,
+      "ruleOfTwelfthsHour": 4,
+      "twelfths": 3
+    },
+    {
+      "at": 1756310400000,
+      "heightM": 1.312,
+      "rateMPerHour": 0.161182944,
+      "motion": "rising",
+      "cycleProgress": 0.847593583,
+      "ruleOfTwelfthsHour": 6,
+      "twelfths": 1
+    },
+    {
+      "at": 1756346400000,
+      "heightM": 1.356,
+      "rateMPerHour": 0.3281875,
+      "motion": "rising",
+      "cycleProgress": 0.605978261,
+      "ruleOfTwelfthsHour": 4,
+      "twelfths": 3
+    }
+  ],
+  "dailyRange": [
+    {
+      "from": 1756252800000,
+      "to": 1756291380000,
+      "expectedRangeM": 1.921,
+      "certainty": "published"
+    },
+    {
+      "from": 1756267200000,
+      "to": 1756332000000,
+      "expectedRangeM": 1.919,
+      "certainty": "published"
+    },
+    {
+      "from": 1756252800000,
+      "to": 1756375200000,
+      "expectedRangeM": 1.921,
+      "certainty": "published"
+    },
+    {
+      "from": 1756264620000,
+      "to": 1756296000000,
+      "expectedRangeM": 1.921,
+      "certainty": "published"
+    },
+    {
+      "from": 1756261860000,
+      "to": 1756314240000,
+      "expectedRangeM": 1.921,
+      "certainty": "published"
+    }
+  ],
+  "outOfRange": [
+    {
+      "at": 1756252799999
+    },
+    {
+      "at": 1756375200001
+    }
+  ]
+}

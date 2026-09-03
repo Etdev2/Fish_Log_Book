@@ -1,4 +1,10 @@
-# 007 — Regulations as versioned data, the geospatial model, offline packages, and Leaflet
+# ADR 008 — Regulations as versioned data, the geospatial model, offline packages, and Leaflet
+
+> Renumbered from 007 on 2026-09-03. It was filed as 007 while
+> `007-regional-expansion-and-catch-gps.md` already held that number, which made every
+> bare "ADR 007" citation ambiguous. That ADR landed first and keeps 007; this one moves.
+> Numbered "§N" citations elsewhere in the repo all refer to 007 — this ADR has never had
+> numbered sections.
 
 **Date:** 2026-09-01 · **Status:** accepted
 **Supersedes:** nothing. **Amends:** `005-front-end-architecture.md` §6 (adds one

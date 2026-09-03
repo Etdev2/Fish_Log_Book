@@ -1,0 +1,323 @@
+{
+  "$comment": "Cross-client test vectors for src/core/rules/catch/measurement.ts. ADR 003 \u00a74. AUTHORITY: exact, defined-not-measured SI conversion factors - the 1959 international yard-and-pound agreement (1 lb = 0.45359237 kg, 1 in = 25.4 mm, 1 ft = 0.3048 m, all exact by definition) and NIST SP 811 (1 inHg conventional at 0 \u00b0C = 3386.389 Pa exactly; 1 international nautical mile = 1852 m exactly, so 1 kn = 1852/3600 m/s). Every expected value below was computed from those definitions in a separate implementation, never by running the TypeScript this file polices - a vector file produced by the code it checks proves nothing.",
+  "covers": [
+    "catch/measurement.ts"
+  ],
+  "version": 1,
+  "sources": [
+    {
+      "id": "nist-sp811",
+      "name": "NIST Special Publication 811, Guide for the Use of the International System of Units",
+      "url": "https://www.nist.gov/pml/special-publication-811"
+    },
+    {
+      "id": "yard-pound-1959",
+      "name": "International yard and pound agreement (1959)",
+      "note": "1 avoirdupois pound = 0.45359237 kilogram exactly; 1 inch = 25.4 mm exactly."
+    }
+  ],
+  "constants": {
+    "gramsPerPound": 453.59237,
+    "gramsPerOunce": 28.349523125,
+    "mmPerInch": 25.4,
+    "metresPerFoot": 0.3048,
+    "hPaPerInHg": 33.86389,
+    "mpsPerKnot": 0.5144444444444445
+  },
+  "weightToGrams": [
+    {
+      "value": 84,
+      "unit": "lb",
+      "ounces": 0,
+      "expectedGrams": 38102
+    },
+    {
+      "value": 0,
+      "unit": "lb",
+      "ounces": 0,
+      "expectedGrams": 0
+    },
+    {
+      "value": 12,
+      "unit": "lb",
+      "ounces": 8,
+      "expectedGrams": 5670
+    },
+    {
+      "value": 3.5,
+      "unit": "kg",
+      "ounces": 0,
+      "expectedGrams": 3500
+    },
+    {
+      "value": 1,
+      "unit": "lb",
+      "ounces": 0,
+      "expectedGrams": 454
+    },
+    {
+      "value": -1,
+      "unit": "lb",
+      "ounces": 0,
+      "expectedGrams": null
+    },
+    {
+      "value": 2,
+      "unit": "kg",
+      "ounces": 4,
+      "expectedGrams": null
+    },
+    {
+      "value": 100,
+      "unit": "lb",
+      "ounces": 15.9,
+      "expectedGrams": 45810
+    }
+  ],
+  "lengthToMillimetres": [
+    {
+      "value": 22,
+      "unit": "in",
+      "expectedMm": 559
+    },
+    {
+      "value": 0,
+      "unit": "in",
+      "expectedMm": 0
+    },
+    {
+      "value": 36.5,
+      "unit": "in",
+      "expectedMm": 927
+    },
+    {
+      "value": 55,
+      "unit": "cm",
+      "expectedMm": 550
+    },
+    {
+      "value": 1,
+      "unit": "in",
+      "expectedMm": 25
+    },
+    {
+      "value": -3,
+      "unit": "in",
+      "expectedMm": null
+    }
+  ],
+  "depthToMetres": [
+    {
+      "value": 120,
+      "unit": "ft",
+      "expectedM": 36.58
+    },
+    {
+      "value": 0,
+      "unit": "ft",
+      "expectedM": 0.0
+    },
+    {
+      "value": 33.3,
+      "unit": "ft",
+      "expectedM": 10.15
+    },
+    {
+      "value": 18,
+      "unit": "m",
+      "expectedM": 18.0
+    },
+    {
+      "value": 1,
+      "unit": "ft",
+      "expectedM": 0.3
+    },
+    {
+      "value": -5,
+      "unit": "ft",
+      "expectedM": null
+    }
+  ],
+  "gramsToPoundsOunces": [
+    {
+      "grams": 453.59237,
+      "lb": 1,
+      "oz": 0.0
+    },
+    {
+      "grams": 452,
+      "lb": 0,
+      "oz": 15.9
+    },
+    {
+      "grams": 453.2,
+      "lb": 1,
+      "oz": 0
+    },
+    {
+      "grams": 0,
+      "lb": 0,
+      "oz": 0.0
+    },
+    {
+      "grams": 38102,
+      "lb": 84,
+      "oz": 0.0
+    },
+    {
+      "grams": 907.18474,
+      "lb": 2,
+      "oz": 0.0
+    }
+  ],
+  "fahrenheitToCelsius": [
+    {
+      "f": 32,
+      "expectedC": 0.0
+    },
+    {
+      "f": 212,
+      "expectedC": 100.0
+    },
+    {
+      "f": -40,
+      "expectedC": -40.0
+    },
+    {
+      "f": 70,
+      "expectedC": 21.111111111
+    },
+    {
+      "f": 98.6,
+      "expectedC": 37.0
+    },
+    {
+      "f": 0,
+      "expectedC": -17.777777778
+    }
+  ],
+  "inHgToHpa": [
+    {
+      "inHg": 29.92,
+      "expectedHpa": 1013.2075888
+    },
+    {
+      "inHg": 30.0,
+      "expectedHpa": 1015.9167
+    },
+    {
+      "inHg": 28.5,
+      "expectedHpa": 965.120865
+    },
+    {
+      "inHg": 1.0,
+      "expectedHpa": 33.86389
+    }
+  ],
+  "knotsToMps": [
+    {
+      "knots": 1,
+      "expectedMps": 0.514444444
+    },
+    {
+      "knots": 10,
+      "expectedMps": 5.144444444
+    },
+    {
+      "knots": 20,
+      "expectedMps": 10.288888889
+    },
+    {
+      "knots": 35.5,
+      "expectedMps": 18.262777778
+    }
+  ],
+  "compassLabel": [
+    {
+      "deg": 0,
+      "expected": "N"
+    },
+    {
+      "deg": 22.5,
+      "expected": "NNE"
+    },
+    {
+      "deg": 45,
+      "expected": "NE"
+    },
+    {
+      "deg": 90,
+      "expected": "E"
+    },
+    {
+      "deg": 180,
+      "expected": "S"
+    },
+    {
+      "deg": 270,
+      "expected": "W"
+    },
+    {
+      "deg": 348.75,
+      "expected": "N"
+    },
+    {
+      "deg": 359,
+      "expected": "N"
+    },
+    {
+      "deg": -90,
+      "expected": "W"
+    },
+    {
+      "deg": 450,
+      "expected": "E"
+    },
+    {
+      "deg": null,
+      "expected": null
+    }
+  ],
+  "parseMeasurement": [
+    {
+      "raw": "84",
+      "expected": 84
+    },
+    {
+      "raw": "84.5",
+      "expected": 84.5
+    },
+    {
+      "raw": " 84 ",
+      "expected": 84
+    },
+    {
+      "raw": "84lb",
+      "expected": 84
+    },
+    {
+      "raw": "84 kg",
+      "expected": 84
+    },
+    {
+      "raw": "",
+      "expected": null
+    },
+    {
+      "raw": "abc",
+      "expected": "UNDEFINED"
+    },
+    {
+      "raw": "8.4.5",
+      "expected": "UNDEFINED"
+    },
+    {
+      "raw": ".5",
+      "expected": 0.5
+    },
+    {
+      "raw": "-3",
+      "expected": "UNDEFINED"
+    }
+  ]
+}

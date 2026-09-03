@@ -26,6 +26,17 @@ const GRAMS_PER_KG = 1000;
 const MM_PER_IN = 25.4;
 const MM_PER_CM = 10;
 const M_PER_FT = 0.3048;
+/**
+ * NIST SP 811: one conventional inch of mercury (at 0 °C) is 3386.389 Pa EXACTLY, so
+ * 33.86389 hPa. The old inline 33.8639 was that value truncated, which put a stored
+ * pressure ~0.0003 hPa out at a typical 29.92 inHg.
+ */
+const HPA_PER_INHG = 33.86389;
+/**
+ * The international nautical mile is 1852 m exactly, so a knot is 1852/3600 m/s. The old
+ * inline 0.514444 truncated the repeating decimal.
+ */
+const MPS_PER_KNOT = 1852 / 3600;
 
 /** Guards every parse. NaN, Infinity and negatives are not measurements (spec §40). */
 function finitePositive(value: number): number | null {
@@ -117,18 +128,18 @@ export function celsiusToFahrenheit(c: number): number {
 
 /** inHg on the keypad (US marine forecasts), hectopascals in the row. */
 export function inHgToHpa(inHg: number): number {
-  return inHg * 33.8639;
+  return inHg * HPA_PER_INHG;
 }
 export function hpaToInHg(hpa: number): number {
-  return hpa / 33.8639;
+  return hpa / HPA_PER_INHG;
 }
 
 /** Knots on the keypad (how boats talk), metres/second in the row (how sync talks). */
 export function knotsToMps(knots: number): number {
-  return knots * 0.514444;
+  return knots * MPS_PER_KNOT;
 }
 export function mpsToKnots(mps: number): number {
-  return mps / 0.514444;
+  return mps / MPS_PER_KNOT;
 }
 
 /** 16-point compass label for a direction in degrees. Undefined input is honest data. */

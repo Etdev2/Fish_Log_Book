@@ -6,7 +6,7 @@
  */
 import { execSync } from "node:child_process";
 import { readFileSync, existsSync, readdirSync } from "node:fs";
-import { join } from "node:path";
+import { join, relative, sep } from "node:path";
 
 const failures = [];
 
@@ -82,18 +82,77 @@ for (const file of tracked("'src/**/*.tsx'")) {
 
 /* ---- 3. Every rule in core/rules/ has a test vector (ADR 003 §4). ---- */
 
+/**
+ * This used to `readdirSync("src/core/rules")` and look for `.ts` files. Once the rules
+ * grew subdirectories (`astro/`, `catch/`, `tide/`) that top level held only directories,
+ * so the loop matched NOTHING and the tripwire passed clean by policing nothing at all —
+ * for months, silently. It now walks the tree, and a vector file declares what it covers
+ * so one file can legitimately police a whole module (`astro.json` covers three) without
+ * that being indistinguishable from a gap.
+ *
+ * A module needs a vector when it has behaviour to disagree about — an `export function`.
+ * Type-only files, the constants file and the barrel have nothing for a Swift port to get
+ * wrong, so they are exempt by rule rather than by being quietly missed.
+ */
 const RULES_DIR = "src/core/rules";
 const VECTORS_DIR = join(RULES_DIR, "vectors");
+
+/** Not modules: test files, test scaffolding, and re-export barrels. */
+const isExempt = (rel) =>
+  rel.endsWith(".test.ts") || rel.endsWith("test-support.ts") || rel.endsWith("index.ts");
+
+function walkTs(dir, base = dir) {
+  const out = [];
+  for (const entry of readdirSync(dir, { withFileTypes: true })) {
+    const full = join(dir, entry.name);
+    if (entry.isDirectory()) {
+      if (full === VECTORS_DIR) continue;
+      out.push(...walkTs(full, base));
+    } else if (entry.name.endsWith(".ts")) {
+      out.push(relative(base, full).split(sep).join("/"));
+    }
+  }
+  return out;
+}
+
 if (existsSync(RULES_DIR)) {
-  const vectors = existsSync(VECTORS_DIR) ? readdirSync(VECTORS_DIR) : [];
-  for (const file of readdirSync(RULES_DIR)) {
-    if (!file.endsWith(".ts") || file.endsWith(".test.ts")) continue;
-    const expected = `${file.replace(/\.ts$/, "")}.json`;
-    if (!vectors.includes(expected)) {
+  const modules = walkTs(RULES_DIR).filter(
+    (rel) => !isExempt(rel) && /^export\s+function\s/m.test(readFileSync(join(RULES_DIR, rel), "utf8")),
+  );
+
+  const covered = new Map(); // module path -> vector file that claims it
+  const vectorFiles = existsSync(VECTORS_DIR)
+    ? readdirSync(VECTORS_DIR).filter((f) => f.endsWith(".json"))
+    : [];
+  for (const file of vectorFiles) {
+    const parsed = JSON.parse(readFileSync(join(VECTORS_DIR, file), "utf8"));
+    if (!Array.isArray(parsed.covers) || parsed.covers.length === 0) {
       failures.push(
-        `${join(RULES_DIR, file)} has no test vector (ADR 003 §4). ` +
+        `${join(VECTORS_DIR, file)} has no "covers" array (ADR 003 §4). ` +
+          `A vector file must name the modules it polices — e.g. "covers": ["tide/height.ts"] — ` +
+          `so a module with no vector is distinguishable from one covered by a shared file.`,
+      );
+      continue;
+    }
+    for (const mod of parsed.covers) {
+      if (!existsSync(join(RULES_DIR, mod))) {
+        failures.push(
+          `${join(VECTORS_DIR, file)} claims to cover ${mod}, which does not exist. ` +
+            `Update its "covers" — a vector pointing at a deleted module polices nothing.`,
+        );
+        continue;
+      }
+      covered.set(mod, file);
+    }
+  }
+
+  for (const mod of modules) {
+    if (!covered.has(mod)) {
+      failures.push(
+        `${join(RULES_DIR, mod)} has no test vector (ADR 003 §4). ` +
           `The vectors are what let the Swift client be checked against this one. ` +
-          `Add ${join(VECTORS_DIR, expected)}.`,
+          `Add a file under ${VECTORS_DIR}/ listing "${mod}" in its "covers", with expected ` +
+          `values derived from an outside authority — never from running this implementation.`,
       );
     }
   }

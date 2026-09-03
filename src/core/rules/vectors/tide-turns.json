@@ -1,0 +1,345 @@
+{
+  "$comment": "Cross-client test vectors for src/core/rules/tide/turns.ts. ADR 003 \u00a74. AUTHORITY for `turnsIn`/`nextTurnAfter`/`previousTurnBefore`: the high/low marks are NOAA CO-OPS PUBLISHED turning points for station 9410580 - the module reads them off the series and never rediscovers a turn numerically, so the expected values here are NOAA's, not ours. AUTHORITY for `nextSlackAfter`: the documented threshold rule (walk out from a published turn in 1-minute steps while |rate| stays under `slackBelow`, capped at 6 h either side and clipped to the loaded series), reimplemented independently from that description. A slack WINDOW is an estimate from height predictions, never a measured current - hence certainty `estimated`, per ADR 006 \u00a74.",
+  "covers": [
+    "tide/turns.ts"
+  ],
+  "version": 1,
+  "sources": [
+    {
+      "id": "noaa-coops",
+      "name": "NOAA CO-OPS published tide predictions, station 9410580",
+      "url": "https://tidesandcurrents.noaa.gov/noaatidepredictions.html?id=9410580"
+    }
+  ],
+  "station": {
+    "id": "9410580",
+    "name": "Newport Bay Entrance",
+    "timeZone": "America/Los_Angeles",
+    "datum": "MLLW"
+  },
+  "samples": [
+    [
+      1756252800000,
+      0.931,
+      null
+    ],
+    [
+      1756256400000,
+      1.244,
+      null
+    ],
+    [
+      1756260000000,
+      1.555,
+      null
+    ],
+    [
+      1756263600000,
+      1.778,
+      null
+    ],
+    [
+      1756266720000,
+      1.847,
+      "high"
+    ],
+    [
+      1756267200000,
+      1.845,
+      null
+    ],
+    [
+      1756270800000,
+      1.724,
+      null
+    ],
+    [
+      1756274400000,
+      1.43,
+      null
+    ],
+    [
+      1756278000000,
+      1.019,
+      null
+    ],
+    [
+      1756281600000,
+      0.581,
+      null
+    ],
+    [
+      1756285200000,
+      0.207,
+      null
+    ],
+    [
+      1756288800000,
+      -0.024,
+      null
+    ],
+    [
+      1756291380000,
+      -0.074,
+      "low"
+    ],
+    [
+      1756292400000,
+      -0.066,
+      null
+    ],
+    [
+      1756296000000,
+      0.08,
+      null
+    ],
+    [
+      1756299600000,
+      0.373,
+      null
+    ],
+    [
+      1756303200000,
+      0.736,
+      null
+    ],
+    [
+      1756306800000,
+      1.077,
+      null
+    ],
+    [
+      1756310400000,
+      1.312,
+      null
+    ],
+    [
+      1756313820000,
+      1.39,
+      "high"
+    ],
+    [
+      1756314000000,
+      1.389,
+      null
+    ],
+    [
+      1756317600000,
+      1.303,
+      null
+    ],
+    [
+      1756321200000,
+      1.093,
+      null
+    ],
+    [
+      1756324800000,
+      0.834,
+      null
+    ],
+    [
+      1756328400000,
+      0.61,
+      null
+    ],
+    [
+      1756332000000,
+      0.493,
+      null
+    ],
+    [
+      1756333020000,
+      0.487,
+      "low"
+    ],
+    [
+      1756335600000,
+      0.528,
+      null
+    ],
+    [
+      1756339200000,
+      0.715,
+      null
+    ],
+    [
+      1756342800000,
+      1.015,
+      null
+    ],
+    [
+      1756346400000,
+      1.356,
+      null
+    ],
+    [
+      1756350000000,
+      1.65,
+      null
+    ],
+    [
+      1756353600000,
+      1.814,
+      null
+    ],
+    [
+      1756355100000,
+      1.83,
+      "high"
+    ],
+    [
+      1756357200000,
+      1.796,
+      null
+    ],
+    [
+      1756360800000,
+      1.585,
+      null
+    ],
+    [
+      1756364400000,
+      1.223,
+      null
+    ],
+    [
+      1756368000000,
+      0.787,
+      null
+    ],
+    [
+      1756371600000,
+      0.376,
+      null
+    ],
+    [
+      1756375200000,
+      0.079,
+      null
+    ]
+  ],
+  "slackBelowMPerHour": 0.05,
+  "turnsIn": [
+    {
+      "from": 1756252800000,
+      "to": 1756375200000,
+      "expected": [
+        {
+          "at": 1756266720000,
+          "kind": "high",
+          "heightM": 1.847
+        },
+        {
+          "at": 1756291380000,
+          "kind": "low",
+          "heightM": -0.074
+        },
+        {
+          "at": 1756313820000,
+          "kind": "high",
+          "heightM": 1.39
+        },
+        {
+          "at": 1756333020000,
+          "kind": "low",
+          "heightM": 0.487
+        },
+        {
+          "at": 1756355100000,
+          "kind": "high",
+          "heightM": 1.83
+        }
+      ]
+    },
+    {
+      "from": 1756252800000,
+      "to": 1756285200000,
+      "expected": [
+        {
+          "at": 1756266720000,
+          "kind": "high",
+          "heightM": 1.847
+        }
+      ]
+    }
+  ],
+  "nextTurnAfter": [
+    {
+      "at": 1756252800000,
+      "expected": {
+        "at": 1756266720000,
+        "kind": "high",
+        "heightM": 1.847
+      }
+    },
+    {
+      "at": 1756267200000,
+      "expected": {
+        "at": 1756291380000,
+        "kind": "low",
+        "heightM": -0.074
+      }
+    },
+    {
+      "at": 1756375200000,
+      "expected": null
+    }
+  ],
+  "previousTurnBefore": [
+    {
+      "at": 1756252800000,
+      "expected": null
+    },
+    {
+      "at": 1756267200000,
+      "expected": {
+        "at": 1756266720000,
+        "kind": "high",
+        "heightM": 1.847
+      }
+    },
+    {
+      "at": 1756375200000,
+      "expected": {
+        "at": 1756355100000,
+        "kind": "high",
+        "heightM": 1.83
+      }
+    }
+  ],
+  "nextSlackAfter": [
+    {
+      "after": 1756252800000,
+      "centre": 1756266720000,
+      "turn": "high",
+      "from": 1756265760000,
+      "to": 1756267560000,
+      "certainty": "estimated"
+    },
+    {
+      "after": 1756263600000,
+      "centre": 1756266720000,
+      "turn": "high",
+      "from": 1756265760000,
+      "to": 1756267560000,
+      "certainty": "estimated"
+    },
+    {
+      "after": 1756285200000,
+      "centre": 1756291380000,
+      "turn": "low",
+      "from": 1756290480000,
+      "to": 1756292160000,
+      "certainty": "estimated"
+    },
+    {
+      "after": 1756314000000,
+      "centre": 1756333020000,
+      "turn": "low",
+      "from": 1756332000000,
+      "to": 1756334100000,
+      "certainty": "estimated"
+    }
+  ]
+}

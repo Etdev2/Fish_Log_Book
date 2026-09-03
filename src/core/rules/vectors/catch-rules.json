@@ -1,5 +1,8 @@
 {
-  "$comment": "ADR 003 §4. Loaded by src/core/rules/catch/rules.test.ts and, when the Swift client exists, by its unit tests off this same file. When the two clients disagree about which day a 01:30 halibut belongs to, this file says who is wrong.",
+  "$comment": "ADR 003 \u00a74. Loaded by src/core/rules/catch/rules.test.ts and, when the Swift client exists, by its unit tests off this same file. When the two clients disagree about which day a 01:30 halibut belongs to, this file says who is wrong.",
+  "covers": [
+    "catch/rules.ts"
+  ],
   "localDate": [
     {
       "name": "an afternoon fish is on its own day",
@@ -76,28 +79,112 @@
     }
   ],
   "resolutionTransitions": [
-    { "from": "unresolved", "to": "confirmed", "allowed": true },
-    { "from": "unresolved", "to": "dismissed", "allowed": true },
-    { "from": "confirmed", "to": "dismissed", "allowed": true },
-    { "from": "confirmed", "to": "unresolved", "allowed": false },
-    { "from": "dismissed", "to": "unresolved", "allowed": false },
-    { "from": "confirmed", "to": "confirmed", "allowed": true }
+    {
+      "from": "unresolved",
+      "to": "confirmed",
+      "allowed": true
+    },
+    {
+      "from": "unresolved",
+      "to": "dismissed",
+      "allowed": true
+    },
+    {
+      "from": "confirmed",
+      "to": "dismissed",
+      "allowed": true
+    },
+    {
+      "from": "confirmed",
+      "to": "unresolved",
+      "allowed": false
+    },
+    {
+      "from": "dismissed",
+      "to": "unresolved",
+      "allowed": false
+    },
+    {
+      "from": "confirmed",
+      "to": "confirmed",
+      "allowed": true
+    }
   ],
   "measurement": [
-    { "name": "84 lb", "value": 84, "unit": "lb", "ounces": 0, "expectedGrams": 38102 },
-    { "name": "12 lb 4 oz", "value": 12, "unit": "lb", "ounces": 4, "expectedGrams": 5557 },
-    { "name": "3.5 kg", "value": 3.5, "unit": "kg", "ounces": 0, "expectedGrams": 3500 },
-    { "name": "zero is a legal weight", "value": 0, "unit": "lb", "ounces": 0, "expectedGrams": 0 },
-    { "name": "a negative weight is not a measurement", "value": -1, "unit": "lb", "ounces": 0, "expectedGrams": null }
+    {
+      "name": "84 lb",
+      "value": 84,
+      "unit": "lb",
+      "ounces": 0,
+      "expectedGrams": 38102
+    },
+    {
+      "name": "12 lb 4 oz",
+      "value": 12,
+      "unit": "lb",
+      "ounces": 4,
+      "expectedGrams": 5557
+    },
+    {
+      "name": "3.5 kg",
+      "value": 3.5,
+      "unit": "kg",
+      "ounces": 0,
+      "expectedGrams": 3500
+    },
+    {
+      "name": "zero is a legal weight",
+      "value": 0,
+      "unit": "lb",
+      "ounces": 0,
+      "expectedGrams": 0
+    },
+    {
+      "name": "a negative weight is not a measurement",
+      "value": -1,
+      "unit": "lb",
+      "ounces": 0,
+      "expectedGrams": null
+    }
   ],
   "length": [
-    { "name": "28 in", "value": 28, "unit": "in", "expectedMm": 711 },
-    { "name": "71 cm", "value": 71, "unit": "cm", "expectedMm": 710 },
-    { "name": "negative rejected", "value": -5, "unit": "in", "expectedMm": null }
+    {
+      "name": "28 in",
+      "value": 28,
+      "unit": "in",
+      "expectedMm": 711
+    },
+    {
+      "name": "71 cm",
+      "value": 71,
+      "unit": "cm",
+      "expectedMm": 710
+    },
+    {
+      "name": "negative rejected",
+      "value": -5,
+      "unit": "in",
+      "expectedMm": null
+    }
   ],
   "depth": [
-    { "name": "250 ft", "value": 250, "unit": "ft", "expectedMetres": 76.2 },
-    { "name": "30 m", "value": 30, "unit": "m", "expectedMetres": 30 },
-    { "name": "negative rejected", "value": -3, "unit": "ft", "expectedMetres": null }
+    {
+      "name": "250 ft",
+      "value": 250,
+      "unit": "ft",
+      "expectedMetres": 76.2
+    },
+    {
+      "name": "30 m",
+      "value": 30,
+      "unit": "m",
+      "expectedMetres": 30
+    },
+    {
+      "name": "negative rejected",
+      "value": -3,
+      "unit": "ft",
+      "expectedMetres": null
+    }
   ]
 }

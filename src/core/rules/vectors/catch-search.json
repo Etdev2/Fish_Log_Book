@@ -1,0 +1,441 @@
+{
+  "$comment": "Cross-client test vectors for src/core/rules/catch/search.ts. ADR 003 \u00a74. AUTHORITY: the documented behaviour of the module - the haystack field list, AND-of-tokens matching, the filter predicates, newest-first ordering with the UUIDv7 id as the documented tie-break, and newest-day-first grouping - reimplemented independently from that description rather than by running the TypeScript. This is what stops the Swift log screen quietly disagreeing with the web one about which fish are in the list and in what order. Records here carry only the fields the module reads; the test fills the rest of CatchRecord from a base template.",
+  "covers": [
+    "catch/search.ts"
+  ],
+  "version": 1,
+  "sources": [
+    {
+      "id": "module-contract",
+      "name": "src/core/rules/catch/search.ts module contract and ADR 004 \u00a72 (UUIDv7 ids are mint-ordered, which is what makes the id a stable tie-break)"
+    }
+  ],
+  "items": [
+    {
+      "id": "01900000-0000-7000-8000-00000000000a",
+      "caught_at": "2026-09-01T15:00:00Z",
+      "local_date": "2026-09-01",
+      "species_id": "california_halibut",
+      "spot_id": "spot-jetty",
+      "trip_id": "trip-1",
+      "disposition": "kept",
+      "resolution_state": "confirmed",
+      "favorite": true,
+      "deleted_at": null,
+      "species_other": null,
+      "notes": "big flatty on the ebb",
+      "presentation": "slow roll",
+      "platform": "shore",
+      "tags": [
+        "pb"
+      ],
+      "speciesName": "California halibut",
+      "spotName": "The Jetty",
+      "gear": [
+        {
+          "role": "lure",
+          "label": "Lucky Craft",
+          "detail": "MS American Shad"
+        },
+        {
+          "role": "main_line",
+          "label": "PowerPro",
+          "detail": "20 lb"
+        }
+      ]
+    },
+    {
+      "id": "01900000-0000-7000-8000-00000000000b",
+      "caught_at": "2026-09-01T17:30:00Z",
+      "local_date": "2026-09-01",
+      "species_id": "barred_surfperch",
+      "spot_id": "spot-jetty",
+      "trip_id": "trip-1",
+      "disposition": "released",
+      "resolution_state": "unresolved",
+      "favorite": false,
+      "deleted_at": null,
+      "species_other": null,
+      "notes": null,
+      "presentation": null,
+      "platform": "shore",
+      "tags": [],
+      "speciesName": "Barred surfperch",
+      "spotName": "The Jetty",
+      "gear": []
+    },
+    {
+      "id": "01900000-0000-7000-8000-00000000000c",
+      "caught_at": "2026-08-30T14:00:00Z",
+      "local_date": "2026-08-30",
+      "species_id": null,
+      "spot_id": "spot-reef",
+      "trip_id": "trip-2",
+      "disposition": "released",
+      "resolution_state": "unresolved",
+      "favorite": false,
+      "deleted_at": null,
+      "species_other": "weird little rockfish",
+      "notes": "released, could not ID",
+      "presentation": null,
+      "platform": "kayak",
+      "tags": [
+        "mystery"
+      ],
+      "speciesName": null,
+      "spotName": "Inner Reef",
+      "gear": [
+        {
+          "role": "rod",
+          "label": "Ugly Stik",
+          "detail": null
+        }
+      ]
+    },
+    {
+      "id": "01900000-0000-7000-8000-00000000000d",
+      "caught_at": "2026-09-01T15:00:00Z",
+      "local_date": "2026-09-01",
+      "species_id": "california_halibut",
+      "spot_id": "spot-reef",
+      "trip_id": "trip-2",
+      "disposition": "kept",
+      "resolution_state": "confirmed",
+      "favorite": false,
+      "deleted_at": null,
+      "species_other": null,
+      "notes": "same minute as the jetty fish - id breaks the tie",
+      "presentation": null,
+      "platform": "boat",
+      "tags": [],
+      "speciesName": "California halibut",
+      "spotName": "Inner Reef",
+      "gear": []
+    },
+    {
+      "id": "01900000-0000-7000-8000-00000000000e",
+      "caught_at": "2026-09-02T09:00:00Z",
+      "local_date": "2026-09-02",
+      "species_id": "california_halibut",
+      "spot_id": "spot-jetty",
+      "trip_id": "trip-3",
+      "disposition": "kept",
+      "resolution_state": "confirmed",
+      "favorite": true,
+      "deleted_at": "2026-09-02T10:00:00Z",
+      "species_other": null,
+      "notes": "deleted, must never appear",
+      "presentation": null,
+      "platform": "shore",
+      "tags": [],
+      "speciesName": "California halibut",
+      "spotName": "The Jetty",
+      "gear": []
+    }
+  ],
+  "tokenize": [
+    {
+      "query": "halibut",
+      "expected": [
+        "halibut"
+      ]
+    },
+    {
+      "query": "  BIG   FLATTY ",
+      "expected": [
+        "big",
+        "flatty"
+      ]
+    },
+    {
+      "query": "",
+      "expected": []
+    },
+    {
+      "query": "   ",
+      "expected": []
+    },
+    {
+      "query": "Lucky Craft",
+      "expected": [
+        "lucky",
+        "craft"
+      ]
+    }
+  ],
+  "filterCatches": [
+    {
+      "name": "no filters drops only the soft-deleted row",
+      "filters": {
+        "query": "",
+        "view": "all",
+        "speciesId": null,
+        "spotId": null,
+        "tripId": null,
+        "disposition": null,
+        "fromDate": null,
+        "toDate": null
+      },
+      "expectedIds": [
+        "01900000-0000-7000-8000-00000000000a",
+        "01900000-0000-7000-8000-00000000000b",
+        "01900000-0000-7000-8000-00000000000c",
+        "01900000-0000-7000-8000-00000000000d"
+      ]
+    },
+    {
+      "name": "favorites view",
+      "filters": {
+        "query": "",
+        "view": "favorites",
+        "speciesId": null,
+        "spotId": null,
+        "tripId": null,
+        "disposition": null,
+        "fromDate": null,
+        "toDate": null
+      },
+      "expectedIds": [
+        "01900000-0000-7000-8000-00000000000a"
+      ]
+    },
+    {
+      "name": "needs_details is the unresolved queue",
+      "filters": {
+        "query": "",
+        "view": "needs_details",
+        "speciesId": null,
+        "spotId": null,
+        "tripId": null,
+        "disposition": null,
+        "fromDate": null,
+        "toDate": null
+      },
+      "expectedIds": [
+        "01900000-0000-7000-8000-00000000000b",
+        "01900000-0000-7000-8000-00000000000c"
+      ]
+    },
+    {
+      "name": "by species",
+      "filters": {
+        "query": "",
+        "view": "all",
+        "speciesId": "california_halibut",
+        "spotId": null,
+        "tripId": null,
+        "disposition": null,
+        "fromDate": null,
+        "toDate": null
+      },
+      "expectedIds": [
+        "01900000-0000-7000-8000-00000000000a",
+        "01900000-0000-7000-8000-00000000000d"
+      ]
+    },
+    {
+      "name": "by spot",
+      "filters": {
+        "query": "",
+        "view": "all",
+        "speciesId": null,
+        "spotId": "spot-jetty",
+        "tripId": null,
+        "disposition": null,
+        "fromDate": null,
+        "toDate": null
+      },
+      "expectedIds": [
+        "01900000-0000-7000-8000-00000000000a",
+        "01900000-0000-7000-8000-00000000000b"
+      ]
+    },
+    {
+      "name": "by trip",
+      "filters": {
+        "query": "",
+        "view": "all",
+        "speciesId": null,
+        "spotId": null,
+        "tripId": "trip-2",
+        "disposition": null,
+        "fromDate": null,
+        "toDate": null
+      },
+      "expectedIds": [
+        "01900000-0000-7000-8000-00000000000c",
+        "01900000-0000-7000-8000-00000000000d"
+      ]
+    },
+    {
+      "name": "by disposition",
+      "filters": {
+        "query": "",
+        "view": "all",
+        "speciesId": null,
+        "spotId": null,
+        "tripId": null,
+        "disposition": "kept",
+        "fromDate": null,
+        "toDate": null
+      },
+      "expectedIds": [
+        "01900000-0000-7000-8000-00000000000a",
+        "01900000-0000-7000-8000-00000000000d"
+      ]
+    },
+    {
+      "name": "inclusive date bounds",
+      "filters": {
+        "query": "",
+        "view": "all",
+        "speciesId": null,
+        "spotId": null,
+        "tripId": null,
+        "disposition": null,
+        "fromDate": "2026-09-01",
+        "toDate": "2026-09-01"
+      },
+      "expectedIds": [
+        "01900000-0000-7000-8000-00000000000a",
+        "01900000-0000-7000-8000-00000000000b",
+        "01900000-0000-7000-8000-00000000000d"
+      ]
+    },
+    {
+      "name": "query matches free-text species_other",
+      "filters": {
+        "query": "weird",
+        "view": "all",
+        "speciesId": null,
+        "spotId": null,
+        "tripId": null,
+        "disposition": null,
+        "fromDate": null,
+        "toDate": null
+      },
+      "expectedIds": [
+        "01900000-0000-7000-8000-00000000000c"
+      ]
+    },
+    {
+      "name": "query matches a gear label",
+      "filters": {
+        "query": "lucky",
+        "view": "all",
+        "speciesId": null,
+        "spotId": null,
+        "tripId": null,
+        "disposition": null,
+        "fromDate": null,
+        "toDate": null
+      },
+      "expectedIds": [
+        "01900000-0000-7000-8000-00000000000a"
+      ]
+    },
+    {
+      "name": "query matches a gear role with the underscore spelled as a space",
+      "filters": {
+        "query": "main line",
+        "view": "all",
+        "speciesId": null,
+        "spotId": null,
+        "tripId": null,
+        "disposition": null,
+        "fromDate": null,
+        "toDate": null
+      },
+      "expectedIds": [
+        "01900000-0000-7000-8000-00000000000a"
+      ]
+    },
+    {
+      "name": "every token must match",
+      "filters": {
+        "query": "halibut jetty",
+        "view": "all",
+        "speciesId": null,
+        "spotId": null,
+        "tripId": null,
+        "disposition": null,
+        "fromDate": null,
+        "toDate": null
+      },
+      "expectedIds": [
+        "01900000-0000-7000-8000-00000000000a",
+        "01900000-0000-7000-8000-00000000000d"
+      ]
+    },
+    {
+      "name": "a token that matches nothing",
+      "filters": {
+        "query": "halibut tuna",
+        "view": "all",
+        "speciesId": null,
+        "spotId": null,
+        "tripId": null,
+        "disposition": null,
+        "fromDate": null,
+        "toDate": null
+      },
+      "expectedIds": []
+    },
+    {
+      "name": "query is case- and whitespace-insensitive",
+      "filters": {
+        "query": "  BIG   FLATTY ",
+        "view": "all",
+        "speciesId": null,
+        "spotId": null,
+        "tripId": null,
+        "disposition": null,
+        "fromDate": null,
+        "toDate": null
+      },
+      "expectedIds": [
+        "01900000-0000-7000-8000-00000000000a"
+      ]
+    },
+    {
+      "name": "filters compose",
+      "filters": {
+        "query": "ebb",
+        "view": "favorites",
+        "speciesId": "california_halibut",
+        "spotId": null,
+        "tripId": null,
+        "disposition": null,
+        "fromDate": null,
+        "toDate": null
+      },
+      "expectedIds": [
+        "01900000-0000-7000-8000-00000000000a"
+      ]
+    }
+  ],
+  "sortByMostRecent": {
+    "expectedIds": [
+      "01900000-0000-7000-8000-00000000000b",
+      "01900000-0000-7000-8000-00000000000d",
+      "01900000-0000-7000-8000-00000000000a",
+      "01900000-0000-7000-8000-00000000000c"
+    ]
+  },
+  "groupByLocalDate": [
+    {
+      "date": "2026-09-01",
+      "ids": [
+        "01900000-0000-7000-8000-00000000000b",
+        "01900000-0000-7000-8000-00000000000d",
+        "01900000-0000-7000-8000-00000000000a"
+      ]
+    },
+    {
+      "date": "2026-08-30",
+      "ids": [
+        "01900000-0000-7000-8000-00000000000c"
+      ]
+    }
+  ]
+}
