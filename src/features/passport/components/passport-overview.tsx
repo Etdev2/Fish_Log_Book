@@ -18,6 +18,16 @@ export function PassportOverview() {
   const { hydrated, totals, collections, badges, slams, nearestGoals } = usePassport();
   const earned = badges.filter((b) => b.earned);
   const newest = totals.latestNewSpecies;
+  /*
+    `collections` arrives ordered region-first, so its head is the angler's own water and
+    then the families. The other regions are real but they are not this page's job — a
+    Californian does not need Maine's progress on their overview, and forty rows is not a
+    summary. The full list has its own page.
+  */
+  const homeRegionId = collections.find((c) => c.definition.regionId !== null)?.definition.regionId;
+  const shownCollections = collections.filter(
+    (c) => c.definition.regionId === null || c.definition.regionId === homeRegionId,
+  );
   const slamsDone = slams.filter((s) => s.standing.achieved).length;
   // The single closest near miss, and only if someone has actually started one.
   const nearestSlam = slams
@@ -98,7 +108,7 @@ export function PassportOverview() {
       <section className={`${CARD_CLASS} p-4`}>
         <h2 className="text-h3">Collections</h2>
         <ul className="mt-3 flex flex-col gap-2">
-          {collections.map(({ definition, progress }) => (
+          {shownCollections.map(({ definition, progress }) => (
             <li key={definition.id}>
               <Link
                 href={`/passport/collections/${definition.id}`}
@@ -113,6 +123,11 @@ export function PassportOverview() {
             </li>
           ))}
         </ul>
+        {collections.length > shownCollections.length ? (
+          <Link href="/passport/collections" className={`${SECONDARY_BUTTON} mt-3`}>
+            All {collections.length} collections
+          </Link>
+        ) : null}
       </section>
 
       {/*

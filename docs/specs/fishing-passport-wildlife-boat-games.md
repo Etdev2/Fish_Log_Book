@@ -1383,3 +1383,50 @@ Ten slams, each carrying its source so a house rule cannot pass as IGFA's:
 Sources: IGFA slam rules (igfa.org), the published SoCal trifecta (BDOutdoors), the Texas
 Saltwater Slam, and the Martha's Vineyard derby tradition. The two founder-specified
 trifectas and the Salmon Slam are marked as house rules, not IGFA categories.
+
+## 49. Regional collections and a taxonomy correction (founder, 2026-09-03)
+
+### 49.1 Regional collections are back on, and §45.1 still stands
+
+§45.1 cut geographic collections because no catch carries a region. They ship now, for the
+same reason slams do (§48.1): **the species list is the geography.** A Southern California
+collection is the fish an angler meets there; filling it is evidence enough, and no catch is
+ever asked where it happened.
+
+The distinction §45.1 was really protecting is intact — nothing here claims a *catch*
+occurred in a region. That claim still has no data behind it, and **New Waters I stays cut**,
+because counting distinct regions an angler has fished genuinely does require the field that
+does not exist.
+
+Membership comes from `popularSpeciesIds` — the researched starter lists the species picker
+already uses — so there is one region vocabulary rather than two. Forty-two collections
+ship: 30 regional, plus families and habitats. The regional lists run 8–12 species, which is
+a size an angler can finish; that is not luck, it is what those lists were curated to be.
+
+Two regions are excluded. `custom` leads with no species by design, and the five `ca_gma_*`
+entries are Fish Legal's groundfish management areas — regulatory splits of one coastline,
+not places with their own fish.
+
+Region orders the list; it never decides what counts. The overview shows the angler's own
+region and the families; the full list lives at `/passport/collections`.
+
+### 49.2 The sea basses are not bass
+
+Founder correction, and taxonomically right:
+
+| Species | Was | Now | Family |
+|---|---|---|---|
+| White seabass | Bass | **Croaker** | Sciaenidae — the largest croaker on the coast |
+| Black sea bass | Bass | **Grouper and sea bass** | Serranidae |
+| Giant sea bass | Bass | **Grouper and sea bass** | Moved with them; still protected, still informational-only |
+
+Giant sea bass was not named in the request. It moved anyway, because leaving it in a
+collection its own name argues against would contradict the correction being made. It stays
+excluded from completion wherever it sits.
+
+New collections in the same pass: **Grouper and sea bass**, **Marlin** (blue, black, striped,
+white), and **Pelagic** (the tunas, billfish, dorado, wahoo and company).
+
+Still open, noted not fixed: red drum, black drum and the seatrout are also Sciaenidae and
+could join Croaker. They were not part of the request, and moving fish people think of as
+"redfish" into a croaker collection is a product call rather than a taxonomic one.

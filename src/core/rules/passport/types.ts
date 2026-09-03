@@ -56,7 +56,7 @@ export interface PassportTotals {
   readonly latestNewSpecies: { readonly speciesId: string; readonly caughtAt: string } | null;
 }
 
-export type CollectionType = "family" | "habitat";
+export type CollectionType = "family" | "habitat" | "region";
 
 /**
  * One species' place in a collection (spec §29.2).
@@ -85,6 +85,12 @@ export interface CollectionDefinition {
   readonly name: string;
   readonly description: string;
   readonly collectionType: CollectionType;
+  /**
+   * Set for regional collections, and used only to order them for an angler who has told
+   * Settings where they fish. Never consulted when deciding whether a catch counts — a
+   * catch carries no region (spec §45.1), and the species list is the geography (§48.1).
+   */
+  readonly regionId: string | null;
   readonly version: number;
   readonly active: boolean;
   readonly species: readonly CollectionSpecies[];

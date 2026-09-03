@@ -156,6 +156,7 @@ describe("collectionProgress", () => {
         name: vector.definition.id,
         description: "",
         collectionType: "family",
+        regionId: null,
         version: 1,
         active: true,
         species: [
@@ -189,6 +190,7 @@ describe("collectionProgress", () => {
       name: "Empty",
       description: "",
       collectionType: "family",
+      regionId: null,
       version: 1,
       active: true,
       species: [],

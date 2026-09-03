@@ -8,7 +8,7 @@ import { evaluateSlams } from "@/core/rules/slams/evaluate";
 import type { SlamDefinition, SlamStanding } from "@/core/rules/slams/types";
 import { evaluateBadges } from "@/core/rules/achievements/evaluate";
 import type { BadgeStanding } from "@/core/rules/achievements/types";
-import { COLLECTIONS, GROUP_SPECIES_IDS } from "@/core/rules/passport/collections";
+import { collectionsForRegion, GROUP_SPECIES_IDS } from "@/core/rules/passport/collections";
 import {
   collectionProgress,
   passportTotals,
@@ -83,7 +83,7 @@ export function usePassport(): PassportView {
     const byId = new Map(summaries.map((s) => [s.speciesId, s]));
     const caughtSpeciesIds = new Set(byId.keys());
 
-    const collections = COLLECTIONS.map((definition) => ({
+    const collections = collectionsForRegion(regionId).map((definition) => ({
       definition,
       progress: collectionProgress(definition, caughtSpeciesIds, GROUP_SPECIES_IDS),
     }));
