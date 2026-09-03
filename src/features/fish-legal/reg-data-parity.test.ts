@@ -13,6 +13,10 @@ import { MISSISSIPPI } from "./mississippi-pack";
 import { ALABAMA } from "./alabama-pack";
 import { BAJA_CALIFORNIA } from "./baja-pack";
 import { BAJA_CALIFORNIA_SUR } from "./bcs-pack";
+import { MASSACHUSETTS } from "./massachusetts-pack";
+import { RHODE_ISLAND } from "./rhode-island-pack";
+import { NEW_YORK } from "./new-york-pack";
+import { NEW_JERSEY } from "./new-jersey-pack";
 
 const LATER_BUNDLES = [
   NORCAL, CA_FRESHWATER, TEXAS, LOUISIANA, MISSISSIPPI, ALABAMA,

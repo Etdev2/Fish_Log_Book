@@ -31,6 +31,9 @@ export type RegionId =
   | "cabo_baja"
   | "gulf_coast"
   | "northeast"
+  | "rhode_island"
+  | "new_york"
+  | "new_jersey"
   | "great_lakes"
   /** California inland waters (CDFW statewide defaults; named waters override). */
   | "california_freshwater"
@@ -68,7 +71,10 @@ export const REGIONS: readonly Region[] = [
   { id: "hawaii", label: "Hawaii", hint: "Ahi, ono, mahi, ulua, marlin." },
   { id: "cabo_baja", label: "Cabo / Baja", hint: "Marlin, dorado, tuna, roosterfish." },
   { id: "gulf_coast", label: "Gulf Coast", hint: "Redfish, specks, snapper, cobia." },
-  { id: "northeast", label: "Northeast", hint: "Stripers, blues, fluke, tog, cod." },
+  { id: "northeast", label: "Northeast", hint: "Massachusetts DMF: stripers, blues, fluke, tog, cod." },
+  { id: "rhode_island", label: "Rhode Island", hint: "Narragansett Bay & Block Island: stripers, tautog, fluke, scup." },
+  { id: "new_york", label: "New York", hint: "Marine District: stripers, fluke, porgies, tautog LIS vs Bight." },
+  { id: "new_jersey", label: "New Jersey", hint: "Cape May to Sandy Hook: stripers, fluke, sea bass, tautog." },
   { id: "great_lakes", label: "Great Lakes", hint: "Walleye, salmon and trout, perch, bass." },
   { id: "california_freshwater", label: "California — Freshwater", hint: "Lakes, rivers, Delta: bass, trout, striper, sturgeon." },
   { id: "texas", label: "Texas", hint: "Galveston to Padre Island: redfish, specks, flounder." },
@@ -234,6 +240,18 @@ const BY_REGION: Record<RegionId, readonly string[]> = {
     "pollock",
     "false_albacore",
     "weakfish",
+  ],
+  rhode_island: [
+    "striped_bass", "tautog", "summer_flounder", "black_sea_bass",
+    "scup", "bluefish", "weakfish", "winter_flounder",
+  ],
+  new_york: [
+    "striped_bass", "summer_flounder", "black_sea_bass", "tautog",
+    "scup", "bluefish", "weakfish", "atlantic_cod",
+  ],
+  new_jersey: [
+    "striped_bass", "summer_flounder", "black_sea_bass", "tautog",
+    "bluefish", "weakfish", "scup", "black_drum",
   ],
   great_lakes: [
     "walleye",
