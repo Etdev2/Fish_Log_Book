@@ -54,6 +54,60 @@ interface FishLogDB extends DBSchema {
   media: { key: string; value: { id: string; catch_id: string; blob: Blob; created_at: string } };
 }
 
+/** The subset of the upgrade-time database handle the ladder below actually uses. */
+export type UpgradeDb = Pick<
+  IDBPDatabase<FishLogDB>,
+  "createObjectStore" | "objectStoreNames"
+>;
+
+/**
+ * The schema ladder, split out from `openDB` so the upgrade path is testable without a
+ * live IndexedDB. `db` is the upgrade-time handle idb hands the callback.
+ */
+export function applyUpgrade(db: UpgradeDb, oldVersion: number): void {
+  // Additive steps rather than a rebuild, so an angler who already logged catches
+  // keeps them: a wipe-and-recreate here would silently destroy a local-first log
+  // that has never synced anywhere.
+  //
+  // One `if (oldVersion < N)` block per version, each running every step that
+  // version introduced, and NO early return. IndexedDB calls this once with the
+  // version the device is actually on, so a device coming from v1 must fall
+  // through every later block in turn. The previous shape returned as soon as it
+  // had handled v2, which was correct while 2 was the newest version and would
+  // have silently skipped v3's stores for anyone upgrading from v1. Add the next
+  // version as another block below; do not add a return.
+  if (oldVersion < 1) {
+    db.createObjectStore("trip", { keyPath: "id" });
+
+    const rig = db.createObjectStore("trip_rig", { keyPath: "id" });
+    rig.createIndex("by_trip", "trip_id");
+
+    const catches = db.createObjectStore("catch", { keyPath: "id" });
+    catches.createIndex("by_trip", "trip_id");
+    // The log lists by day and the calendar counts by day; both want this index
+    // rather than a full scan once a power user has 10,000 catches (spec §41).
+    catches.createIndex("by_local_date", "local_date");
+
+    const gear = db.createObjectStore("catch_gear", { keyPath: "id" });
+    gear.createIndex("by_catch", "catch_id");
+
+    const snapshots = db.createObjectStore("condition_snapshot", { keyPath: "id" });
+    snapshots.createIndex("by_catch", "catch_id");
+
+    const outbox = db.createObjectStore("outbox", { keyPath: "id" });
+    outbox.createIndex("by_state", "state");
+
+    db.createObjectStore("meta");
+    db.createObjectStore("media", { keyPath: "id" });
+  }
+
+  // v2 adds `location_condition`.
+  if (oldVersion < 2 && !db.objectStoreNames.contains("location_condition")) {
+    const locations = db.createObjectStore("location_condition", { keyPath: "id" });
+    locations.createIndex("by_trip", "trip_id");
+  }
+}
+
 let dbPromise: Promise<IDBPDatabase<FishLogDB>> | null = null;
 
 export function isIndexedDbAvailable(): boolean {
@@ -64,42 +118,7 @@ export function getDb(): Promise<IDBPDatabase<FishLogDB>> {
   if (!dbPromise) {
     dbPromise = openDB<FishLogDB>(DB_NAME, DB_VERSION, {
       upgrade(db, oldVersion) {
-        // v2 adds `location_condition`. Written as additive steps rather than a rebuild
-        // so an angler who already logged catches keeps them: a wipe-and-recreate here
-        // would silently destroy a local-first log that has never synced anywhere.
-        if (oldVersion >= 1) {
-          if (!db.objectStoreNames.contains("location_condition")) {
-            const locations = db.createObjectStore("location_condition", { keyPath: "id" });
-            locations.createIndex("by_trip", "trip_id");
-          }
-          return;
-        }
-
-        db.createObjectStore("trip", { keyPath: "id" });
-
-        const rig = db.createObjectStore("trip_rig", { keyPath: "id" });
-        rig.createIndex("by_trip", "trip_id");
-
-        const catches = db.createObjectStore("catch", { keyPath: "id" });
-        catches.createIndex("by_trip", "trip_id");
-        // The log lists by day and the calendar counts by day; both want this index
-        // rather than a full scan once a power user has 10,000 catches (spec §41).
-        catches.createIndex("by_local_date", "local_date");
-
-        const gear = db.createObjectStore("catch_gear", { keyPath: "id" });
-        gear.createIndex("by_catch", "catch_id");
-
-        const snapshots = db.createObjectStore("condition_snapshot", { keyPath: "id" });
-        snapshots.createIndex("by_catch", "catch_id");
-
-        const outbox = db.createObjectStore("outbox", { keyPath: "id" });
-        outbox.createIndex("by_state", "state");
-
-        const locations = db.createObjectStore("location_condition", { keyPath: "id" });
-        locations.createIndex("by_trip", "trip_id");
-
-        db.createObjectStore("meta");
-        db.createObjectStore("media", { keyPath: "id" });
+        applyUpgrade(db, oldVersion);
       },
     });
   }
