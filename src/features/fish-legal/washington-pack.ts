@@ -18,8 +18,8 @@ import type { RegArea, RegGroup, RegPack, RegRule } from "./types";
 
 export const WASHINGTON_PACK: RegPack = {
   id: "washington-2026-09-02",
-  version: 5,
-  publishedAt: "2026-09-02T12:00:00Z",
+  version: 7,
+  publishedAt: "2026-09-03T20:00:00Z",
   notes:
     "Washington ocean Marine Areas 1-4 (WDFW news release March 5, 2026) — v2 deepens " +
     "with the inside-waters doctrine (no rockfish 6-13, barbless hooks 5-13), Puget " +
@@ -30,7 +30,7 @@ export const WASHINGTON_PACK: RegPack = {
     "bottomfish daily, >120ft fishing prohibited, descending device required, lingcod " +
     "May 1-Jun 15 slot 26-36 in (spear May 21-Jun 15, hook-and-line from May 1), " +
     "cabezon May 1-Nov 30 @18 in @1, rockfish closed, cod/pollock/hake/wolf-eel closed, " +
-    "salmon headline windows as notes. v4 lands the Crab Rules page verbatim: Puget Sound (Dungeness 5 @ 6.25 in males hardshell / Red Rock 6 @ 5 in / Tanner 6 @ 4.5 in; CRC + endorsement; MA12 south of Ayock Point + MA13 closed to crab in 2026), Pacific Ocean (Dungeness 6 @ 6 in + Red Rock 6 @ 5 in; pot window Dec 1-Sep 15, year-round other gear; Willapa Bay pots Nov 15-Sep 15), Columbia River estuary (Dungeness 12 @ 5.75 in, year-round all gear), European green crab report-and-release. v5 lands the Shrimp Rules page verbatim: Puget Sound 80 spot shrimp/day cap inside a 10-lb all-species combined limit with 2026 spot closures (MA 8-1/8-2/9/10/11/13) as prohibited rows; Pacific Ocean 25-lb combined (max 200 spot, year-round); mesh/head-retention/pot-count gear doctrine.",
+    "salmon headline windows as notes. v4 lands the Crab Rules page verbatim: Puget Sound (Dungeness 5 @ 6.25 in males hardshell / Red Rock 6 @ 5 in / Tanner 6 @ 4.5 in; CRC + endorsement; MA12 south of Ayock Point + MA13 closed to crab in 2026), Pacific Ocean (Dungeness 6 @ 6 in + Red Rock 6 @ 5 in; pot window Dec 1-Sep 15, year-round other gear; Willapa Bay pots Nov 15-Sep 15), Columbia River estuary (Dungeness 12 @ 5.75 in, year-round all gear), European green crab report-and-release. v5 lands the Shrimp Rules page verbatim: Puget Sound 80 spot shrimp/day cap inside a 10-lb all-species combined limit with 2026 spot closures (MA 8-1/8-2/9/10/11/13) as prohibited rows; Pacific Ocean 25-lb combined (max 200 spot, year-round); mesh/head-retention/pot-count gear doctrine. v7 lands remaining pamphlet Marine Areas 5, 6, 7, 8-1, 8-2, 11, 12 (2026-27 book, updated June 18 2026): MA5 rockfish first-3 west of Slip Point / first-1 east; MA6/7 Pacific cod 2/day (rockfish closed); MA12 Hood Canal lingcod/cabezon/rockfish closed, flounder 15 <120 ft north of Turner Creek.",
 };
 
 const A = {
@@ -59,7 +59,7 @@ const D1 = {
   updated: "2026-03-05",
 } as const;
 const VERIFIED = "2026-09-02";
-const pv = 5;
+const pv = 7;
 const C2 = {
   url: "https://www.eregulations.com/washington/fishing/crab-rules",
   title: "WDFW — 2026-2027 Washington Sport Fishing Rules (Crab Rules)",
@@ -202,6 +202,90 @@ export const WA_AREAS: readonly RegArea[] = [
       "Halibut closed; Toliva Shoal + Budd Inlet sub-areas have their own salmon rows " +
       "in the pamphlet (headline rows shipped as notes).",
   },
+  {
+    id: "wa-ma-5",
+    authority: "wdfw",
+    kind: "ocean_region",
+    name: "Marine Area 5 — Sekiu and Pillar Point",
+    polygon: [
+      [-124.4, 48.28], [-123.8, 48.15], [-123.8, 48.4], [-124.4, 48.45], [-124.4, 48.28],
+    ],
+    sourceUrl: "https://www.eregulations.com/washington/fishing/marine-area-5",
+    verifiedAt: VERIFIED,
+    notes: "Mouth of the Sekiu River east to Low Point (Lyre River). Bottomfish Closure seaward of the 20-fm contour.",
+  },
+  {
+    id: "wa-ma-6",
+    authority: "wdfw",
+    kind: "ocean_region",
+    name: "Marine Area 6 — East Juan de Fuca Strait",
+    polygon: [
+      [-123.8, 48.15], [-122.75, 48.15], [-122.75, 48.45], [-123.8, 48.4], [-123.8, 48.15],
+    ],
+    sourceUrl: "https://www.eregulations.com/washington/fishing/marine-area-6",
+    verifiedAt: VERIFIED,
+    notes: "Low Point east to the Partridge Point–Point Wilson line. Rockfish closed; Pacific cod 2/day.",
+  },
+  {
+    id: "wa-ma-7",
+    authority: "wdfw",
+    kind: "ocean_region",
+    name: "Marine Area 7 — San Juan Islands",
+    polygon: [
+      [-123.25, 48.4], [-122.6, 48.4], [-122.4, 48.95], [-123.25, 48.95], [-123.25, 48.4],
+    ],
+    sourceUrl: "https://www.eregulations.com/washington/fishing/marine-area-7",
+    verifiedAt: VERIFIED,
+    notes: "North of the Trial Island line to the U.S.–Canada boundary. Rockfish closed; Pacific cod 2/day.",
+  },
+  {
+    id: "wa-ma-8-1",
+    authority: "wdfw",
+    kind: "ocean_region",
+    name: "Marine Area 8-1 — Deception Pass, Hope Island, and Skagit Bay",
+    polygon: [
+      [-122.7, 48.25], [-122.35, 48.25], [-122.35, 48.45], [-122.7, 48.45], [-122.7, 48.25],
+    ],
+    sourceUrl: "https://www.eregulations.com/washington/fishing/marine-area-8",
+    verifiedAt: VERIFIED,
+    notes: "Deception Pass through Skagit Bay / northern Saratoga Passage.",
+  },
+  {
+    id: "wa-ma-8-2",
+    authority: "wdfw",
+    kind: "ocean_region",
+    name: "Marine Area 8-2 — Port Susan and Port Gardner",
+    polygon: [
+      [-122.4, 47.95], [-122.15, 47.95], [-122.15, 48.25], [-122.4, 48.25], [-122.4, 47.95],
+    ],
+    sourceUrl: "https://www.eregulations.com/washington/fishing/marine-area-8",
+    verifiedAt: VERIFIED,
+    notes: "East of the East Point–Camano line, north of Possession Point–Shipwreck.",
+  },
+  {
+    id: "wa-ma-11",
+    authority: "wdfw",
+    kind: "ocean_region",
+    name: "Marine Area 11 — Tacoma and Vashon Island",
+    polygon: [
+      [-122.6, 47.25], [-122.3, 47.25], [-122.3, 47.55], [-122.6, 47.55], [-122.6, 47.25],
+    ],
+    sourceUrl: "https://www.eregulations.com/washington/fishing/marine-area-11",
+    verifiedAt: VERIFIED,
+    notes: "North tip of Vashon Island to the northernmost Tacoma Narrows Bridge. Halibut closed.",
+  },
+  {
+    id: "wa-ma-12",
+    authority: "wdfw",
+    kind: "ocean_region",
+    name: "Marine Area 12 — Hood Canal",
+    polygon: [
+      [-123.2, 47.35], [-122.8, 47.35], [-122.8, 47.85], [-123.2, 47.85], [-123.2, 47.35],
+    ],
+    sourceUrl: "https://www.eregulations.com/washington/fishing/marine-area-12",
+    verifiedAt: VERIFIED,
+    notes: "All waters south of the Hood Canal Bridge. Lingcod/cabezon/rockfish closed; flounder 15 north of Turner Creek <120 ft.",
+  },
   // ——— v4 (deepen pass): crab doctrine areas (Crab Rules page, updated 2026-06-18) ———
   {
     id: "wa-ps-crab",
@@ -278,11 +362,11 @@ export const WA_GROUPS: readonly RegGroup[] = [
 const CLOSING_TERCET =
   "Anglers cannot possess copper rockfish, quillback rockfish, and vermilion rockfish in May, June, and July.";
 
-/** 2026-27 pamphlet "Bottomfish" block, identical wording in MA 9, 10, 11, 12, 13. */
-function soundBottomfishRules(areaId: string): RegRule[] {
-  const n = areaId.replace("wa-ma-", "");
+/** 2026-27 pamphlet "Bottomfish" block (MA 8-1/8-2/9/10/11/13; MA 6/7 with Pacific cod open). */
+function soundBottomfishRules(areaId: string, page?: string, pacificCodOpen = false): RegRule[] {
+  const n = page ?? areaId.replace("wa-ma-", "");
   const pamphlet = {
-    url: `https://www.eregulations.com/washington/fishing/marine-area-${n}`,
+    url: `https://www.eregulations.com/washington/fishing/marine-area-${n.startsWith("8") ? "8" : n}`,
     title: `WDFW — 2026-2027 Washington Sport Fishing Rules (Marine Area ${n})`,
     updated: "2026-06-18",
   } as const;
@@ -344,11 +428,13 @@ function soundBottomfishRules(areaId: string): RegRule[] {
       checkInseason: false, staleAfterDays: 120,
     }),
     rs({
-      id: `${tag}-cod-hake-wolfeel-closed`, speciesId: "pacific_cod", kind: "prohibited",
-      verbatim: "Pacific Cod, Pollock, Hake, and Wolf-Eel: Year-round — CLOSED to retention.",
+      id: `${tag}-cod-hake-wolfeel-closed`, speciesId: "pacific_cod", kind: pacificCodOpen ? "bag_limit" : "prohibited",
+      verbatim: pacificCodOpen
+        ? "Pacific Cod, Pollock, Hake: Year-round. No min. size. Daily limit 2 of each species. Wolf-eel: CLOSED to retention."
+        : "Pacific Cod, Pollock, Hake, and Wolf-Eel: Year-round — CLOSED to retention.",
       sourceUrl: pamphlet.url, sourceTitle: pamphlet.title, sourceUpdatedAt: pamphlet.updated, verifiedAt: VERIFIED,
-      seasonStart: null, seasonEnd: null, bagDaily: 0, possessionLimit: 0, bagSharesWithGroup: false,
-      minSizeIn: null, maxSizeIn: null, sizeMeasure: null, platformScope: null, depthNote: "Also covers pollock, hake, wolf-eel.",
+      seasonStart: null, seasonEnd: null, bagDaily: pacificCodOpen ? 2 : 0, possessionLimit: pacificCodOpen ? 2 : 0, bagSharesWithGroup: false,
+      minSizeIn: null, maxSizeIn: null, sizeMeasure: null, platformScope: null, depthNote: pacificCodOpen ? "Wolf-eel remains closed." : "Also covers pollock, hake, wolf-eel.",
       checkInseason: false, staleAfterDays: 120,
     }),
     rs({
@@ -647,6 +733,11 @@ export const WA_RULES: readonly RegRule[] = [
   ...soundBottomfishRules("wa-ma-9"),
   ...soundBottomfishRules("wa-ma-10"),
   ...soundBottomfishRules("wa-ma-13"),
+  ...soundBottomfishRules("wa-ma-6", "6", true),
+  ...soundBottomfishRules("wa-ma-7", "7", true),
+  ...soundBottomfishRules("wa-ma-8-1", "8-1"),
+  ...soundBottomfishRules("wa-ma-8-2", "8-2"),
+  ...soundBottomfishRules("wa-ma-11", "11"),
   rule({
     id: "wa-ma9-salmon-note", speciesId: null, regAreaId: "wa-ma-9", kind: "note",
     verbatim:
@@ -681,6 +772,189 @@ export const WA_RULES: readonly RegRule[] = [
     seasonStart: null, seasonEnd: null, bagDaily: 0, possessionLimit: 0, bagSharesWithGroup: false,
     minSizeIn: null, maxSizeIn: null, sizeMeasure: null, platformScope: null, depthNote: null,
     checkInseason: false, staleAfterDays: 120,
+  }),
+  // ——— v7: remaining pamphlet Marine Areas 5, 6, 7, 8-1, 8-2, 11, 12 ———
+  rule({
+    id: "wa-ma5-bottomfish-15", speciesId: null, regGroupId: "wa-bottomfish", regAreaId: "wa-ma-5", kind: "bag_limit",
+    verbatim:
+      "Bottomfish: Year-round season. Daily limit is a total of 15 bottomfish subject to individual limits and seasons shown below. Fishing for or possession of bottomfish is prohibited in waters seaward of the Bottomfish Closure, except sablefish and Pacific cod on days open to halibut. Lingcod retention is permitted seaward of the Bottomfish Closure on days open to both lingcod and halibut. Descending device required onboard vessels.",
+    sourceUrl: "https://www.eregulations.com/washington/fishing/marine-area-5", sourceTitle: "WDFW — 2026-2027 Washington Sport Fishing Rules (Marine Area 5)", sourceUpdatedAt: "2026-06-18", verifiedAt: VERIFIED,
+    seasonStart: null, seasonEnd: null, bagDaily: 15, possessionLimit: null, bagSharesWithGroup: true,
+    minSizeIn: null, maxSizeIn: null, sizeMeasure: null, platformScope: null, depthNote: "Seaward of Bottomfish Closure: sablefish + Pacific cod only on open halibut days; lingcod if both lingcod and halibut are open.",
+    checkInseason: true, staleAfterDays: 30,
+  }),
+  rule({
+    id: "wa-ma5-lingcod", speciesId: "lingcod", regAreaId: "wa-ma-5", kind: "bag_limit",
+    verbatim: "Lingcod — May 1-June 15: Hook and line season. Min. size 26\". Max. size 36\". Daily limit 1. May 21-June 15: Spearfishing season. Max. size 36\". Daily limit 1.",
+    sourceUrl: "https://www.eregulations.com/washington/fishing/marine-area-5", sourceTitle: "WDFW — 2026-2027 Washington Sport Fishing Rules (Marine Area 5)", sourceUpdatedAt: "2026-06-18", verifiedAt: VERIFIED,
+    seasonStart: "05-01", seasonEnd: "06-15", bagDaily: 1, possessionLimit: null, bagSharesWithGroup: false,
+    minSizeIn: 26, maxSizeIn: 36, sizeMeasure: "total_length", platformScope: null, depthNote: "Spear window May 21–Jun 15.",
+    checkInseason: true, staleAfterDays: 30,
+  }),
+  rule({
+    id: "wa-ma5-rockfish-west", speciesId: "black_rockfish", regAreaId: "wa-ma-5", kind: "bag_limit",
+    verbatim: "Rockfish West of Slip Point: May 1-Sept. 30. No min. size. Daily limit is the first 3 black or blue/deacon rockfish caught. See Bottomfish Closure.",
+    sourceUrl: "https://www.eregulations.com/washington/fishing/marine-area-5", sourceTitle: "WDFW — 2026-2027 Washington Sport Fishing Rules (Marine Area 5)", sourceUpdatedAt: "2026-06-18", verifiedAt: VERIFIED,
+    seasonStart: "05-01", seasonEnd: "09-30", bagDaily: 3, possessionLimit: null, bagSharesWithGroup: true,
+    minSizeIn: null, maxSizeIn: null, sizeMeasure: null, platformScope: null, depthNote: "West of Slip Point; first 3 black or blue/deacon.",
+    checkInseason: true, staleAfterDays: 30,
+  }),
+  rule({
+    id: "wa-ma5-rockfish-east", speciesId: "blue_rockfish", regAreaId: "wa-ma-5", kind: "note",
+    verbatim: "Rockfish East of Slip Point: May 1-Sept. 30. No min. size. Daily limit is the first black or blue/deacon rockfish caught. See Bottomfish Closure.",
+    sourceUrl: "https://www.eregulations.com/washington/fishing/marine-area-5", sourceTitle: "WDFW — 2026-2027 Washington Sport Fishing Rules (Marine Area 5)", sourceUpdatedAt: "2026-06-18", verifiedAt: VERIFIED,
+    seasonStart: "05-01", seasonEnd: "09-30", bagDaily: 1, possessionLimit: null, bagSharesWithGroup: true,
+    minSizeIn: null, maxSizeIn: null, sizeMeasure: null, platformScope: null, depthNote: "East of Slip Point; first 1 black or blue/deacon.",
+    checkInseason: true, staleAfterDays: 30,
+  }),
+  rule({
+    id: "wa-ma5-cod", speciesId: "pacific_cod", regAreaId: "wa-ma-5", kind: "bag_limit",
+    verbatim: "Pacific Cod, Pollock, Hake: Year-round. No min. size. Daily limit 2 of each species. See Bottomfish Closure.",
+    sourceUrl: "https://www.eregulations.com/washington/fishing/marine-area-5", sourceTitle: "WDFW — 2026-2027 Washington Sport Fishing Rules (Marine Area 5)", sourceUpdatedAt: "2026-06-18", verifiedAt: VERIFIED,
+    seasonStart: null, seasonEnd: null, bagDaily: 2, possessionLimit: 2, bagSharesWithGroup: false,
+    minSizeIn: null, maxSizeIn: null, sizeMeasure: null, platformScope: null, depthNote: null,
+    checkInseason: true, staleAfterDays: 60,
+  }),
+  rule({
+    id: "wa-ma5-cabezon", speciesId: "cabezon", regAreaId: "wa-ma-5", kind: "bag_limit",
+    verbatim: "Cabezon: May 1-Nov. 30 — Min. size 18 in. Daily limit 1.",
+    sourceUrl: "https://www.eregulations.com/washington/fishing/marine-area-5", sourceTitle: "WDFW — 2026-2027 Washington Sport Fishing Rules (Marine Area 5)", sourceUpdatedAt: "2026-06-18", verifiedAt: VERIFIED,
+    seasonStart: "05-01", seasonEnd: "11-30", bagDaily: 1, possessionLimit: null, bagSharesWithGroup: false,
+    minSizeIn: 18, maxSizeIn: null, sizeMeasure: "total_length", platformScope: null, depthNote: null,
+    checkInseason: true, staleAfterDays: 30,
+  }),
+  rule({
+    id: "wa-ma5-salmon-note", speciesId: null, regAreaId: "wa-ma-5", kind: "note",
+    verbatim:
+      "Salmon (Entire Area except Kydaka Point): July 1-July 31 open odd days of the month only; Chinook min. 22 in, daily limit 2 incl. ≤1 Chinook, release chum, sockeye, wild coho, and wild Chinook. Aug. 1-Sept. 24: no min. size, daily limit 2, release Chinook, chum, sockeye, and wild coho. Sept. 25-Oct. 15: no min. size, daily limit 2, release Chinook, chum, and sockeye. Oct. 16-Apr. 8: CLOSED. Apr. 9-Apr. 30: Chinook min. 22 in, daily limit 2, release chum, sockeye, coho, and wild Chinook.",
+    sourceUrl: "https://www.eregulations.com/washington/fishing/marine-area-5", sourceTitle: "WDFW — 2026-2027 Washington Sport Fishing Rules (Marine Area 5)", sourceUpdatedAt: "2026-06-18", verifiedAt: VERIFIED,
+    seasonStart: null, seasonEnd: null, bagDaily: null, possessionLimit: null, bagSharesWithGroup: false,
+    minSizeIn: null, maxSizeIn: null, sizeMeasure: null, platformScope: null, depthNote: null,
+    checkInseason: true, staleAfterDays: 7,
+  }),
+  rule({
+    id: "wa-ma6-salmon-note", speciesId: null, regAreaId: "wa-ma-6", kind: "note",
+    verbatim:
+      "Salmon (MA6 Chinook Selective Fishery west of Ediz Hook #2 Buoy): July 1-Aug. 15 Chinook min. 22 in, daily limit 2, release chum, sockeye, wild coho, and wild Chinook. Aug. 16-Sept. 24: daily limit 2, release Chinook, chum, sockeye, and wild coho. Sept. 25-Oct. 15: daily limit 2, release Chinook, sockeye, and chum. Freshwater Bay year-round CLOSED. Chinook Release Area east of Ediz Hook #2 Buoy: July 1-Sept. 24 release Chinook.",
+    sourceUrl: "https://www.eregulations.com/washington/fishing/marine-area-6", sourceTitle: "WDFW — 2026-2027 Washington Sport Fishing Rules (Marine Area 6)", sourceUpdatedAt: "2026-06-18", verifiedAt: VERIFIED,
+    seasonStart: null, seasonEnd: null, bagDaily: null, possessionLimit: null, bagSharesWithGroup: false,
+    minSizeIn: null, maxSizeIn: null, sizeMeasure: null, platformScope: null, depthNote: null,
+    checkInseason: true, staleAfterDays: 7,
+  }),
+  rule({
+    id: "wa-ma7-salmon-note", speciesId: null, regAreaId: "wa-ma-7", kind: "note",
+    verbatim:
+      "Salmon (Entire Area MA7): July 16-July 18 Chinook min. 22 in, daily limit 2 incl. ≤1 Chinook, release chum, sockeye, wild coho, and wild Chinook. July 19-July 31 CLOSED. Aug. 1-Aug. 31 daily limit 2, release Chinook, chum, sockeye, and wild coho. Sept. 1-Sept. 30 daily limit 2, release Chinook, sockeye, and chum. Lummi Bay, Samish Bay, Yellow and Low Islands, Southern Rosario Strait/Eastern Strait of Juan de Fuca: year-round CLOSED.",
+    sourceUrl: "https://www.eregulations.com/washington/fishing/marine-area-7", sourceTitle: "WDFW — 2026-2027 Washington Sport Fishing Rules (Marine Area 7)", sourceUpdatedAt: "2026-06-18", verifiedAt: VERIFIED,
+    seasonStart: null, seasonEnd: null, bagDaily: null, possessionLimit: null, bagSharesWithGroup: false,
+    minSizeIn: null, maxSizeIn: null, sizeMeasure: null, platformScope: null, depthNote: null,
+    checkInseason: true, staleAfterDays: 7,
+  }),
+  rule({
+    id: "wa-ma81-salmon-note", speciesId: null, regAreaId: "wa-ma-8-1", kind: "note",
+    verbatim: "Salmon (Entire Area MA 8-1): Aug. 1-Oct. 11 no min. size, daily limit 2, release Chinook and chum. Oct. 12-July 31 CLOSED.",
+    sourceUrl: "https://www.eregulations.com/washington/fishing/marine-area-8", sourceTitle: "WDFW — 2026-2027 Washington Sport Fishing Rules (Marine Area 8-1)", sourceUpdatedAt: "2026-06-18", verifiedAt: VERIFIED,
+    seasonStart: "08-01", seasonEnd: "10-11", bagDaily: 2, possessionLimit: null, bagSharesWithGroup: false,
+    minSizeIn: null, maxSizeIn: null, sizeMeasure: null, platformScope: null, depthNote: "Release Chinook and chum.",
+    checkInseason: true, staleAfterDays: 7,
+  }),
+  rule({
+    id: "wa-ma82-salmon-note", speciesId: null, regAreaId: "wa-ma-8-2", kind: "note",
+    verbatim: "Salmon (Entire Area MA 8-2 except Tulalip): Aug. 1-Sept. 25 no min. size, daily limit 2, release Chinook and chum. Tulalip Bay year-round CLOSED. Tulalip Terminal Area: May 22-Sept. 7 2026 Fri-Sat only, daily limit 1, release coho, chum, and wild Chinook.",
+    sourceUrl: "https://www.eregulations.com/washington/fishing/marine-area-8", sourceTitle: "WDFW — 2026-2027 Washington Sport Fishing Rules (Marine Area 8-2)", sourceUpdatedAt: "2026-06-18", verifiedAt: VERIFIED,
+    seasonStart: "08-01", seasonEnd: "09-25", bagDaily: 2, possessionLimit: null, bagSharesWithGroup: false,
+    minSizeIn: null, maxSizeIn: null, sizeMeasure: null, platformScope: null, depthNote: "Release Chinook and chum.",
+    checkInseason: true, staleAfterDays: 7,
+  }),
+  rule({
+    id: "wa-ma11-salmon-note", speciesId: null, regAreaId: "wa-ma-11", kind: "note",
+    verbatim:
+      "Salmon (Entire Area MA11): June 1-June 30 Chinook min. 22 in, daily limit 2 incl. ≤1 Chinook, release chum and wild Chinook. July 1-July 22 CLOSED. July 23-Sept. 30 Chinook min. 22 in, daily limit 2 incl. ≤1 Chinook, release chum and wild Chinook. Oct. 1-Nov. 15 daily limit 2, release Chinook. Nov. 16-Mar. 30 CLOSED. Mar. 31-Apr. 30 open Wed-Sat only.",
+    sourceUrl: "https://www.eregulations.com/washington/fishing/marine-area-11", sourceTitle: "WDFW — 2026-2027 Washington Sport Fishing Rules (Marine Area 11)", sourceUpdatedAt: "2026-06-18", verifiedAt: VERIFIED,
+    seasonStart: null, seasonEnd: null, bagDaily: null, possessionLimit: null, bagSharesWithGroup: false,
+    minSizeIn: null, maxSizeIn: null, sizeMeasure: null, platformScope: null, depthNote: null,
+    checkInseason: true, staleAfterDays: 7,
+  }),
+  rule({
+    id: "wa-ma11-halibut-closed", speciesId: "pacific_halibut", regAreaId: "wa-ma-11", kind: "prohibited",
+    verbatim: "Pacific Halibut (Marine Area 11): CLOSED — CLOSED to fishing for, retaining, or possessing.",
+    sourceUrl: "https://www.eregulations.com/washington/fishing/marine-area-11", sourceTitle: "WDFW — 2026-2027 Washington Sport Fishing Rules (Marine Area 11)", sourceUpdatedAt: "2026-06-18", verifiedAt: VERIFIED,
+    seasonStart: null, seasonEnd: null, bagDaily: 0, possessionLimit: 0, bagSharesWithGroup: false,
+    minSizeIn: null, maxSizeIn: null, sizeMeasure: null, platformScope: null, depthNote: null,
+    checkInseason: false, staleAfterDays: 120,
+  }),
+  rule({
+    id: "wa-ma11-spotshrimp-closed", speciesId: "spot_shrimp", regAreaId: "wa-ma-11", kind: "prohibited",
+    verbatim: "During 2026 Marine Areas 8-1, 8-2, 9, 10, 11, and 13 have been CLOSED to spot shrimp harvest.",
+    sourceUrl: S2.url, sourceTitle: S2.title, sourceUpdatedAt: S2.updated, verifiedAt: VERIFIED,
+    seasonStart: null, seasonEnd: null, bagDaily: 0, possessionLimit: 0, bagSharesWithGroup: false,
+    minSizeIn: null, maxSizeIn: null, sizeMeasure: null, platformScope: null, depthNote: null,
+    checkInseason: true, staleAfterDays: 7,
+  }),
+  rule({
+    id: "wa-ma81-spotshrimp-closed", speciesId: "spot_shrimp", regAreaId: "wa-ma-8-1", kind: "prohibited",
+    verbatim: "During 2026 Marine Areas 8-1, 8-2, 9, 10, 11, and 13 have been CLOSED to spot shrimp harvest.",
+    sourceUrl: S2.url, sourceTitle: S2.title, sourceUpdatedAt: S2.updated, verifiedAt: VERIFIED,
+    seasonStart: null, seasonEnd: null, bagDaily: 0, possessionLimit: 0, bagSharesWithGroup: false,
+    minSizeIn: null, maxSizeIn: null, sizeMeasure: null, platformScope: null, depthNote: null,
+    checkInseason: true, staleAfterDays: 7,
+  }),
+  rule({
+    id: "wa-ma82-spotshrimp-closed", speciesId: "spot_shrimp", regAreaId: "wa-ma-8-2", kind: "prohibited",
+    verbatim: "During 2026 Marine Areas 8-1, 8-2, 9, 10, 11, and 13 have been CLOSED to spot shrimp harvest.",
+    sourceUrl: S2.url, sourceTitle: S2.title, sourceUpdatedAt: S2.updated, verifiedAt: VERIFIED,
+    seasonStart: null, seasonEnd: null, bagDaily: 0, possessionLimit: 0, bagSharesWithGroup: false,
+    minSizeIn: null, maxSizeIn: null, sizeMeasure: null, platformScope: null, depthNote: null,
+    checkInseason: true, staleAfterDays: 7,
+  }),
+  rule({
+    id: "wa-ma12-flatfish", speciesId: "flatfish", regAreaId: "wa-ma-12", kind: "bag_limit",
+    verbatim: "Flounders, Sole, and Sanddabs: Year-round. Open north of a true east line from the mouth of Turner Creek to the Toandos Peninsula in waters shallower than 120' (20 fathoms). Daily limit is a total of 15. Descending device required onboard vessels.",
+    sourceUrl: "https://www.eregulations.com/washington/fishing/marine-area-12", sourceTitle: "WDFW — 2026-2027 Washington Sport Fishing Rules (Marine Area 12)", sourceUpdatedAt: "2026-06-18", verifiedAt: VERIFIED,
+    seasonStart: null, seasonEnd: null, bagDaily: 15, possessionLimit: null, bagSharesWithGroup: false,
+    minSizeIn: null, maxSizeIn: null, sizeMeasure: null, platformScope: null, depthNote: "North of Turner Creek–Toandos line, shallower than 120 ft.",
+    checkInseason: true, staleAfterDays: 30,
+  }),
+  rule({
+    id: "wa-ma12-lingcod-closed", speciesId: "lingcod", regAreaId: "wa-ma-12", kind: "prohibited",
+    verbatim: "Lingcod: CLOSED — CLOSED to fishing for, retaining, or possessing.",
+    sourceUrl: "https://www.eregulations.com/washington/fishing/marine-area-12", sourceTitle: "WDFW — 2026-2027 Washington Sport Fishing Rules (Marine Area 12)", sourceUpdatedAt: "2026-06-18", verifiedAt: VERIFIED,
+    seasonStart: null, seasonEnd: null, bagDaily: 0, possessionLimit: 0, bagSharesWithGroup: false,
+    minSizeIn: null, maxSizeIn: null, sizeMeasure: null, platformScope: null, depthNote: null,
+    checkInseason: false, staleAfterDays: 120,
+  }),
+  rule({
+    id: "wa-ma12-rockfish-closed", speciesId: "rockfish", regAreaId: "wa-ma-12", kind: "prohibited",
+    verbatim: "Rockfish: CLOSED — CLOSED to fishing for, retaining, or possessing.",
+    sourceUrl: "https://www.eregulations.com/washington/fishing/marine-area-12", sourceTitle: "WDFW — 2026-2027 Washington Sport Fishing Rules (Marine Area 12)", sourceUpdatedAt: "2026-06-18", verifiedAt: VERIFIED,
+    seasonStart: null, seasonEnd: null, bagDaily: 0, possessionLimit: 0, bagSharesWithGroup: false,
+    minSizeIn: null, maxSizeIn: null, sizeMeasure: null, platformScope: null, depthNote: null,
+    checkInseason: false, staleAfterDays: 120,
+  }),
+  rule({
+    id: "wa-ma12-cabezon-closed", speciesId: "cabezon", regAreaId: "wa-ma-12", kind: "prohibited",
+    verbatim: "Cabezon: CLOSED — CLOSED to fishing for, retaining, or possessing.",
+    sourceUrl: "https://www.eregulations.com/washington/fishing/marine-area-12", sourceTitle: "WDFW — 2026-2027 Washington Sport Fishing Rules (Marine Area 12)", sourceUpdatedAt: "2026-06-18", verifiedAt: VERIFIED,
+    seasonStart: null, seasonEnd: null, bagDaily: 0, possessionLimit: 0, bagSharesWithGroup: false,
+    minSizeIn: null, maxSizeIn: null, sizeMeasure: null, platformScope: null, depthNote: null,
+    checkInseason: false, staleAfterDays: 120,
+  }),
+  rule({
+    id: "wa-ma12-halibut-closed", speciesId: "pacific_halibut", regAreaId: "wa-ma-12", kind: "prohibited",
+    verbatim: "Pacific Halibut (Marine Area 12): CLOSED — CLOSED to fishing for, retaining, or possessing.",
+    sourceUrl: "https://www.eregulations.com/washington/fishing/marine-area-12", sourceTitle: "WDFW — 2026-2027 Washington Sport Fishing Rules (Marine Area 12)", sourceUpdatedAt: "2026-06-18", verifiedAt: VERIFIED,
+    seasonStart: null, seasonEnd: null, bagDaily: 0, possessionLimit: 0, bagSharesWithGroup: false,
+    minSizeIn: null, maxSizeIn: null, sizeMeasure: null, platformScope: null, depthNote: null,
+    checkInseason: false, staleAfterDays: 120,
+  }),
+  rule({
+    id: "wa-ma12-salmon-note", speciesId: null, regAreaId: "wa-ma-12", kind: "note",
+    verbatim:
+      "Salmon (MA12 Hood Canal): North of Ayock Point Aug. 1-Oct. 15 daily limit 4, release Chinook, chum, and sockeye. South of Ayock Point July 1-Sept. 30 Chinook min. 20 in, daily limit 4, release chum, sockeye, and wild Chinook. July 1-July 31 north of Ayock CLOSED.",
+    sourceUrl: "https://www.eregulations.com/washington/fishing/marine-area-12", sourceTitle: "WDFW — 2026-2027 Washington Sport Fishing Rules (Marine Area 12)", sourceUpdatedAt: "2026-06-18", verifiedAt: VERIFIED,
+    seasonStart: null, seasonEnd: null, bagDaily: null, possessionLimit: null, bagSharesWithGroup: false,
+    minSizeIn: null, maxSizeIn: null, sizeMeasure: null, platformScope: null, depthNote: null,
+    checkInseason: true, staleAfterDays: 7,
   }),
   // ——— v4 (deepen pass): Crab Rules page verbatim (2026-27 book, updated 2026-06-18) ———
   rule({
