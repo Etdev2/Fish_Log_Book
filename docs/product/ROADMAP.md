@@ -73,7 +73,7 @@ Rough effort: **S** = days, **M** = weeks, **L** = a month or more.
 
 | # | Feature | Why it might matter | Effort |
 |---|---|---|---|
-| C1 | **"Find days like today"** — search history for matching conditions | The honest version of the alerting dream, and it works at any sample size because the angler judges the result, not the app. | M |
+| C1 | **"Find days like today"** — search history for matching conditions | The honest version of the alerting dream, and it works at any sample size because the angler judges the result, not the app. **✅ ACCEPTED 2026-09-03** (founder delegated the call to `coo`) → Phase 2 of `docs/specs/fishing-passport-wildlife-boat-games.md`, ahead of photo verification. It is the only accepted work that answers "should I go tomorrow" — see that spec's §47.1 and §47.4. | M |
 | C2 | **Catch heat map on the spot map** | Immediately legible, zero statistics required. | M |
 | C3 | **Season calendar** — what you caught this week, across years | Anglers think in seasons. Becomes valuable in year two and compounds. | M |
 | C4 | **Personal bests** | Cheap, and it is the thing people screenshot. | S |

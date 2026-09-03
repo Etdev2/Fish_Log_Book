@@ -1,6 +1,8 @@
 ---
 date: 2026-09-03 (founder spec received)
-status: PROPOSED — ready for technical planning (nothing implemented)
+status: PROPOSED — ready for technical planning (nothing implemented).
+  Two blocking decisions resolved 2026-09-03 — see §45.1 (region: cut from Phase 1) and
+  §47.4 (ROADMAP C1 accepted into Phase 2). Media (§45.2) remains open.
 governs: (future) src/core/passport/, src/core/achievements/, src/core/identification/,
   src/core/games/, src/features/passport/, src/features/achievements/,
   src/features/wildlife/, src/features/boat-games/, src/app/passport/
@@ -1085,8 +1087,25 @@ Three ways out, in the order I would prefer them:
 3. **Drop region from Phase 1.** Ship species, family, and habitat collections; defer
    geographic collections and New Waters I to Phase 2.
 
-**Ruling needed from `architect`, with the founder's sign-off, because option 2 reverses
-a stated principle.**
+**RESOLVED 2026-09-03 — option 3.** The founder delegated the call; `architect` should
+review but is not blocking. Geographic collections, the §8.2 region progress card, the
+§9.1 region filter, and the **New Waters I** badge all come out of Phase 1.
+
+The deciding fact was checked, not assumed: `reg_area.boundary_geojson` exists in the
+schema but is effectively unpopulated, and `RegionId` in `src/core/ontology/regions.ts` is
+a label list with no geometry at all. So option 1 has nothing to derive *from* today —
+it is not a read-time computation, it is a project to source and verify polygons for every
+region, carrying the same citation-or-nothing burden Fish Legal already carries.
+
+Option 2 was rejected on merit rather than cost. Snapshotting the preference records where
+the angler *says* they fish, not where the fish was; a SoCal user who runs to Cabo without
+touching Settings gets silently mislabeled data. Buying that with a reversal of a stated
+founder principle, to enable one badge that §47.3 already classes as decoration, is a bad
+trade.
+
+Revisit in Phase 2 as option 1 — derived from `catch.lat`/`lng` — if and when region
+polygons become real data. Nothing in Phase 1 forecloses it, which is the point: cutting
+costs nothing later, snapshotting would have put a wrong column in the catch table forever.
 
 ### 45.2 There is no media table, so nothing can hold a photo
 
@@ -1193,9 +1212,9 @@ already have a source column, and three of which are blocked on decisions in §4
 | First Catch | A — count valid catches | `catch` rows | **Ship** |
 | Species Explorer I / II / III | B — count distinct `species_id` | `catch.species_id` | **Ship** (one rule, three thresholds — near-free tiering) |
 | Responsible Release I | C — count catches filtered by a catch column | `catch.disposition = 'released'` | **Ship** |
-| Freshwater Explorer | D — count distinct species filtered by a species column | `species.water_class` | **Ship** — decide how `both` counts |
-| Saltwater Explorer | D | `species.water_class` | **Ship** — same decision |
-| New Waters I | E — count distinct regions | **None.** No region on a catch | **Defer** — blocked on §45.1 |
+| Freshwater Explorer | D — count distinct species filtered by a species column | `species.water_class` + `trip.water_class` | **Ship** — see the `both` rule below |
+| Saltwater Explorer | D | `species.water_class` + `trip.water_class` | **Ship** — same rule |
+| New Waters I | E — count distinct regions | **None.** No region on a catch | **Cut from Phase 1** — §45.1 resolved: no region data to derive from |
 | Photo Journal I | F — count catches with attached media | **None.** No media table | **Cut from Phase 1** — blocked on §45.2 |
 | Night Bite | G — count catches passing a computed local-time test | `caught_at` + `lat`/`lng`, but needs a sunrise/sunset library. `astronomy-engine` is the cleared choice (SPEC.md O9); it is **not yet a dependency** | **Defer** — the only badge needing a new package |
 
@@ -1203,6 +1222,13 @@ So Phase 1 ships **seven badges on four rules**, and the three that look like or
 catalog entries are the three that carry an architectural decision, a missing table, and a
 new dependency respectively. An agent that starts at the top of the §12 table and works
 down will hit all three blockers in the last 30% of the ticket.
+
+**The `both` rule, resolved 2026-09-03:** `species.water_class` allows `salt`, `fresh`, or
+`both`, and striped bass caught in a river should not silently credit the saltwater
+collection. Resolve it from the trip, not the species: `trip.water_class` is already
+non-null on every trip and says which water the angler was actually in. A `both` species
+credits the collection matching its trip; `salt` and `fresh` species credit their own
+collection regardless. No new column, no new question at log time.
 
 One addition worth making while the engine is being written, per §46: **an honest blank
 trip should count for something.** A logged trip with zero fish is the most statistically
@@ -1222,9 +1248,16 @@ conditions — is the honest version of that, still unaccepted. The angler judge
 so it makes no statistical promise the sample size cannot support. It is the natural
 sibling of the species detail page and reuses the same selectors Ticket 1 builds.
 
-Recommendation: accept C1 and put it in Phase 2 ahead of verification. Verification
-(§15–§16) matters when accomplishments become public or competitive, and nothing is public
-until Phase 5.
+**ACCEPTED 2026-09-03** — the founder delegated the call. C1 enters **Phase 2, ahead of
+photo verification**. Verification (§15–§16) matters when accomplishments become public or
+competitive, and nothing is public until Phase 5; it is also blocked on the missing media
+table (§45.2), so it could not have gone first regardless.
+
+C1 is additionally the cheapest strong feature available right now: it reuses the Ticket 1
+selectors, needs no new table, no new dependency, and no new field on the catch flow. It is
+the only accepted item that addresses the **before** moment in §47.1.
+
+`docs/product/ROADMAP.md` Part 2C is annotated with this acceptance.
 
 ### 47.5 Do not quietly cut Boat Games
 
