@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 import { MonthCalendar } from "@/features/calendar/components/month-calendar";
+import { PassportHomeCard } from "@/features/passport/components/passport-home-card";
+import { PASSPORT_V1 } from "@/features/passport/flag";
 
 export const metadata: Metadata = { title: "Calendar | Fish Log Book" };
 
@@ -25,6 +27,12 @@ export default function CalendarPage() {
       >
         Open tide chart
       </Link>
+      {/*
+        Below the calendar and the tide link on purpose: the calendar is the home surface
+        (D23) and the passport is the thing you read after the fishing, not before it.
+        This is also the honest test of whether it earns a nav slot later (spec §8.1).
+      */}
+      {PASSPORT_V1 ? <PassportHomeCard /> : null}
     </div>
   );
 }

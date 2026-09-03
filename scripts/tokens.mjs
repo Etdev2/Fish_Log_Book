@@ -63,6 +63,18 @@ function buildFontSizeLines(fontSize) {
   return lines;
 }
 
+/**
+ * breakpoint: { "nav-single-row": "384px" } -> Tailwind v4's screen namespace is
+ * `--breakpoint-*`, so `--breakpoint-nav-single-row: 384px;` gives the variant
+ * `nav-single-row:`. Named rather than written inline because a raw `min-[384px]:`
+ * in a component is exactly the size literal the tripwire exists to catch.
+ */
+function buildBreakpointLines(breakpoint) {
+  return Object.entries(breakpoint).map(
+    ([name, value]) => `  --breakpoint-${name}: ${value};`,
+  );
+}
+
 /** fontFamily: { ui, mono } -> Tailwind's font-family namespace is `--font-*`. */
 function buildFontFamilyLines(fontFamily) {
   return Object.entries(fontFamily).map(
@@ -170,7 +182,7 @@ function buildOpacityLines(opacity) {
 
 function generate(tokens) {
   const { color, fontSize, fontFamily, spacing, radius, touchTarget, elevation, opacity,
-    tracking, container } = tokens;
+    tracking, container, breakpoint } = tokens;
 
   const { light: colorLight, dark: colorDark } = buildColorLines(color);
 
@@ -187,6 +199,7 @@ function generate(tokens) {
     ...buildRadiusLines(radius),
     ...(tracking ? ["", ...buildTrackingLines(tracking)] : []),
     ...(container ? ["", ...buildContainerLines(container)] : []),
+    ...(breakpoint ? ["", ...buildBreakpointLines(breakpoint)] : []),
     ...(opacity ? ["", ...buildOpacityLines(opacity)] : []),
   ];
 
