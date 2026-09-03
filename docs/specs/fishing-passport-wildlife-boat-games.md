@@ -1141,3 +1141,118 @@ do.** `biostat` should say whether a unique-species count actually biases the ef
 denominator the correlation engine depends on, or whether the bias is confined to
 frequency-based mechanics such as streaks. That answer is worth having before the badge
 catalog is finalized, not after anglers have a year of history under it.
+
+## 47. Sequencing recommendation (added by `coo`, 2026-09-03)
+
+Advisory, not a change to the spec. Sections 1–43 stand as written and the founder
+overrules any of this at will. The purpose is to stop an implementing agent from reading
+the Phase 1 ticket list as eight equal buckets and the badge catalog as ten equal badges,
+because they are not.
+
+### 47.1 The frame: three moments, not one app
+
+Fishing is episodic. An angler fishes somewhere between twice and forty times a year, and
+the weather decides which. Any mechanic that assumes weekly opens is fighting the domain —
+which is the strongest argument against streaks, ahead of the data argument in §46.
+
+That leaves three moments where the app can earn an open:
+
+| Moment | What the app does today | What this spec adds |
+|---|---|---|
+| **Before** the trip — should I go, and where? | Tides. That is all. | **Nothing.** See §47.4. |
+| **During** the trip — logging, and the law | Strong. Fast catch flow, Fish Legal in hand | Boat games, later |
+| **After** the trip — what happened, what does it mean? | Almost nothing. There is no analytics surface in `src/app` | Passport. This is the gap it fills |
+
+Passport is worth building because it fills the **after** hole, not because it adds badges.
+Read the rest of this section through that.
+
+### 47.2 The Phase 1 hero is the species detail page, not the badge grid
+
+Ticket 4 (§9.2, `/passport/species/[speciesId]`) is the highest-value screen in this
+document. It is the first place the app pays an angler back for the work of logging:
+*23 calico bass, best 19 inches, mostly incoming tide at Rocky Point, mostly a green
+swimbait.* It works retroactively on catches already in the database, needs no new field
+on the catch flow, and is the smallest honest version of the correlation engine the whole
+product is premised on — one species, one angler, where a small sample is still readable.
+
+Build Tickets 1, 3, and 4 to a high finish. If Phase 1 has to be cut for time, cut
+depth from Ticket 5, not from Ticket 4.
+
+Its close second is the **uncaught silhouette** in §9. A grid with visible gaps is the
+strongest pull mechanic in the document, and unlike a badge it points at something real —
+a fish the angler has not caught, in the region they actually fish. It costs almost nothing
+on top of the grid Ticket 3 already builds. Do not drop the uncaught state to save time.
+
+### 47.3 The badge catalog is four rules, not ten badges
+
+The §12 catalog looks like ten units of work. It is four rule shapes, seven of which
+already have a source column, and three of which are blocked on decisions in §45.
+
+| Badge | Rule shape | Source available today | Verdict |
+|---|---|---|---|
+| First Catch | A — count valid catches | `catch` rows | **Ship** |
+| Species Explorer I / II / III | B — count distinct `species_id` | `catch.species_id` | **Ship** (one rule, three thresholds — near-free tiering) |
+| Responsible Release I | C — count catches filtered by a catch column | `catch.disposition = 'released'` | **Ship** |
+| Freshwater Explorer | D — count distinct species filtered by a species column | `species.water_class` | **Ship** — decide how `both` counts |
+| Saltwater Explorer | D | `species.water_class` | **Ship** — same decision |
+| New Waters I | E — count distinct regions | **None.** No region on a catch | **Defer** — blocked on §45.1 |
+| Photo Journal I | F — count catches with attached media | **None.** No media table | **Cut from Phase 1** — blocked on §45.2 |
+| Night Bite | G — count catches passing a computed local-time test | `caught_at` + `lat`/`lng`, but needs a sunrise/sunset library. `astronomy-engine` is the cleared choice (SPEC.md O9); it is **not yet a dependency** | **Defer** — the only badge needing a new package |
+
+So Phase 1 ships **seven badges on four rules**, and the three that look like ordinary
+catalog entries are the three that carry an architectural decision, a missing table, and a
+new dependency respectively. An agent that starts at the top of the §12 table and works
+down will hit all three blockers in the last 30% of the ticket.
+
+One addition worth making while the engine is being written, per §46: **an honest blank
+trip should count for something.** A logged trip with zero fish is the most statistically
+valuable record the product owns, and a passport that only lights up on a catch quietly
+teaches anglers not to record blanks. Rule shape A already covers it — count trips, not
+catches. This is precisely the mechanic ROADMAP Part 3 says is the only safe kind:
+rewarding an honestly confirmed trip rather than a bigger haul.
+
+### 47.4 The gap this spec does not fill, and should — Phase 2
+
+Every one of the 43 sections above is retrospective. Nothing here answers *"should I go
+tomorrow, and where?"* — the question that gets the app opened on a Thursday night by
+someone who is not fishing.
+
+`docs/product/ROADMAP.md` C1, **"Find days like today"** — search history for matching
+conditions — is the honest version of that, still unaccepted. The angler judges the match,
+so it makes no statistical promise the sample size cannot support. It is the natural
+sibling of the species detail page and reuses the same selectors Ticket 1 builds.
+
+Recommendation: accept C1 and put it in Phase 2 ahead of verification. Verification
+(§15–§16) matters when accomplishments become public or competitive, and nothing is public
+until Phase 5.
+
+### 47.5 Do not quietly cut Boat Games
+
+Worth stating because it is easy to lose as "the fun extra": **every other feature in this
+document is single-player.** A boat game is the only mechanic proposed anywhere that puts
+the app in front of people who do not have it — four anglers, one QR code, on a day they
+are already enjoying. It is also the hardest engineering here, and worthless before the
+core is good. Keep it at Phase 4, keep it on the roadmap, and do not let it fall off.
+
+### 47.6 Wildlife is the lowest leverage per unit of work
+
+Charming and genuinely differentiating, but Phase 3 asks for a new record type, a new
+identification engine, a new privacy and sensitivity model, and a new map layer, in
+exchange for something that does not bring an angler back next weekend. It is correctly
+placed after games in effort terms even though it is listed before them. If the calendar
+gets tight, this is the phase to slip.
+
+### 47.7 Revised Phase 1 ticket order
+
+Same eight tickets from §36, resequenced by value and unblocked-ness:
+
+1. **Ticket 1** — domain and selectors. Everything else depends on it.
+2. **Ticket 3** — My Species grid, uncaught silhouettes included.
+3. **Ticket 4** — species detail. *The hero. Finish this one properly.*
+4. **Ticket 2** — collections, family/habitat only. Geographic collections wait on §45.1.
+5. **Ticket 5** — badge engine, four rule shapes and seven badges, plus the blank-trip rule.
+6. **Tickets 6 and 7** — backfill and offline hardening, unchanged.
+7. **Ticket 8** — QA and rollout behind `passport_v1`, unchanged.
+
+Blocked before code starts: the region ruling (§45.1) gates part of Ticket 2 and one badge;
+the media decision (§45.2) removes one badge from Ticket 5.

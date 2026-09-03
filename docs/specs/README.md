@@ -11,7 +11,7 @@ files rather than silently resolved.
 
 | Spec | Status | What it covers |
 |---|---|---|
-| [fishing-passport-wildlife-boat-games.md](fishing-passport-wildlife-boat-games.md) | **Proposed** — planning only, nothing built | Fishing Passport / My Species, badges and verification levels, marine wildlife sightings, reusable Fin ID, private Boat Games. Phase 1 = Passport + starter badges. |
+| [fishing-passport-wildlife-boat-games.md](fishing-passport-wildlife-boat-games.md) | **Proposed** — planning only, nothing built | Fishing Passport / My Species, badges and verification levels, marine wildlife sightings, reusable Fin ID, private Boat Games. Phase 1 = Passport + starter badges. **Read §44–§47 first** — repo reality check, three blocked items, and the sequencing recommendation. |
 | [tackle-box.md](tackle-box.md) | MVP / ready for implementation | Personal tackle inventory: two-level item model, search, and gear snapshots on a catch. |
 | [fish-legal-expansion.md](fish-legal-expansion.md) | Shipped (Phases 1–3, PR #24) | Region-aware rules and regulations surface: packs, verdicts, citation-or-nothing. |
 | [regulations-architecture.md](regulations-architecture.md) | Proposed architecture | How regulation data is packaged, versioned, and served offline. |
