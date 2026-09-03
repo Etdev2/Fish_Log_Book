@@ -6,14 +6,14 @@ import type { RegArea, RegPack, RegRule } from "./types";
 
 export const DELAWARE_PACK: RegPack = {
   id: "delaware-2026-09-03",
-  version: 1,
-  publishedAt: "2026-09-03T22:00:00Z",
+  version: 2,
+  publishedAt: "2026-09-03T23:55:00Z",
   notes:
-    "Delaware DNREC 2026: stripers 28–31\" @1 (20–25\" Jul 1–Aug 31 in DE River/Bay/tributaries); tautog 16\" @4 Jan 1–May 15 and Jul 1–Dec 31; fluke 16\" then 17.5\" @4; BSB 13\" @15 May 15–Sep 30 and Oct 10–Dec 31; red drum 20–27\" @5 state waters.",
+    "Delaware DNREC Fish Facts v2: stripers/tautog/fluke/BSB/red drum as v1; cobia 43\" TL @2 per angler or vessel; Spanish mackerel 14\" @15; weakfish 13\" @1; bluefish @3 (for-hire 5).",
 };
 
 const VERIFIED = "2026-09-03";
-const pv = 1;
+const pv = 2;
 const SB = {
   url: "https://fishspecies.dnrec.delaware.gov/FishSpecies.aspx?habitat=1&species=55",
   title: "Delaware DNREC Fish Facts — Striped Bass",
@@ -115,6 +115,42 @@ export const DE_RULES: readonly RegRule[] = [
     sourceTitle: "Delaware DNREC Fish Facts — Red Drum", sourceUpdatedAt: "2026-01-01", verifiedAt: VERIFIED,
     seasonStart: null, seasonEnd: null, bagDaily: 5, possessionLimit: 5, bagSharesWithGroup: false,
     minSizeIn: 20, maxSizeIn: 27, sizeMeasure: "total_length", platformScope: null, depthNote: "EEZ closed.",
+    checkInseason: true, staleAfterDays: 60,
+  }),
+  rule({
+    id: "de-cobia", speciesId: "cobia", regAreaId: "de-tidal", kind: "bag_limit",
+    verbatim: "Cobia: Season Open Year-Round. Size Limit 43 inches minimum length (total length). Daily Limit / Person 2 per angler or 2 per vessel.",
+    sourceUrl: "https://fishspecies.dnrec.delaware.gov/FishSpecies.aspx?habitat=2&species=109",
+    sourceTitle: "Delaware DNREC Fish Facts — Cobia", sourceUpdatedAt: "2026-01-01", verifiedAt: VERIFIED,
+    seasonStart: null, seasonEnd: null, bagDaily: 2, possessionLimit: 2, bagSharesWithGroup: false,
+    minSizeIn: 43, maxSizeIn: null, sizeMeasure: "total_length", platformScope: null, depthNote: "2 per vessel cap.",
+    checkInseason: true, staleAfterDays: 30,
+  }),
+  rule({
+    id: "de-spanish-mackerel", speciesId: "spanish_mackerel", regAreaId: "de-tidal", kind: "bag_limit",
+    verbatim: "Spanish Mackerel: Season Open Year-Round. Size Limit 14 inch minimum. Daily Limit / Person 15.",
+    sourceUrl: "https://fishspecies.dnrec.delaware.gov/FishSpecies.aspx?habitat=2&species=176",
+    sourceTitle: "Delaware DNREC Fish Facts — Spanish Mackerel", sourceUpdatedAt: "2026-01-01", verifiedAt: VERIFIED,
+    seasonStart: null, seasonEnd: null, bagDaily: 15, possessionLimit: 15, bagSharesWithGroup: false,
+    minSizeIn: 14, maxSizeIn: null, sizeMeasure: "total_length", platformScope: null, depthNote: null,
+    checkInseason: true, staleAfterDays: 60,
+  }),
+  rule({
+    id: "de-weakfish", speciesId: "weakfish", regAreaId: "de-tidal", kind: "bag_limit",
+    verbatim: "Weakfish: Season Open Year-Round. Size Limit 13 inch minimum (total length). Daily Limit / Person 1.",
+    sourceUrl: "https://fishspecies.dnrec.delaware.gov/FishSpecies.aspx?habitat=2&species=192",
+    sourceTitle: "Delaware DNREC Fish Facts — Weakfish", sourceUpdatedAt: "2026-01-01", verifiedAt: VERIFIED,
+    seasonStart: null, seasonEnd: null, bagDaily: 1, possessionLimit: 1, bagSharesWithGroup: false,
+    minSizeIn: 13, maxSizeIn: null, sizeMeasure: "total_length", platformScope: null, depthNote: null,
+    checkInseason: true, staleAfterDays: 60,
+  }),
+  rule({
+    id: "de-bluefish", speciesId: "bluefish", regAreaId: "de-tidal", kind: "bag_limit",
+    verbatim: "Bluefish: Season Open Year Round. Size Limit No Size Limit. Daily Limit / Person 3 per shore or private boat anglers. 5 per anglers on ‘for-hire’ vessels (Headboats and Charter boats).",
+    sourceUrl: "https://fishspecies.dnrec.delaware.gov/FishSpecies.aspx?habitat=2&species=100",
+    sourceTitle: "Delaware DNREC Fish Facts — Bluefish", sourceUpdatedAt: "2026-01-01", verifiedAt: VERIFIED,
+    seasonStart: null, seasonEnd: null, bagDaily: 3, possessionLimit: 3, bagSharesWithGroup: false,
+    minSizeIn: null, maxSizeIn: null, sizeMeasure: null, platformScope: null, depthNote: "For-hire 5.",
     checkInseason: true, staleAfterDays: 60,
   }),
 ];

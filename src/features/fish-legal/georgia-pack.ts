@@ -7,10 +7,10 @@ import type { RegArea, RegPack, RegRule } from "./types";
 
 export const GEORGIA_PACK: RegPack = {
   id: "georgia-2026-09-03",
-  version: 1,
-  publishedAt: "2026-09-03T22:00:00Z",
+  version: 2,
+  publishedAt: "2026-09-03T23:55:00Z",
   notes:
-    "Georgia CRD recreational table: red drum 14–23\" @5 rod-and-reel gamefish; speckled trout 14\" @15; flounder 12\" @15; stripers 22\" @2 saltwater / 27\" Savannah; weakfish 13\" @1.",
+    "Georgia CRD v2: drums/flounder/trout as v1; king 24\" FL @3; Spanish 12\" FL @15; dolphin 20\" FL @10 / 54 boat; BSB 12\" TL @15; tripletail 18\" TL @2; amberjack 28\" FL @1; red snapper 20\" TL @2 (state waters; federal *).",
 };
 
 const GA = {
@@ -116,6 +116,62 @@ export const GA_RULES: readonly RegRule[] = [
     seasonStart: null, seasonEnd: null, bagDaily: 1, possessionLimit: 1, bagSharesWithGroup: false,
     minSizeIn: 68, maxSizeIn: null, sizeMeasure: "fork_length", platformScope: null, depthNote: null,
     checkInseason: true, staleAfterDays: 90,
+  }),
+  rule({
+    id: "ga-king-mackerel", speciesId: "king_mackerel", regAreaId: "ga-state-waters", kind: "bag_limit",
+    verbatim: "Mackerel, King: Season: All year. Limit: 3. Minimum size: 24\" FL.",
+    sourceUrl: GA.url, sourceTitle: GA.title, sourceUpdatedAt: GA.updated, verifiedAt: VERIFIED,
+    seasonStart: null, seasonEnd: null, bagDaily: 3, possessionLimit: 3, bagSharesWithGroup: false,
+    minSizeIn: 24, maxSizeIn: null, sizeMeasure: "fork_length", platformScope: null, depthNote: "Federal 3–200 nm follows SAFMC.",
+    checkInseason: true, staleAfterDays: 30,
+  }),
+  rule({
+    id: "ga-spanish-mackerel", speciesId: "spanish_mackerel", regAreaId: "ga-state-waters", kind: "bag_limit",
+    verbatim: "Mackerel, Spanish: Season: All year. Limit: 15. Minimum size: 12\" FL.",
+    sourceUrl: GA.url, sourceTitle: GA.title, sourceUpdatedAt: GA.updated, verifiedAt: VERIFIED,
+    seasonStart: null, seasonEnd: null, bagDaily: 15, possessionLimit: 15, bagSharesWithGroup: false,
+    minSizeIn: 12, maxSizeIn: null, sizeMeasure: "fork_length", platformScope: null, depthNote: "Federal 3–200 nm follows SAFMC.",
+    checkInseason: true, staleAfterDays: 30,
+  }),
+  rule({
+    id: "ga-dolphin", speciesId: "dorado", regAreaId: "ga-state-waters", kind: "bag_limit",
+    verbatim: "Dolphin / Mahi Mahi: Season: All year. Limit: 10 (not to exceed 54 per boat, except headboats, which are allowed 10 per paying customer). Minimum size: 20\" FL.",
+    sourceUrl: GA.url, sourceTitle: GA.title, sourceUpdatedAt: GA.updated, verifiedAt: VERIFIED,
+    seasonStart: null, seasonEnd: null, bagDaily: 10, possessionLimit: 10, bagSharesWithGroup: false,
+    minSizeIn: 20, maxSizeIn: null, sizeMeasure: "fork_length", platformScope: null, depthNote: "54 per boat.",
+    checkInseason: true, staleAfterDays: 30,
+  }),
+  rule({
+    id: "ga-bsb", speciesId: "black_sea_bass", regAreaId: "ga-state-waters", kind: "bag_limit",
+    verbatim: "Black Sea Bass: Season: All year. Limit: 15. Minimum size: 12\" TL.",
+    sourceUrl: GA.url, sourceTitle: GA.title, sourceUpdatedAt: GA.updated, verifiedAt: VERIFIED,
+    seasonStart: null, seasonEnd: null, bagDaily: 15, possessionLimit: 15, bagSharesWithGroup: false,
+    minSizeIn: 12, maxSizeIn: null, sizeMeasure: "total_length", platformScope: null, depthNote: "Federal 3–200 nm follows SAFMC.",
+    checkInseason: true, staleAfterDays: 30,
+  }),
+  rule({
+    id: "ga-tripletail", speciesId: "tripletail", regAreaId: "ga-state-waters", kind: "bag_limit",
+    verbatim: "Tripletail: Season: All year. Limit: 2. Minimum size: 18\" TL.",
+    sourceUrl: GA.url, sourceTitle: GA.title, sourceUpdatedAt: GA.updated, verifiedAt: VERIFIED,
+    seasonStart: null, seasonEnd: null, bagDaily: 2, possessionLimit: 2, bagSharesWithGroup: false,
+    minSizeIn: 18, maxSizeIn: null, sizeMeasure: "total_length", platformScope: null, depthNote: null,
+    checkInseason: true, staleAfterDays: 60,
+  }),
+  rule({
+    id: "ga-amberjack", speciesId: "greater_amberjack", regAreaId: "ga-state-waters", kind: "bag_limit",
+    verbatim: "Amberjack: Season: All year. Limit: 1. Minimum size: 28\" FL.",
+    sourceUrl: GA.url, sourceTitle: GA.title, sourceUpdatedAt: GA.updated, verifiedAt: VERIFIED,
+    seasonStart: null, seasonEnd: null, bagDaily: 1, possessionLimit: 1, bagSharesWithGroup: false,
+    minSizeIn: 28, maxSizeIn: null, sizeMeasure: "fork_length", platformScope: null, depthNote: "Federal 3–200 nm follows SAFMC.",
+    checkInseason: true, staleAfterDays: 30,
+  }),
+  rule({
+    id: "ga-red-snapper", speciesId: "red_snapper", regAreaId: "ga-state-waters", kind: "bag_limit",
+    verbatim: "Red Snapper: Season: All year. Limit: 2. Minimum size: 20\" TL.",
+    sourceUrl: GA.url, sourceTitle: GA.title, sourceUpdatedAt: GA.updated, verifiedAt: VERIFIED,
+    seasonStart: null, seasonEnd: null, bagDaily: 2, possessionLimit: 2, bagSharesWithGroup: false,
+    minSizeIn: 20, maxSizeIn: null, sizeMeasure: "total_length", platformScope: null, depthNote: "Federal 3–200 nm follows SAFMC; confirm federal season.",
+    checkInseason: true, staleAfterDays: 14,
   }),
 ];
 

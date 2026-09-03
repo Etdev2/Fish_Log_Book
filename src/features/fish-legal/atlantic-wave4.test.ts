@@ -38,6 +38,15 @@ describe("Atlantic wave 4 — DE / MD / VA / NC / SC / GA", () => {
     expect(regulationCard(DELAWARE, "de-tidal", "striped_bass", TODAY, "boat")!.bagDaily).toBe(1);
   });
 
+  it("DE cobia 43 @2; Spanish 14 @15; weakfish 13 @1; bluefish 3", () => {
+    const cobia = regulationCard(DELAWARE, "de-tidal", "cobia", TODAY, "boat");
+    expect(cobia!.bagDaily).toBe(2);
+    expect(cobia!.minSizeIn).toBe(43);
+    expect(regulationCard(DELAWARE, "de-tidal", "spanish_mackerel", TODAY, "boat")!.bagDaily).toBe(15);
+    expect(regulationCard(DELAWARE, "de-tidal", "weakfish", TODAY, "boat")!.bagDaily).toBe(1);
+    expect(regulationCard(DELAWARE, "de-tidal", "bluefish", TODAY, "boat")!.bagDaily).toBe(3);
+  });
+
   it("MD ocean stripers 28–31; Bay 19–24 on Sep 3; fluke 17.5 @4", () => {
     const ocean = regulationCard(MARYLAND, "md-atlantic", "striped_bass", TODAY, "boat");
     expect(ocean!.minSizeIn).toBe(28);
@@ -109,5 +118,12 @@ describe("Atlantic wave 4 — DE / MD / VA / NC / SC / GA", () => {
     expect(rd!.bagDaily).toBe(5);
     expect(rd!.minSizeIn).toBe(14);
     expect(regulationCard(GEORGIA, "ga-state-waters", "cobia", TODAY, "boat")!.bagDaily).toBe(1);
+  });
+
+  it("GA king 24 FL @3; Spanish 12 FL @15; BSB 12 @15; tripletail 18 @2", () => {
+    expect(regulationCard(GEORGIA, "ga-state-waters", "king_mackerel", TODAY, "boat")!.bagDaily).toBe(3);
+    expect(regulationCard(GEORGIA, "ga-state-waters", "spanish_mackerel", TODAY, "boat")!.minSizeIn).toBe(12);
+    expect(regulationCard(GEORGIA, "ga-state-waters", "black_sea_bass", TODAY, "boat")!.minSizeIn).toBe(12);
+    expect(regulationCard(GEORGIA, "ga-state-waters", "tripletail", TODAY, "boat")!.bagDaily).toBe(2);
   });
 });
