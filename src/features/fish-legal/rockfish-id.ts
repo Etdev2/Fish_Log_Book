@@ -11,6 +11,9 @@
  * schematic is honest about what it is. §7's camera path narrows candidates through the
  * same scoring seam later; identification and regulation stay separate systems.
  */
+import { identify, RESTRICTED_WARNING_PCT as SHARED_WARNING_PCT } from "@/core/rules/identification/identify";
+import type { Identification, TraitPack } from "@/core/rules/identification/types";
+
 import { SOCAL, speciesInPack } from "./reg-data";
 
 export type TraitAnswer =
@@ -266,61 +269,65 @@ export interface IdCandidate {
   readonly profile: RockfishProfile;
   /** Share of the weighted vote across candidates, 0–100, rounded. */
   readonly confidencePct: number;
+  /** Why this one is here (spec §4.7). Empty until a question is answered. */
+  readonly supporting: readonly string[];
+  readonly against: readonly string[];
 }
 
 /**
- * Score answers down to a ranked list. Multiplies affinities so one ruling trait pulls
- * hard; a "not sure" answer simply isn't in the list. Percentages are relative shares
- * of the surviving pool — they answer "which is likelier", never "identification certain".
+ * The rockfish pack, expressed for the shared Fin ID engine (passport spec §17).
+ *
+ * The scoring that used to live in this file now lives in `core/rules/identification`,
+ * unchanged in behaviour — this file went back to being what it should always have been:
+ * the SoCal rockfish *data*, plus the regulation linkage that is specific to it. The
+ * contradiction handling that was a hand-maintained `QUESTION_GROUPS` list is now derived
+ * from `ID_QUESTIONS` itself, so a new question cannot leave a stale group behind.
  */
-/** Question ids sharing a trait family — a strongly-signaled family means a missing
-    affinity for a CONTRADICTING answer is evidence against, not "no information". */
-const QUESTION_GROUPS: readonly (readonly TraitAnswer[])[] = [
-  ["red-orange", "brown", "black-blue", "pink-copper", "mixed"],
-  ["spots-yes", "spots-no"],
-  ["bands-yes", "bands-no"],
-  ["fins-uniform", "fins-light"],
-  ["jaw-small", "jaw-big"],
-  ["size-small", "size-mid", "size-big"],
-];
+export const ROCKFISH_PACK: TraitPack = {
+  id: "socal-rockfish",
+  name: "Southern California rockfish",
+  source:
+    "docs/specs/rockfish-identification.md — CDFW/CCR-derived trait table, verified against the SoCal regulation pack.",
+  version: 1,
+  questions: ID_QUESTIONS.map((q) => ({
+    id: q.id,
+    question: q.question,
+    options: q.answers.map((a) => ({ id: a.id as string, label: a.label })),
+  })),
+  profiles: ROCKFISH_PROFILES.map((p) => ({
+    speciesId: p.speciesId,
+    commonName: p.commonName,
+    scientificName: p.scientificName,
+    traits: p.traits as Readonly<Record<string, number>>,
+    noRetention: p.noRetention,
+    keyFeatures: p.keyFeatures,
+    similarTo: p.similarTo,
+  })),
+};
 
-function affinityFor(profile: RockfishProfile, answer: TraitAnswer): number {
-  const affinity = profile.traits[answer];
-  if (affinity !== undefined) return affinity;
-  const group = QUESTION_GROUPS.find((g) => g.includes(answer));
-  if (group) {
-    const strongest = Math.max(...group.map((a) => profile.traits[a] ?? 0));
-    // The species is strongly some OTHER option in this family (e.g. clearly red-orange,
-    // and the angler answered black-blue): that counts against it.
-    if (strongest >= 1) return 0.15;
-  }
-  return 0.5;
+const PROFILE_BY_ID = new Map(ROCKFISH_PROFILES.map((p) => [p.speciesId, p]));
+
+/**
+ * Score answers down to a ranked list.
+ *
+ * Kept as a named export with the same shape it always had so the wizard and its tests do
+ * not care that the engine moved. `identifyRockfishFully` is the same call with the
+ * engine's §4.5 refusal and §4.7 reasons attached, for callers ready to use them.
+ */
+export function identifyRockfishFully(answers: readonly TraitAnswer[]): Identification {
+  return identify(ROCKFISH_PACK, answers as readonly string[]);
 }
 
 export function identifyRockfish(answers: readonly TraitAnswer[]): readonly IdCandidate[] {
-  const scored = ROCKFISH_PROFILES.map((profile) => {
-    let score = 1;
-    let answered = 0;
-    for (const answer of answers) {
-      score *= affinityFor(profile, answer);
-      answered += 1;
-    }
-    // No answers at all → uniform field, which is what "no information" should read as.
-    return { profile, score: answered === 0 ? 1 : score };
-  });
-  const total = scored.reduce((sum, s) => sum + s.score, 0) || 1;
-  return scored
-    .map((s) => ({ profile: s.profile, confidencePct: Math.round((s.score / total) * 100) }))
-    .sort((a, b) => b.confidencePct - a.confidencePct);
+  return identifyRockfishFully(answers).candidates.map((c) => ({
+    profile: PROFILE_BY_ID.get(c.profile.speciesId) as RockfishProfile,
+    confidencePct: c.sharePct,
+    supporting: c.supporting,
+    against: c.against,
+  }));
 }
 
-/**
- * §6 gate: any candidate above the warning floor that the law says no-retention on.
- * The floor is 5% — one-in-twenty of the surviving pool: low enough to catch an orange
- * red-flag early, high enough that a "clearly not that fish" (small, black, plain) does
- * not cry wolf and teach the angler to ignore the banner.
- */
-export const RESTRICTED_WARNING_PCT = 5;
+export const RESTRICTED_WARNING_PCT = SHARED_WARNING_PCT;
 
 export function restrictedIn(candidates: readonly IdCandidate[]): readonly IdCandidate[] {
   return candidates.filter(

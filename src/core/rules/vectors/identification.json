@@ -1,0 +1,69 @@
+{
+  "$comment": "Vectors for src/core/rules/identification/ (ADR 003 §4). A tiny synthetic pack, so the maths is checkable without depending on real biology — the rockfish pack's own behaviour is pinned separately by rockfish-id.test.ts.",
+  "pack": {
+    "id": "test-pack",
+    "name": "Test pack",
+    "source": "Synthetic. Exists to pin the scoring model, not to identify anything.",
+    "version": 1,
+    "questions": [
+      {
+        "id": "colour",
+        "question": "What colour is it?",
+        "options": [
+          { "id": "red", "label": "Red" },
+          { "id": "black", "label": "Black" }
+        ]
+      },
+      {
+        "id": "size",
+        "question": "How big?",
+        "options": [
+          { "id": "small", "label": "Small" },
+          { "id": "big", "label": "Big" }
+        ]
+      }
+    ],
+    "profiles": [
+      { "speciesId": "redfish", "commonName": "Redfish", "traits": { "red": 3, "big": 2 }, "noRetention": false },
+      { "speciesId": "blackfish", "commonName": "Blackfish", "traits": { "black": 3, "small": 2 }, "noRetention": false },
+      { "speciesId": "banned", "commonName": "Banned one", "traits": { "red": 2, "small": 2 }, "noRetention": true }
+    ]
+  },
+  "cases": [
+    {
+      "name": "no answers is a uniform field, and the engine says so rather than ranking",
+      "answers": [],
+      "expectRanked": false,
+      "expectTop": null,
+      "expectRestrictedCount": 1
+    },
+    {
+      "name": "one answer is not enough to call a winner, even a lopsided one",
+      "answers": ["red"],
+      "expectRanked": false,
+      "expectTop": "redfish",
+      "expectRestrictedCount": 1
+    },
+    {
+      "name": "two agreeing answers separate the field and it ranks",
+      "answers": ["red", "big"],
+      "expectRanked": true,
+      "expectTop": "redfish",
+      "expectRestrictedCount": 1
+    },
+    {
+      "name": "contradicting the strong mark pushes a species down without needing a negative trait",
+      "answers": ["black", "small"],
+      "expectRanked": true,
+      "expectTop": "blackfish",
+      "expectRestrictedCount": 1
+    },
+    {
+      "name": "a no-retention species stays in the warning list while it is still live",
+      "answers": ["red", "small"],
+      "expectRanked": true,
+      "expectTop": "banned",
+      "expectRestrictedCount": 1
+    }
+  ]
+}
