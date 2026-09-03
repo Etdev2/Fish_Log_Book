@@ -53,7 +53,7 @@ Rough effort: **S** = days, **M** = weeks, **L** = a month or more.
 | # | Feature | Why it might matter | Effort |
 |---|---|---|---|
 | A1 | **Voice note on a catch** — one tap to record, transcribed later | Hands wet, fish flapping, no time to type. Probably the single best fit for the actual moment of a catch. | M |
-| A2 | **Photo with EXIF stripped** | Already in the spec as V2. The privacy half matters: photos carry GPS, and anglers do not share spots. | S |
+| A2 | **Photo with EXIF stripped** | Already in the spec as V2. The privacy half matters: photos carry GPS, and anglers do not share spots. **❌ NOT NOW — 2026-09-03, founder, on cost.** No media table is scheduled; storage, EXIF stripping, size limits, offline upload and moderation are not being bought for a badge. This also removes verification levels 1–2 from Phase 2 of the passport spec — see its §45.2. Revisit as its own spec, not as a rider on another feature. | S |
 | A3 | **Length / weight** | Standard logbook data, and needed for any personal-best feature. | S |
 | A4 | **Fight time** | One tap start/stop. Anecdotally correlates with size; would be a genuinely novel variable. | S |
 | A5 | **Gear loadout** — rod, reel, line, leader | Ties to the two-level tackle model already designed. Bass anglers care a lot; surf anglers less. | M |

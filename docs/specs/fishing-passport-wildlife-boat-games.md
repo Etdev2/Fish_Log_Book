@@ -2,7 +2,8 @@
 date: 2026-09-03 (founder spec received)
 status: PROPOSED — ready for technical planning (nothing implemented).
   Two blocking decisions resolved 2026-09-03 — see §45.1 (region: cut from Phase 1) and
-  §47.4 (ROADMAP C1 accepted into Phase 2). Media (§45.2) remains open.
+  §47.4 (ROADMAP C1 accepted into Phase 2). Media and Photo Journal I cut on cost
+  2026-09-03 — §45.2 carries what that removes from Phase 2.
 governs: (future) src/core/passport/, src/core/achievements/, src/core/identification/,
   src/core/games/, src/features/passport/, src/features/achievements/,
   src/features/wildlife/, src/features/boat-games/, src/app/passport/
@@ -1119,10 +1120,40 @@ That blocks, in Phase 1, the **Photo Journal I** badge (§12) and the species ph
 gallery (§9.2); and in Phase 2, verification levels 1 and 2 entirely (§15), since both are
 defined by attached media. Phase 3 wildlife photos and §17 Fin ID inherit the same gap.
 
-Recommendation: cut **Photo Journal I** from the Phase 1 catalog and leave the gallery as
-an empty state, rather than growing Phase 1 to include media capture, storage, EXIF
-stripping (ROADMAP A2 is explicit that the privacy half matters), size limits, and offline
-upload. Media is its own spec.
+**RESOLVED 2026-09-03 — the founder cut it, on cost.** Photo Journal I is removed from the
+badge catalog outright, and **no media table is scheduled.** This was a price decision, not
+a sequencing one: media means capture, storage, EXIF stripping (ROADMAP A2 is explicit that
+the privacy half is the point), size limits, offline upload, moderation before anything is
+public, and a recurring storage bill. None of that was going to be bought for one badge.
+
+Phase 1 is unaffected — it still ships seven badges on four rule shapes, because Photo
+Journal I was never among them. What this decides is **Phase 2**, and the consequences
+should be read now rather than discovered later:
+
+| Depends on media | Status while no media table exists |
+|---|---|
+| §12 Photo Journal I badge | **Cut.** Removed from the catalog |
+| §9.2 species photo gallery | **Cut.** The species page is text and numbers, and is still the Phase 1 hero without photos (§47.2) |
+| §15 verification **level 1** (photo supported) | **Unbuildable.** Defined as "original media attached" |
+| §15 verification **level 2** (metadata supported) | **Unbuildable.** Defined as photo plus metadata |
+| §16 photo policy | **Dormant.** Keep the text; it is the right policy for whenever media lands |
+| §27 game options "photo required" / "photo + host approval" | **Unavailable.** Honor system and host approval remain, which §27 already makes the casual default |
+| §29.5 `catch_verifications.evidence_media_ids`, §29.6 `identification_suggestions.media_id` | Columns presuppose media. Do not create them until it exists |
+
+So the §15 verification model reduces, for now, to **level 0 (self logged), level 3 (human
+verified), and level 4 (event verified)** — the two evidence levels in the middle are the
+ones that needed a photo. That is a coherent model, not a broken one: a captain confirming
+a fish is a stronger fact than a photograph anyway, and §4.3 already says self-logged
+catches count for the private passport, which is all Phase 1 needs.
+
+Two things are explicitly *not* cut:
+
+- **§17 Fin ID.** It is a trait-scoring engine — body shape, fin placement, coloration,
+  range, behavior — and answers from a questionnaire without a photograph. The existing
+  rockfish identifier already works this way. Photos would improve it; their absence does
+  not block it.
+- **The idea of photos.** This is "not now, and not for a badge," not "never." When media
+  is scheduled it gets its own spec, and §16 is already written for it.
 
 ### 45.3 `species` has no family or category column
 
@@ -1215,7 +1246,7 @@ already have a source column, and three of which are blocked on decisions in §4
 | Freshwater Explorer | D — count distinct species filtered by a species column | `species.water_class` + `trip.water_class` | **Ship** — see the `both` rule below |
 | Saltwater Explorer | D | `species.water_class` + `trip.water_class` | **Ship** — same rule |
 | New Waters I | E — count distinct regions | **None.** No region on a catch | **Cut from Phase 1** — §45.1 resolved: no region data to derive from |
-| Photo Journal I | F — count catches with attached media | **None.** No media table | **Cut from Phase 1** — blocked on §45.2 |
+| Photo Journal I | F — count catches with attached media | **None.** No media table | **CUT** — founder decision 2026-09-03, on cost. Not "deferred pending media"; removed from the catalog |
 | Night Bite | G — count catches passing a computed local-time test | `caught_at` + `lat`/`lng`, but needs a sunrise/sunset library. `astronomy-engine` is the cleared choice (SPEC.md O9); it is **not yet a dependency** | **Defer** — the only badge needing a new package |
 
 So Phase 1 ships **seven badges on four rules**, and the three that look like ordinary
