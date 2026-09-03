@@ -6,10 +6,10 @@ import type { RegArea, RegPack, RegRule } from "./types";
 
 export const SOUTH_CAROLINA_PACK: RegPack = {
   id: "south-carolina-2026-09-03",
-  version: 1,
-  publishedAt: "2026-09-03T22:00:00Z",
+  version: 2,
+  publishedAt: "2026-09-03T23:45:00Z",
   notes:
-    "SCDNR 2026-27 (updated 2026-08-11): red drum 18–25\" @1 / 2 per boat (Act 231 Jul 1 2026); trout 14\" @10; flounder 16\" @5 not to exceed 10/boat; stripers closed Jun 16–Sep 30 in salt water.",
+    "SCDNR 2026-27 v2: drums/flounder/trout as v1; cobia 36\" FL @1 (May 1–31 closed south of 32°31′N); dolphin 20\" FL @10 / 54 boat; king 24\" FL @3; Spanish 12\" FL @15; wahoo @2; tarpon 77\" FL @1; tripletail 18\" @3 / 9 boat.",
 };
 
 const SC = {
@@ -98,6 +98,63 @@ export const SC_RULES: readonly RegRule[] = [
     sourceUrl: SC.url, sourceTitle: SC.title, sourceUpdatedAt: SC.updated, verifiedAt: VERIFIED,
     seasonStart: null, seasonEnd: null, bagDaily: 5, possessionLimit: 5, bagSharesWithGroup: false,
     minSizeIn: null, maxSizeIn: null, sizeMeasure: null, platformScope: null, depthNote: "For-hire 7.",
+    checkInseason: true, staleAfterDays: 60,
+  }),
+  rule({
+    id: "sc-cobia", speciesId: "cobia", regAreaId: "sc-state-waters", kind: "bag_limit",
+    verbatim: "Cobia: 36-inch FL. 1 per person per day not to exceed 3 per boat per day south of 32°31′N (Jeremy Inlet). 1 per person not to exceed 6 per boat north of 32°31′N and in federal waters. Closed May 1–31 south of 32°31′N.",
+    sourceUrl: SC.url, sourceTitle: SC.title, sourceUpdatedAt: SC.updated, verifiedAt: VERIFIED,
+    seasonStart: null, seasonEnd: null, bagDaily: 1, possessionLimit: 1, bagSharesWithGroup: false,
+    minSizeIn: 36, maxSizeIn: null, sizeMeasure: "fork_length", platformScope: null,
+    depthNote: "May 1–31 closed south of Jeremy Inlet / 32°31′N.",
+    checkInseason: true, staleAfterDays: 14,
+  }),
+  rule({
+    id: "sc-dolphin", speciesId: "dorado", regAreaId: "sc-state-waters", kind: "bag_limit",
+    verbatim: "Dolphin: 20-inch FL. 10 per person per day not to exceed 54 per boat per day.",
+    sourceUrl: SC.url, sourceTitle: SC.title, sourceUpdatedAt: SC.updated, verifiedAt: VERIFIED,
+    seasonStart: null, seasonEnd: null, bagDaily: 10, possessionLimit: 10, bagSharesWithGroup: false,
+    minSizeIn: 20, maxSizeIn: null, sizeMeasure: "fork_length", platformScope: null, depthNote: "54 per boat.",
+    checkInseason: true, staleAfterDays: 30,
+  }),
+  rule({
+    id: "sc-king-mackerel", speciesId: "king_mackerel", regAreaId: "sc-state-waters", kind: "bag_limit",
+    verbatim: "King Mackerel: 24-inch FL. 3 per person per day.",
+    sourceUrl: SC.url, sourceTitle: SC.title, sourceUpdatedAt: SC.updated, verifiedAt: VERIFIED,
+    seasonStart: null, seasonEnd: null, bagDaily: 3, possessionLimit: 3, bagSharesWithGroup: false,
+    minSizeIn: 24, maxSizeIn: null, sizeMeasure: "fork_length", platformScope: null, depthNote: null,
+    checkInseason: true, staleAfterDays: 30,
+  }),
+  rule({
+    id: "sc-spanish-mackerel", speciesId: "spanish_mackerel", regAreaId: "sc-state-waters", kind: "bag_limit",
+    verbatim: "Spanish Mackerel: 12-inch FL. 15 per person per day.",
+    sourceUrl: SC.url, sourceTitle: SC.title, sourceUpdatedAt: SC.updated, verifiedAt: VERIFIED,
+    seasonStart: null, seasonEnd: null, bagDaily: 15, possessionLimit: 15, bagSharesWithGroup: false,
+    minSizeIn: 12, maxSizeIn: null, sizeMeasure: "fork_length", platformScope: null, depthNote: null,
+    checkInseason: true, staleAfterDays: 30,
+  }),
+  rule({
+    id: "sc-wahoo", speciesId: "wahoo", regAreaId: "sc-state-waters", kind: "bag_limit",
+    verbatim: "Wahoo: 2 per person per day.",
+    sourceUrl: SC.url, sourceTitle: SC.title, sourceUpdatedAt: SC.updated, verifiedAt: VERIFIED,
+    seasonStart: null, seasonEnd: null, bagDaily: 2, possessionLimit: 2, bagSharesWithGroup: false,
+    minSizeIn: null, maxSizeIn: null, sizeMeasure: null, platformScope: null, depthNote: null,
+    checkInseason: true, staleAfterDays: 30,
+  }),
+  rule({
+    id: "sc-tarpon", speciesId: "atlantic_tarpon", regAreaId: "sc-state-waters", kind: "bag_limit",
+    verbatim: "Tarpon: 77-inch FL. 1 per person per day.",
+    sourceUrl: SC.url, sourceTitle: SC.title, sourceUpdatedAt: SC.updated, verifiedAt: VERIFIED,
+    seasonStart: null, seasonEnd: null, bagDaily: 1, possessionLimit: 1, bagSharesWithGroup: false,
+    minSizeIn: 77, maxSizeIn: null, sizeMeasure: "fork_length", platformScope: null, depthNote: null,
+    checkInseason: true, staleAfterDays: 60,
+  }),
+  rule({
+    id: "sc-tripletail", speciesId: "tripletail", regAreaId: "sc-state-waters", kind: "bag_limit",
+    verbatim: "Tripletail: 18-inch TL. 3 per person per day not to exceed 9 per boat per day.",
+    sourceUrl: SC.url, sourceTitle: SC.title, sourceUpdatedAt: SC.updated, verifiedAt: VERIFIED,
+    seasonStart: null, seasonEnd: null, bagDaily: 3, possessionLimit: 3, bagSharesWithGroup: false,
+    minSizeIn: 18, maxSizeIn: null, sizeMeasure: "total_length", platformScope: null, depthNote: "9 per boat.",
     checkInseason: true, staleAfterDays: 60,
   }),
 ];
