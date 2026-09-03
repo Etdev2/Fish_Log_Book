@@ -32,6 +32,9 @@ export type RegionId =
   | "gulf_coast"
   | "northeast"
   | "rhode_island"
+  | "connecticut"
+  | "new_hampshire"
+  | "maine"
   | "new_york"
   | "new_jersey"
   | "great_lakes"
@@ -73,6 +76,9 @@ export const REGIONS: readonly Region[] = [
   { id: "gulf_coast", label: "Gulf Coast", hint: "Redfish, specks, snapper, cobia." },
   { id: "northeast", label: "Northeast", hint: "Massachusetts DMF: stripers, blues, fluke, tog, cod." },
   { id: "rhode_island", label: "Rhode Island", hint: "Narragansett Bay & Block Island: stripers, tautog, fluke, scup." },
+  { id: "connecticut", label: "Connecticut", hint: "Long Island Sound: stripers, tautog, fluke, scup, sea bass." },
+  { id: "new_hampshire", label: "New Hampshire", hint: "18-mile seacoast: stripers, sea bass, blues, groundfish." },
+  { id: "maine", label: "Maine", hint: "Head of tide to 3 miles: stripers, cod, haddock, blues." },
   { id: "new_york", label: "New York", hint: "Marine District: stripers, fluke, porgies, tautog LIS vs Bight." },
   { id: "new_jersey", label: "New Jersey", hint: "Cape May to Sandy Hook: stripers, fluke, sea bass, tautog." },
   { id: "great_lakes", label: "Great Lakes", hint: "Walleye, salmon and trout, perch, bass." },
@@ -244,6 +250,18 @@ const BY_REGION: Record<RegionId, readonly string[]> = {
   rhode_island: [
     "striped_bass", "tautog", "summer_flounder", "black_sea_bass",
     "scup", "bluefish", "weakfish", "winter_flounder",
+  ],
+  connecticut: [
+    "striped_bass", "summer_flounder", "tautog", "black_sea_bass",
+    "scup", "bluefish", "weakfish", "winter_flounder",
+  ],
+  new_hampshire: [
+    "striped_bass", "black_sea_bass", "bluefish", "atlantic_cod",
+    "haddock", "winter_flounder", "summer_flounder", "atlantic_mackerel",
+  ],
+  maine: [
+    "striped_bass", "atlantic_cod", "haddock", "black_sea_bass",
+    "bluefish", "winter_flounder", "summer_flounder", "pollock",
   ],
   new_york: [
     "striped_bass", "summer_flounder", "black_sea_bass", "tautog",

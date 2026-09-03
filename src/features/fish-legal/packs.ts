@@ -27,6 +27,9 @@ import { MASSACHUSETTS } from "./massachusetts-pack";
 import { RHODE_ISLAND } from "./rhode-island-pack";
 import { NEW_YORK } from "./new-york-pack";
 import { NEW_JERSEY } from "./new-jersey-pack";
+import { CONNECTICUT } from "./connecticut-pack";
+import { NEW_HAMPSHIRE } from "./new-hampshire-pack";
+import { MAINE } from "./maine-pack";
 import type { RegPack, RegArea, RegGroup, RegRule } from "./types";
 
 export type RegBundle = {
@@ -231,6 +234,27 @@ export const PACKS: readonly BundledPack[] = [
     shortCode: "NJ",
     primaryAreaId: "nj-marine",
     data: NEW_JERSEY,
+  },
+  {
+    regionId: "connecticut",
+    jurisdictionLabel: "Connecticut — DEEP (US)",
+    shortCode: "CT",
+    primaryAreaId: "ct-lis",
+    data: CONNECTICUT,
+  },
+  {
+    regionId: "new_hampshire",
+    jurisdictionLabel: "New Hampshire — Fish & Game (US)",
+    shortCode: "NH",
+    primaryAreaId: "nh-coast",
+    data: NEW_HAMPSHIRE,
+  },
+  {
+    regionId: "maine",
+    jurisdictionLabel: "Maine — DMR (US)",
+    shortCode: "ME",
+    primaryAreaId: "me-coast",
+    data: MAINE,
   },
 ];
 
