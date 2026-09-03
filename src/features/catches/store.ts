@@ -185,6 +185,14 @@ async function persist(
 ): Promise<void> {
   await commit(writes, mutations);
   await refresh();
+  // Fire-and-forget: the write is already durable. Flush never blocks the tap.
+  const { scheduleFlush } = await import("@/lib/sync/run-flush");
+  scheduleFlush();
+}
+
+/** Re-read IndexedDB into the in-memory snapshot. Used after a flush pass. */
+export async function refreshLog(): Promise<void> {
+  await refresh();
 }
 
 async function refresh(): Promise<void> {

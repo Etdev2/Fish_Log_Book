@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { describeBackupState, readBackupState } from "./backup-state";
+import { describeBackupState, fromOutboxBackup, readBackupState } from "./backup-state";
 
 /*
  * ADR 004 §6 fixes this vocabulary deliberately: "Saved" and "Backed up" are different
@@ -21,8 +21,13 @@ describe("backup state vocabulary", () => {
 
   it("says saved on this device — never backed up — before anything has synced", () => {
     expect(describeBackupState({ kind: "local-only" })).toBe("Saved on this device");
-    // What the seam reports until the outbox store exists (ADR 004 §1): local-only.
     expect(readBackupState().kind).toBe("local-only");
+    expect(fromOutboxBackup({ kind: "backed_up" }, false).kind).toBe("local-only");
+    expect(fromOutboxBackup({ kind: "backed_up" }, true).kind).toBe("settled");
+    expect(fromOutboxBackup({ kind: "waiting", count: 2 }, true)).toEqual({
+      kind: "waiting",
+      count: 2,
+    });
   });
 
   it("uses the agreed words for the one state allowed to interrupt", () => {

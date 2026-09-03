@@ -1,13 +1,22 @@
 "use client";
 
-import { describeBackupState, readBackupState } from "../queries/backup-state";
+import { useEffect } from "react";
+
+import { useLog } from "@/features/catches/store";
+import { installFlushListeners } from "@/lib/sync/run-flush";
+
+import { describeBackupState, fromOutboxBackup } from "../queries/backup-state";
 
 /**
  * The quiet backup indicator (ADR 004 §6). Never says "failed" while retries remain,
  * never blocks anything, never shows a spinner.
  */
 export function BackupBadge() {
-  const state = readBackupState();
+  const log = useLog();
+  useEffect(() => {
+    installFlushListeners();
+  }, []);
+  const state = fromOutboxBackup(log.backup, Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL));
   const label = describeBackupState(state);
 
   // Green is earned only by `settled` — the server actually has the data. Local-only is
