@@ -1,0 +1,152 @@
+{
+  "$comment": "Vectors for src/core/rules/passport/ (ADR 003 §4). Catches are written in the compact shape documented in passport.test.ts and expanded into full CatchRecords there, so a second client can reproduce these results without copying a 40-field row into JSON. Defaults when a key is absent: quantity 1, state 'confirmed', outcome 'landed', deleted false, estimated false, disposition null.",
+  "knownSpecies": ["kelp_bass", "barred_sand_bass", "rockfish", "vermilion_rockfish", "largemouth_bass"],
+  "groupSpecies": ["rockfish"],
+
+  "summaries": [
+    {
+      "name": "repeat catches of one species add up but stay one unique species",
+      "catches": [
+        { "id": "c1", "species": "kelp_bass", "at": "2026-03-01T14:00:00.000Z", "disposition": "released", "lengthMm": 300 },
+        { "id": "c2", "species": "kelp_bass", "at": "2026-03-02T14:00:00.000Z", "disposition": "kept", "lengthMm": 420, "weightG": 1200 },
+        { "id": "c3", "species": "kelp_bass", "at": "2026-03-03T14:00:00.000Z", "disposition": "released", "quantity": 3 }
+      ],
+      "expect": [
+        {
+          "speciesId": "kelp_bass", "catchCount": 3, "fishCount": 5, "keptCount": 1, "releasedCount": 2,
+          "firstCatchId": "c1", "latestCatchId": "c3",
+          "bestLengthCatchId": "c2", "bestLengthValue": 420,
+          "bestWeightCatchId": "c2", "bestWeightValue": 1200
+        }
+      ]
+    },
+    {
+      "name": "an unresolved quick mark is not yet a fish, and resolving it credits exactly once",
+      "catches": [
+        { "id": "q1", "species": "kelp_bass", "at": "2026-03-01T14:00:00.000Z", "state": "unresolved" }
+      ],
+      "expect": []
+    },
+    {
+      "name": "deleted, dismissed and lost fish never count",
+      "catches": [
+        { "id": "d1", "species": "kelp_bass", "at": "2026-03-01T14:00:00.000Z", "deleted": true },
+        { "id": "d2", "species": "kelp_bass", "at": "2026-03-02T14:00:00.000Z", "state": "dismissed" },
+        { "id": "d3", "species": "kelp_bass", "at": "2026-03-03T14:00:00.000Z", "outcome": "lost" }
+      ],
+      "expect": []
+    },
+    {
+      "name": "a species id we do not recognise is not a collection entry",
+      "catches": [
+        { "id": "u1", "species": "not_a_real_species", "at": "2026-03-01T14:00:00.000Z" },
+        { "id": "u2", "species": null, "at": "2026-03-02T14:00:00.000Z" }
+      ],
+      "expect": []
+    },
+    {
+      "name": "longest and heaviest are tracked separately because they are rarely the same fish",
+      "catches": [
+        { "id": "b1", "species": "largemouth_bass", "at": "2026-04-01T12:00:00.000Z", "lengthMm": 520, "weightG": 1800 },
+        { "id": "b2", "species": "largemouth_bass", "at": "2026-04-02T12:00:00.000Z", "lengthMm": 480, "weightG": 2400, "estimated": true }
+      ],
+      "expect": [
+        {
+          "speciesId": "largemouth_bass", "catchCount": 2, "fishCount": 2, "keptCount": 0, "releasedCount": 0,
+          "firstCatchId": "b1", "latestCatchId": "b2",
+          "bestLengthCatchId": "b1", "bestLengthValue": 520,
+          "bestWeightCatchId": "b2", "bestWeightValue": 2400
+        }
+      ]
+    },
+    {
+      "name": "an equal measurement keeps the fish that got there first",
+      "catches": [
+        { "id": "t1", "species": "kelp_bass", "at": "2026-05-01T12:00:00.000Z", "lengthMm": 400 },
+        { "id": "t2", "species": "kelp_bass", "at": "2026-05-02T12:00:00.000Z", "lengthMm": 400 }
+      ],
+      "expect": [
+        {
+          "speciesId": "kelp_bass", "catchCount": 2, "fishCount": 2, "keptCount": 0, "releasedCount": 0,
+          "firstCatchId": "t1", "latestCatchId": "t2",
+          "bestLengthCatchId": "t1", "bestLengthValue": 400,
+          "bestWeightCatchId": null, "bestWeightValue": null
+        }
+      ]
+    },
+    {
+      "name": "out-of-order input still finds the true first and latest",
+      "catches": [
+        { "id": "o2", "species": "kelp_bass", "at": "2026-06-05T12:00:00.000Z" },
+        { "id": "o1", "species": "kelp_bass", "at": "2026-06-01T12:00:00.000Z" },
+        { "id": "o3", "species": "kelp_bass", "at": "2026-06-03T12:00:00.000Z" }
+      ],
+      "expect": [
+        {
+          "speciesId": "kelp_bass", "catchCount": 3, "fishCount": 3, "keptCount": 0, "releasedCount": 0,
+          "firstCatchId": "o1", "latestCatchId": "o2",
+          "bestLengthCatchId": null, "bestLengthValue": null,
+          "bestWeightCatchId": null, "bestWeightValue": null
+        }
+      ]
+    }
+  ],
+
+  "totals": [
+    {
+      "name": "newest species is the most recent first-catch, not the most recent catch",
+      "catches": [
+        { "id": "n1", "species": "kelp_bass", "at": "2026-01-01T12:00:00.000Z", "disposition": "kept" },
+        { "id": "n2", "species": "barred_sand_bass", "at": "2026-02-01T12:00:00.000Z", "disposition": "released" },
+        { "id": "n3", "species": "kelp_bass", "at": "2026-03-01T12:00:00.000Z", "disposition": "released", "quantity": 2 }
+      ],
+      "expect": {
+        "uniqueSpecies": 2, "totalCatches": 3, "totalFish": 4, "keptCount": 1, "releasedCount": 2,
+        "latestNewSpeciesId": "barred_sand_bass"
+      }
+    },
+    {
+      "name": "an empty log is an empty passport, not an error",
+      "catches": [],
+      "expect": {
+        "uniqueSpecies": 0, "totalCatches": 0, "totalFish": 0, "keptCount": 0, "releasedCount": 0,
+        "latestNewSpeciesId": null
+      }
+    }
+  ],
+
+  "collectionProgress": [
+    {
+      "name": "a group catch does not close an individual species slot",
+      "definition": {
+        "id": "rockfish", "required": ["vermilion_rockfish"], "informational": []
+      },
+      "caught": ["rockfish"],
+      "expect": { "caught": 0, "required": 1, "informationalCaught": 0, "complete": false }
+    },
+    {
+      "name": "naming the fish closes the slot",
+      "definition": {
+        "id": "rockfish", "required": ["vermilion_rockfish"], "informational": []
+      },
+      "caught": ["rockfish", "vermilion_rockfish"],
+      "expect": { "caught": 1, "required": 1, "informationalCaught": 0, "complete": true }
+    },
+    {
+      "name": "a protected species is shown but never required, so 100% stays reachable legally",
+      "definition": {
+        "id": "bass", "required": ["kelp_bass", "barred_sand_bass"], "informational": ["giant_sea_bass"]
+      },
+      "caught": ["kelp_bass", "barred_sand_bass"],
+      "expect": { "caught": 2, "required": 2, "informationalCaught": 0, "complete": true }
+    },
+    {
+      "name": "catching the protected one is recorded without changing completion",
+      "definition": {
+        "id": "bass", "required": ["kelp_bass", "barred_sand_bass"], "informational": ["giant_sea_bass"]
+      },
+      "caught": ["kelp_bass", "barred_sand_bass", "giant_sea_bass"],
+      "expect": { "caught": 2, "required": 2, "informationalCaught": 1, "complete": true }
+    }
+  ]
+}

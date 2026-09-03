@@ -53,7 +53,7 @@ Rough effort: **S** = days, **M** = weeks, **L** = a month or more.
 | # | Feature | Why it might matter | Effort |
 |---|---|---|---|
 | A1 | **Voice note on a catch** — one tap to record, transcribed later | Hands wet, fish flapping, no time to type. Probably the single best fit for the actual moment of a catch. | M |
-| A2 | **Photo with EXIF stripped** | Already in the spec as V2. The privacy half matters: photos carry GPS, and anglers do not share spots. | S |
+| A2 | **Photo with EXIF stripped** | Already in the spec as V2. The privacy half matters: photos carry GPS, and anglers do not share spots. **❌ NOT NOW — 2026-09-03, founder, on cost.** No media table is scheduled; storage, EXIF stripping, size limits, offline upload and moderation are not being bought for a badge. This also removes verification levels 1–2 from Phase 2 of the passport spec — see its §45.2. Revisit as its own spec, not as a rider on another feature. | S |
 | A3 | **Length / weight** | Standard logbook data, and needed for any personal-best feature. | S |
 | A4 | **Fight time** | One tap start/stop. Anecdotally correlates with size; would be a genuinely novel variable. | S |
 | A5 | **Gear loadout** — rod, reel, line, leader | Ties to the two-level tackle model already designed. Bass anglers care a lot; surf anglers less. | M |
@@ -73,7 +73,7 @@ Rough effort: **S** = days, **M** = weeks, **L** = a month or more.
 
 | # | Feature | Why it might matter | Effort |
 |---|---|---|---|
-| C1 | **"Find days like today"** — search history for matching conditions | The honest version of the alerting dream, and it works at any sample size because the angler judges the result, not the app. | M |
+| C1 | **"Find days like today"** — search history for matching conditions | The honest version of the alerting dream, and it works at any sample size because the angler judges the result, not the app. **✅ ACCEPTED 2026-09-03** (founder delegated the call to `coo`) → Phase 2 of `docs/specs/fishing-passport-wildlife-boat-games.md`, ahead of photo verification. It is the only accepted work that answers "should I go tomorrow" — see that spec's §47.1 and §47.4. | M |
 | C2 | **Catch heat map on the spot map** | Immediately legible, zero statistics required. | M |
 | C3 | **Season calendar** — what you caught this week, across years | Anglers think in seasons. Becomes valuable in year two and compounds. | M |
 | C4 | **Personal bests** | Cheap, and it is the thing people screenshot. | S |
@@ -102,16 +102,30 @@ Rough effort: **S** = days, **M** = weeks, **L** = a month or more.
 
 Recorded so nobody proposes them again without reading why.
 
-- **Streaks, badges, gamified logging.** This is the dangerous one. Gamification would
-  bias the denominator — people log to protect a streak, and stop logging once it breaks.
-  Our entire statistical claim rests on the log being an unbiased record of when someone
+> **Partly reversed 2026-09-03 by the founder.** `docs/specs/fishing-passport-wildlife-boat-games.md`
+> proposes badges, a species collection, wildlife sighting logs, photo-assisted
+> identification, and private boat games. It is the newer founder document, so it stands;
+> the reasoning below is kept because the spec must keep answering it. That spec's §46
+> records which objections it answers and which one is still open. The bullets it touches
+> are marked below.
+
+- **Streaks, badges, gamified logging.** *(Revisited — passport spec §12–§14, §46. Streaks
+  stay dead by the founder's own choice; achievement badges are now in scope.)* This is the
+  dangerous one. Gamification would bias the denominator — people log to protect a streak,
+  and stop logging once it breaks. Our entire statistical claim rests on the log being an unbiased record of when someone
   fished. **Rewarding logging corrupts the data we are selling.** If any engagement
   mechanic is ever added, it must reward *confirming a trip honestly*, never reward
   catching or logging more.
-- **Social feed, following, public catches.** Anglers do not share spots.
-- **Leaderboards.** Same reason as streaks, worse.
+- **Social feed, following, public catches.** Anglers do not share spots. *(Still true.
+  The passport spec keeps games private and non-wagering, lists a public feed under its own
+  §41 non-goals, and gates public anything behind moderation and privacy controls — §30.)*
+- **Leaderboards.** Same reason as streaks, worse. *(Global leaderboards remain out —
+  passport spec §41. Private per-boat scoreboards inside one trip are Phase 4 and are not
+  the same thing.)*
 - **Fish identification from photos.** Different product, enormous effort, and wrong
-  answers are worse than no feature.
+  answers are worse than no feature. *(Revisited — passport spec §15–§17 keeps AI as a
+  ranked suggestion that never sets verification status or a legal conclusion. Phase 2+,
+  and it needs a media table that does not exist yet — see that spec's §45.2.)*
 - **A full Tide Alert clone.** Already in `SPEC.md` §6. We need tide *data*, not a
   competing tide *viewer*.
 - **Generic fishing advice.** Competes with every blog on the internet and trades away the
