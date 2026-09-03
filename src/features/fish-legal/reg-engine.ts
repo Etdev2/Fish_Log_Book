@@ -82,6 +82,13 @@ function buildCard(
   if (rules.length === 0) return null;
 
   const usable = rules.filter((r) => platformMatches(r, platform));
+  // Every row that speaks to this species is scoped to a platform this angler is not
+  // on (MA scup is shore-or-boat only, so a spear diver matches neither; WA surfperch
+  // is shore-only). There is no verified rule to read, and the module contract above
+  // is explicit that a card is data with citations or nothing at all — so return null
+  // and let the screen render "No verified data" (spec §4/§23) rather than quoting a
+  // limit that does not apply. Reading on would also dereference an empty rule list.
+  if (usable.length === 0) return null;
 
   // Shore-based anglers and spear divers are exempt from RCG-complex season and DEPTH
   // restrictions (CCR T14 §27.20(b)(1)(C)/(D), the rcg-exempt note row). For those

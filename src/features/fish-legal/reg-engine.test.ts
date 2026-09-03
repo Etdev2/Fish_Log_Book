@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 
+import { MASSACHUSETTS } from "./massachusetts-pack";
+import { PACKS } from "./packs";
 import { SOCAL } from "./reg-data";
 import { inSeasonWindow, platformFor, regulationCard } from "./reg-engine";
 
@@ -137,5 +139,44 @@ describe("inSeasonWindow year-wrap + mixed MM-DD/YYYY-MM-DD forms", () => {
     expect(inSeasonWindow(fd, "2026-09-15")).toBe(true);
     expect(inSeasonWindow(fd, "2026-10-01")).toBe(false);
     expect(inSeasonWindow(fd, "2027-09-15")).toBe(true); // recurring by month-day
+  });
+});
+
+describe("a species with no rule for the angler's platform", () => {
+  // Regression: buildCard used to read on with an empty rule pool and crash on
+  // `firstSource.sourceUrl`. MA scup carries a shore row and a boat row and nothing
+  // else, so a spear diver matched neither. 23 species/area/platform combos across
+  // six packs threw a TypeError on what is a user-facing regulations card.
+  it("returns null rather than throwing when every row is scoped to another platform", () => {
+    expect(() =>
+      regulationCard(MASSACHUSETTS, "ma-statewide", "scup", "2026-09-03", "diver"),
+    ).not.toThrow();
+    expect(regulationCard(MASSACHUSETTS, "ma-statewide", "scup", "2026-09-03", "diver")).toBeNull();
+  });
+
+  it("still reads the platform-matching row for shore and boat", () => {
+    expect(regulationCard(MASSACHUSETTS, "ma-statewide", "scup", "2026-09-03", "shore")!.minSizeIn)
+      .toBe(9.5);
+    expect(regulationCard(MASSACHUSETTS, "ma-statewide", "scup", "2026-09-03", "boat")!.minSizeIn)
+      .toBe(11);
+  });
+
+  it("no bundled pack throws for any species/area/platform combination", () => {
+    for (const entry of PACKS) {
+      const pack = entry.data;
+      const species = new Set(
+        pack.rules.map((r) => r.speciesId).filter((id): id is string => id !== null),
+      );
+      for (const area of pack.areas) {
+        for (const speciesId of species) {
+          for (const platform of ["shore", "boat", "diver"] as const) {
+            expect(
+              () => regulationCard(pack, area.id, speciesId, "2026-09-03", platform),
+              `${pack.pack.id} ${area.id} ${speciesId} ${platform}`,
+            ).not.toThrow();
+          }
+        }
+      }
+    }
   });
 });
