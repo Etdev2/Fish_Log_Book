@@ -15,6 +15,7 @@ export function BackupBadge() {
   const log = useLog();
   useEffect(() => {
     installFlushListeners();
+    void import("@/lib/sync/session-angler").then((m) => m.bindSessionAngler());
   }, []);
   const state = fromOutboxBackup(log.backup, Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL));
   const label = describeBackupState(state);

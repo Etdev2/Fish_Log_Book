@@ -24,6 +24,14 @@ import {
   type EntityStore,
   type StoredRow,
 } from "@/lib/offline/db";
+import { cachedAnglerId, LOCAL_ANGLER_ID } from "@/lib/sync/session-angler";
+
+export { LOCAL_ANGLER_ID };
+
+/** Last known auth.uid(), or the prototype placeholder until a session exists. */
+export function currentAnglerId(): string {
+  return cachedAnglerId();
+}
 
 /**
  * The Fish Log's read model and its write path.
@@ -218,9 +226,6 @@ async function refresh(): Promise<void> {
   });
 }
 
-/** The prototype has no auth session yet; every row is written for this one angler. */
-export const LOCAL_ANGLER_ID = "00000000-0000-7000-8000-000000000001";
-
 export function currentZone(): string {
   return Intl.DateTimeFormat().resolvedOptions().timeZone || "America/Los_Angeles";
 }
@@ -280,7 +285,7 @@ export async function startTrip(input: NewTripInput): Promise<TripRecord> {
   const now = new Date().toISOString();
   const trip: TripRecord = {
     id: uuidv7(),
-    angler_id: LOCAL_ANGLER_ID,
+    angler_id: currentAnglerId(),
     spot_id: null,
     water_class: input.waterClass,
     started_at: input.startedAt,
@@ -443,7 +448,7 @@ export async function saveRodSetup(input: {
   const now = new Date().toISOString();
   const rig: RigRecord = {
     id: uuidv7(),
-    angler_id: LOCAL_ANGLER_ID,
+    angler_id: currentAnglerId(),
     trip_id: input.tripId,
     slot: input.slot,
     name: input.name?.trim() || null,
@@ -505,7 +510,7 @@ export async function saveLocation(
   const record: LocationConditionRecord = {
     ...input,
     id: existing?.id ?? uuidv7(),
-    angler_id: LOCAL_ANGLER_ID,
+    angler_id: currentAnglerId(),
     created_at: existing?.created_at ?? now,
     client_updated_at: now,
     deleted_at: null,

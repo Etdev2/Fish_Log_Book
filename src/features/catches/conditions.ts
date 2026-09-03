@@ -1,7 +1,7 @@
 import { moonPhaseAt, sunEventsFor, type GeoPoint } from "@/core/rules/astro";
 import { degrees, instant } from "@/core/units";
 import { uuidv7 } from "@/core/sync/uuid";
-import { LOCAL_ANGLER_ID } from "./store";
+import { currentAnglerId } from "./store";
 
 /**
  * The environmental snapshot attached to a catch (spec §16–§19).
@@ -129,7 +129,7 @@ export function buildCatchSnapshot(
 
   const base = {
     id: uuidv7(),
-    angler_id: LOCAL_ANGLER_ID,
+    angler_id: currentAnglerId(),
     trip_id: input.tripId,
     catch_id: input.catchId,
     kind: "catch" as const,

@@ -18,10 +18,10 @@ import { snapshotForNewCatch } from "@/features/fish-legal/regulation-snapshot";
 import { buildCatchSnapshot } from "./conditions";
 import { attachPhotos } from "./media";
 import {
+  currentAnglerId,
   currentLog,
   currentZone,
   latestRigOf,
-  LOCAL_ANGLER_ID,
   openTripOf,
   saveCatch,
   saveConditionSnapshot,
@@ -281,7 +281,7 @@ function gearRows(
     .map((g, index) => ({
       id: `${catchId}-gear-${index}`,
       catch_id: catchId,
-      angler_id: LOCAL_ANGLER_ID,
+      angler_id: currentAnglerId(),
       tackle_item_id: g.tackleItemId,
       role: g.role,
       label: g.label.trim(),
@@ -366,7 +366,7 @@ export async function logCatch(
 
   const record: CatchRecord = {
     id: catchId,
-    angler_id: LOCAL_ANGLER_ID,
+    angler_id: currentAnglerId(),
     trip_id: tripId,
     caught_at: caughtAt,
     caught_tz: zone,
@@ -640,7 +640,7 @@ export async function logQuickMark(state: LogSnapshot): Promise<LogResult> {
 
   const record: CatchRecord = {
     id: catchId,
-    angler_id: LOCAL_ANGLER_ID,
+    angler_id: currentAnglerId(),
     trip_id: tripId,
     caught_at: nowIso,
     caught_tz: zone,

@@ -5,6 +5,9 @@ import type { Mutation, SendOutcome } from "@/core/sync/outbox";
 import { classifyHttp } from "@/core/sync/http-outcome";
 import { createClient } from "@/lib/supabase/client";
 
+import { pickPostgrestPayload } from "./postgrest-payload";
+import { rememberAnglerId } from "./session-angler";
+
 const TABLES = new Set([
   "trip",
   "trip_rig",
@@ -27,19 +30,46 @@ export async function sendViaPostgrest(mutation: Mutation): Promise<SendOutcome>
 
   try {
     const supabase = createClient();
+    let {
+      data: { session },
+    } = await supabase.auth.getSession();
+    if (!session) {
+      const refreshed = await supabase.auth.refreshSession();
+      session = refreshed.data.session;
+    }
+    if (!session) {
+      return { kind: "auth_expired", error: "no session" };
+    }
+    rememberAnglerId(session.user.id);
+
+    const { error: profileError } = await supabase.from("angler").upsert(
+      { id: session.user.id },
+      { onConflict: "id", ignoreDuplicates: true },
+    );
+    if (profileError && profileError.code !== "23505") {
+      const status = (profileError as { status?: number }).status ?? 400;
+      if (status === 401 || status === 403) {
+        return { kind: "auth_expired", error: profileError.message };
+      }
+    }
+
+    const payload = pickPostgrestPayload(mutation.entity, {
+      ...mutation.payload,
+      angler_id: session.user.id,
+    });
     const table = mutation.entity;
     let status = 0;
     let code: string | null = null;
     let message: string | null = null;
 
     if (mutation.op === "insert") {
-      const { error } = await supabase.from(table).insert(mutation.payload);
+      const { error } = await supabase.from(table).insert(payload);
       if (!error) return { kind: "ok" };
       status = (error as { status?: number }).status ?? 400;
       code = error.code ?? null;
       message = error.message;
     } else if (mutation.op === "patch") {
-      const { error } = await supabase.from(table).update(mutation.payload).eq("id", mutation.entityId);
+      const { error } = await supabase.from(table).update(payload).eq("id", mutation.entityId);
       if (!error) return { kind: "ok" };
       status = (error as { status?: number }).status ?? 400;
       code = error.code ?? null;
