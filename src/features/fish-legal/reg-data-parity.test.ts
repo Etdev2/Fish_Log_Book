@@ -17,10 +17,14 @@ import { MASSACHUSETTS } from "./massachusetts-pack";
 import { RHODE_ISLAND } from "./rhode-island-pack";
 import { NEW_YORK } from "./new-york-pack";
 import { NEW_JERSEY } from "./new-jersey-pack";
+import { CONNECTICUT } from "./connecticut-pack";
+import { NEW_HAMPSHIRE } from "./new-hampshire-pack";
+import { MAINE } from "./maine-pack";
 
 const LATER_BUNDLES = [
   NORCAL, CA_FRESHWATER, TEXAS, LOUISIANA, MISSISSIPPI, ALABAMA,
   BAJA_CALIFORNIA, BAJA_CALIFORNIA_SUR,
+  CONNECTICUT, NEW_HAMPSHIRE, MAINE,
 ];
 
 /*
