@@ -1320,3 +1320,125 @@ Same eight tickets from §36, resequenced by value and unblocked-ness:
 
 Blocked before code starts: the region ruling (§45.1) gates part of Ticket 2 and one badge;
 the media decision (§45.2) removes one badge from Ticket 5.
+
+## 48. Slams — several species, one day (founder request, 2026-09-03)
+
+Added after Phase 1 was built, at the founder's request, and shipped in the same slice.
+
+A slam is not a collection, and the distinction is the whole feature. A collection is a
+lifetime set filled in over years. A slam is a **day**: catch a yellowtail, a white seabass
+and a California halibut across three seasons and you have three good days; catch them
+between sunrise and sunset and you have the Island Trifecta.
+
+### 48.1 Why this does not need a region on a catch
+
+§45.1 cut geographic collections because no catch carries a region. Slams are
+region-flavoured and still ship, because **the species list is the geography**. Nobody
+catches a tarpon off Orange County or a white seabass off Montauk, so qualification is
+decided by the fish alone. The angler's Settings region only decides which slams surface
+first — the "picker of defaults, never a filter" stance of ADR 007 §4, used as intended.
+
+A SoCal angler who takes one week in the Keys is therefore still credited with the Inshore
+Grand Slam, which is correct and would not have been true of a region-gated design.
+
+### 48.2 The rule
+
+- **One day** is `catch.local_date`, already stored, already computed in the catch's own
+  timezone. A trip past midnight splits, which is what "in one day" means to a tournament.
+- **A slam is a pool, not a checklist.** The IGFA Inshore Grand Slam is *any three* of
+  bonefish, permit, snook and tarpon — so a definition is a set of categories plus how many
+  distinct ones a day must produce. That expresses "these exact three" and "any three of
+  four" without a second model.
+- **A category may be a group.** "Any tuna" and "any billfish" are single slots: two
+  different tunas in a day fill the tuna slot once.
+- **Released fish count.** IGFA does not require keeping one either.
+- Near misses are shown ("two of three on 14 June"). A fact about the log, not a nudge.
+
+### 48.3 The safeguard that matters
+
+A slam is the most competitive thing in the product — a list of fish to go and get today.
+So **no protected species may appear on one** (§4.5, §11, decision §40.8), enforced by
+`validateSlams` and failed by the test suite rather than remembered by hand.
+
+The specific trap: "sea bass" in the Island Trifecta means **white seabass**. Giant sea
+bass is protected and is not a target. There is a test named after that confusion.
+
+### 48.4 What shipped
+
+Ten slams, each carrying its source so a house rule cannot pass as IGFA's:
+
+| Slam | Rule | Coast |
+|---|---|---|
+| Island Trifecta | Yellowtail + white seabass + California halibut | West (founder-specified) |
+| Offshore Trifecta | Yellowtail + any tuna + any marlin | West (founder-specified) |
+| Salmon Slam | Any 3 Pacific salmon | West (house rule) |
+| Inshore Grand Slam | Any 3 of bonefish, permit, snook, tarpon | East / Gulf (IGFA) |
+| Inshore Super Grand Slam | All 4 of the above | East / Gulf (IGFA) |
+| Offshore Grand Slam | Any 3 of billfish, dorado, tuna, wahoo | Both (IGFA) |
+| Offshore Super Grand Slam | All 4 of the above | Both (IGFA) |
+| Texas Slam | Redfish + speckled trout + flounder | Gulf |
+| Cape Cod Slam | Striped bass + bluefish + false albacore | East |
+| Cape Cod Grand Slam | The above plus Atlantic bonito | East |
+
+Sources: IGFA slam rules (igfa.org), the published SoCal trifecta (BDOutdoors), the Texas
+Saltwater Slam, and the Martha's Vineyard derby tradition. The two founder-specified
+trifectas and the Salmon Slam are marked as house rules, not IGFA categories.
+
+## 49. Regional collections and a taxonomy correction (founder, 2026-09-03)
+
+### 49.1 Regional collections are back on, and §45.1 still stands
+
+§45.1 cut geographic collections because no catch carries a region. They ship now, for the
+same reason slams do (§48.1): **the species list is the geography.** A Southern California
+collection is the fish an angler meets there; filling it is evidence enough, and no catch is
+ever asked where it happened.
+
+The distinction §45.1 was really protecting is intact — nothing here claims a *catch*
+occurred in a region. That claim still has no data behind it, and **New Waters I stays cut**,
+because counting distinct regions an angler has fished genuinely does require the field that
+does not exist.
+
+Membership comes from `popularSpeciesIds` — the researched starter lists the species picker
+already uses — so there is one region vocabulary rather than two. Forty-two collections
+ship: 30 regional, plus families and habitats. The regional lists run 8–12 species, which is
+a size an angler can finish; that is not luck, it is what those lists were curated to be.
+
+Two regions are excluded. `custom` leads with no species by design, and the five `ca_gma_*`
+entries are Fish Legal's groundfish management areas — regulatory splits of one coastline,
+not places with their own fish.
+
+Region orders the list; it never decides what counts. The overview shows the angler's own
+region and the families; the full list lives at `/passport/collections`.
+
+### 49.2 The sea basses are not bass
+
+Founder correction, and taxonomically right:
+
+| Species | Was | Now | Family |
+|---|---|---|---|
+| White seabass | Bass | **Croaker** | Sciaenidae — the largest croaker on the coast |
+| Black sea bass | Bass | **Grouper and sea bass** | Serranidae |
+| Giant sea bass | Bass | **Grouper and sea bass** | Moved with them; still protected, still informational-only |
+
+Giant sea bass was not named in the request. It moved anyway, because leaving it in a
+collection its own name argues against would contradict the correction being made. It stays
+excluded from completion wherever it sits.
+
+New collections in the same pass: **Grouper and sea bass**, **Marlin** (blue, black, striped,
+white), and **Pelagic** (the tunas, billfish, dorado, wahoo and company).
+
+### 49.3 Red drum and seatrout stay out of Croaker — resolved by the Texas rules
+
+Raised as open, then settled by deferring to the regulator, at the founder's direction.
+Red drum, black drum and the seatrout are Sciaenidae, so a taxonomist would file them with
+the croakers. **TPWD does not**, and our own Fish Legal pack already carries the proof:
+`texas-pack.ts` cites the Outdoor Annual at `.../drum-bag-length-limits` and
+`.../seatrout-bag-length-limits` — Texas manages **Drum** and **Seatrout** as separate
+categories, and there is no croaker umbrella over either.
+
+A second reason points the same way: every member of the Croaker collection is a Pacific
+fish (corbina, yellowfin and spotfin croaker, white croaker, queenfish). Dropping a Gulf
+redfish into it would make a coastal collection incoherent as well as unfamiliar.
+
+So Croaker keeps white seabass and nothing else moves. If a drum collection is ever wanted,
+TPWD's own grouping — red drum with black drum — is the shape to copy, not Sciaenidae.

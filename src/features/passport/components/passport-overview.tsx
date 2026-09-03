@@ -15,9 +15,24 @@ import { CARD_CLASS, SECONDARY_BUTTON } from "../ui-classes";
  * activity list and no "you're on a roll" copy.
  */
 export function PassportOverview() {
-  const { hydrated, totals, collections, badges, nearestGoals } = usePassport();
+  const { hydrated, totals, collections, badges, slams, nearestGoals } = usePassport();
   const earned = badges.filter((b) => b.earned);
   const newest = totals.latestNewSpecies;
+  /*
+    `collections` arrives ordered region-first, so its head is the angler's own water and
+    then the families. The other regions are real but they are not this page's job — a
+    Californian does not need Maine's progress on their overview, and forty rows is not a
+    summary. The full list has its own page.
+  */
+  const homeRegionId = collections.find((c) => c.definition.regionId !== null)?.definition.regionId;
+  const shownCollections = collections.filter(
+    (c) => c.definition.regionId === null || c.definition.regionId === homeRegionId,
+  );
+  const slamsDone = slams.filter((s) => s.standing.achieved).length;
+  // The single closest near miss, and only if someone has actually started one.
+  const nearestSlam = slams
+    .filter((s) => !s.standing.achieved && s.standing.closest !== null)
+    .sort((a, b) => (b.standing.closest?.have ?? 0) - (a.standing.closest?.have ?? 0))[0];
   const newestName =
     newest !== null ? (speciesById(newest.speciesId)?.commonName ?? newest.speciesId) : null;
 
@@ -93,7 +108,7 @@ export function PassportOverview() {
       <section className={`${CARD_CLASS} p-4`}>
         <h2 className="text-h3">Collections</h2>
         <ul className="mt-3 flex flex-col gap-2">
-          {collections.map(({ definition, progress }) => (
+          {shownCollections.map(({ definition, progress }) => (
             <li key={definition.id}>
               <Link
                 href={`/passport/collections/${definition.id}`}
@@ -108,6 +123,32 @@ export function PassportOverview() {
             </li>
           ))}
         </ul>
+        {collections.length > shownCollections.length ? (
+          <Link href="/passport/collections" className={`${SECONDARY_BUTTON} mt-3`}>
+            All {collections.length} collections
+          </Link>
+        ) : null}
+      </section>
+
+      {/*
+        Slams sit above badges deliberately: a trifecta is the thing an angler actually
+        talks about in the parking lot, and the near-miss line is the strongest reason on
+        this page to go out again.
+      */}
+      <section className={`${CARD_CLASS} p-4`}>
+        <h2 className="text-h3">Slams</h2>
+        <p className="mt-2 text-body text-text-muted">
+          Several species, one day. {slamsDone} of {slams.length} done.
+        </p>
+        {nearestSlam !== undefined ? (
+          <p className="mt-2 text-caption text-text-muted">
+            Closest: {nearestSlam.definition.name} — {nearestSlam.standing.closest?.have} of{" "}
+            {nearestSlam.standing.required} on {nearestSlam.standing.closest?.localDate}.
+          </p>
+        ) : null}
+        <Link href="/passport/slams" className={`${SECONDARY_BUTTON} mt-3`}>
+          See slams
+        </Link>
       </section>
 
       <section className={`${CARD_CLASS} p-4`}>

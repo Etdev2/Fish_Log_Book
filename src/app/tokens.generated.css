@@ -84,6 +84,8 @@
 
   --container-reading: 820px;
 
+  --breakpoint-nav-single-row: 384px;
+
   --opacity-disabled: 0.45;
 }
 

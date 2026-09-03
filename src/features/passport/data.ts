@@ -3,9 +3,12 @@
 import { useMemo } from "react";
 
 import { BADGES } from "@/core/rules/achievements/catalog";
+import { slamsForRegion } from "@/core/rules/slams/catalog";
+import { evaluateSlams } from "@/core/rules/slams/evaluate";
+import type { SlamDefinition, SlamStanding } from "@/core/rules/slams/types";
 import { evaluateBadges } from "@/core/rules/achievements/evaluate";
 import type { BadgeStanding } from "@/core/rules/achievements/types";
-import { COLLECTIONS, GROUP_SPECIES_IDS } from "@/core/rules/passport/collections";
+import { collectionsForRegion, GROUP_SPECIES_IDS } from "@/core/rules/passport/collections";
 import {
   collectionProgress,
   passportTotals,
@@ -19,6 +22,7 @@ import type {
 } from "@/core/rules/passport/types";
 import { SPECIES, speciesById } from "@/core/ontology/species";
 import { useLog } from "@/features/catches/store";
+import { useRegionPreference } from "@/features/settings/region";
 
 /**
  * The passport's application layer: the one place the pure rules meet the local log.
@@ -35,6 +39,11 @@ const KNOWN_SPECIES_IDS: ReadonlySet<string> = new Set(SPECIES.map((s) => s.id))
 
 const waterClassOf = (speciesId: string): "salt" | "fresh" | null =>
   speciesById(speciesId)?.waterClass ?? null;
+
+export interface SlamView {
+  readonly definition: SlamDefinition;
+  readonly standing: SlamStanding;
+}
 
 export interface CollectionStanding {
   readonly definition: CollectionDefinition;
@@ -59,19 +68,22 @@ export interface PassportView {
   readonly totals: PassportTotals;
   readonly collections: readonly CollectionStanding[];
   readonly badges: readonly BadgeStanding[];
+  /** Ordered by the angler's region first — never filtered by it (see slams/types.ts). */
+  readonly slams: readonly SlamView[];
   /** The three nearest to done, furthest along first. Never includes finished ones. */
   readonly nearestGoals: readonly Goal[];
 }
 
 export function usePassport(): PassportView {
   const log = useLog();
+  const [regionId] = useRegionPreference();
 
   return useMemo(() => {
     const summaries = speciesSummaries(log.catches, KNOWN_SPECIES_IDS);
     const byId = new Map(summaries.map((s) => [s.speciesId, s]));
     const caughtSpeciesIds = new Set(byId.keys());
 
-    const collections = COLLECTIONS.map((definition) => ({
+    const collections = collectionsForRegion(regionId).map((definition) => ({
       definition,
       progress: collectionProgress(definition, caughtSpeciesIds, GROUP_SPECIES_IDS),
     }));
@@ -82,6 +94,12 @@ export function usePassport(): PassportView {
       knownSpeciesIds: KNOWN_SPECIES_IDS,
       waterClassOf,
     });
+
+    const slamDefinitions = slamsForRegion(regionId);
+    const slams = evaluateSlams(slamDefinitions, log.catches).map((standing, i) => ({
+      definition: slamDefinitions[i],
+      standing,
+    }));
 
     const goals: Goal[] = [
       ...collections
@@ -121,7 +139,8 @@ export function usePassport(): PassportView {
       totals: passportTotals(summaries),
       collections,
       badges,
+      slams,
       nearestGoals,
     };
-  }, [log.catches, log.trips, log.hydrated]);
+  }, [log.catches, log.trips, log.hydrated, regionId]);
 }
