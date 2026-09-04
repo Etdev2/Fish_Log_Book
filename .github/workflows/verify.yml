@@ -1,0 +1,51 @@
+# Runs what a contributor runs before pushing, on every pull request.
+#
+# This exists because `main` sat red for three days and nothing said a word. The only
+# check on a PR was Vercel, which runs `next build` — a build passes happily while tests
+# fail, and that is exactly what happened: a migration and its TypeScript pack drifted
+# apart by two characters, the parity test caught it, and the PR merged anyway.
+#
+# `npm run verify` is deliberately the same command a person types locally
+# (docs/team/HOUSE-RULES.md §4), not a CI-only variant. A separate list here would drift
+# from the local one, and then "it passes on my machine" becomes true and useless.
+name: verify
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+# A second push to the same PR makes the first run pointless. Cancel it rather than pay
+# for both — but never cancel a run on main, where the history of what passed matters.
+concurrency:
+  group: verify-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          # Matches the version the project is developed on. `npm cache` here needs the
+          # lockfile, which is committed.
+          node-version: '22'
+          cache: npm
+
+      # `npm ci` rather than `npm install`: it installs exactly the lockfile and fails if
+      # package.json and the lockfile disagree, which is itself worth catching.
+      - run: npm ci
+
+      # tokens:check, tripwires, lint, tsc, and the test suite — the whole gate.
+      - run: npm run verify
+
+      # The build is not part of `verify` and Vercel already runs it, but Vercel only
+      # builds the branches it is wired to. Running it here means a red build is caught
+      # on the PR by the same check as everything else.
+      - run: npm run build
