@@ -34,6 +34,7 @@ export const LEGAL_CONTACT = {
    * default would quietly become the governing law of a real contract without anyone
    * having chosen it. `documents.test.ts` fails if the flag and the fields disagree.
    */
+  // Tracked as issue #56 and docs/team/PRE-SHIP-CHECKLIST.md — a legal team answers both.
   resolved: false,
   /** Legal entity that publishes the app. A person's name is fine if there is no company. */
   entity: "the publisher of Fish Log Book",
