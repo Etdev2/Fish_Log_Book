@@ -21,7 +21,7 @@ import { openDB, type DBSchema, type IDBPDatabase, type IDBPTransaction, type St
 import type { Mutation, SyncEntity } from "@/core/sync/outbox";
 
 /** Bump only with a migration in `upgrade` below. */
-const DB_VERSION = 3;
+const DB_VERSION = 4;
 const DB_NAME = "fish-log-book";
 
 export const ENTITY_STORES = [
@@ -34,6 +34,24 @@ export const ENTITY_STORES = [
 ] as const;
 
 export type EntityStore = (typeof ENTITY_STORES)[number];
+
+/**
+ * Stores that live only on this device and are NEVER queued for sync (ADR 009 §2).
+ *
+ * Boat Games in Phase 1 is one host phone with no server behind it. Adding these to
+ * `ENTITY_STORES` would queue a mutation per row for Supabase tables that do not exist:
+ * every one comes back 4xx, lands in `rejected`, and puts a permanent "needs attention"
+ * badge on the angler's phone for a feature that is working perfectly. Phase 2 moves
+ * them across at the same moment it adds the tables — not before.
+ */
+export const LOCAL_STORES = [
+  "game_session",
+  "game_participant",
+  "game_event",
+  "crew_member",
+] as const;
+
+export type LocalStore = (typeof LOCAL_STORES)[number];
 
 /** Every syncable row carries at least these. Domain types live in `core/`. */
 export interface StoredRow {
@@ -52,6 +70,12 @@ interface FishLogDB extends DBSchema {
   meta: { key: string; value: unknown };
   /** Photo blobs, kept out of the row so a list query never drags megabytes with it. */
   media: { key: string; value: { id: string; catch_id: string; blob: Blob; created_at: string } };
+
+  /* Boat Games, device-local (ADR 009). Not syncable in Phase 1 — see LOCAL_STORES. */
+  game_session: { key: string; value: StoredRow };
+  game_participant: { key: string; value: StoredRow; indexes: { by_session: string } };
+  game_event: { key: string; value: StoredRow; indexes: { by_session: string } };
+  crew_member: { key: string; value: StoredRow };
 }
 
 let dbPromise: Promise<IDBPDatabase<FishLogDB>> | null = null;
@@ -87,6 +111,25 @@ export function getDb(): Promise<IDBPDatabase<FishLogDB>> {
 
         if (oldVersion > 0 && oldVersion < 3) {
           void backfillQuiverIds(tx);
+        }
+
+        // v4: Boat Games (ADR 009). Purely additive — four new stores, nothing existing
+        // is touched, so an angler mid-trip gains the feature without risking the log.
+        if (oldVersion < 4) {
+          if (!db.objectStoreNames.contains("game_session")) {
+            db.createObjectStore("game_session", { keyPath: "id" });
+          }
+          if (!db.objectStoreNames.contains("game_participant")) {
+            db.createObjectStore("game_participant", { keyPath: "id" })
+              .createIndex("by_session", "session_id");
+          }
+          if (!db.objectStoreNames.contains("game_event")) {
+            db.createObjectStore("game_event", { keyPath: "id" })
+              .createIndex("by_session", "session_id");
+          }
+          if (!db.objectStoreNames.contains("crew_member")) {
+            db.createObjectStore("crew_member", { keyPath: "id" });
+          }
         }
       },
     });
@@ -176,6 +219,35 @@ export async function commit(
 export async function allRows(store: EntityStore): Promise<readonly StoredRow[]> {
   const db = await getDb();
   return db.getAll(store);
+}
+
+/**
+ * Write device-local rows in ONE transaction. No outbox, by design (ADR 009 §2).
+ *
+ * The same durability contract as `commit` minus the sync intent: when this resolves the
+ * rows are on the device, and a game half-written across two transactions — a scoring
+ * event saved but its session left at the old round — is not a state this can produce.
+ */
+export async function commitLocal(
+  writes: readonly { store: LocalStore; row: StoredRow }[],
+): Promise<void> {
+  if (writes.length === 0) return;
+  const db = await getDb();
+  const stores = [...new Set(writes.map((w) => w.store))];
+  const tx = db.transaction(stores, "readwrite");
+  await Promise.all(writes.map((w) => tx.objectStore(w.store).put(w.row)));
+  await tx.done;
+}
+
+export async function allLocalRows(store: LocalStore): Promise<readonly StoredRow[]> {
+  const db = await getDb();
+  return db.getAll(store);
+}
+
+/** Remove one device-local row. Used for crew members and for discarding a draft game. */
+export async function deleteLocalRow(store: LocalStore, id: string): Promise<void> {
+  const db = await getDb();
+  await db.delete(store, id);
 }
 
 export async function rowsByIndex(

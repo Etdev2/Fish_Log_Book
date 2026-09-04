@@ -10,7 +10,7 @@ values
    null, null, 15, 15, 14, null, 'total_length', null, null, true, 60),
   ('scup', null, 'de-tidal', 'salt', 'bag_limit', 'Scup: Season Open Year-Round. Size Limit 9 inch minimum (total length). Daily Limit / Person 30.', 'https://fishspecies.dnrec.delaware.gov/FishSpecies.aspx?habitat=2&species=160', 'Delaware DNREC Fish Facts — Scup', '2026-01-01', '2026-09-04', 2,
    null, null, 30, 30, 9, null, 'total_length', null, null, true, 60),
-  ('bluefish', null, 'de-tidal', 'salt', 'bag_limit', 'Bluefish: Season Open Year Round. Size Limit No Size Limit. Daily Limit / Person 5 per shore or private boat anglers. 7 per anglers on for-hire vessels (Headboats and Charter boats).', 'https://fishspecies.dnrec.delaware.gov/FishSpecies.aspx?habitat=2&species=100', 'Delaware DNREC Fish Facts — Bluefish', '2026-01-01', '2026-09-04', 2,
+  ('bluefish', null, 'de-tidal', 'salt', 'bag_limit', 'Bluefish: Season Open Year Round. Size Limit No Size Limit. Daily Limit / Person 5 per shore or private boat anglers. 7 per anglers on ''for-hire'' vessels (Headboats and Charter boats).', 'https://fishspecies.dnrec.delaware.gov/FishSpecies.aspx?habitat=2&species=100', 'Delaware DNREC Fish Facts — Bluefish', '2026-01-01', '2026-09-04', 2,
    null, null, 5, 5, null, null, null, null, 'For-hire 7.', true, 60),
   ('weakfish', null, 'de-tidal', 'salt', 'bag_limit', 'Weakfish: Season Open Year-Round. Size Limit 13 inch minimum (total length). Daily Limit / Person 1.', 'https://fishspecies.dnrec.delaware.gov/FishSpecies.aspx?habitat=2&species=192', 'Delaware DNREC Fish Facts — Weakfish', '2026-01-01', '2026-09-04', 2,
    null, null, 1, 1, 13, null, 'total_length', null, null, true, 60);
