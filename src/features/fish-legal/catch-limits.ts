@@ -64,10 +64,34 @@ export function talliedKeptToday(
 }
 
 /**
- * Project the day's kept tallies onto the pack's limit rules. Both per-species caps and
- * group aggregates are surfaced; everything the pack doesn't limit is silent (no rule =
- * no line, and the absence of a line is NEVER rendered as "unlimited").
+ * Today's catches that have not been answered kept-or-released.
+ *
+ * The fast log flow (spec §4.1) asks for a species and nothing else, so disposition stays
+ * unset unless the angler opens the details. Those fish are not kept, so they must not be
+ * counted against a bag — but they are not released either, and silently dropping them
+ * means the limits screen can under-report what is in the box. Under-reporting is the
+ * dangerous direction for a compliance screen: it is the one that ends in a citation.
+ *
+ * So they are surfaced instead, unanswered rather than assumed, which is the same stance
+ * the audit already takes for a species the pack does not limit: never dropped, never
+ * called unlimited.
  */
+export function undecidedToday(
+  catches: readonly CatchRecord[],
+  dateKey: string,
+  zone: string,
+): readonly CatchRecord[] {
+  return catches.filter(
+    (c) =>
+      c.deleted_at === null &&
+      c.species_id !== null &&
+      // `n/a` is an answer — the angler said the question does not apply.
+      (c.disposition === null || c.disposition === undefined) &&
+      c.resolution_state !== "dismissed" &&
+      localDayOf(c, zone) === dateKey,
+  );
+}
+
 /**
  * The bag rule that actually applies on a given day, out of several for one species.
  *
@@ -112,9 +136,14 @@ function pickBagRule<T extends { seasonStart: string | null; seasonEnd: string |
   );
 }
 
+/**
+ * Project the day's kept tallies onto the pack's limit rules. Both per-species caps and
+ * group aggregates are surfaced; everything the pack doesn't limit is silent (no rule =
+ * no line, and the absence of a line is NEVER rendered as "unlimited").
+ */
 export function limitLines(
   bundle: RegBundle,
-  dateKey: string, // kept for future season-scoped limits; tallies are pre-filtered
+  dateKey: string,
   keptToday: ReadonlyMap<string, number>,
 ): readonly LimitLine[] {
   const lines: LimitLine[] = [];

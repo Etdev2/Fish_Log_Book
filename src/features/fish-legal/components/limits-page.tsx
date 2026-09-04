@@ -8,7 +8,9 @@ import { useLocalTimeZone } from "@/features/conditions/use-local-time-zone";
 import { useRegionPreference } from "@/features/settings/region";
 import { REGIONS } from "@/core/ontology/regions";
 import { useLog } from "@/features/catches/store";
-import { keptAudit, limitLines, talliedKeptToday } from "../catch-limits";
+import { setDisposition } from "@/features/catches/store";
+
+import { keptAudit, limitLines, talliedKeptToday, undecidedToday } from "../catch-limits";
 import { packForRegion } from "../packs";
 import { speciesDisplayName } from "../reg-species";
 import { JurisdictionChip } from "./jurisdiction-chip";
@@ -27,6 +29,9 @@ const STATE_COPY: Record<LimitLine["state"], { word: string; tone: string }> = {
  * log itself — Fish Legal tells you the truth; you log anyway. Aggregate lines sit on
  * top because an "aggregate 10 in any combination" burns faster than its parts.
  */
+const FOCUS_RING =
+  "focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-3 focus-visible:outline-focus-ring";
+
 export function LimitsPage() {
   const now = useNow();
   const zone = useLocalTimeZone() ?? "America/Los_Angeles";
@@ -69,6 +74,15 @@ export function LimitsPage() {
     () => (bundle ? keptAudit(bundle.data, keptToday) : []),
     [bundle, keptToday],
   );
+  /*
+   * Fish logged today with no kept-or-released answer. The fast log flow does not ask, so
+   * these are common — and leaving them out silently makes the page under-report the box,
+   * which is the direction that ends in a citation.
+   */
+  const undecided = useMemo(
+    () => undecidedToday(log.catches, dateKey, zone),
+    [log.catches, dateKey, zone],
+  );
   const regionLabel = REGIONS.find((r) => r.id === region)?.label ?? "this region";
 
   return (
@@ -88,6 +102,57 @@ export function LimitsPage() {
         <p className="rounded-lg border border-hairline bg-surface p-4 text-body text-text-muted">
           No verified pack for {regionLabel} yet — limit tracking follows the pack.
         </p>
+      ) : null}
+
+      {undecided.length > 0 ? (
+        <section className="rounded-lg border border-amber-flag bg-surface p-4">
+          <h2 className="text-h3 text-amber-flag">
+            {undecided.length === 1
+              ? "1 fish not counted yet"
+              : `${undecided.length} fish not counted yet`}
+          </h2>
+          <p className="mt-2 text-body text-text-muted">
+            These were logged today but never marked kept or released, so nothing has been
+            counted against a limit. Answer here and the count updates straight away.
+          </p>
+          <ul className="mt-3 flex flex-col gap-2">
+            {undecided.map((record) => (
+              <li
+                key={record.id}
+                className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-hairline bg-surface-raised px-3 py-2"
+              >
+                <Link
+                  href={`/catch/${record.id}`}
+                  className={`text-body ${FOCUS_RING}`}
+                >
+                  {speciesDisplayName(record.species_id as string)}
+                </Link>
+                {/*
+                  Answered here rather than by opening the record: it is one bit, and the
+                  angler is usually holding the fish. `setDisposition` patches that single
+                  field — it is not the save path, and it cannot disturb anything else on
+                  the catch.
+                */}
+                <span className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => void setDisposition(record.id, "kept")}
+                    className={`min-h-touch-floor rounded-full border border-border-interactive px-4 text-label text-text-link transition-colors hover:bg-surface ${FOCUS_RING} active:scale-95 motion-reduce:transition-none`}
+                  >
+                    Kept
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => void setDisposition(record.id, "released")}
+                    className={`min-h-touch-floor rounded-full border border-border-interactive px-4 text-label text-text-link transition-colors hover:bg-surface ${FOCUS_RING} active:scale-95 motion-reduce:transition-none`}
+                  >
+                    Released
+                  </button>
+                </span>
+              </li>
+            ))}
+          </ul>
+        </section>
       ) : null}
 
       <section className="flex flex-col gap-3" aria-live="polite">
