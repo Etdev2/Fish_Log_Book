@@ -197,6 +197,18 @@ export const PACKS: readonly BundledPack[] = [
     primaryAreaId: "wa-ma-1-4-coastal",
     data: WASHINGTON,
   },
+  { regionId: "wa_ma_1_4", jurisdictionLabel: "Washington MA 1–4 coast — WDFW (US)", shortCode: "WA·1–4", primaryAreaId: "wa-ma-1-4-coastal", data: WASHINGTON },
+  { regionId: "wa_ma_4_east", jurisdictionLabel: "Washington MA 4 east — WDFW (US)", shortCode: "WA·4E", primaryAreaId: "wa-ma4-east", data: WASHINGTON },
+  { regionId: "wa_ma_5", jurisdictionLabel: "Washington MA 5 Sekiu — WDFW (US)", shortCode: "WA·5", primaryAreaId: "wa-ma-5", data: WASHINGTON },
+  { regionId: "wa_ma_6", jurisdictionLabel: "Washington MA 6 East Strait — WDFW (US)", shortCode: "WA·6", primaryAreaId: "wa-ma-6", data: WASHINGTON },
+  { regionId: "wa_ma_7", jurisdictionLabel: "Washington MA 7 San Juans — WDFW (US)", shortCode: "WA·7", primaryAreaId: "wa-ma-7", data: WASHINGTON },
+  { regionId: "wa_ma_8_1", jurisdictionLabel: "Washington MA 8-1 Skagit — WDFW (US)", shortCode: "WA·8-1", primaryAreaId: "wa-ma-8-1", data: WASHINGTON },
+  { regionId: "wa_ma_8_2", jurisdictionLabel: "Washington MA 8-2 Everett — WDFW (US)", shortCode: "WA·8-2", primaryAreaId: "wa-ma-8-2", data: WASHINGTON },
+  { regionId: "wa_ma_9", jurisdictionLabel: "Washington MA 9 Admiralty — WDFW (US)", shortCode: "WA·9", primaryAreaId: "wa-ma-9", data: WASHINGTON },
+  { regionId: "wa_ma_10", jurisdictionLabel: "Washington MA 10 Seattle — WDFW (US)", shortCode: "WA·10", primaryAreaId: "wa-ma-10", data: WASHINGTON },
+  { regionId: "wa_ma_11", jurisdictionLabel: "Washington MA 11 Tacoma — WDFW (US)", shortCode: "WA·11", primaryAreaId: "wa-ma-11", data: WASHINGTON },
+  { regionId: "wa_ma_12", jurisdictionLabel: "Washington MA 12 Hood Canal — WDFW (US)", shortCode: "WA·12", primaryAreaId: "wa-ma-12", data: WASHINGTON },
+  { regionId: "wa_ma_13", jurisdictionLabel: "Washington MA 13 South Sound — WDFW (US)", shortCode: "WA·13", primaryAreaId: "wa-ma-13", data: WASHINGTON },
   // ——— Wave 4 (2026-09-02): Alaska Southeast (ADF&G Region 1 general saltwater) and
   // Hawaii's DLNR statewide table with the Maui HAR 13-95.1 split.
   {

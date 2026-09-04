@@ -18,7 +18,7 @@ import type { RegArea, RegGroup, RegPack, RegRule } from "./types";
 
 export const WASHINGTON_PACK: RegPack = {
   id: "washington-2026-09-02",
-  version: 7,
+  version: 8,
   publishedAt: "2026-09-03T20:00:00Z",
   notes:
     "Washington ocean Marine Areas 1-4 (WDFW news release March 5, 2026) — v2 deepens " +
@@ -30,7 +30,7 @@ export const WASHINGTON_PACK: RegPack = {
     "bottomfish daily, >120ft fishing prohibited, descending device required, lingcod " +
     "May 1-Jun 15 slot 26-36 in (spear May 21-Jun 15, hook-and-line from May 1), " +
     "cabezon May 1-Nov 30 @18 in @1, rockfish closed, cod/pollock/hake/wolf-eel closed, " +
-    "salmon headline windows as notes. v4 lands the Crab Rules page verbatim: Puget Sound (Dungeness 5 @ 6.25 in males hardshell / Red Rock 6 @ 5 in / Tanner 6 @ 4.5 in; CRC + endorsement; MA12 south of Ayock Point + MA13 closed to crab in 2026), Pacific Ocean (Dungeness 6 @ 6 in + Red Rock 6 @ 5 in; pot window Dec 1-Sep 15, year-round other gear; Willapa Bay pots Nov 15-Sep 15), Columbia River estuary (Dungeness 12 @ 5.75 in, year-round all gear), European green crab report-and-release. v5 lands the Shrimp Rules page verbatim: Puget Sound 80 spot shrimp/day cap inside a 10-lb all-species combined limit with 2026 spot closures (MA 8-1/8-2/9/10/11/13) as prohibited rows; Pacific Ocean 25-lb combined (max 200 spot, year-round); mesh/head-retention/pot-count gear doctrine. v7 lands remaining pamphlet Marine Areas 5, 6, 7, 8-1, 8-2, 11, 12 (2026-27 book, updated June 18 2026): MA5 rockfish first-3 west of Slip Point / first-1 east; MA6/7 Pacific cod 2/day (rockfish closed); MA12 Hood Canal lingcod/cabezon/rockfish closed, flounder 15 <120 ft north of Turner Creek.",
+    "salmon headline windows as notes. v4 lands the Crab Rules page verbatim: Puget Sound (Dungeness 5 @ 6.25 in males hardshell / Red Rock 6 @ 5 in / Tanner 6 @ 4.5 in; CRC + endorsement; MA12 south of Ayock Point + MA13 closed to crab in 2026), Pacific Ocean (Dungeness 6 @ 6 in + Red Rock 6 @ 5 in; pot window Dec 1-Sep 15, year-round other gear; Willapa Bay pots Nov 15-Sep 15), Columbia River estuary (Dungeness 12 @ 5.75 in, year-round all gear), European green crab report-and-release. v5 lands the Shrimp Rules page verbatim: Puget Sound 80 spot shrimp/day cap inside a 10-lb all-species combined limit with 2026 spot closures (MA 8-1/8-2/9/10/11/13) as prohibited rows; Pacific Ocean 25-lb combined (max 200 spot, year-round); mesh/head-retention/pot-count gear doctrine. v7 lands remaining pamphlet Marine Areas 5, 6, 7, 8-1, 8-2, 11, 12 (2026-27 book, updated June 18 2026): MA5 rockfish first-3 west of Slip Point / first-1 east; MA6/7 Pacific cod 2/day (rockfish closed); MA12 Hood Canal lingcod/cabezon/rockfish closed, flounder 15 <120 ft north of Turner Creek. v8: Settings regions per Marine Area so Puget Sound is not stuck on the coastal bag; MA 5–10 carry their own 1-halibut rows (Apr 2–Jun 30 and Aug 16–Sep 30).",
 };
 
 const A = {
@@ -59,7 +59,7 @@ const D1 = {
   updated: "2026-03-05",
 } as const;
 const VERIFIED = "2026-09-02";
-const pv = 7;
+const pv = 8;
 const C2 = {
   url: "https://www.eregulations.com/washington/fishing/crab-rules",
   title: "WDFW — 2026-2027 Washington Sport Fishing Rules (Crab Rules)",
@@ -457,6 +457,45 @@ function soundBottomfishRules(areaId: string, page?: string, pacificCodOpen = fa
   ];
 }
 
+
+/** 2026 Puget Sound / Strait halibut (MA 5–10). Copied onto each MA so Settings
+ *  primaryAreaId is not stuck looking at the shared wa-ma-5-10-halibut envelope. */
+function pugetHalibutRules(areaId: string): RegRule[] {
+  const pamphlet = {
+    url: "https://wdfw.wa.gov/fishing/regulations/halibut/puget-sound",
+    title: "WDFW — Puget Sound/Strait of Juan de Fuca halibut seasons and regulations",
+    updated: "2026-03-05",
+  } as const;
+  const tag = areaId.replace("wa-", "");
+  return [
+    rule({
+      id: `${tag}-halibut-bag`, speciesId: "pacific_halibut", regAreaId: areaId, kind: "bag_limit",
+      verbatim:
+        "In all marine areas open to halibut fishing, there is a one-fish daily catch limit and no minimum size restriction. There is a six fish annual bag limit. Anglers must record their catch on a WDFW catch record card.",
+      sourceUrl: pamphlet.url, sourceTitle: pamphlet.title, sourceUpdatedAt: pamphlet.updated, verifiedAt: VERIFIED,
+      seasonStart: null, seasonEnd: null, bagDaily: 1, possessionLimit: null, bagSharesWithGroup: false,
+      minSizeIn: null, maxSizeIn: null, sizeMeasure: null, platformScope: null, depthNote: "Six fish annual bag limit; catch record card required.",
+      checkInseason: true, staleAfterDays: 7,
+    }),
+    rule({
+      id: `${tag}-halibut-spring`, speciesId: "pacific_halibut", regAreaId: areaId, kind: "season",
+      verbatim: "Marine Area 5-10. The 2026 season dates are as follows: April 2 through June 30, seven days per week.",
+      sourceUrl: pamphlet.url, sourceTitle: pamphlet.title, sourceUpdatedAt: pamphlet.updated, verifiedAt: VERIFIED,
+      seasonStart: "04-02", seasonEnd: "06-30", bagDaily: null, possessionLimit: null, bagSharesWithGroup: false,
+      minSizeIn: null, maxSizeIn: null, sizeMeasure: null, platformScope: null, depthNote: null,
+      checkInseason: true, staleAfterDays: 7,
+    }),
+    rule({
+      id: `${tag}-halibut-fall`, speciesId: "pacific_halibut", regAreaId: areaId, kind: "season",
+      verbatim: "Marine Area 5-10. August 16 through September 30, seven days per week. Fishing may close before September 30 if the quota is taken.",
+      sourceUrl: pamphlet.url, sourceTitle: pamphlet.title, sourceUpdatedAt: pamphlet.updated, verifiedAt: VERIFIED,
+      seasonStart: "08-16", seasonEnd: "09-30", bagDaily: null, possessionLimit: null, bagSharesWithGroup: false,
+      minSizeIn: null, maxSizeIn: null, sizeMeasure: null, platformScope: null, depthNote: null,
+      checkInseason: true, staleAfterDays: 7,
+    }),
+  ];
+}
+
 export const WA_RULES: readonly RegRule[] = [
   rule({
     id: "wa-ma14-season", speciesId: null, regGroupId: "wa-bottomfish", regAreaId: "wa-ma-1-4-coastal", kind: "season",
@@ -738,6 +777,13 @@ export const WA_RULES: readonly RegRule[] = [
   ...soundBottomfishRules("wa-ma-8-1", "8-1"),
   ...soundBottomfishRules("wa-ma-8-2", "8-2"),
   ...soundBottomfishRules("wa-ma-11", "11"),
+  ...pugetHalibutRules("wa-ma-5"),
+  ...pugetHalibutRules("wa-ma-6"),
+  ...pugetHalibutRules("wa-ma-7"),
+  ...pugetHalibutRules("wa-ma-8-1"),
+  ...pugetHalibutRules("wa-ma-8-2"),
+  ...pugetHalibutRules("wa-ma-9"),
+  ...pugetHalibutRules("wa-ma-10"),
   rule({
     id: "wa-ma9-salmon-note", speciesId: null, regAreaId: "wa-ma-9", kind: "note",
     verbatim:
@@ -789,6 +835,14 @@ export const WA_RULES: readonly RegRule[] = [
     sourceUrl: "https://www.eregulations.com/washington/fishing/marine-area-5", sourceTitle: "WDFW — 2026-2027 Washington Sport Fishing Rules (Marine Area 5)", sourceUpdatedAt: "2026-06-18", verifiedAt: VERIFIED,
     seasonStart: "05-01", seasonEnd: "06-15", bagDaily: 1, possessionLimit: null, bagSharesWithGroup: false,
     minSizeIn: 26, maxSizeIn: 36, sizeMeasure: "total_length", platformScope: null, depthNote: "Spear window May 21–Jun 15.",
+    checkInseason: true, staleAfterDays: 30,
+  }),
+  rule({
+    id: "wa-ma5-rockfish-any", speciesId: "rockfish", regAreaId: "wa-ma-5", kind: "bag_limit",
+    verbatim: "Rockfish West of Slip Point: May 1-Sept. 30. No min. size. Daily limit is the first 3 black or blue/deacon rockfish caught. East of Slip Point: daily limit is the first black or blue/deacon rockfish caught. See Bottomfish Closure.",
+    sourceUrl: "https://www.eregulations.com/washington/fishing/marine-area-5", sourceTitle: "WDFW — 2026-2027 Washington Sport Fishing Rules (Marine Area 5)", sourceUpdatedAt: "2026-06-18", verifiedAt: VERIFIED,
+    seasonStart: "05-01", seasonEnd: "09-30", bagDaily: 3, possessionLimit: null, bagSharesWithGroup: true,
+    minSizeIn: null, maxSizeIn: null, sizeMeasure: null, platformScope: null, depthNote: "West of Slip Point first 3; east of Slip Point first 1. Black or blue/deacon only.",
     checkInseason: true, staleAfterDays: 30,
   }),
   rule({
