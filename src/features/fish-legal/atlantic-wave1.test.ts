@@ -60,4 +60,8 @@ describe("Atlantic wave 1 — Massachusetts pack (DMF table, 2026-04-28)", () =>
     const card = regulationCard(MASSACHUSETTS, "ma-statewide", "ocean_pout", TODAY, "boat");
     expect(card!.verdict).toBe("release");
   });
+
+  it("American shad is prohibited in salt waters (other waters)", () => {
+    expect(regulationCard(MASSACHUSETTS, "ma-statewide", "american_shad", TODAY, "boat")!.verdict).toBe("release");
+  });
 });

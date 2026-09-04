@@ -38,6 +38,16 @@ describe("Atlantic wave 4 — DE / MD / VA / NC / SC / GA", () => {
     expect(regulationCard(DELAWARE, "de-tidal", "striped_bass", TODAY, "boat")!.bagDaily).toBe(1);
   });
 
+  it("DE cobia 43 @2; Spanish 14 @15; scup 9 @30; bluefish 5; weakfish 13 @1", () => {
+    const cobia = regulationCard(DELAWARE, "de-tidal", "cobia", TODAY, "boat");
+    expect(cobia!.minSizeIn).toBe(43);
+    expect(cobia!.bagDaily).toBe(2);
+    expect(regulationCard(DELAWARE, "de-tidal", "spanish_mackerel", TODAY, "boat")!.bagDaily).toBe(15);
+    expect(regulationCard(DELAWARE, "de-tidal", "scup", TODAY, "boat")!.minSizeIn).toBe(9);
+    expect(regulationCard(DELAWARE, "de-tidal", "bluefish", TODAY, "boat")!.bagDaily).toBe(5);
+    expect(regulationCard(DELAWARE, "de-tidal", "weakfish", TODAY, "boat")!.minSizeIn).toBe(13);
+  });
+
   it("MD ocean stripers 28–31; Bay 19–24 on Sep 3; fluke 17.5 @4", () => {
     const ocean = regulationCard(MARYLAND, "md-atlantic", "striped_bass", TODAY, "boat");
     expect(ocean!.minSizeIn).toBe(28);
