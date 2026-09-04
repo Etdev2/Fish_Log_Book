@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 
+import { StationPicker } from "@/features/conditions/components/station-picker";
 import { PASSPORT_V1 } from "@/features/passport/flag";
 import { BackendDiagnostics } from "@/features/settings/components/backend-diagnostics";
 import { QuickMarkToggle } from "@/features/settings/components/quick-mark-toggle";
@@ -17,6 +18,18 @@ export default function SettingsPage() {
         <p className="mt-3 text-body text-text-muted">
           Account and the platform selector (D26) land with the rest of the settings feature.
         </p>
+      </section>
+
+      <section className="rounded-lg border border-hairline bg-surface p-4">
+        <h2 className="text-h3">Tide station</h2>
+        <p className="mt-2 text-body text-text-muted">
+          Which NOAA station the tide chart reads. Predictions are fetched when you have
+          signal and kept on this device for when you do not.
+        </p>
+        <label className="mt-3 flex flex-col gap-1">
+          <span className="sr-only">Tide station</span>
+          <StationPicker />
+        </label>
       </section>
 
       {/*

@@ -2,7 +2,9 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 
-import { instant } from "@/core/units";
+import Link from "next/link";
+
+import { degrees, instant } from "@/core/units";
 import {
   heightAt,
   nextSlackAfter,
@@ -10,6 +12,7 @@ import {
   readTideAt,
   turnsIn,
   type TideMotion,
+  type TidePredictionSeries,
 } from "@/core/rules/tide";
 import { daylightSpans, moonPhaseAt, sunEventsFor } from "@/core/rules/astro";
 import { useNow } from "@/lib/time/use-now";
@@ -17,7 +20,8 @@ import { useUnitPreference } from "@/features/settings/units";
 import { useLog } from "@/features/catches/store";
 import { speciesLabel } from "@/core/ontology/species";
 
-import { STATION_LOCATION, STATION_TIME_ZONE, TIDE_SELECTED_AT, loadTideSeriesFixture } from "./queries/tide-series";
+import { STATION_LOCATION, STATION_TIME_ZONE, TIDE_SELECTED_AT } from "./queries/tide-series";
+import { tideSourceLabel, useTideSeries, type TideReading } from "./queries/use-tide-series";
 import { useLocalTimeZone } from "./use-local-time-zone";
 import { SourcedValue, unwrapSourced } from "./components/sourced-value";
 import { MoonPhaseVisual } from "./components/moon-phase-visual";
@@ -66,12 +70,72 @@ const AT_NOW_TOLERANCE_MS = 60_000;
  * NOW is drawn on the curve wherever it falls, and a Now control appears the moment the
  * read-head is anywhere else.
  */
+/**
+ * The tide screen's shell: pick the data, then draw it.
+ *
+ * The split is not cosmetic. Everything below assumes a series with samples in it — the
+ * geometry indexes `samples[0]` and the last sample in a dozen places — and before the
+ * station picker landed that assumption held, because the bundled fixture was the only
+ * source and it is never empty. Now a station can legitimately have nothing loaded: no
+ * signal, no cache, and no fixture unless it is Newport Bay. Branching here keeps that
+ * case out of the chart entirely instead of threading emptiness through every calculation.
+ */
 export function TideScreen() {
-  const series = useMemo(() => loadTideSeriesFixture(), []);
-  // Defensive: the fixture is never empty, but the live NOAA fetch that will replace it
-  // (ADR 006 §2) can fail or return an empty window, and every line below indexes
-  // `samples[0]`/`[length - 1]`. Guard once here so an empty feed renders an honest
-  // empty state instead of a screen of NaNs.
+  const tideData = useTideSeries();
+
+  if (tideData.series === null || tideData.series.samples.length === 0) {
+    return <TideUnavailable reading={tideData} />;
+  }
+  return <TideChartScreen tideData={tideData} series={tideData.series} />;
+}
+
+function TideUnavailable({ reading }: { reading: TideReading }) {
+  return (
+    <div className="flex flex-col gap-4 p-4">
+      <section className="rounded-lg border border-hairline bg-surface p-4">
+        <h1 className="text-h1">Tide</h1>
+        <p className="mt-2 text-body text-text-muted">
+          {reading.loading
+            ? "Fetching predictions…"
+            : `No predictions loaded for ${reading.station?.name ?? "this station"}.`}
+        </p>
+        {!reading.loading ? (
+          <p className="mt-2 text-caption text-text-muted">
+            {/* Never another station's curve under this one's name. */}
+            Connect once and they are saved to this device for when you are offshore.
+            {reading.error !== null ? ` (${reading.error})` : ""}
+          </p>
+        ) : null}
+        <Link
+          href="/settings"
+          className="mt-4 inline-flex min-h-touch-floor items-center text-label text-text-link focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-3 focus-visible:outline-focus-ring"
+        >
+          Choose a different station →
+        </Link>
+      </section>
+    </div>
+  );
+}
+
+function TideChartScreen({
+  tideData,
+  series,
+}: {
+  tideData: TideReading;
+  series: TidePredictionSeries;
+}) {
+  const stationZone = tideData.station?.timeZone ?? STATION_TIME_ZONE;
+  const stationLocation = useMemo(
+    () =>
+      tideData.station === null
+        ? STATION_LOCATION
+        : {
+            latitude: degrees(tideData.station.latitude),
+            longitude: degrees(tideData.station.longitude),
+          },
+    [tideData.station],
+  );
+
   const hasSamples = series.samples.length > 0;
   const seriesStart = hasSamples ? Number(series.samples[0].at) : 0;
   const seriesEnd = hasSamples ? Number(series.samples[series.samples.length - 1].at) : 0;
@@ -80,12 +144,12 @@ export function TideScreen() {
   const [unit] = useUnitPreference();
   const now = useNow();
   const localTimeZone = useLocalTimeZone();
-  const displayTimeZone = localTimeZone ?? STATION_TIME_ZONE;
+  const displayTimeZone = localTimeZone ?? stationZone;
   // Clock times convert to the reader's own zone; the DATE control and the chart's day
   // dividers stay on the station's calendar day (see `tide-chart-geometry.ts`). For a
   // reader in the station's zone those never disagree. For anyone else they can, and the
   // readout then carries its zone so "9:56pm" under "MON, AUG 31" is not a puzzle.
-  const zoneDiffersFromStation = localTimeZone !== null && localTimeZone !== STATION_TIME_ZONE;
+  const zoneDiffersFromStation = localTimeZone !== null && localTimeZone !== stationZone;
 
   const [selectedAt, setSelectedAt] = useState(initialAt);
   const [sheet, setSheet] = useState<SheetName | null>(null);
@@ -108,8 +172,9 @@ export function TideScreen() {
   }, [currentAt]);
 
   const dayBoundaries = useMemo(
-    () => [seriesStart, ...localMidnights(seriesStart, seriesEnd, STATION_TIME_ZONE)],
-    [seriesStart, seriesEnd],
+    () => [seriesStart, ...localMidnights(seriesStart, seriesEnd, stationZone)],
+    // stationZone is a dependency now that the station can change under the chart.
+    [seriesStart, seriesEnd, stationZone],
   );
 
   /* Catches onto the curve at their exact instant (founder §6). Only live, timestamped
@@ -142,13 +207,13 @@ export function TideScreen() {
     [dayBoundaries, seriesEnd],
   );
 
-  const dayIndex = localDayIndex(selectedAt, seriesStart, STATION_TIME_ZONE);
+  const dayIndex = localDayIndex(selectedAt, seriesStart, stationZone);
   const day = calendarDays[dayIndex] ?? calendarDays[0];
   const finalDayIndex = calendarDays.length - 1;
 
   const spans = useMemo(
-    () => daylightSpans(instant(seriesStart), instant(seriesEnd), STATION_LOCATION),
-    [seriesStart, seriesEnd],
+    () => daylightSpans(instant(seriesStart), instant(seriesEnd), stationLocation),
+    [seriesStart, seriesEnd, stationLocation],
   );
   const turns = useMemo(() => turnsIn(series, instant(seriesStart), instant(seriesEnd)), [series, seriesStart, seriesEnd]);
 
@@ -166,7 +231,10 @@ export function TideScreen() {
 
   const reading = readTideAt(series, instant(selectedAt));
   const selectedMoon = useMemo(() => moonPhaseAt(instant(selectedAt)), [selectedAt]);
-  const selectedSun = useMemo(() => sunEventsFor(instant(selectedAt), STATION_LOCATION), [selectedAt]);
+  const selectedSun = useMemo(
+    () => sunEventsFor(instant(selectedAt), stationLocation),
+    [selectedAt, stationLocation],
+  );
   const selectedPhase = useMemo(
     () => spans.find((span) => selectedAt >= Number(span.from) && selectedAt <= Number(span.to))?.phase ?? "day",
     [spans, selectedAt],
@@ -368,7 +436,7 @@ export function TideScreen() {
           <span aria-hidden="true">‹</span>
         </button>
         <button type="button" className="tide-date-button" aria-haspopup="dialog" onClick={() => setSheet("dates")}>
-          {compactDate(instant(selectedAt), STATION_TIME_ZONE)}
+          {compactDate(instant(selectedAt), stationZone)}
           <Chevron />
         </button>
         <button
@@ -389,7 +457,7 @@ export function TideScreen() {
         seriesEnd={seriesEnd}
         unit={unit}
         displayTimeZone={displayTimeZone}
-        stationTimeZone={STATION_TIME_ZONE}
+        stationTimeZone={stationZone}
         selectedAt={selectedAt}
         onSelectedAtChange={setSelectedAt}
         now={atNow ? null : currentAt}
@@ -407,11 +475,12 @@ export function TideScreen() {
       </p>
 
       <StationDetailsSheet
+        sourceLabel={tideSourceLabel(tideData)}
         open={sheet === "station"}
         onClose={() => setSheet(null)}
         series={series}
-        location={STATION_LOCATION}
-        stationTimeZone={STATION_TIME_ZONE}
+        location={stationLocation}
+        stationTimeZone={stationZone}
         displayTimeZone={displayTimeZone}
         selectedAt={selectedAt}
         seriesStart={seriesStart}
@@ -433,7 +502,7 @@ export function TideScreen() {
         series={series}
         unit={unit}
         displayTimeZone={displayTimeZone}
-        stationTimeZone={STATION_TIME_ZONE}
+        stationTimeZone={stationZone}
         dayFrom={day.from}
         dayTo={day.to}
         selectedAt={selectedAt}
@@ -445,7 +514,7 @@ export function TideScreen() {
         days={calendarDays}
         activeIndex={dayIndex}
         onPick={goToDay}
-        stationTimeZone={STATION_TIME_ZONE}
+        stationTimeZone={stationZone}
       />
     </section>
   );
