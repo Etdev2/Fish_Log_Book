@@ -1,5 +1,7 @@
 "use client";
 
+import { LegalNotice } from "@/components/legal-notice";
+import { REGIONS } from "@/core/ontology/regions";
 import dynamic from "next/dynamic";
 import { useEffect, useMemo, useState } from "react";
 
@@ -15,6 +17,7 @@ import { distanceToLineM, pointInRing, sideOfLine } from "../geospatial";
 import { regulationCard } from "../reg-engine";
 import { RCA_50FM_LINE, REG_AREAS, SOCAL } from "../reg-data";
 import { FLORIDA } from "../florida-pack";
+import { boundaryViewFor } from "../boundary-coverage";
 import { NORCAL } from "../norcal-pack";
 import { platformFor } from "../reg-engine";
 import { useFishingModePreference } from "../prefs";
@@ -51,6 +54,7 @@ export function BoundaryMap() {
   const [position, setPosition] = useState<{ lat: number; lng: number; accuracy: number } | null>(null);
   const [geoState, setGeoState] = useState<"idle" | "asking" | "denied">("idle");
   const [region] = useRegionPreference();
+  const regionLabel = REGIONS.find((r) => r.id === region)?.label ?? "this region";
   // Per-zone outside/near/inside state that foldPosition refines fix-by-fix. Lives in a
   // ref — it is not display state — and drives the spec-§14 semantics (transition emits,
   // holding pattern silent).
@@ -67,28 +71,11 @@ export function BoundaryMap() {
     return `${get("year")}-${get("month")}-${get("day")}`;
   }, [now, zone]);
 
-  // Founder ask (2026-09-02): California fishes by Groundfish Management Area. The
-  // view config pairs each CA region (plain NorCal/SoCal and the five GMA entries)
-  // with its bundle, its focus area, and a map center. Regions with no verified
-  // California pack keep the Florida overview fallback. The 50-fm RCA ribbon is a
-  // Southern-GMA window, so it shows for the two southern reads only.
-  const caView = useMemo(() => {
-    const isSoCal = region === "southern_california" || region === "ca_gma_southern";
-    if (isSoCal) {
-      return { bundle: SOCAL, areaId: "ca-gma-southern", areas: REG_AREAS, center: [33.6, -118.8] as const, showRca: true };
-    }
-    const norcalCenters: Record<string, { areaId: string; center: readonly [number, number] }> = {
-      northern_california: { areaId: "ca-gma-northern", center: [39.5, -124.0] },
-      ca_gma_northern: { areaId: "ca-gma-northern", center: [40.6, -124.3] },
-      ca_gma_mendocino: { areaId: "ca-gma-mendocino", center: [39.5, -123.9] },
-      ca_gma_san_francisco: { areaId: "ca-gma-san-francisco", center: [38.0, -123.2] },
-      ca_gma_central: { areaId: "ca-gma-central", center: [35.8, -121.8] },
-    };
-    const nc = norcalCenters[region];
-    if (nc) return { bundle: NORCAL, ...nc, areas: NORCAL.areas, showRca: false };
-    return null;
-  }, [region]);
-  const isCalifornia = caView !== null;
+  // Which coastline this region actually has verified data for. `null` means none, and
+  // the page says so rather than drawing another state's map — see boundary-coverage.ts
+  // for the Florida fallback this replaced.
+  const caView = useMemo(() => boundaryViewFor(region), [region]);
+  const isCalifornia = caView !== null && caView.bundle !== FLORIDA;
 
   // Today's groundfish reading drives the ribbon — a generic rockfish member's card is
   // the complex's voice this day (boat/shore decides the exemption copy). CA-ONLY:
@@ -168,10 +155,44 @@ export function BoundaryMap() {
     return () => cancelAnimationFrame(raf);
   }, []);
 
+  /*
+    No verified boundary data for this region. Until 2026-09-04 this path silently drew a
+    map of southwest Florida instead — for every region that is not California, which is
+    most of them. An honest empty state is the same stance the rest of Fish Legal takes:
+    "No verified data" beats a confident answer built from another state's coastline.
+  */
+  if (!caView) {
+    return (
+      <div className="flex flex-col gap-4">
+        <section className="rounded-lg border border-hairline bg-surface p-4">
+          <h1 className="text-h1">Depth &amp; boundary rules</h1>
+          <p className="mt-1 text-label text-signal-orange">{regionLabel}</p>
+        </section>
+
+        <section className="rounded-lg border border-hairline bg-surface p-4">
+          <h2 className="text-h3">No verified boundary data for {regionLabel}</h2>
+          <p className="mt-2 text-body text-text-muted">
+            Depth and boundary lines are drawn only where we hold the published
+            coordinates. We have them for California and for Florida&rsquo;s Indian River
+            Lagoon; this region is not mapped yet.
+          </p>
+          <p className="mt-2 text-body text-text-muted">
+            We would rather show you nothing than show you another state&rsquo;s coastline.
+            Use the official chart and the agency&rsquo;s own map for where you are fishing.
+          </p>
+          <div className="mt-4">
+            <LegalNotice kind="regulations" />
+          </div>
+        </section>
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col gap-4">
       <section className="rounded-lg border border-hairline bg-surface p-4">
         <h1 className="text-h1">Depth &amp; boundary rules</h1>
+        <p className="mt-1 text-label text-signal-orange">{caView.label}</p>
         <p className="mt-1 text-caption text-text-muted">
           Simplified lines for orientation offshore. The federal waypoint text and CDFW&rsquo;s
           official map are the legal reference; both are linked.
@@ -254,9 +275,9 @@ export function BoundaryMap() {
           <BoundaryLeaflet
             position={position}
             layers={layers}
-            areas={caView ? caView.areas : FLORIDA.areas}
-            center={caView ? ([caView.center[0], caView.center[1]] as const) : ([26.5, -82.5] as const)}
-            showRca={caView?.showRca ?? false}
+            areas={caView.areas}
+            center={[caView.center[0], caView.center[1]] as const}
+            showRca={caView.showRca}
           />
         </div>
         <div className="mt-3 flex flex-wrap items-center gap-3">
