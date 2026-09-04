@@ -26,13 +26,21 @@ export const LEGAL_VERSION = "2026-09-04";
  * takes with "No verified data". Fill these in and flip the flag; nothing else changes.
  */
 export const LEGAL_CONTACT = {
+  /**
+   * Flip to `true` only when BOTH fields below are filled in. Founder, 2026-09-04:
+   * incorporation is undecided and a legal team will settle it before launch, so neither
+   * field carries a default. A pre-filled jurisdiction is the dangerous kind of
+   * placeholder — the day somebody adds the company email and flips this flag, that
+   * default would quietly become the governing law of a real contract without anyone
+   * having chosen it. `documents.test.ts` fails if the flag and the fields disagree.
+   */
   resolved: false,
   /** Legal entity that publishes the app. A person's name is fine if there is no company. */
   entity: "the publisher of Fish Log Book",
   /** Where a user sends a privacy or terms question. */
   email: "",
-  /** Whose law governs the Terms, and where disputes are heard. */
-  jurisdiction: "the State of California, United States",
+  /** Whose law governs the Terms, and where disputes are heard. Not yet decided. */
+  jurisdiction: "",
 } as const;
 
 export interface LegalSection {
