@@ -4,6 +4,7 @@ import Link from "next/link";
 import { MonthCalendar } from "@/features/calendar/components/month-calendar";
 import { PassportHomeCard } from "@/features/passport/components/passport-home-card";
 import { PASSPORT_V1 } from "@/features/passport/flag";
+import { SetupChecklist } from "@/features/setup/components/setup-checklist";
 
 export const metadata: Metadata = { title: "Calendar | Fish Log Book" };
 
@@ -20,6 +21,13 @@ export const metadata: Metadata = { title: "Calendar | Fish Log Book" };
 export default function CalendarPage() {
   return (
     <div className="flex flex-col gap-4">
+      {/*
+        Above the calendar, and the only thing that outranks it, because it is the one
+        card that stops mattering. A new angler meets the order of operations on the first
+        screen they see; the moment all five are done it collapses to a single line and
+        never expands again (founder ruling, spec §6.2).
+      */}
+      <SetupChecklist />
       <MonthCalendar />
       <Link
         href="/tides"

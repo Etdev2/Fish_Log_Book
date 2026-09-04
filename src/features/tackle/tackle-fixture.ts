@@ -130,3 +130,15 @@ export const TACKLE_FIXTURE: readonly TackleItem[] = [
     addedAt: Date.UTC(2026, 7, 18, 15, 0),
   },
 ];
+
+/**
+ * Whether an item is sample data rather than something the angler put in the box.
+ *
+ * The guided setup checklist needs this: the Tackle Box ships pre-seeded so the
+ * category form and low-stock states are visible on first load, which meant "add gear to
+ * your Tackle Box" rendered as already done for somebody who had never opened it. A
+ * checklist that ticks a box you did not tick teaches you not to trust the other four.
+ */
+export function isFixtureItem(item: { readonly id: string }): boolean {
+  return item.id.startsWith("fixture-");
+}
