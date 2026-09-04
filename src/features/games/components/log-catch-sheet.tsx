@@ -130,8 +130,16 @@ export function LogCatchSheet({
           autoComplete="off"
           className={INPUT_CLASS}
         />
+        {/*
+          Once a fish is chosen the list collapses to just that fish.
+
+          Leaving the twelve suggestions on screen pushed "Kept or released?" and the save
+          button most of a screen further down at 320px, which is the width this has to work
+          at — and every one of those chips was a way to change the answer by accident with a
+          wet thumb. Tapping the chosen fish reopens the list.
+        */}
         <ul className="flex flex-wrap gap-space-2">
-          {matches.map((s) => {
+          {(speciesId === null ? matches : SPECIES.filter((s) => s.id === speciesId)).map((s) => {
             const on = s.id === speciesId;
             return (
               <li key={s.id}>
@@ -139,12 +147,18 @@ export function LogCatchSheet({
                   type="button"
                   aria-pressed={on}
                   onClick={() => {
-                    setSpeciesId(s.id);
-                    setQuery("");
+                    if (on) {
+                      setSpeciesId(null);
+                      setQuery("");
+                    } else {
+                      setSpeciesId(s.id);
+                      setQuery("");
+                    }
                   }}
                   className={`${CHIP_CLASS} ${on ? CHIP_ON : CHIP_OFF}`}
                 >
                   {s.commonName}
+                  {on ? " ✕" : ""}
                 </button>
               </li>
             );

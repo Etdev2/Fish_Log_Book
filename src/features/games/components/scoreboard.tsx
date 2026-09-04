@@ -88,9 +88,10 @@ export function Scoreboard({ sessionId }: { sessionId: string }) {
           <OfflineBadge />
         </div>
         <p className="text-caption text-text-muted">
-          {modeName(session.mode)}
+          {/* The game's default name IS the mode name, so printing both reads as a stutter. */}
+          {session.name === modeName(session.mode) ? "" : modeName(session.mode)}
           {session.rules.rounds.count > 1
-            ? ` · ${session.rules.rounds.multi_day ? "Day" : "Round"} ${standings.round} of ${session.rules.rounds.count}`
+            ? `${session.name === modeName(session.mode) ? "" : " · "}${session.rules.rounds.multi_day ? "Day" : "Round"} ${standings.round} of ${session.rules.rounds.count}`
             : ""}
           {paused ? " · Paused" : ""}
         </p>
@@ -121,7 +122,7 @@ export function Scoreboard({ sessionId }: { sessionId: string }) {
                 <span className="text-caption text-text-muted">
                   {standing.eliminated_round !== null
                     ? `Out after ${session.rules.rounds.multi_day ? "day" : "round"} ${standing.eliminated_round}`
-                    : summaryFor(standing.scoring_catches, standing.unique_species.length, standing.released)}
+                    : summaryFor(standing)}
                 </span>
                 {session.rules.cricket !== null ? (
                   <Marks
@@ -245,12 +246,24 @@ function NoSuchGame() {
   );
 }
 
-function summaryFor(catches: number, species: number, released: number): string {
-  const parts = [
-    `${catches} scoring ${catches === 1 ? "fish" : "fish"}`,
-    `${species} ${species === 1 ? "species" : "species"}`,
-  ];
-  if (released > 0) parts.push(`${released} released`);
+/**
+ * The line under a name on the scoreboard.
+ *
+ * The head start earns its place here: an angler sitting on 5 with no fish caught looks
+ * like a bug otherwise, and "where did that come from" is not a question a scoreboard on
+ * a moving boat should provoke.
+ */
+export function summaryFor(standing: {
+  scoring_catches: number;
+  unique_species: readonly string[];
+  released: number;
+  handicap: number;
+}): string {
+  const parts = [`${standing.scoring_catches} fish`, `${standing.unique_species.length} species`];
+  if (standing.released > 0) parts.push(`${standing.released} released`);
+  if (standing.handicap !== 0) {
+    parts.push(`${standing.handicap > 0 ? "+" : ""}${standing.handicap} head start`);
+  }
   return parts.join(" · ");
 }
 

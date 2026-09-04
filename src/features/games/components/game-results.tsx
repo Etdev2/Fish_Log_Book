@@ -7,6 +7,7 @@ import { useState } from "react";
 import { speciesById } from "@/core/ontology/species";
 import { awards, biggestFish } from "@/core/rules/games/results";
 import { formatWhen, modeName, pointsLabel } from "../format";
+import { summaryFor } from "./scoreboard";
 import { gameView, rematch, useGames } from "../store";
 import { CARD_CLASS, PARTICIPANT_CLASSES, PRIMARY_BUTTON, SECONDARY_BUTTON } from "../ui-classes";
 
@@ -91,7 +92,7 @@ export function GameResults({ sessionId }: { sessionId: string }) {
                 <span className="flex min-w-0 flex-1 flex-col">
                   <span className="truncate text-body-strong text-text-primary">{player.display_name}</span>
                   <span className="text-caption text-text-muted">
-                    {row.scoring_catches} scoring · {row.unique_species.length} species
+                    {summaryFor(row)}
                     {row.eliminated_round !== null
                       ? ` · out after ${session.rules.rounds.multi_day ? "day" : "round"} ${row.eliminated_round}`
                       : ""}
