@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { SPECIES, speciesById } from "@/core/ontology/species";
 import { POINT_TEMPLATES, captainsCupDefaults, fishCricketDefaults, makeTheCutDefaults } from "./modes";
+import { awards, biggestFish } from "./results";
 import { repeatValue, score, speciesMatches, type ScoringContext } from "./scoring";
 import type { GameEvent, GameParticipant, GameRules } from "./types";
 import vectors from "../vectors/games.json";
@@ -466,5 +467,49 @@ describe("standings", () => {
     const s = score(plainCup(), [player("a")], [control({ kind: "paused" })], CTX);
     expect(s.paused).toBe(true);
     expect(score(plainCup(), [player("a")], [control({ kind: "paused" }), control({ kind: "resumed" })], CTX).paused).toBe(false);
+  });
+});
+
+describe("end-of-game awards", () => {
+  it("finds the biggest scoring fish by weight, then length", () => {
+    const s = score(plainCup(), [player("a"), player("b")], [
+      fish("a", "yellowtail", { weight_g: 5000, length_mm: 700 }),
+      fish("b", "yellowtail", { weight_g: 5000, length_mm: 900 }),
+      fish("a", "kelp_bass", { weight_g: 1000 }),
+    ], CTX);
+    expect(biggestFish(s)?.event.participant_id).toBe("b");
+  });
+
+  it("ignores a fish that scored nothing", () => {
+    const s = score(plainCup(), [player("a"), player("b")], [
+      fish("a", "yellowtail", { weight_g: 1000 }),
+      fish("b", null, { weight_g: 99_000 }), // unresolved, so it never scored
+    ], CTX);
+    expect(biggestFish(s)?.event.participant_id).toBe("a");
+  });
+
+  it("has no biggest fish when nobody measured anything", () => {
+    const s = score(plainCup(), [player("a")], [fish("a", "yellowtail")], CTX);
+    expect(biggestFish(s)).toBeNull();
+  });
+
+  it("totals the released fish across everyone", () => {
+    const s = score(plainCup(), [player("a"), player("b")], [
+      fish("a", "yellowtail", { disposition: "released" }),
+      fish("b", "kelp_bass", { disposition: "released" }),
+      fish("b", "kelp_bass", { disposition: "kept" }),
+    ], CTX);
+    const released = awards(s, [player("a"), player("b")]).find((x) => x.kind === "released");
+    expect(released?.detail).toBe("2 fish released");
+  });
+
+  it("names the angler with the most species", () => {
+    const s = score(plainCup(), [player("a"), player("b")], [
+      fish("a", "yellowtail"),
+      fish("b", "kelp_bass"),
+      fish("b", "opaleye"),
+    ], CTX);
+    const most = awards(s, [player("a"), player("b")]).find((x) => x.kind === "most_species");
+    expect(most?.participant_id).toBe("b");
   });
 });
