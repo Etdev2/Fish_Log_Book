@@ -8,10 +8,10 @@ import type { RegArea, RegPack, RegRule } from "./types";
 
 export const CONNECTICUT_PACK: RegPack = {
   id: "connecticut-2026-09-03",
-  version: 1,
-  publishedAt: "2026-09-03T21:00:00Z",
+  version: 2,
+  publishedAt: "2026-09-04T22:00:00Z",
   notes:
-    "Connecticut DEEP marine recreational table (2026): stripers 28–<31\" @1 year-round + circle-hook bait; fluke 19\" May 4–Aug 1 then 19.5\" Aug 2–Oct 15 @3 (enhanced shore 17\"); tautog 16\" 2/2/3 windows; scup shore 9.5\" / boat 11\" @30 May 1–Dec 31; bluefish 5 (7 for-hire); BSB 15.5\" @4 May 16–Nov 25 (filament excluded).",
+    "Connecticut DEEP v2: v1 table plus red drum 27\" max @1; American shad closed in LIS (CT River only).",
 };
 
 const CT = {
@@ -20,7 +20,7 @@ const CT = {
   updated: "2026-01-01",
 } as const;
 const VERIFIED = "2026-09-03";
-const pv = 1;
+const pv = 2;
 
 export const CT_AREAS: readonly RegArea[] = [
   {
@@ -186,6 +186,22 @@ export const CT_RULES: readonly RegRule[] = [
     sourceUrl: CT.url, sourceTitle: CT.title, sourceUpdatedAt: CT.updated, verifiedAt: VERIFIED,
     seasonStart: null, seasonEnd: null, bagDaily: 0, possessionLimit: 0, bagSharesWithGroup: false,
     minSizeIn: null, maxSizeIn: null, sizeMeasure: null, platformScope: null, depthNote: null,
+    checkInseason: false, staleAfterDays: 90,
+  }),
+  rule({
+    id: "ct-red-drum", speciesId: "red_drum", regAreaId: "ct-lis", kind: "bag_limit",
+    verbatim: "Red Drum (Redfish): Maximum length: 27 inches. Daily creel limit: 1 fish per angler. Open Season: Open Year Round.",
+    sourceUrl: CT.url, sourceTitle: CT.title, sourceUpdatedAt: CT.updated, verifiedAt: VERIFIED,
+    seasonStart: null, seasonEnd: null, bagDaily: 1, possessionLimit: 1, bagSharesWithGroup: false,
+    minSizeIn: null, maxSizeIn: 27, sizeMeasure: "total_length", platformScope: null, depthNote: null,
+    checkInseason: true, staleAfterDays: 60,
+  }),
+  rule({
+    id: "ct-american-shad", speciesId: "american_shad", regAreaId: "ct-lis", kind: "prohibited",
+    verbatim: "American Shad: all state waters closed, except the Connecticut River System.",
+    sourceUrl: CT.url, sourceTitle: CT.title, sourceUpdatedAt: CT.updated, verifiedAt: VERIFIED,
+    seasonStart: null, seasonEnd: null, bagDaily: 0, possessionLimit: 0, bagSharesWithGroup: false,
+    minSizeIn: null, maxSizeIn: null, sizeMeasure: null, platformScope: null, depthNote: "Open only on the Connecticut River System.",
     checkInseason: false, staleAfterDays: 90,
   }),
 ];
