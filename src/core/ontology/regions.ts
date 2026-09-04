@@ -57,6 +57,18 @@ export type RegionId =
    *  regulations pack yet — the honest "no verified pack" state, not a hidden one. */
   | "oregon"
   | "washington"
+  | "wa_ma_1_4"
+  | "wa_ma_4_east"
+  | "wa_ma_5"
+  | "wa_ma_6"
+  | "wa_ma_7"
+  | "wa_ma_8_1"
+  | "wa_ma_8_2"
+  | "wa_ma_9"
+  | "wa_ma_10"
+  | "wa_ma_11"
+  | "wa_ma_12"
+  | "wa_ma_13"
   | "alaska"
   /** Angler-defined home water: nothing is pre-judged, Recent builds the picture. */
   | "custom";
@@ -102,7 +114,19 @@ export const REGIONS: readonly Region[] = [
   { id: "baja_california", label: "Baja California (MX)", hint: "Tijuana to Punta Eugenia: yellowtail, doggies." },
   { id: "baja_california_sur", label: "Baja California Sur (MX)", hint: "La Paz to Cabo: dorado, roosters, marlin." },
   { id: "oregon", label: "Oregon coast", hint: "Newport to Brookings: rockfish 4-fish marine bag, lingcod 3 @ 22\"+, halibut windows." },
-  { id: "washington", label: "Washington coast", hint: "Ilwaco to Neah Bay: bottomfish aggregate 9, rockfish sub-limits, halibut days." },
+  { id: "washington", label: "Washington coast", hint: "Ilwaco to Neah Bay (MA 1–4): bottomfish aggregate 9, rockfish sub-limits, halibut days." },
+  { id: "wa_ma_1_4", label: "WA · MA 1–4 coast", hint: "Ilwaco / Westport / La Push / Neah Bay west of Bonilla–Tatoosh." },
+  { id: "wa_ma_4_east", label: "WA · MA 4 east", hint: "Neah Bay east of Bonilla–Tatoosh: year-round bottomfish, four named rockfish only." },
+  { id: "wa_ma_5", label: "WA · MA 5 Sekiu", hint: "Sekiu / Pillar Point: first-3 black/blue west of Slip Point; barbless; halibut 1." },
+  { id: "wa_ma_6", label: "WA · MA 6 East Strait", hint: "East Juan de Fuca: rockfish closed; Pacific cod 2; halibut 1." },
+  { id: "wa_ma_7", label: "WA · MA 7 San Juans", hint: "San Juan Islands: rockfish closed; Pacific cod 2; halibut 1." },
+  { id: "wa_ma_8_1", label: "WA · MA 8-1 Skagit", hint: "Deception Pass / Skagit Bay: rockfish closed; lingcod May 1–Jun 15." },
+  { id: "wa_ma_8_2", label: "WA · MA 8-2 Everett", hint: "Port Susan / Port Gardner: rockfish closed; Tulalip salmon is a separate table." },
+  { id: "wa_ma_9", label: "WA · MA 9 Admiralty", hint: "Admiralty Inlet: 15 bottomfish, rockfish closed, lingcod slot May 1–Jun 15." },
+  { id: "wa_ma_10", label: "WA · MA 10 Seattle", hint: "Seattle / Bremerton: 15 bottomfish, rockfish closed; 2026 spot shrimp closed." },
+  { id: "wa_ma_11", label: "WA · MA 11 Tacoma", hint: "Tacoma / Vashon: rockfish closed; halibut closed; 2026 spot shrimp closed." },
+  { id: "wa_ma_12", label: "WA · MA 12 Hood Canal", hint: "Hood Canal: lingcod/cabezon/rockfish/halibut closed; flounder 15 north of Turner Creek." },
+  { id: "wa_ma_13", label: "WA · MA 13 South Sound", hint: "South of Tacoma Narrows: rockfish/halibut/crab closed 2026." },
   { id: "alaska", label: "Alaska", hint: "Salmon and halibut country. Regulations pack not yet shipped — check ADF&G." },
   { id: "custom", label: "Custom / anywhere else", hint: "No regional suggestions — search finds everything." },
 ];
@@ -185,6 +209,54 @@ const BY_REGION: Record<RegionId, readonly string[]> = {
   washington: [
     "rockfish", "black_rockfish", "lingcod", "cabezon", "chinook_salmon",
     "coho_salmon", "pacific_halibut", "surfperch", "sablefish", "kelp_greenling",
+  ],
+  wa_ma_1_4: [
+    "rockfish", "black_rockfish", "lingcod", "cabezon", "chinook_salmon",
+    "coho_salmon", "pacific_halibut", "surfperch", "sablefish", "kelp_greenling",
+  ],
+  wa_ma_4_east: [
+    "black_rockfish", "blue_rockfish", "lingcod", "cabezon", "pacific_halibut",
+    "chinook_salmon", "coho_salmon", "yellowtail_rockfish",
+  ],
+  wa_ma_5: [
+    "black_rockfish", "blue_rockfish", "lingcod", "pacific_halibut", "chinook_salmon",
+    "coho_salmon", "pacific_cod", "cabezon", "surfperch",
+  ],
+  wa_ma_6: [
+    "lingcod", "pacific_cod", "pacific_halibut", "chinook_salmon", "coho_salmon",
+    "cabezon", "surfperch", "flatfish",
+  ],
+  wa_ma_7: [
+    "lingcod", "pacific_cod", "pacific_halibut", "chinook_salmon", "coho_salmon",
+    "cabezon", "dungeness_crab", "flatfish",
+  ],
+  wa_ma_8_1: [
+    "lingcod", "chinook_salmon", "coho_salmon", "pacific_halibut", "cabezon",
+    "dungeness_crab", "surfperch", "flatfish",
+  ],
+  wa_ma_8_2: [
+    "lingcod", "chinook_salmon", "coho_salmon", "pacific_halibut", "cabezon",
+    "dungeness_crab", "surfperch", "flatfish",
+  ],
+  wa_ma_9: [
+    "lingcod", "chinook_salmon", "coho_salmon", "pacific_halibut", "cabezon",
+    "dungeness_crab", "surfperch", "flatfish",
+  ],
+  wa_ma_10: [
+    "lingcod", "chinook_salmon", "coho_salmon", "pacific_halibut", "cabezon",
+    "dungeness_crab", "surfperch", "flatfish",
+  ],
+  wa_ma_11: [
+    "lingcod", "chinook_salmon", "coho_salmon", "cabezon", "dungeness_crab",
+    "surfperch", "flatfish", "spot_shrimp",
+  ],
+  wa_ma_12: [
+    "flatfish", "chinook_salmon", "coho_salmon", "dungeness_crab", "spot_shrimp",
+    "surfperch", "lingcod", "cabezon",
+  ],
+  wa_ma_13: [
+    "chinook_salmon", "coho_salmon", "lingcod", "cabezon", "surfperch",
+    "flatfish", "spot_shrimp", "dungeness_crab",
   ],
   alaska: [
     "chinook_salmon", "coho_salmon", "sockeye_salmon", "pink_salmon", "pacific_halibut",
