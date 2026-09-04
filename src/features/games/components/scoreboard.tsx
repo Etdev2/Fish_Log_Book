@@ -19,6 +19,7 @@ import {
   useGames,
 } from "../store";
 import { LogCatchSheet } from "./log-catch-sheet";
+import { useGuardedAction } from "../use-guard";
 import { useNow, useOnline } from "../use-now";
 import {
   BIG_ACTION,
@@ -54,7 +55,7 @@ export function Scoreboard({ sessionId }: { sessionId: string }) {
   const games = useGames();
   const router = useRouter();
   const [panel, setPanel] = useState<Panel>("none");
-  const [busy, setBusy] = useState(false);
+  const { busy, run } = useGuardedAction();
 
   const view = gameView(games, sessionId);
 
@@ -69,16 +70,6 @@ export function Scoreboard({ sessionId }: { sessionId: string }) {
   const lastScoring = [...standings.events].reverse().find((e) => e.status === "scored" && e.event.kind === "catch");
   const nameOf = (id: string | null) =>
     participants.find((p) => p.id === id)?.display_name ?? "Someone";
-
-  async function run(action: () => Promise<unknown>): Promise<void> {
-    if (busy) return;
-    setBusy(true);
-    try {
-      await action();
-    } finally {
-      setBusy(false);
-    }
-  }
 
   return (
     <div className="mx-auto flex max-w-reading flex-col gap-space-5 px-space-4 py-space-4">

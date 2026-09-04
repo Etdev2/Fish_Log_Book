@@ -322,8 +322,15 @@ export async function deleteCrewMember(id: string): Promise<void> {
  * Append one event and advance the session's sequence counter, in one transaction.
  *
  * The pairing is the point: `next_seq` and the event that consumed it are written
- * together or not at all, so two catches can never share a sequence number and the fold's
- * ordering stays total.
+ * together or not at all.
+ *
+ * The counter is nonetheless taken as the HIGHER of the session's `next_seq` and one past
+ * the largest sequence already on an event. `next_seq` is read from the in-memory
+ * snapshot, and two appends started before either has persisted would both read the same
+ * value and mint two events sharing a sequence number. Deriving it from the events as well
+ * makes that self-healing: the counter cannot go backwards even if the snapshot is stale,
+ * and a session whose counter is somehow wrong repairs itself on the next event rather
+ * than silently interleaving a game's history.
  */
 async function appendEvent(
   sessionId: string,
@@ -332,13 +339,17 @@ async function appendEvent(
   const session = snapshot.sessions.find((s) => s.id === sessionId);
   if (!session) return null;
   const standings = gameView(snapshot, sessionId)?.standings;
+  const highestSoFar = snapshot.events
+    .filter((e) => e.session_id === sessionId)
+    .reduce((max, e) => Math.max(max, e.seq), 0);
+  const seq = Math.max(session.next_seq, highestSoFar + 1);
   const event: GameEvent = {
     id: uuidv7(),
     session_id: sessionId,
     kind: fields.kind,
     participant_id: fields.participant_id ?? null,
     round: standings?.round ?? 1,
-    seq: session.next_seq,
+    seq,
     created_at: new Date().toISOString(),
     species_id: fields.species_id ?? null,
     species_other: fields.species_other ?? null,
@@ -356,7 +367,7 @@ async function appendEvent(
   };
   await persist([
     { store: "game_event", row: row(event) },
-    { store: "game_session", row: row({ ...session, next_seq: session.next_seq + 1 }) },
+    { store: "game_session", row: row({ ...session, next_seq: seq + 1 }) },
   ]);
   return event;
 }

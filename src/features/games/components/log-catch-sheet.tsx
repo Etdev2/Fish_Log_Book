@@ -5,6 +5,7 @@ import { useMemo, useState } from "react";
 import { SPECIES, speciesById } from "@/core/ontology/species";
 import { localDateOf } from "@/core/rules/catch/rules";
 import type { EventDisposition, GameParticipant, GameSession } from "@/core/rules/games/types";
+import { useGuardedAction } from "../use-guard";
 import { logHostCatch } from "../host-catch";
 import { legalForGameCatch, legalWarning } from "../legal";
 import { logGameCatch } from "../store";
@@ -49,7 +50,7 @@ export function LogCatchSheet({
   const [personalBest, setPersonalBest] = useState(false);
   const [newSpecies, setNewSpecies] = useState(false);
   const [alsoLog, setAlsoLog] = useState(false);
-  const [busy, setBusy] = useState(false);
+  const { busy, run } = useGuardedAction();
 
   const player = participants.find((p) => p.id === participantId) ?? null;
   const localDate = localDateOf(new Date().toISOString(), session.zone);
@@ -64,9 +65,8 @@ export function LogCatchSheet({
   }, [query]);
 
   async function save(): Promise<void> {
-    if (busy || participantId === "") return;
-    setBusy(true);
-    try {
+    if (participantId === "") return;
+    await run(async () => {
       /*
         The host's own fish, if they asked for it, goes to their real log first, and the
         game event then references that catch by id.
@@ -100,9 +100,7 @@ export function LogCatchSheet({
         catchId,
       });
       onDone();
-    } finally {
-      setBusy(false);
-    }
+    });
   }
 
   return (

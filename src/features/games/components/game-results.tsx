@@ -2,11 +2,11 @@
 
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useState } from "react";
 
 import { speciesById } from "@/core/ontology/species";
 import { awards, biggestFish, winningTeams } from "@/core/rules/games/results";
 import { formatWhen, modeName, pointsLabel } from "../format";
+import { useGuardedAction } from "../use-guard";
 import { summaryFor } from "./scoreboard";
 import { gameView, rematch, useGames } from "../store";
 import { CARD_CLASS, PARTICIPANT_CLASSES, PRIMARY_BUTTON, SECONDARY_BUTTON } from "../ui-classes";
@@ -41,7 +41,7 @@ function NoSuchGame() {
 export function GameResults({ sessionId }: { sessionId: string }) {
   const games = useGames();
   const router = useRouter();
-  const [busy, setBusy] = useState(false);
+  const { busy, run } = useGuardedAction();
 
   const view = gameView(games, sessionId);
 
@@ -186,15 +186,10 @@ export function GameResults({ sessionId }: { sessionId: string }) {
           type="button"
           disabled={busy}
           onClick={() =>
-            void (async () => {
-              setBusy(true);
-              try {
-                const next = await rematch(sessionId);
-                if (next) router.push(`/games/new?resume=${next.id}`);
-              } finally {
-                setBusy(false);
-              }
-            })()
+            void run(async () => {
+              const next = await rematch(sessionId);
+              if (next) router.push(`/games/new?resume=${next.id}`);
+            })
           }
           className={`${PRIMARY_BUTTON} disabled:opacity-disabled`}
         >

@@ -6,6 +6,7 @@ import { useState } from "react";
 import { MODES } from "@/core/rules/games/modes";
 import { PARTICIPANT_COLORS, type GameMode, type GameRules, type ParticipantColor } from "@/core/rules/games/types";
 import { useRegionPreference } from "@/features/settings/region";
+import { useGuardedAction } from "../use-guard";
 import { GameSettings } from "./game-settings";
 import { modeName } from "../format";
 import {
@@ -52,15 +53,13 @@ export function NewGame() {
 
   const [sessionId, setSessionId] = useState<string | null>(resumeId);
   const [step, setStep] = useState<Step>(resumeId ? "players" : "mode");
-  const [busy, setBusy] = useState(false);
+  const { busy, run } = useGuardedAction();
 
   const session = games.sessions.find((s) => s.id === sessionId) ?? null;
   const players = sessionId ? participantsOf(games, sessionId) : [];
 
   async function chooseMode(mode: GameMode): Promise<void> {
-    if (busy) return;
-    setBusy(true);
-    try {
+    await run(async () => {
       const created = await createGame({
         mode,
         name: modeName(mode),
@@ -71,20 +70,15 @@ export function NewGame() {
       });
       setSessionId(created.id);
       setStep("players");
-    } finally {
-      setBusy(false);
-    }
+    });
   }
 
   async function begin(): Promise<void> {
-    if (!sessionId || busy) return;
-    setBusy(true);
-    try {
+    if (!sessionId) return;
+    await run(async () => {
       await startGame(sessionId);
       router.push(`/games/play?id=${sessionId}`);
-    } finally {
-      setBusy(false);
-    }
+    });
   }
 
   async function abandon(): Promise<void> {

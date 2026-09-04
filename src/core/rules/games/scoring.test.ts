@@ -589,3 +589,24 @@ describe("team games are won by a side, not a person", () => {
     expect(winningTeams(s)).toEqual([]);
   });
 });
+
+describe("a fish cannot score twice on a wet phone", () => {
+  it("scores one fish once even if the same event is written twice with different sequences", () => {
+    // The shape a stale sequence counter would produce: one tap, two rows, same id.
+    const one = fish("a", "yellowtail");
+    const s = score(plainCup(), [player("a")], [one, { ...one, seq: one.seq + 1 }], CTX);
+    expect(pointsOf(s, "a")).toBe(5);
+    expect(s.rows[0].total_catches).toBe(1);
+  });
+
+  it("keeps a total order even when two events share a sequence number", () => {
+    // Two genuinely different fish that raced for the same seq. They must both count, and
+    // every device must fold them in the same order — hence the id tiebreak.
+    const a = fish("a", "yellowtail");
+    const b = { ...fish("a", "kelp_bass"), seq: a.seq };
+    const forward = score(plainCup(), [player("a")], [a, b], CTX);
+    const backward = score(plainCup(), [player("a")], [b, a], CTX);
+    expect(pointsOf(forward, "a")).toBe(8);
+    expect(forward.events.map((e) => e.event.id)).toEqual(backward.events.map((e) => e.event.id));
+  });
+});
