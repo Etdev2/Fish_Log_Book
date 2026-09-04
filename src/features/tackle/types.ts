@@ -34,7 +34,31 @@ export type AttributeField = {
   /** Ladder fields (hook sizes, pound test, weights) show every step; categorical
    *  fields default to 8 chips so rows stay tidy. */
   maxChips?: number;
+  /** Key of the field in the SAME category whose value selects this field's options.
+   *  Must appear before this field in `fields`, so it is answered first. */
+  dependsOn?: string;
+  /** Controlling value -> options. Exact match on the controlling field's value. */
+  optionsBy?: Readonly<Record<string, readonly string[]>>;
+  /** Shown in place of the chip row while the controller is still unset. */
+  emptyHint?: string;
 };
+
+/**
+ * The options a field offers right now. The ONLY place options are chosen (ADR 008).
+ *
+ * Reel sizes were the reason this exists: spinning reels are numbered in thousands and
+ * conventional reels in line classes, and both ladders were offered in one flat row
+ * whatever type you picked — which is why the sizes read as "too large or too broad".
+ * A field with no `optionsBy` is unaffected.
+ */
+export function fieldOptions(
+  field: AttributeField,
+  attributes: Record<string, string>,
+): readonly string[] {
+  if (!field.optionsBy) return field.options;
+  const controller = field.dependsOn ? attributes[field.dependsOn] ?? "" : "";
+  return field.optionsBy[controller] ?? field.options;
+}
 
 export type CategorySpec = {
   id: CategoryId;
@@ -343,10 +367,34 @@ export const TACKLE_CATEGORIES: readonly CategorySpec[] = [
         options: ["Conventional", "Spinning", "Baitcasting", "Lever drag", "Star drag"],
         placeholder: "e.g. Electric",
       },
+      /*
+        Size depends on type, because the two families do not share a scale. Spinning
+        reels run in thousands (a 4000 is a light inshore reel); conventionals and lever
+        drags run in line classes (a 30 is a 30-lb-class reel). Offering both ladders at
+        once, as this field did until 2026-09-04, makes every number meaningless — and
+        "4000" on a lever drag is not a large reel, it is a category error.
+
+        Ladders are the common real-world steps, not a manufacturer's full catalogue.
+        Anything off the list still goes in through Other…, which is also how a
+        brand-specific size like an Avet JX or a Shimano 300 gets recorded.
+      */
       {
         key: "size",
         label: "Size",
-        options: ["500", "1000", "2500", "3000", "4000", "5000", "6000", "8000", "12", "16", "20", "30"],
+        dependsOn: "type",
+        options: [],
+        emptyHint: "Pick a reel type first — spinning and conventional reels are sized differently.",
+        optionsBy: {
+          // Shimano/Daiwa-style thousands. 1000 is an ultralight trout reel; 20000 is a
+          // stand-up popping reel for tuna.
+          Spinning: ["1000", "2000", "2500", "3000", "4000", "5000", "6000", "8000", "10000", "14000", "18000", "20000"],
+          // Line class. 10 is a light bass reel; 80 and 130 are marlin.
+          Conventional: ["10", "12", "15", "16", "20", "25", "30", "40", "50", "60", "80"],
+          "Lever drag": ["12", "16", "20", "30", "40", "50", "60", "70", "80", "130"],
+          "Star drag": ["10", "12", "15", "16", "20", "25", "30", "40", "50"],
+          // Low-profile baitcasters run in hundreds.
+          Baitcasting: ["50", "100", "150", "200", "250", "300", "400"],
+        },
         placeholder: "e.g. 2-speed 30",
         maxChips: 12,
       },

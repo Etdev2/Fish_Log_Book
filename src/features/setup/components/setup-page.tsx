@@ -1,5 +1,7 @@
 "use client";
 
+import Link from "next/link";
+import { QuiverSection } from "./quiver-section";
 import { useMemo, useState } from "react";
 
 import { activeRodSetups, nextRodSlot, rodSetupLabel } from "@/core/rules/catch/rules";
@@ -33,6 +35,8 @@ export function SetupPage() {
   const [unit] = useUnitPreference();
   const [rodRequest, setRodRequest] = useState<RodSetupRequest | null>(null);
   const [locationRequest, setLocationRequest] = useState<LocationRequest | null>(null);
+  /** The rod just put away, so the confirmation can say where it went. */
+  const [putAway, setPutAway] = useState<string | null>(null);
 
   const trip = useMemo(() => openTripOf(state), [state]);
   const rods = useMemo(
@@ -82,6 +86,15 @@ export function SetupPage() {
           </p>
         </div>
 
+        {/* Putting a rod away has never deleted it, but a bare button with no follow-up
+            reads as final. Naming where it went is the fix — not a confirmation dialog,
+            which would tax every angler to guard against a mistake that costs one tap. */}
+        {putAway ? (
+          <p role="status" className="text-body text-text-muted">
+            Put away — saved in your Quiver.
+          </p>
+        ) : null}
+
         <ul className="flex flex-col gap-2">
           {rods.map((rod) => (
             <li key={rod.id}>
@@ -90,7 +103,10 @@ export function SetupPage() {
                 onEdit={() =>
                   setRodRequest({ key: `rod-${rod.id}`, slot: rod.slot, existing: rod })
                 }
-                onRetire={() => void logActions.retireRodSetup(rod.id)}
+                onRetire={() => {
+                  void logActions.retireRodSetup(rod.id);
+                  setPutAway(rod.id);
+                }}
               />
             </li>
           ))}
@@ -119,9 +135,13 @@ export function SetupPage() {
         </button>
       </section>
 
+      {/* Directly under the rods, because that is where a rod goes when you put it away
+          and where it comes back to (design 12 §2.1). */}
+      <QuiverSection rigs={state.rigs} tripId={trip?.id ?? ""} onEnsureTrip={ensureTrip} />
+
       <section className="flex flex-col gap-3">
         <div className="flex items-baseline justify-between gap-3">
-          <h2 className="text-h3">Today&rsquo;s locations</h2>
+          <h2 className="text-h3">Location &amp; Conditions</h2>
           <p className="text-caption text-text-muted">
             {locations.length === 0 ? "None yet" : `${locations.length} set up`}
           </p>
@@ -157,6 +177,19 @@ export function SetupPage() {
         >
           + Add location
         </button>
+      </section>
+
+      {/* Step 2 of the founder's workflow, reachable from the hub rather than buried in
+          Settings — but a link card, not a section, because Setup does not own the
+          Tackle Box's content (design 12 §2.5). */}
+      <section className={`${CARD_CLASS} flex flex-col gap-2 p-4`}>
+        <h2 className="text-h3">Tackle Box</h2>
+        <p className="text-body text-text-muted">
+          Everything in your kit — rods, reels, line, hooks, and more.
+        </p>
+        <Link href="/tackle" className={`${SECONDARY_BUTTON} self-start`}>
+          Open Tackle Box
+        </Link>
       </section>
 
       <RodSetupSheet

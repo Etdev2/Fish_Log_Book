@@ -1,5 +1,6 @@
 "use client";
 
+import { broughtBackRevision, canBringBack, nextRodSlot, quiverEntries } from "@/core/rules/catch/quiver";
 import { useSyncExternalStore } from "react";
 
 import { speciesLabel } from "@/core/ontology/species";
@@ -465,6 +466,11 @@ export async function saveRodSetup(input: {
   gear: readonly SetupGear[];
   /** Omitted for a brand-new slot; supplied when re-rigging an existing one. */
   previousRevision?: number;
+  /**
+   * The lineage this rod belongs to (ADR 008). Omitted mints a new one — a rod nobody
+   * has built before; supplied continues an existing one, which is what re-rigging does.
+   */
+  quiverId?: string;
 }): Promise<RigRecord> {
   const now = new Date().toISOString();
   const rig: RigRecord = {
@@ -472,6 +478,7 @@ export async function saveRodSetup(input: {
     angler_id: LOCAL_ANGLER_ID,
     trip_id: input.tripId,
     slot: input.slot,
+    quiver_id: input.quiverId ?? uuidv7(),
     name: input.name?.trim() || null,
     setup_type: input.setupType,
     revision: (input.previousRevision ?? 0) + 1,
@@ -512,6 +519,33 @@ export async function retireRodSetup(rigId: string): Promise<void> {
   await persist(
     [{ store: "trip_rig", row: retired as unknown as StoredRow }],
     [mutation("trip_rig", retired.id, "insert", retired as unknown as Record<string, unknown>, now)],
+  );
+}
+
+/**
+ * Put a saved rod back on today's boat, exactly as it was last built.
+ *
+ * The whole point of the Quiver: an angler who fishes the same 40-lb yo-yo stick every
+ * trip should never rebuild it. All the arithmetic — which revision is latest, whether
+ * this lineage is already out, what the next revision and slot are — lives in
+ * `core/rules/catch/quiver.ts`; this function supplies the id and the clock and writes.
+ */
+export async function bringBackRodSetup(quiverId: string, tripId: string): Promise<void> {
+  const entry = quiverEntries(snapshot.rigs, tripId).find((e) => e.quiver_id === quiverId);
+  // Already fishing: bringing it back would put the same rod in two slots, and a catch
+  // could then be attributed to either.
+  if (!entry || !canBringBack(entry)) return;
+
+  const now = new Date().toISOString();
+  const revived = broughtBackRevision(entry.latest, {
+    id: uuidv7(),
+    tripId,
+    slot: nextRodSlot(snapshot.rigs, tripId),
+    nowIso: now,
+  });
+  await persist(
+    [{ store: "trip_rig", row: revived as unknown as StoredRow }],
+    [mutation("trip_rig", revived.id, "insert", revived as unknown as Record<string, unknown>, now)],
   );
 }
 
@@ -586,6 +620,7 @@ export const logActions = Object.freeze({
   endTrip,
   saveRodSetup,
   retireRodSetup,
+  bringBackRodSetup,
   saveLocation,
   deleteLocation,
 });

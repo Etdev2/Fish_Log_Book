@@ -47,6 +47,7 @@ export function RodSetupSheet({
     liveBait: boolean;
     gear: readonly SetupGear[];
     previousRevision?: number;
+    quiverId?: string;
   }) => void;
 }) {
   const dialogRef = useRef<HTMLDialogElement>(null);
@@ -93,6 +94,7 @@ function RodForm({
     liveBait: boolean;
     gear: readonly SetupGear[];
     previousRevision?: number;
+    quiverId?: string;
   }) => void;
 }) {
   const existing = request.existing;
@@ -129,6 +131,9 @@ function RodForm({
       liveBait,
       gear: rows,
       previousRevision: existing?.revision,
+      // Re-rigging continues the same rod's lineage rather than forking it — otherwise
+      // every change of leader would create a second Quiver entry (ADR 008).
+      quiverId: existing?.quiver_id,
     });
   };
 
