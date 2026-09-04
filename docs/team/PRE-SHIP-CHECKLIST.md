@@ -51,6 +51,17 @@ questions before the product ships. This file is what they should be handed.
       the same as migrations applied, and this is the check the privacy notice's "we do not
       share your log" claim rests on.
 
+      **Amended 2026-09-04.** That description was true of the angler-owned tables and
+      missed the reference ones. `reg_area`, `reg_group`, `reg_pack` and `reg_rule` were
+      created on 1 September, three days after the blanket
+      `revoke all on all tables in schema public from anon` ran — and that statement only
+      affects tables that exist when it runs. They had no RLS, no policy and no revoke.
+      Closed by `20260904220000_v1_regulations_rls.sql`, and
+      `src/core/rules/rls-coverage.test.ts` now fails if any future table is created
+      without them. **This makes the production check more urgent, not less:** if the
+      earlier migrations were applied and these four tables have been live and writable,
+      that wants looking at directly rather than assuming.
+
 - [ ] **Account deletion actually deletes.** The privacy notice commits to removal from the
       active database within 30 days on request. Confirm the auth cascade covers every
       angler-owned table, and that there is a path for someone to ask.
