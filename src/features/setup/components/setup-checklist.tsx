@@ -9,7 +9,9 @@ import {
   setupSteps,
   stepsToLatch,
 } from "@/core/rules/setup-progress";
+import { useTideStationChosen } from "@/features/conditions/station-preference";
 import { useLog } from "@/features/catches/store";
+import { useRegionChosen } from "@/features/settings/region";
 import { CARD_CLASS, FOCUS_RING } from "@/features/catches/ui-classes";
 import { useTackleSession } from "@/features/tackle/session-store";
 import { isFixtureItem } from "@/features/tackle/tackle-fixture";
@@ -31,6 +33,11 @@ export function SetupChecklist() {
   const state = useLog();
   const tackle = useTackleSession();
   const [latched] = useSetupLatch();
+  // Chosen in Settings, not merely defaulted: both preferences ship with a value, and
+  // ticking "choose your region" for somebody who never opened Settings would teach them
+  // the checklist is decorative.
+  const regionChosen = useRegionChosen();
+  const stationChosen = useTideStationChosen();
 
   const observed = useMemo(
     () =>
@@ -40,8 +47,10 @@ export function SetupChecklist() {
         locations: state.locations,
         // Sample data is not the angler's gear — see `isFixtureItem`.
         tackleItemCount: tackle.items.filter((item) => !isFixtureItem(item)).length,
+        regionChosen,
+        stationChosen,
       }),
-    [state.catches, state.rigs, state.locations, tackle.items],
+    [state.catches, state.rigs, state.locations, tackle.items, regionChosen, stationChosen],
   );
 
   const latchedSet = useMemo(() => new Set(latched), [latched]);

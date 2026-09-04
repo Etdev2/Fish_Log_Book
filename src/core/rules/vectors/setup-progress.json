@@ -1,43 +1,51 @@
 {
-  "$comment": "Vectors for src/core/rules/setup-progress.ts (ADR 003 §4). The five-step guided setup checklist. Cases are written compactly and expanded in setup-progress.test.ts: `locations` entries list only the condition fields that are set, `latched` is what the device already remembers, and `expectDone` is the set of step ids that must render as done. The load-bearing behaviour is the LATCH — a step, once true, never goes back to false, because the checklist is a memory that something was done once and not a readout of today's trip.",
+  "$comment": "Vectors for src/core/rules/setup-progress.ts (ADR 003 §4). The six-step guided setup checklist. Cases are written compactly and expanded in setup-progress.test.ts. Two things carry the design. First, the LATCH: a step, once true, never goes back to false, because the checklist is a memory that something was done once and not a readout of today's trip. Second, `regionChosen`/`stationChosen` mean the angler picked one in Settings — NOT that the preference has a value, since both ship with a default and 'Southern California' reads the same whether it was chosen or shipped.",
 
   "cases": [
     {
       "name": "a brand new angler has nothing done",
       "latched": [],
-      "log": { "locations": [], "tackleItemCount": 0, "rigs": 0, "catches": 0 },
+      "log": { "locations": [], "tackleItemCount": 0, "rigs": 0, "catches": 0, "regionChosen": false, "stationChosen": false },
       "expectDone": [],
       "expectLatch": [],
       "expectAllDone": false
     },
     {
-      "name": "naming a spot completes step 1 but not step 4 — naming and describing are different acts",
+      "name": "living with the default region does not tick the region step",
       "latched": [],
-      "log": { "locations": [{ "named": true }], "tackleItemCount": 0, "rigs": 0, "catches": 0 },
+      "log": { "locations": [], "tackleItemCount": 0, "rigs": 0, "catches": 0, "regionChosen": false, "stationChosen": false },
+      "expectDone": [],
+      "expectLatch": [],
+      "expectAllDone": false
+    },
+    {
+      "name": "choosing a region in Settings ticks step 1 and nothing else",
+      "latched": [],
+      "log": { "locations": [], "tackleItemCount": 0, "rigs": 0, "catches": 0, "regionChosen": true, "stationChosen": false },
+      "expectDone": ["region"],
+      "expectLatch": ["region"],
+      "expectAllDone": false
+    },
+    {
+      "name": "picking a tide station ticks step 2 independently of the region",
+      "latched": [],
+      "log": { "locations": [], "tackleItemCount": 0, "rigs": 0, "catches": 0, "regionChosen": false, "stationChosen": true },
+      "expectDone": ["station"],
+      "expectLatch": ["station"],
+      "expectAllDone": false
+    },
+    {
+      "name": "a saved location is one step now — location and conditions are the same act",
+      "latched": [],
+      "log": { "locations": [{ "named": true }], "tackleItemCount": 0, "rigs": 0, "catches": 0, "regionChosen": false, "stationChosen": false },
       "expectDone": ["location"],
       "expectLatch": ["location"],
       "expectAllDone": false
     },
     {
-      "name": "any single observation on a location completes the conditions step",
+      "name": "a deleted location does not count",
       "latched": [],
-      "log": { "locations": [{ "named": true, "current_term": "uphill" }], "tackleItemCount": 0, "rigs": 0, "catches": 0 },
-      "expectDone": ["location", "conditions"],
-      "expectLatch": ["location", "conditions"],
-      "expectAllDone": false
-    },
-    {
-      "name": "structure alone counts too — no single field is privileged",
-      "latched": [],
-      "log": { "locations": [{ "named": true, "structure_type_ids": ["kelp"] }], "tackleItemCount": 0, "rigs": 0, "catches": 0 },
-      "expectDone": ["location", "conditions"],
-      "expectLatch": ["location", "conditions"],
-      "expectAllDone": false
-    },
-    {
-      "name": "a deleted location does not count for either step",
-      "latched": [],
-      "log": { "locations": [{ "named": true, "current_term": "uphill", "deleted": true }], "tackleItemCount": 0, "rigs": 0, "catches": 0 },
+      "log": { "locations": [{ "named": true, "deleted": true }], "tackleItemCount": 0, "rigs": 0, "catches": 0, "regionChosen": false, "stationChosen": false },
       "expectDone": [],
       "expectLatch": [],
       "expectAllDone": false
@@ -45,15 +53,15 @@
     {
       "name": "a retired rod still counts — the angler has built one",
       "latched": [],
-      "log": { "locations": [], "tackleItemCount": 0, "rigs": 1, "rigsRetired": true, "catches": 0 },
+      "log": { "locations": [], "tackleItemCount": 0, "rigs": 1, "rigsRetired": true, "catches": 0, "regionChosen": false, "stationChosen": false },
       "expectDone": ["rod"],
       "expectLatch": ["rod"],
       "expectAllDone": false
     },
     {
-      "name": "an unresolved quick mark is still a logged catch for the purposes of the checklist",
+      "name": "an unresolved quick mark is still a logged catch for the checklist",
       "latched": [],
-      "log": { "locations": [], "tackleItemCount": 0, "rigs": 0, "catches": 1, "catchState": "unresolved" },
+      "log": { "locations": [], "tackleItemCount": 0, "rigs": 0, "catches": 1, "catchState": "unresolved", "regionChosen": false, "stationChosen": false },
       "expectDone": ["catch"],
       "expectLatch": ["catch"],
       "expectAllDone": false
@@ -61,7 +69,7 @@
     {
       "name": "a deleted catch does not count",
       "latched": [],
-      "log": { "locations": [], "tackleItemCount": 0, "rigs": 0, "catches": 1, "catchDeleted": true },
+      "log": { "locations": [], "tackleItemCount": 0, "rigs": 0, "catches": 1, "catchDeleted": true, "regionChosen": false, "stationChosen": false },
       "expectDone": [],
       "expectLatch": [],
       "expectAllDone": false
@@ -69,45 +77,47 @@
     {
       "name": "THE LATCH: clearing the tackle box does not un-teach the angler",
       "latched": ["tackle"],
-      "log": { "locations": [], "tackleItemCount": 0, "rigs": 0, "catches": 0 },
+      "log": { "locations": [], "tackleItemCount": 0, "rigs": 0, "catches": 0, "regionChosen": false, "stationChosen": false },
       "expectDone": ["tackle"],
       "expectLatch": [],
       "expectAllDone": false
     },
     {
-      "name": "THE LATCH: a new trip with no location of its own keeps steps 1 and 4 done",
-      "latched": ["location", "conditions"],
-      "log": { "locations": [], "tackleItemCount": 0, "rigs": 0, "catches": 0 },
-      "expectDone": ["location", "conditions"],
+      "name": "THE LATCH: a new trip with no location of its own keeps step 5 done",
+      "latched": ["location"],
+      "log": { "locations": [], "tackleItemCount": 0, "rigs": 0, "catches": 0, "regionChosen": false, "stationChosen": false },
+      "expectDone": ["location"],
       "expectLatch": [],
       "expectAllDone": false
     },
     {
       "name": "a latched step and a live one union rather than replace",
       "latched": ["catch"],
-      "log": { "locations": [], "tackleItemCount": 3, "rigs": 0, "catches": 0 },
+      "log": { "locations": [], "tackleItemCount": 3, "rigs": 0, "catches": 0, "regionChosen": false, "stationChosen": false },
       "expectDone": ["tackle", "catch"],
       "expectLatch": ["tackle"],
       "expectAllDone": false
     },
     {
-      "name": "all five done collapses the card",
+      "name": "all six done collapses the card",
       "latched": [],
       "log": {
-        "locations": [{ "named": true, "water_clarity_id": "clear" }],
+        "locations": [{ "named": true }],
         "tackleItemCount": 2,
         "rigs": 1,
-        "catches": 1
+        "catches": 1,
+        "regionChosen": true,
+        "stationChosen": true
       },
-      "expectDone": ["location", "tackle", "rod", "conditions", "catch"],
-      "expectLatch": ["location", "tackle", "rod", "conditions", "catch"],
+      "expectDone": ["region", "station", "tackle", "rod", "location", "catch"],
+      "expectLatch": ["region", "station", "tackle", "rod", "location", "catch"],
       "expectAllDone": true
     },
     {
-      "name": "all five done entirely from the latch, with an empty log",
-      "latched": ["location", "tackle", "rod", "conditions", "catch"],
-      "log": { "locations": [], "tackleItemCount": 0, "rigs": 0, "catches": 0 },
-      "expectDone": ["location", "tackle", "rod", "conditions", "catch"],
+      "name": "all six done entirely from the latch, with an empty log and default settings",
+      "latched": ["region", "station", "tackle", "rod", "location", "catch"],
+      "log": { "locations": [], "tackleItemCount": 0, "rigs": 0, "catches": 0, "regionChosen": false, "stationChosen": false },
+      "expectDone": ["region", "station", "tackle", "rod", "location", "catch"],
       "expectLatch": [],
       "expectAllDone": true
     }

@@ -32,6 +32,15 @@ export interface LocalPreference<T> {
   set: (next: T) => void;
   /** Reads the value outside React (snapshot builders, engine calls). */
   read: () => T;
+  /**
+   * Whether the angler has ever chosen, as opposed to living with the default.
+   *
+   * A preference with a default cannot answer this from its value: "Southern California"
+   * means the same thing whether it was picked or shipped. The guided setup checklist
+   * needs the difference, because ticking "choose your region" for somebody who never
+   * opened Settings teaches them the checklist is decorative.
+   */
+  useIsSet: () => boolean;
   readonly defaultValue: T;
 }
 
@@ -95,5 +104,35 @@ export function createLocalPreference<T>(options: {
     return [value, update] as const;
   }
 
-  return { use, set, read, defaultValue };
+  function useIsSet(): boolean {
+    const latest = useRef(false);
+
+    const subscribe = useCallback((onStoreChange: () => void) => {
+      const sync = () => {
+        try {
+          latest.current = window.localStorage.getItem(key) !== null;
+        } catch {
+          latest.current = false;
+        }
+        onStoreChange();
+      };
+      sync();
+      window.addEventListener(changeEvent, sync);
+      window.addEventListener("storage", sync);
+      return () => {
+        window.removeEventListener(changeEvent, sync);
+        window.removeEventListener("storage", sync);
+      };
+    }, []);
+
+    // Same hydration handling as `use`: the ref is only ever written from `subscribe`,
+    // which React calls after mount and never during render.
+    return useSyncExternalStore(
+      subscribe,
+      useCallback(() => latest.current, []),
+      () => false,
+    );
+  }
+
+  return { use, set, read, useIsSet, defaultValue };
 }

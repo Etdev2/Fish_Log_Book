@@ -79,6 +79,8 @@ describe("setup progress vectors", () => {
         catches: number;
         catchState?: string;
         catchDeleted?: boolean;
+        regionChosen: boolean;
+        stationChosen: boolean;
       };
 
       const observed = observedSteps({
@@ -89,6 +91,8 @@ describe("setup progress vectors", () => {
           log.catches > 0
             ? [catchRecord(log.catchState ?? "confirmed", log.catchDeleted ?? false)]
             : [],
+        regionChosen: log.regionChosen,
+        stationChosen: log.stationChosen,
       });
 
       const latched = new Set(vector.latched as SetupStepId[]);
