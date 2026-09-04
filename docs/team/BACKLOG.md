@@ -16,17 +16,17 @@ the app cannot do its headline job for anyone who does not fish that one bay, wh
 outranks every feature idea we have.
 
 ## Now
-- Merge PR #52 (passport follow-ups), close issue #1, keep this file honest — `coo`
-- Legal shield before any public release: regulations disclaimer in the Fish Legal UI, plus terms and a privacy policy. None of the three exist — `counsel`
-- Live tide data: NOAA CO-OPS fetch, station selection, offline cache. Replaces `tide-fixture.ts` — `head-dev` + `biostat`
+- Publish a contact address and confirm the governing jurisdiction, then flip `LEGAL_CONTACT.resolved` in `src/core/legal/documents.ts`. Until then the notices render as incomplete and the app is not ready for the public. Founder decision, one line of code — `ceo`
+- Attorney review of the three notices. They are drafted, specific and honest, but written by an engineer — `counsel`, then a real lawyer
+- Confirm the NOAA tide fetch against the live service. Written from the API docs and never exercised: this environment's proxy blocks `api.tidesandcurrents.noaa.gov`. One person with signal opening the tide chart settles it — `head-dev`
 
 ## Next
+- Post-catch celebration. `newlyEarned` is written and tested but still has no caller, so the passport rewards nobody out loud — `head-dev` + `ux-ui`
 - Species photo licensing swap. `species-photos.ts` says it plainly: "source-restricted — attribution shown; Wikimedia/NOAA swap owed before release." 51 images — `counsel` + `ux-ui`
 - Weather and pressure ingestion from NWS + NCEI (free path, already costed in `cost-model.md` §1) — `biostat` + `head-dev`
 - Native iOS project kickoff. Nothing exists yet, and it is the ceiling on everything commercial — `head-dev`
 - O6 pricing ratification, then billing — `ceo`, then `cfo`
 - ROADMAP C1 "find days like today". Accepted 2026-09-03 into passport Phase 2; the only accepted work that answers "should I go tomorrow" — `head-dev`
-- Passport Ticket 5's last piece: the post-catch celebration. `newlyEarned` is written and tested but has no caller — `head-dev` + `ux-ui`
 - Night Bite badge. Unblocked — `sunEventsFor()` already exists in `core/rules/astro/sun.ts`, no new dependency — `head-dev`
 - Species/lure/bait/structure vocabulary red-pen, both ontologies. ROADMAP calls this the top founder-blocked item — `ceo`
 - Passport Tickets 6-8: backfill check, sync-merge duplicate-award test, QA pass. Mostly thin because the passport stores nothing — `test-agent`

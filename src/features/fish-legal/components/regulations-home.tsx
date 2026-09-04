@@ -1,6 +1,8 @@
 "use client";
 
 import Link from "next/link";
+import { LegalNotice } from "@/components/legal-notice";
+import { LegalAcknowledgement } from "@/features/legal/components/legal-acknowledgement";
 import { JurisdictionChip } from "./jurisdiction-chip";
 import { useMemo, useState } from "react";
 
@@ -100,6 +102,8 @@ export function RegulationsHome() {
 
   return (
     <div className="flex flex-col gap-4">
+      <LegalAcknowledgement />
+
       <section className="rounded-lg border border-hairline bg-surface p-4">
         <div className="flex items-center gap-2">
           <h1 className="text-h1">Fish Legal</h1>
@@ -109,6 +113,9 @@ export function RegulationsHome() {
           Verified rules for where you fish, dated like logbook entries. Legal text one
           tap away; every card says who said it and when we checked.
         </p>
+        <div className="mt-3">
+          <LegalNotice kind="regulations" />
+        </div>
       </section>
 
       <section className="rounded-lg border border-hairline bg-surface p-4" aria-label="My current regulations">

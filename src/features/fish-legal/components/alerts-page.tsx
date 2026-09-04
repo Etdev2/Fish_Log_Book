@@ -5,7 +5,7 @@ import { useEffect, useState, useSyncExternalStore } from "react";
 
 import { useLocalTimeZone } from "@/features/conditions/use-local-time-zone";
 import { CHIP_CLASS, CHIP_OFF, CHIP_OFF_ON_SURFACE, CHIP_ON } from "@/features/catches/ui-classes";
-import { legalAlertPrefs, readInbox, clearInbox, markRead, EMPTY_INBOX, type LegalAlert, type LegalAlertPrefs } from "../alerts";
+import { useLegalAlertPrefs, readInbox, clearInbox, markRead, EMPTY_INBOX, type LegalAlert, type LegalAlertPrefs } from "../alerts";
 
 const TOGGLES: { key: keyof LegalAlertPrefs; label: string; hint: string }[] = [
   { key: "boundary", label: "Approach alerts", hint: "Heads-up when you near a boundary band (~600 m)." },
@@ -24,7 +24,7 @@ const TOGGLES: { key: keyof LegalAlertPrefs; label: string; hint: string }[] = [
  * so the inbox can't turn into a scroll-jack.
  */
 export function AlertsPage() {
-  const [prefs, setPrefs] = legalAlertPrefs.use();
+  const [prefs, setPrefs] = useLegalAlertPrefs();
   const zone = useLocalTimeZone() ?? "America/Los_Angeles";
 
   // The inbox is external state (localStorage); read live via the changed event the

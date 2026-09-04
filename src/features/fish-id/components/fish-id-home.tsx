@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { LegalNotice } from "@/components/legal-notice";
 import { FISH_ID_PACKS } from "../packs";
 
 /**
@@ -23,6 +24,9 @@ export function FishIdHome() {
           For the fish that are genuinely hard to tell apart — where getting it wrong means
           a citation or a protected fish in the box.
         </p>
+        <div className="mt-3">
+          <LegalNotice kind="identification" />
+        </div>
       </section>
 
       <ul className="flex flex-col gap-3">

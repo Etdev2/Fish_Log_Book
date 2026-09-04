@@ -104,6 +104,24 @@ export default function SettingsPage() {
         <UnitsToggle />
       </section>
 
+      {/*
+        The notices are reachable from Settings as well as from Fish Legal: somebody
+        looking for a privacy policy looks here, not inside a regulations screen.
+      */}
+      <section className="rounded-lg border border-hairline bg-surface p-4">
+        <h2 className="text-h3">Notices</h2>
+        <p className="mt-2 text-body text-text-muted">
+          What this app is, what it is not, and what happens to your log. Your fishing log
+          is stored on this device; there is no analytics or advertising anywhere in the app.
+        </p>
+        <Link
+          href="/legal"
+          className="mt-4 inline-flex min-h-touch-floor items-center justify-center rounded-md border border-border-interactive px-4 text-label text-text-link transition-colors hover:bg-surface-raised focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-3 focus-visible:outline-focus-ring active:scale-95 motion-reduce:transition-none"
+        >
+          Terms, privacy &amp; fishing rules
+        </Link>
+      </section>
+
       <BackendDiagnostics />
     </div>
   );

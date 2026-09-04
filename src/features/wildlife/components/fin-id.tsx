@@ -1,5 +1,6 @@
 "use client";
 
+import { LegalNotice } from "@/components/legal-notice";
 import Link from "next/link";
 import { useMemo, useState } from "react";
 
@@ -49,6 +50,9 @@ export function FinId() {
           Answer what you saw. &quot;Not sure&quot; is always fine — skip the question. This
           narrows the field; it never certifies an animal.
         </p>
+        <div className="mt-3">
+          <LegalNotice kind="wildlife" />
+        </div>
       </section>
 
       {/* §21: the distance comes before anything the app has to say about the animal. */}

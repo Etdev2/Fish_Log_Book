@@ -1,5 +1,6 @@
 "use client";
 
+import { LegalNotice } from "@/components/legal-notice";
 import Link from "next/link";
 import { useMemo, useState } from "react";
 
@@ -49,6 +50,9 @@ export function PackWizard({ pack }: { pack: TraitPack }) {
           Answer what you can see. Skip anything you are unsure of — that is a real answer
           and it costs you nothing. This narrows the field; it never certifies a fish.
         </p>
+        <div className="mt-3">
+          <LegalNotice kind="identification" />
+        </div>
       </section>
 
       {/* §4.6: a protected candidate is worth a banner before it is worth a ranking. */}

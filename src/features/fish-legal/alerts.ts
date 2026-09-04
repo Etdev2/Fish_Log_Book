@@ -40,6 +40,17 @@ export const legalAlertPrefs = createLocalPreference<LegalAlertPrefs>({
   serialize: (value) => JSON.stringify(value),
 });
 
+/**
+ * Read the alert preferences inside a component through this, never
+ * `legalAlertPrefs.use()`. React Compiler identifies hooks by name; a member call is not
+ * one, so the component is memoized as having no reactive dependency and never re-renders
+ * when the store reads localStorage — the toggles would show defaults on every visit
+ * however many times they had been changed. `scripts/check-tripwires.mjs` §4 enforces it.
+ */
+export function useLegalAlertPrefs() {
+  return legalAlertPrefs.use();
+}
+
 export interface LegalAlert {
   readonly id: string;
   readonly atIso: string;

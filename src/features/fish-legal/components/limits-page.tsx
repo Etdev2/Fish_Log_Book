@@ -1,5 +1,6 @@
 "use client";
 
+import { LegalNotice } from "@/components/legal-notice";
 import Link from "next/link";
 import { useMemo } from "react";
 
@@ -96,6 +97,9 @@ export function LimitsPage() {
           {dateKey} · {regionLabel} · {bundle ? bundle.jurisdictionLabel : "no verified pack"}
           {" · "}Counts come from kept fish in your log — released fish never enter.
         </p>
+        <div className="mt-3">
+          <LegalNotice kind="regulations" />
+        </div>
       </header>
 
       {!bundle ? (

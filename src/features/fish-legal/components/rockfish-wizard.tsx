@@ -1,5 +1,6 @@
 "use client";
 
+import { LegalNotice } from "@/components/legal-notice";
 import Link from "next/link";
 import { useMemo, useState } from "react";
 
@@ -60,6 +61,9 @@ export function RockfishWizard() {
           doesn&rsquo;t eliminate anything. Match percentages narrow the field; they never
           certify it.
         </p>
+        <div className="mt-3">
+          <LegalNotice kind="identification" />
+        </div>
       </section>
 
       {restricted.length > 0 ? (

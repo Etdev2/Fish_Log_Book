@@ -99,6 +99,32 @@ if (existsSync(RULES_DIR)) {
   }
 }
 
+/* ---- 4. A preference is read through a `useX` hook, never `pref.use()`. ---- */
+
+/**
+ * React Compiler is on, and it identifies hooks by NAME. `something.use()` is a member
+ * call, so the compiler does not see a hook, memoizes the component as if it had no
+ * reactive dependency, and the component never re-renders when the store catches up with
+ * localStorage. Nothing fails: no error, no warning, no failing test — the setting simply
+ * never appears to have been saved.
+ *
+ * Caught in the legal-notices work, where the acknowledgement asked again on every visit.
+ * `createLocalPreference` returns `.use()` for a named wrapper to call, and that wrapper
+ * is the only place it may be called from.
+ */
+const PREF_WRAPPERS = /export function use[A-Z]\w*\s*\([^)]*\)\s*\{\s*return \w+\.use\(\)/;
+for (const file of tracked("'src/*'")) {
+  if (!/\.tsx?$/.test(file) || file.endsWith(".test.ts") || file.endsWith(".test.tsx")) continue;
+  const text = readFileSync(file, "utf8");
+  if (!/\w+\.use\(\)/.test(text)) continue;
+  if (PREF_WRAPPERS.test(text)) continue;
+  failures.push(
+    `${file} calls \`.use()\` directly. React Compiler recognises hooks by name, so a ` +
+      `member call is not seen as one and the component is memoized into never updating. ` +
+      `Wrap it: \`export function useThing() { return thingPreference.use(); }\`.`,
+  );
+}
+
 if (failures.length > 0) {
   console.error(`\ntripwires: ${failures.length} problem(s)\n`);
   for (const f of failures) console.error(`  ${f}\n`);
