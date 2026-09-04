@@ -213,7 +213,10 @@ function Section({
 export function CatchEnvironmentSection({
   snapshot,
   unitSystem,
+  zone,
 }: {
+  /** The catch's own IANA zone. Sun times are read in the zone the fish was caught in. */
+  zone: string;
   snapshot: {
     water_temp_c: number | null;
     pressure_hpa: number | null;
@@ -247,7 +250,13 @@ export function CatchEnvironmentSection({
     snapshot.sunrise_utc !== null
       ? [
           "Sun",
-          `rise ${formatClock(snapshot.sunrise_utc, "local")} · set ${formatClock(snapshot.sunset_utc ?? snapshot.sunrise_utc, "local")}`,
+          // The catch's own zone, the same one the catch time is shown in — "local" was
+          // never a time zone, and reading sunrise in a different zone to the catch would
+          // be wrong even if it had been.
+          `rise ${formatClock(snapshot.sunrise_utc, zone)} · set ${formatClock(
+            snapshot.sunset_utc ?? snapshot.sunrise_utc,
+            zone,
+          )}`,
         ]
       : null,
     snapshot.moon_illumination_fraction !== null

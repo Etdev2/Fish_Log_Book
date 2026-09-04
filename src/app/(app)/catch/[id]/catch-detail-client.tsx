@@ -127,7 +127,11 @@ export function CatchDetailClient({
     <>
       <CatchRecordView item={item} unitSystem={unitSystem} onEdit={openEdit} />
       {snapshot ? (
-        <CatchEnvironmentSection snapshot={snapshot} unitSystem={unitSystem} />
+        <CatchEnvironmentSection
+          snapshot={snapshot}
+          unitSystem={unitSystem}
+          zone={item.record.caught_tz}
+        />
       ) : null}
       <CatchTidePanel snapshot={snapshot} unitSystem={unitSystem} />
       <QuickLogSheet
