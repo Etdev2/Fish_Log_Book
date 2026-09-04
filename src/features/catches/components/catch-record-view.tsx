@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 
+import { moonReading, phaseName } from "@/core/rules/astro";
 import { compassLabel } from "@/core/rules/catch/measurement";
 import type { SearchableCatch } from "@/core/rules/catch/search";
 import {
@@ -21,6 +22,18 @@ import {
   type UnitSystem,
 } from "../format";
 import { logActions } from "../store";
+
+/** Plain English for the eight phases. Hyphenated ids are for code, not for a card. */
+const MOON_PHASE_LABEL: Record<string, string> = {
+  new: "New moon",
+  "waxing-crescent": "Waxing crescent",
+  "first-quarter": "First quarter",
+  "waxing-gibbous": "Waxing gibbous",
+  full: "Full moon",
+  "waning-gibbous": "Waning gibbous",
+  "last-quarter": "Last quarter",
+  "waning-crescent": "Waning crescent",
+};
 import { CHIP_CLASS, CHIP_OFF, PRIMARY_BUTTON, SECONDARY_BUTTON } from "../ui-classes";
 
 /**
@@ -200,7 +213,13 @@ function Section({
 export function CatchEnvironmentSection({
   snapshot,
   unitSystem,
+  zone,
+  observedAt,
 }: {
+  /** The catch's own IANA zone. Sun times are read in the zone the fish was caught in. */
+  zone: string;
+  /** When the fish was caught. The moon is computed from this when the snapshot lacks it. */
+  observedAt: string;
   snapshot: {
     water_temp_c: number | null;
     pressure_hpa: number | null;
@@ -216,6 +235,26 @@ export function CatchEnvironmentSection({
   };
   unitSystem: UnitSystem;
 }) {
+  /*
+   * The moon, from the snapshot when it has one and from the clock when it does not.
+   *
+   * Catches logged before the app recorded lunar data — and every catch logged without a
+   * GPS fix, back when the sun and moon were skipped together — carry nulls that will
+   * never fill in. The moon does not need backfilling: its phase is a function of the
+   * instant alone, so the value computed now is the same value that would have been
+   * written then. Nothing is stored; this is a reading, like the phase name beside it.
+   */
+  const moon = ((): { phaseAngleDeg: number; illuminationFraction: number } | null => {
+    if (snapshot.moon_illumination_fraction !== null && snapshot.moon_phase_angle_deg !== null) {
+      return {
+        phaseAngleDeg: snapshot.moon_phase_angle_deg,
+        illuminationFraction: snapshot.moon_illumination_fraction,
+      };
+    }
+    const atMs = Date.parse(observedAt);
+    return Number.isNaN(atMs) ? null : moonReading(atMs);
+  })();
+
   const rows: (readonly [string, string] | null)[] = [
     snapshot.water_temp_c !== null
       ? ["Water temp", formatTemperature(snapshot.water_temp_c, unitSystem) as string]
@@ -234,11 +273,28 @@ export function CatchEnvironmentSection({
     snapshot.sunrise_utc !== null
       ? [
           "Sun",
-          `rise ${formatClock(snapshot.sunrise_utc, "local")} · set ${formatClock(snapshot.sunset_utc ?? snapshot.sunrise_utc, "local")}`,
+          // The catch's own zone, the same one the catch time is shown in — "local" was
+          // never a time zone, and reading sunrise in a different zone to the catch would
+          // be wrong even if it had been.
+          `rise ${formatClock(snapshot.sunrise_utc, zone)} · set ${formatClock(
+            snapshot.sunset_utc ?? snapshot.sunrise_utc,
+            zone,
+          )}`,
         ]
       : null,
-    snapshot.moon_illumination_fraction !== null
-      ? ["Moon", `${Math.round(snapshot.moon_illumination_fraction * 100)}% lit`]
+    moon !== null
+      ? [
+          "Moon",
+          /*
+           * The phase NAME is derived here rather than stored: spec §18 keeps raw values
+           * in the snapshot and nothing derived. Illumination alone reads as a number
+           * nobody asked for — "waxing gibbous · 78% lit" is the sentence an angler says.
+           * Both are shown, never the name alone, per the note in moon.ts.
+           */
+          `${MOON_PHASE_LABEL[phaseName(moon.phaseAngleDeg)]} · ${Math.round(
+            moon.illuminationFraction * 100,
+          )}% lit`,
+        ]
       : null,
   ];
   const present = rows.filter((r): r is readonly [string, string] => r !== null);

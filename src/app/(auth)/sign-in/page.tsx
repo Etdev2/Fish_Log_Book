@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 
 import { createClient } from "@/lib/supabase/client";
@@ -62,6 +63,24 @@ export default function SignInPage() {
           {state === "sending" ? "Sending…" : "Send me a link"}
         </button>
       </form>
+
+      {/*
+        Consent at the point the email is handed over, which is the first moment anything
+        leaves the device. Signing in is optional — the app works fully signed out — so
+        this is the one place a terms link genuinely has to be.
+      */}
+      <p className="mt-4 text-caption text-text-muted">
+        By signing in you agree to our{" "}
+        <Link href="/legal/terms" className="text-text-link underline decoration-dotted underline-offset-2">
+          Terms of Use
+        </Link>{" "}
+        and{" "}
+        <Link href="/legal/privacy" className="text-text-link underline decoration-dotted underline-offset-2">
+          Privacy Notice
+        </Link>
+        . Your email is used to send the sign-in link and to hold your account; it is
+        never sold or used for advertising.
+      </p>
 
       {state === "sent" && (
         <p className="mt-6 text-body text-success-green">

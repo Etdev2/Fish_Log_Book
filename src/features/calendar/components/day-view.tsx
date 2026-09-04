@@ -165,10 +165,10 @@ function DayRow({
           .join(" · ")}
       </p>
       <Link
-        href={needsDetails ? "/log" : `/catch/${record.id}`}
+        href={needsDetails ? `/log?resolve=${record.id}` : `/catch/${record.id}`}
         className="mt-2 inline-flex min-h-touch-floor items-center rounded-md text-label text-text-link focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-3 focus-visible:outline-focus-ring"
       >
-        {needsDetails ? "Finish it in the Fish Log →" : "Open record →"}
+        {needsDetails ? "Finish this mark →" : "Open record →"}
       </Link>
     </article>
   );

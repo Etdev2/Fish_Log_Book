@@ -29,6 +29,7 @@ export function StationDetailsSheet({
   seriesEnd,
   dayCount,
   now,
+  sourceLabel,
 }: {
   open: boolean;
   onClose: () => void;
@@ -41,13 +42,20 @@ export function StationDetailsSheet({
   seriesEnd: number;
   dayCount: number;
   now: Instant | null;
+  /** Where these numbers came from, in the angler's words. */
+  sourceLabel: string;
 }) {
   const zonesDiffer = displayTimeZone !== stationTimeZone;
   const nowOutsideWindow = now !== null && (Number(now) < seriesStart || Number(now) > seriesEnd);
 
   return (
     <ConditionsSheet open={open} onClose={onClose} eyebrow="Station" title={series.station.name}>
-      <p className="tide-sheet-badge">Cached prediction — not a live reading</p>
+      {/*
+        The provenance line is no longer a constant: since the station picker landed this
+        can be a live NOAA fetch, this device's saved copy, or the bundled Newport sample,
+        and the difference is exactly what an angler needs to know before trusting it.
+      */}
+      <p className="tide-sheet-badge">{sourceLabel}</p>
 
       {nowOutsideWindow && now !== null && (
         <p className="tide-sheet-warning">

@@ -1442,3 +1442,57 @@ redfish into it would make a coastal collection incoherent as well as unfamiliar
 
 So Croaker keeps white seabass and nothing else moves. If a drum collection is ever wanted,
 TPWD's own grouping — red drum with black drum — is the shape to copy, not Sciaenidae.
+
+## 50. Fin ID and Fish ID, shipped (founder, 2026-09-03)
+
+§17 asked for a reusable identification layer rather than a wizard per animal. That layer
+now exists, and three packs run on it.
+
+### 50.1 The engine
+
+`src/core/rules/identification/` holds the scoring, extracted from the rockfish identifier
+without changing its behaviour — that wizard's existing tests pass untouched, which is the
+proof. Two pieces of `docs/specs/rockfish-identification.md` that were designed but never
+implemented are now in, and both are safety features:
+
+- **§4.5, refuse to rank.** The engine declines to name a winner off a single answer, or
+  when the top two are within ten points. It still returns the field; what it withholds is
+  the implication that the top one is the answer.
+- **§4.7, explainability.** Every candidate reports which answers support it and which
+  count against it. A ranking an angler cannot check against the fish in their hands is
+  worse than no ranking.
+
+Contradiction between answers is now derived from a pack's own questions rather than a
+hand-maintained list, so a new question cannot leave a stale one behind.
+
+### 50.2 The packs
+
+| Pack | Species | Why it exists | Source |
+|---|---|---|---|
+| Whales, dolphins & porpoises | 13 | §20. Never a catch — see below | NOAA Fisheries species pages, NOAA dolphin/porpoise guide, ADF&G |
+| Pacific salmon | 6 | Species ID is legally required before retention across much of the Northwest | WDFW salmon identification guide, ADF&G |
+| Southern California bass | 4 | Three fish that share a limit, plus the protected one taken by mistake | CDFW Marine Species Portal |
+| Rockfish | 12 | Pre-existing; keeps its own screen | `docs/specs/rockfish-identification.md` |
+
+Packs are chosen by **consequence, not coverage**. One earns its place when getting it
+wrong costs something — a citation, a protected fish in the box, a closed season broken by
+accident. Identifying 178 species badly would be worse than identifying nine well.
+
+### 50.3 The marine mammal posture
+
+Different from every fish screen, on purpose. Fish ID helps decide whether a fish can be
+kept; Fin ID never does, because every animal on it is protected.
+
+- NOAA's viewing distances appear **before any answer is given**, not as a footnote after
+  the app has said what the animal is: 100 yards for whales, 50 for dolphins, porpoises
+  and seals. The North Atlantic right whale carries its own 500-yard federal buffer.
+- Every profile is marked no-retention. Nothing ranks a target or rewards approach (§21).
+- A stranding hotline, and an instruction not to enter the water.
+- The questions are written to be answerable at 100 yards, which is where the boat has to
+  stay.
+
+### 50.4 What this does not do
+
+It identifies; it does not record. A wildlife **sighting** is a new record type with its
+own privacy rules (§19, §29.7) and remains unstarted. Fish ID does not write to a catch
+either — an angler still picks the species in the log themselves.

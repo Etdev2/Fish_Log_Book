@@ -1,6 +1,8 @@
 "use client";
 
 import Link from "next/link";
+import { LegalNotice } from "@/components/legal-notice";
+import { LegalAcknowledgement } from "@/features/legal/components/legal-acknowledgement";
 import { JurisdictionChip } from "./jurisdiction-chip";
 import { useMemo, useState } from "react";
 
@@ -100,6 +102,8 @@ export function RegulationsHome() {
 
   return (
     <div className="flex flex-col gap-4">
+      <LegalAcknowledgement />
+
       <section className="rounded-lg border border-hairline bg-surface p-4">
         <div className="flex items-center gap-2">
           <h1 className="text-h1">Fish Legal</h1>
@@ -109,6 +113,9 @@ export function RegulationsHome() {
           Verified rules for where you fish, dated like logbook entries. Legal text one
           tap away; every card says who said it and when we checked.
         </p>
+        <div className="mt-3">
+          <LegalNotice kind="regulations" />
+        </div>
       </section>
 
       <section className="rounded-lg border border-hairline bg-surface p-4" aria-label="My current regulations">
@@ -197,6 +204,8 @@ export function RegulationsHome() {
         <HomeCard href="/fish-legal/species" title="Species & limits" body="Pick a fish; get the 2-second answer." />
         <HomeCard href="/fish-legal/limits" title="Today's limits" body="What you're carrying vs. what the day allows." />
         <HomeCard href="/fish-legal/rockfish" title="Rockfish ID" body="Six questions; likely species with confidence, not verdicts." />
+        <HomeCard href="/fish-id" title="Fish ID" body="Salmon, sand bass and rockfish — the ones that are genuinely hard to call." />
+        <HomeCard href="/fin-id" title="Whale & dolphin ID" body="What surfaced next to the boat, and how far back to stay." />
         <HomeCard href="/fish-legal/boundaries" title="Depth & boundary rules" body="Lines that change the answer as you move." />
         <HomeCard href="/fish-legal/offline" title="Offline & sources" body="What's on this device, when verified, where the law lives." />
         <HomeCard href="/fish-legal/alerts" title="Fish Legal alerts" body="Boundary transitions & limit warnings, logged on-device." />

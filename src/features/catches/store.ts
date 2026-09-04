@@ -8,6 +8,7 @@ import type { ConditionSnapshotRecord } from "./conditions";
 import type {
   CatchGear,
   CatchRecord,
+  Disposition,
   LocationConditionRecord,
   RigRecord,
   SetupGear,
@@ -409,6 +410,31 @@ export async function toggleFavorite(catchId: string): Promise<void> {
   if (!record) return;
   const now = new Date().toISOString();
   const patch = { favorite: !record.favorite, client_updated_at: now };
+  await persist(
+    [{ store: "catch", row: { ...record, ...patch } as unknown as StoredRow }],
+    [mutation("catch", catchId, "patch", patch, now)],
+  );
+}
+
+/**
+ * Answer kept-or-released on an already-saved catch, and nothing else.
+ *
+ * A one-field patch in the shape of `toggleFavorite`, because the question it answers is
+ * asked away from the log: the limits screen lists today's fish that were never marked,
+ * and making an angler open the record and re-save the whole catch to say "kept" is five
+ * taps for a one-bit answer, usually while holding the fish.
+ *
+ * Deliberately not part of the save path. A catch is durable the moment it is logged
+ * (ADR 004); this only fills in an answer the fast flow never asked for.
+ */
+export async function setDisposition(
+  catchId: string,
+  disposition: Disposition,
+): Promise<void> {
+  const record = snapshot.catches.find((c) => c.id === catchId);
+  if (!record) return;
+  const now = new Date().toISOString();
+  const patch = { disposition, client_updated_at: now };
   await persist(
     [{ store: "catch", row: { ...record, ...patch } as unknown as StoredRow }],
     [mutation("catch", catchId, "patch", patch, now)],

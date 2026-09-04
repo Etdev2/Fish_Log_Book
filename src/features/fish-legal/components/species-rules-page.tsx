@@ -1,5 +1,6 @@
 "use client";
 
+import { LegalNotice } from "@/components/legal-notice";
 import Link from "next/link";
 import { JurisdictionChip } from "./jurisdiction-chip";
 import { useMemo } from "react";
@@ -102,6 +103,9 @@ export function SpeciesRulesPage({ speciesId }: { speciesId: string }) {
             ))}
           </span>
         </p>
+        <div className="mt-3">
+          <LegalNotice kind="regulations" />
+        </div>
       </header>
 
       {card ? (

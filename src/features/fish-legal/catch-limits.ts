@@ -64,21 +64,96 @@ export function talliedKeptToday(
 }
 
 /**
+ * Today's catches that have not been answered kept-or-released.
+ *
+ * The fast log flow (spec §4.1) asks for a species and nothing else, so disposition stays
+ * unset unless the angler opens the details. Those fish are not kept, so they must not be
+ * counted against a bag — but they are not released either, and silently dropping them
+ * means the limits screen can under-report what is in the box. Under-reporting is the
+ * dangerous direction for a compliance screen: it is the one that ends in a citation.
+ *
+ * So they are surfaced instead, unanswered rather than assumed, which is the same stance
+ * the audit already takes for a species the pack does not limit: never dropped, never
+ * called unlimited.
+ */
+export function undecidedToday(
+  catches: readonly CatchRecord[],
+  dateKey: string,
+  zone: string,
+): readonly CatchRecord[] {
+  return catches.filter(
+    (c) =>
+      c.deleted_at === null &&
+      c.species_id !== null &&
+      // `n/a` is an answer — the angler said the question does not apply.
+      (c.disposition === null || c.disposition === undefined) &&
+      c.resolution_state !== "dismissed" &&
+      localDayOf(c, zone) === dateKey,
+  );
+}
+
+/**
+ * The bag rule that actually applies on a given day, out of several for one species.
+ *
+ * Packs legitimately carry more than one: SoCal white seabass is three a day year-round
+ * *except* one a day between 15 March and 15 June south of Point Conception, which is two
+ * `bag_limit` rules for one fish. Emitting both produced two lines with the same id — a
+ * duplicate React key, and worse, a screen showing "3/day" and "1/day" side by side with
+ * nothing to say which one is today's. For a feature whose whole job is telling an angler
+ * the limit, that is a wrong answer, not a cosmetic bug.
+ *
+ * Order of preference:
+ *   1. A rule whose season window contains today.
+ *   2. Otherwise the year-round rule (no window).
+ *   3. If still ambiguous, the most restrictive — when the law is unclear the smaller
+ *      number is the one that keeps an angler out of trouble.
+ */
+function appliesOn(rule: { seasonStart: string | null; seasonEnd: string | null }, dateKey: string): boolean {
+  if (rule.seasonStart === null || rule.seasonEnd === null) return false;
+
+  // Compared as month-day so a window written with last year's dates still describes this
+  // year's season — fishing seasons recur, and the pack's own verifiedAt/staleAfterDays
+  // are what catch a genuinely changed rule.
+  const md = (iso: string) => iso.slice(5, 10);
+  const [today, from, to] = [md(dateKey), md(rule.seasonStart), md(rule.seasonEnd)];
+
+  // A window that runs through the new year (Nov→Feb) reads as from > to.
+  return from <= to ? today >= from && today <= to : today >= from || today <= to;
+}
+
+function pickBagRule<T extends { seasonStart: string | null; seasonEnd: string | null; bagDaily: number | null }>(
+  candidates: readonly T[],
+  dateKey: string,
+): T | null {
+  if (candidates.length === 0) return null;
+
+  const inSeason = candidates.filter((r) => appliesOn(r, dateKey));
+  const yearRound = candidates.filter((r) => r.seasonStart === null || r.seasonEnd === null);
+  const pool = inSeason.length > 0 ? inSeason : yearRound.length > 0 ? yearRound : candidates;
+
+  return pool.reduce((strictest, r) =>
+    (r.bagDaily ?? Infinity) < (strictest.bagDaily ?? Infinity) ? r : strictest,
+  );
+}
+
+/**
  * Project the day's kept tallies onto the pack's limit rules. Both per-species caps and
  * group aggregates are surfaced; everything the pack doesn't limit is silent (no rule =
  * no line, and the absence of a line is NEVER rendered as "unlimited").
  */
 export function limitLines(
   bundle: RegBundle,
-  dateKey: string, // kept for future season-scoped limits; tallies are pre-filtered
+  dateKey: string,
   keptToday: ReadonlyMap<string, number>,
 ): readonly LimitLine[] {
-  void dateKey;
   const lines: LimitLine[] = [];
 
   for (const group of bundle.groups) {
-    const memberBag = bundle.rules.find(
-      (r) => r.regGroupId === group.id && r.kind === "bag_limit" && r.bagDaily !== null,
+    const memberBag = pickBagRule(
+      bundle.rules.filter(
+        (r) => r.regGroupId === group.id && r.kind === "bag_limit" && r.bagDaily !== null,
+      ),
+      dateKey,
     );
     if (!memberBag?.bagDaily) continue;
     const retained = group.memberSpeciesIds.reduce(
@@ -96,16 +171,31 @@ export function limitLines(
     });
   }
 
-  for (const rule of bundle.rules) {
-    if (!rule.speciesId || rule.kind !== "bag_limit" || rule.bagDaily === null) continue;
-    const group = bundle.groups.find((g) => g.memberSpeciesIds.includes(rule.speciesId!));
+  // One line per species, not one per rule — see pickBagRule.
+  const speciesWithBag = [
+    ...new Set(
+      bundle.rules
+        .filter((r) => r.speciesId && r.kind === "bag_limit" && r.bagDaily !== null)
+        .map((r) => r.speciesId as string),
+    ),
+  ];
+
+  for (const speciesId of speciesWithBag) {
+    const rule = pickBagRule(
+      bundle.rules.filter(
+        (r) => r.speciesId === speciesId && r.kind === "bag_limit" && r.bagDaily !== null,
+      ),
+      dateKey,
+    );
+    if (!rule?.bagDaily) continue;
+    const group = bundle.groups.find((g) => g.memberSpeciesIds.includes(speciesId));
     lines.push({
-      id: rule.speciesId,
-      label: rule.speciesId, // UI prettifies via speciesDisplayName
+      id: speciesId,
+      label: speciesId, // UI prettifies via speciesDisplayName
       kind: "species",
       limit: rule.bagDaily,
-      retained: keptToday.get(rule.speciesId) ?? 0,
-      state: stateOf(keptToday.get(rule.speciesId) ?? 0, rule.bagDaily),
+      retained: keptToday.get(speciesId) ?? 0,
+      state: stateOf(keptToday.get(speciesId) ?? 0, rule.bagDaily),
       shareOf: group ? `within the ${group.name} combination` : undefined,
     });
   }

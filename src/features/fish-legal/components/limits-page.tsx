@@ -1,5 +1,6 @@
 "use client";
 
+import { LegalNotice } from "@/components/legal-notice";
 import Link from "next/link";
 import { useMemo } from "react";
 
@@ -8,7 +9,9 @@ import { useLocalTimeZone } from "@/features/conditions/use-local-time-zone";
 import { useRegionPreference } from "@/features/settings/region";
 import { REGIONS } from "@/core/ontology/regions";
 import { useLog } from "@/features/catches/store";
-import { keptAudit, limitLines, talliedKeptToday } from "../catch-limits";
+import { setDisposition } from "@/features/catches/store";
+
+import { keptAudit, limitLines, talliedKeptToday, undecidedToday } from "../catch-limits";
 import { packForRegion } from "../packs";
 import { speciesDisplayName } from "../reg-species";
 import { JurisdictionChip } from "./jurisdiction-chip";
@@ -27,6 +30,9 @@ const STATE_COPY: Record<LimitLine["state"], { word: string; tone: string }> = {
  * log itself — Fish Legal tells you the truth; you log anyway. Aggregate lines sit on
  * top because an "aggregate 10 in any combination" burns faster than its parts.
  */
+const FOCUS_RING =
+  "focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-3 focus-visible:outline-focus-ring";
+
 export function LimitsPage() {
   const now = useNow();
   const zone = useLocalTimeZone() ?? "America/Los_Angeles";
@@ -51,10 +57,32 @@ export function LimitsPage() {
     () => (bundle ? limitLines(bundle.data, dateKey, keptToday) : []),
     [bundle, dateKey, keptToday],
   );
-  const moving = lines.filter((l) => l.retained > 0);
+  /*
+   * The page is called "Today's limits", so it shows today's limits.
+   *
+   * It used to render only the lines an angler had already retained against, which meant
+   * that until you kept something it was an empty page — you could not use it to answer
+   * "how many of these am I allowed?", which is the question people open it with, usually
+   * while holding the fish. Everything is shown now, with anything you have already kept
+   * sorted to the top so a live count is never buried.
+   */
+  const shown = useMemo(
+    () => [...lines].sort((a, b) => b.retained - a.retained),
+    [lines],
+  );
+  const anyRetained = shown.some((l) => l.retained > 0);
   const audit = useMemo(
     () => (bundle ? keptAudit(bundle.data, keptToday) : []),
     [bundle, keptToday],
+  );
+  /*
+   * Fish logged today with no kept-or-released answer. The fast log flow does not ask, so
+   * these are common — and leaving them out silently makes the page under-report the box,
+   * which is the direction that ends in a citation.
+   */
+  const undecided = useMemo(
+    () => undecidedToday(log.catches, dateKey, zone),
+    [log.catches, dateKey, zone],
   );
   const regionLabel = REGIONS.find((r) => r.id === region)?.label ?? "this region";
 
@@ -69,6 +97,9 @@ export function LimitsPage() {
           {dateKey} · {regionLabel} · {bundle ? bundle.jurisdictionLabel : "no verified pack"}
           {" · "}Counts come from kept fish in your log — released fish never enter.
         </p>
+        <div className="mt-3">
+          <LegalNotice kind="regulations" />
+        </div>
       </header>
 
       {!bundle ? (
@@ -77,14 +108,71 @@ export function LimitsPage() {
         </p>
       ) : null}
 
+      {undecided.length > 0 ? (
+        <section className="rounded-lg border border-amber-flag bg-surface p-4">
+          <h2 className="text-h3 text-amber-flag">
+            {undecided.length === 1
+              ? "1 fish not counted yet"
+              : `${undecided.length} fish not counted yet`}
+          </h2>
+          <p className="mt-2 text-body text-text-muted">
+            These were logged today but never marked kept or released, so nothing has been
+            counted against a limit. Answer here and the count updates straight away.
+          </p>
+          <ul className="mt-3 flex flex-col gap-2">
+            {undecided.map((record) => (
+              <li
+                key={record.id}
+                className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-hairline bg-surface-raised px-3 py-2"
+              >
+                <Link
+                  href={`/catch/${record.id}`}
+                  className={`text-body ${FOCUS_RING}`}
+                >
+                  {speciesDisplayName(record.species_id as string)}
+                </Link>
+                {/*
+                  Answered here rather than by opening the record: it is one bit, and the
+                  angler is usually holding the fish. `setDisposition` patches that single
+                  field — it is not the save path, and it cannot disturb anything else on
+                  the catch.
+                */}
+                <span className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => void setDisposition(record.id, "kept")}
+                    className={`min-h-touch-floor rounded-full border border-border-interactive px-4 text-label text-text-link transition-colors hover:bg-surface ${FOCUS_RING} active:scale-95 motion-reduce:transition-none`}
+                  >
+                    Kept
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => void setDisposition(record.id, "released")}
+                    className={`min-h-touch-floor rounded-full border border-border-interactive px-4 text-label text-text-link transition-colors hover:bg-surface ${FOCUS_RING} active:scale-95 motion-reduce:transition-none`}
+                  >
+                    Released
+                  </button>
+                </span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
+
       <section className="flex flex-col gap-3" aria-live="polite">
-        {moving.length === 0 ? (
+        {!anyRetained && shown.length > 0 ? (
+          <p className="rounded-lg border border-hairline bg-surface p-4 text-caption text-text-muted">
+            Nothing kept yet today — these are the limits as they stand. Counts fill in the
+            moment you log a fish as <em>Kept</em>.
+          </p>
+        ) : null}
+
+        {shown.length === 0 ? (
           <p className="rounded-lg border border-hairline bg-surface p-4 text-body text-text-muted">
-            Nothing kept in the log yet today. Retained fish appear here the moment you
-            log them as <em>Kept</em>.
+            No limit lines in this pack for today.
           </p>
         ) : (
-          moving.map((line) => {
+          shown.map((line) => {
             const copy = STATE_COPY[line.state];
             const label = line.kind === "group" ? line.label : speciesDisplayName(line.id);
             return (

@@ -1,10 +1,14 @@
 import { describe, expect, it } from "vitest";
 
+import { validatePack } from "@/core/rules/identification/identify";
+
 import {
   hasVerifiedRules,
   ID_QUESTIONS,
   identifyRockfish,
+  identifyRockfishFully,
   restrictedIn,
+  ROCKFISH_PACK,
   ROCKFISH_PROFILES,
 } from "./rockfish-id";
 
@@ -60,5 +64,41 @@ describe("pack linkage + question integrity", () => {
       expect(q.answers.length).toBeGreaterThanOrEqual(2);
       expect(q.answers.length).toBeLessThanOrEqual(6);
     }
+  });
+});
+
+describe("the rockfish pack on the shared Fin ID engine (passport spec §17)", () => {
+  it("is a well-formed pack", () => {
+    expect(validatePack(ROCKFISH_PACK)).toEqual([]);
+  });
+
+  it("derives contradiction from the questions, so no group list can go stale", () => {
+    // Every trait any profile claims must be an answer to a real question.
+    const optionIds = new Set(
+      ROCKFISH_PACK.questions.flatMap((q) => q.options.map((o) => o.id)),
+    );
+    for (const profile of ROCKFISH_PACK.profiles) {
+      for (const optionId of Object.keys(profile.traits)) {
+        expect(optionIds.has(optionId)).toBe(true);
+      }
+    }
+  });
+
+  it("declines to name a winner off a single answer (spec §4.5)", () => {
+    const result = identifyRockfishFully(["red-orange"]);
+    expect(result.ranked).toBe(false);
+    expect(result.reason).not.toBeNull();
+    // It still returns the field — "here are the ones it might be" is useful.
+    expect(result.candidates.length).toBeGreaterThan(1);
+  });
+
+  it("still warns about the prohibited pair even when it will not rank", () => {
+    const result = identifyRockfishFully(["red-orange"]);
+    expect(result.restricted.length).toBeGreaterThan(0);
+  });
+
+  it("says why the top candidate is top (spec §4.7)", () => {
+    const [top] = identifyRockfish(["red-orange", "spots-yes", "size-mid"]);
+    expect(top.supporting.length).toBeGreaterThan(0);
   });
 });

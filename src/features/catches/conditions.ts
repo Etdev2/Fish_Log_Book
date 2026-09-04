@@ -1,4 +1,4 @@
-import { moonPhaseAt, sunEventsFor, type GeoPoint } from "@/core/rules/astro";
+import { moonReading, sunEventsFor, type GeoPoint } from "@/core/rules/astro";
 import { degrees, instant } from "@/core/units";
 import { uuidv7 } from "@/core/sync/uuid";
 import { LOCAL_ANGLER_ID } from "./store";
@@ -108,6 +108,24 @@ function dayOfYear(date: Date): number {
  * the astronomical fields null and `pending`. A snapshot row is still created, because
  * the catch happened somewhere and the enrichment job needs something to fill in.
  */
+/**
+ * Phase angle and illumination from a moment.
+ *
+ * Split out because BOTH branches below need it. Phase angle is the correlate;
+ * illumination is for display (ontology §3). Age in days maps onto the synodic month,
+ * 29.53 days over 360°.
+ */
+function moonFields(atMs: number): {
+  moon_phase_angle_deg: number;
+  moon_illumination_fraction: number;
+} {
+  const reading = moonReading(atMs);
+  return {
+    moon_phase_angle_deg: reading.phaseAngleDeg,
+    moon_illumination_fraction: reading.illuminationFraction,
+  };
+}
+
 export function buildCatchSnapshot(
   input: SnapshotInput,
   captureMode: "live" | "backfill",
@@ -156,10 +174,23 @@ export function buildCatchSnapshot(
   };
 
   if (!hasFix) {
+    /*
+     * The moon is still computable. This branch used to null it alongside the sun, which
+     * the comment above already knew was wrong: the moon's phase is the same everywhere on
+     * Earth at a given instant, and only its rise and the angler's relationship to sunset
+     * need a position. Nulling it cost every shore catch, every catch logged before the
+     * fix arrived, and every backfilled row its lunar data for no reason — and the moon is
+     * the one condition anglers ask about most.
+     *
+     * The timestamp is the only requirement, so the fields stay null when even that is
+     * unusable.
+     */
+    const moon = Number.isFinite(observedMs) ? moonFields(observedMs) : null;
+
     return {
       ...base,
-      moon_phase_angle_deg: null,
-      moon_illumination_fraction: null,
+      moon_phase_angle_deg: moon?.moon_phase_angle_deg ?? null,
+      moon_illumination_fraction: moon?.moon_illumination_fraction ?? null,
       sunrise_utc: null,
       sunset_utc: null,
       civil_twilight_begin_utc: null,
@@ -169,7 +200,10 @@ export function buildCatchSnapshot(
       day_of_year: Number.isFinite(observedMs) ? dayOfYear(new Date(observedMs)) : null,
       enrichment_status: "pending",
       provenance: {
-        astro: "skipped: no position fix at the moment of the catch",
+        astro:
+          moon === null
+            ? "skipped: no usable time for the catch"
+            : "moon computed on device; sun skipped — no position fix at the moment of the catch",
         ...(manualNote ? { manual: manualNote } : {}),
       },
       ...manualFields,
@@ -183,15 +217,11 @@ export function buildCatchSnapshot(
   };
 
   const sun = sunEventsFor(at, point);
-  const moon = moonPhaseAt(at);
   const iso = (value: number | null) => (value === null ? null : new Date(value).toISOString());
 
   return {
     ...base,
-    // Phase angle is the correlate; illumination is for display (ontology §3). Age in
-    // days maps onto the synodic month, 29.53 days over 360°.
-    moon_phase_angle_deg: Math.round((moon.ageDays / 29.530588853) * 360 * 1000) / 1000,
-    moon_illumination_fraction: Math.round(moon.illumination * 10_000) / 10_000,
+    ...moonFields(observedMs),
     sunrise_utc: iso(sun.sunrise),
     sunset_utc: iso(sun.sunset),
     civil_twilight_begin_utc: iso(sun.civilDawn),
