@@ -185,6 +185,31 @@ Quiver lives).
 
 ---
 
+## 5.5 Founder correction, 2026-09-04 (after first review)
+
+The five steps became six, and step 1 changed meaning.
+
+1. **Step 1 is "choose your fishing region", in Settings — not "set a location".** The
+   original list conflated two different acts: picking the *jurisdiction* whose rules and
+   species the app shows you, and naming *a place* you are fishing today. Only the second
+   is a location.
+2. **Location and conditions are one step, not two.** They are the same sheet
+   (`LocationSheet`), distinguished only by which optional fields got filled in — the UX
+   review found this independently. Two rows pointing at one destination taught an order
+   that does not exist.
+3. **A tide station step was added.** Placed at 2, next to the region, because both are
+   one-time Settings choices answering the same question — where do you fish? — and
+   grouping them means one trip to Settings instead of two.
+
+Final order: region → tide station → tackle → rod setup → location and conditions →
+log a fish.
+
+**Consequence for the "done" test.** Region and tide station both ship with a default
+(Southern California; Newport Bay), so their *value* cannot say whether the angler chose
+it. `LocalPreference.useIsSet` answers that instead, and ticking either step requires an
+actual choice — otherwise the checklist would greet a new angler with two steps already
+done, which teaches them it is decorative.
+
 ## 6. Information architecture — decided
 
 Founder, 2026-09-04, answering the three questions §5 raised. These are settled; the

@@ -109,14 +109,17 @@ if (existsSync(RULES_DIR)) {
  * never appears to have been saved.
  *
  * Caught in the legal-notices work, where the acknowledgement asked again on every visit.
- * `createLocalPreference` returns `.use()` for a named wrapper to call, and that wrapper
- * is the only place it may be called from.
+ * `createLocalPreference` returns `.use()` and `.useIsSet()` for a named wrapper to call,
+ * and that wrapper is the only place either may be called from. Any `.useSomething()`
+ * member call counts: the compiler does not care what the method is named, only that a
+ * member expression is not a name it recognises as a hook.
  */
-const PREF_WRAPPERS = /export function use[A-Z]\w*\s*\([^)]*\)\s*\{\s*return \w+\.use\(\)/;
+const PREF_WRAPPERS =
+  /export function use[A-Z]\w*\s*\([^)]*\)\s*(?::[^{]+)?\{\s*return \w+\.use[A-Za-z]*\(/;
 for (const file of tracked("'src/*'")) {
   if (!/\.tsx?$/.test(file) || file.endsWith(".test.ts") || file.endsWith(".test.tsx")) continue;
   const text = readFileSync(file, "utf8");
-  if (!/\w+\.use\(\)/.test(text)) continue;
+  if (!/\b\w+\.use[A-Za-z]*\(\)/.test(text)) continue;
   if (PREF_WRAPPERS.test(text)) continue;
   failures.push(
     `${file} calls \`.use()\` directly. React Compiler recognises hooks by name, so a ` +

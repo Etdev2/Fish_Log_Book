@@ -19,7 +19,14 @@ import type { CatchRecord, LocationConditionRecord, RigRecord } from "./catch/ty
  * unions it with what the log shows now.
  */
 
-export const SETUP_STEPS = ["location", "tackle", "rod", "conditions", "catch"] as const;
+export const SETUP_STEPS = [
+  "region",
+  "station",
+  "tackle",
+  "rod",
+  "location",
+  "catch",
+] as const;
 
 export type SetupStepId = (typeof SETUP_STEPS)[number];
 
@@ -32,10 +39,21 @@ export interface SetupStep {
 }
 
 const COPY: Record<SetupStepId, { label: string; hint: string; href: string }> = {
-  location: {
-    label: "Set a fishing location",
-    hint: "Where are you fishing?",
-    href: "/setup",
+  /*
+    Region and tide station are both one-time Settings choices, so they sit together:
+    the angler makes one trip to Settings instead of two, and both answer the same
+    question — where do you fish? Founder correction 2026-09-04: step 1 is the REGION,
+    not a location. They are different acts, and conflating them was the error.
+  */
+  region: {
+    label: "Choose your fishing region",
+    hint: "Which state's rules and species the app shows you.",
+    href: "/settings",
+  },
+  station: {
+    label: "Pick your tide station",
+    hint: "The nearest NOAA station, so the tides match your water.",
+    href: "/settings",
   },
   tackle: {
     label: "Add gear to your Tackle Box",
@@ -47,9 +65,15 @@ const COPY: Record<SetupStepId, { label: string; hint: string; href: string }> =
     hint: "Pair your gear into a rod you can fish with.",
     href: "/setup",
   },
-  conditions: {
-    label: "Add today's conditions",
-    hint: "Current, structure, water — what you see out there.",
+  /*
+    One step, not two. The founder's original list separated "set a location" from "add
+    conditions", and the design review found they are the same sheet — a location IS its
+    conditions, distinguished only by which optional fields got filled in. Two rows
+    pointing at one destination taught an order that does not exist.
+  */
+  location: {
+    label: "Set your location and conditions",
+    hint: "Where you're fishing, and what the water is doing.",
     href: "/setup",
   },
   catch: {
@@ -59,21 +83,6 @@ const COPY: Record<SetupStepId, { label: string; hint: string; href: string }> =
   },
 };
 
-/**
- * A location counts for step 4 once it carries an observation, not just a name. Naming a
- * spot and describing the water are two different acts, and the founder listed them as
- * two different steps.
- */
-function hasConditions(location: LocationConditionRecord): boolean {
-  return (
-    location.current_term !== null ||
-    location.current_strength !== null ||
-    location.structure_type_ids.length > 0 ||
-    location.bottom_depth_m !== null ||
-    location.water_color_id !== null ||
-    location.water_clarity_id !== null
-  );
-}
 
 /** What the log shows right now. Not the answer on its own — see the latch above. */
 export function observedSteps(input: {
@@ -81,14 +90,17 @@ export function observedSteps(input: {
   readonly rigs: readonly RigRecord[];
   readonly locations: readonly LocationConditionRecord[];
   readonly tackleItemCount: number;
+  /** Chosen in Settings, not merely defaulted — see `LocalPreference.useIsSet`. */
+  readonly regionChosen: boolean;
+  readonly stationChosen: boolean;
 }): ReadonlySet<SetupStepId> {
   const live = new Set<SetupStepId>();
-  const locations = input.locations.filter((l) => l.deleted_at === null);
 
-  if (locations.length > 0) live.add("location");
+  if (input.regionChosen) live.add("region");
+  if (input.stationChosen) live.add("station");
   if (input.tackleItemCount > 0) live.add("tackle");
   if (input.rigs.length > 0) live.add("rod");
-  if (locations.some(hasConditions)) live.add("conditions");
+  if (input.locations.some((l) => l.deleted_at === null)) live.add("location");
   if (input.catches.some((c) => c.deleted_at === null)) live.add("catch");
 
   return live;

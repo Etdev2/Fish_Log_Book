@@ -19,3 +19,8 @@ const preference = createLocalPreference<string>({
 export const useTideStationPreference = preference.use;
 export const setTideStationPreference = preference.set;
 export const readTideStationPreference = preference.read;
+
+/** Whether the angler has picked a station, rather than living with Newport Bay. */
+export function useTideStationChosen(): boolean {
+  return preference.useIsSet();
+}

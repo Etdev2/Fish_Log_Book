@@ -31,6 +31,18 @@ not have to re-derive them:
 
 ## Part 1 — the five-step guided checklist
 
+> **Superseded in part, founder 2026-09-04 (after first review).** There are now SIX
+> steps, and step 1 changed meaning: it is "choose your fishing region" in Settings, not
+> "set a fishing location". Location and conditions merged into one step — this document
+> reached the same conclusion in 1.1's own note that both rows pointed at the same sheet.
+> A tide station step was added at position 2, beside the region, since both are one-time
+> Settings choices. Final order: region → tide station → tackle → rod setup → location and
+> conditions → log a fish. Region and station ship with defaults, so "done" for those two
+> means the angler actually chose, via `LocalPreference.useIsSet`, not that a value
+> exists. Everything else below — the latch, the row copy pattern, the collapsed state,
+> the Setup reorder, and the whole of Parts 2 and 3 — stands as written. See
+> `docs/specs/setup-flow-and-quiver.md` §5.5.
+
 ### 1.1 The five steps, their destination, and what "done" means
 
 This is the most important table in the document. Read the two right-hand columns
