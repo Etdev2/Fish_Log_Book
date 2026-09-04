@@ -16,12 +16,12 @@
  * transactions, and nothing about what a catch is.
  */
 
-import { openDB, type DBSchema, type IDBPDatabase } from "idb";
+import { openDB, type DBSchema, type IDBPDatabase, type IDBPTransaction, type StoreNames } from "idb";
 
 import type { Mutation, SyncEntity } from "@/core/sync/outbox";
 
 /** Bump only with a migration in `upgrade` below. */
-const DB_VERSION = 2;
+const DB_VERSION = 3;
 const DB_NAME = "fish-log-book";
 
 export const ENTITY_STORES = [
@@ -63,18 +63,67 @@ export function isIndexedDbAvailable(): boolean {
 export function getDb(): Promise<IDBPDatabase<FishLogDB>> {
   if (!dbPromise) {
     dbPromise = openDB<FishLogDB>(DB_NAME, DB_VERSION, {
-      upgrade(db, oldVersion) {
-        // v2 adds `location_condition`. Written as additive steps rather than a rebuild
-        // so an angler who already logged catches keeps them: a wipe-and-recreate here
-        // would silently destroy a local-first log that has never synced anywhere.
-        if (oldVersion >= 1) {
-          if (!db.objectStoreNames.contains("location_condition")) {
-            const locations = db.createObjectStore("location_condition", { keyPath: "id" });
-            locations.createIndex("by_trip", "trip_id");
-          }
-          return;
+      upgrade(db, oldVersion, _newVersion, tx) {
+        /*
+          Cumulative steps, each guarded by `oldVersion < n`, and NONE of them returns.
+
+          This used to be `if (oldVersion >= 1) { …; return; }`, which was correct for v2
+          and a trap for everything after it: any v3 step written below that `return`
+          would never run on a device that already had the database — only on a fresh
+          install. It would not error. The angler would just have a quietly wrong store.
+          Flagged by the architect in ADR 008 and confirmed here before the v3 step landed.
+
+          Additive rather than a rebuild, because a wipe-and-recreate would silently
+          destroy a local-first log that has never synced anywhere.
+        */
+        if (oldVersion < 1) {
+          createInitialStores(db);
         }
 
+        if (oldVersion < 2 && !db.objectStoreNames.contains("location_condition")) {
+          const locations = db.createObjectStore("location_condition", { keyPath: "id" });
+          locations.createIndex("by_trip", "trip_id");
+        }
+
+        if (oldVersion > 0 && oldVersion < 3) {
+          void backfillQuiverIds(tx);
+        }
+      },
+    });
+  }
+  return dbPromise;
+}
+
+/**
+ * v3: every rod setup gets a `quiver_id` naming the lineage it belongs to (ADR 008).
+ *
+ * Existing rows have no linking data, so the best available grouping is `(trip_id, slot)`
+ * — the rod as it existed within one trip. Consequence, stated plainly because it is
+ * visible to the angler: a rod that was "the same rod" across two different trips becomes
+ * two Quiver entries. The information to do better was never recorded.
+ *
+ * Runs inside the version-change transaction, so it either completes or the upgrade
+ * fails and nothing is half-migrated.
+ */
+function backfillQuiverIds(tx: IDBPTransaction<FishLogDB, ArrayLike<StoreNames<FishLogDB>>, "versionchange">): void {
+  const store = tx.objectStore("trip_rig");
+  void store.getAll().then(async (rows: StoredRow[]) => {
+    const byLineage = new Map<string, string>();
+    for (const row of rows) {
+      if (typeof row.quiver_id === "string" && row.quiver_id.length > 0) continue;
+      const key = `${String(row.trip_id)}:${String(row.slot)}`;
+      let quiverId = byLineage.get(key);
+      if (!quiverId) {
+        quiverId = crypto.randomUUID();
+        byLineage.set(key, quiverId);
+      }
+      await store.put({ ...row, quiver_id: quiverId });
+    }
+  });
+}
+
+function createInitialStores(db: IDBPDatabase<FishLogDB>): void {
+  {
         db.createObjectStore("trip", { keyPath: "id" });
 
         const rig = db.createObjectStore("trip_rig", { keyPath: "id" });
@@ -100,10 +149,7 @@ export function getDb(): Promise<IDBPDatabase<FishLogDB>> {
 
         db.createObjectStore("meta");
         db.createObjectStore("media", { keyPath: "id" });
-      },
-    });
   }
-  return dbPromise;
 }
 
 /**
