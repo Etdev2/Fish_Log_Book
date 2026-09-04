@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 
+import { phaseName } from "@/core/rules/astro";
 import { compassLabel } from "@/core/rules/catch/measurement";
 import type { SearchableCatch } from "@/core/rules/catch/search";
 import {
@@ -21,6 +22,18 @@ import {
   type UnitSystem,
 } from "../format";
 import { logActions } from "../store";
+
+/** Plain English for the eight phases. Hyphenated ids are for code, not for a card. */
+const MOON_PHASE_LABEL: Record<string, string> = {
+  new: "New moon",
+  "waxing-crescent": "Waxing crescent",
+  "first-quarter": "First quarter",
+  "waxing-gibbous": "Waxing gibbous",
+  full: "Full moon",
+  "waning-gibbous": "Waning gibbous",
+  "last-quarter": "Last quarter",
+  "waning-crescent": "Waning crescent",
+};
 import { CHIP_CLASS, CHIP_OFF, PRIMARY_BUTTON, SECONDARY_BUTTON } from "../ui-classes";
 
 /**
@@ -238,7 +251,20 @@ export function CatchEnvironmentSection({
         ]
       : null,
     snapshot.moon_illumination_fraction !== null
-      ? ["Moon", `${Math.round(snapshot.moon_illumination_fraction * 100)}% lit`]
+      ? [
+          "Moon",
+          /*
+           * The name is derived here rather than stored: spec §18 keeps raw values in the
+           * snapshot and nothing derived. Illumination alone reads as a number nobody
+           * asked for — "waxing gibbous · 78% lit" is the sentence an angler would say.
+           * Both are shown, never the name alone, per the note in moon.ts.
+           */
+          `${
+            snapshot.moon_phase_angle_deg !== null
+              ? `${MOON_PHASE_LABEL[phaseName(snapshot.moon_phase_angle_deg)]} · `
+              : ""
+          }${Math.round(snapshot.moon_illumination_fraction * 100)}% lit`,
+        ]
       : null,
   ];
   const present = rows.filter((r): r is readonly [string, string] => r !== null);

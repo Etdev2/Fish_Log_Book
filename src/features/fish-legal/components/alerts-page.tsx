@@ -5,7 +5,7 @@ import { useEffect, useState, useSyncExternalStore } from "react";
 
 import { useLocalTimeZone } from "@/features/conditions/use-local-time-zone";
 import { CHIP_CLASS, CHIP_OFF, CHIP_OFF_ON_SURFACE, CHIP_ON } from "@/features/catches/ui-classes";
-import { legalAlertPrefs, readInbox, clearInbox, markRead, type LegalAlert, type LegalAlertPrefs } from "../alerts";
+import { legalAlertPrefs, readInbox, clearInbox, markRead, EMPTY_INBOX, type LegalAlert, type LegalAlertPrefs } from "../alerts";
 
 const TOGGLES: { key: keyof LegalAlertPrefs; label: string; hint: string }[] = [
   { key: "boundary", label: "Approach alerts", hint: "Heads-up when you near a boundary band (~600 m)." },
@@ -38,8 +38,9 @@ export function AlertsPage() {
         window.removeEventListener("storage", cb);
       };
     },
-    () => readInbox(),
-    () => [] as readonly LegalAlert[],
+    readInbox,
+    // Stable identity, not a fresh literal — see EMPTY_INBOX for why this mattered.
+    () => EMPTY_INBOX,
   );
 
   const fmt = (iso: string) =>

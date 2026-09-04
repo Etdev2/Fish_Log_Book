@@ -129,7 +129,7 @@ function precedingNewMoonMs(atMs: number): number {
  *
  * Boundaries are half-open: a value exactly on 22.5 is `waxing-crescent`, not `new`.
  */
-function phaseName(lunationDeg: number): MoonPhase["name"] {
+export function phaseName(lunationDeg: number): MoonPhase["name"] {
   const shifted = norm360(lunationDeg + 22.5);
   const eighth = Math.floor(shifted / 45) % 8;
   return (

@@ -53,13 +53,40 @@ export interface LegalAlert {
 const INBOX_KEY = "flb:legal-alert-inbox";
 const MAX_INBOX = 100;
 
+/**
+ * The empty inbox, as one shared value.
+ *
+ * Identity matters here, not just emptiness: `useSyncExternalStore` compares snapshots
+ * with `Object.is`, so a fresh `[]` on every call reads as "changed" every render. That is
+ * what took the alerts page down with "Maximum update depth exceeded" — a new array was a
+ * new snapshot was another render, forever.
+ */
+export const EMPTY_INBOX: readonly LegalAlert[] = Object.freeze([]);
+
+/** Last raw string seen in storage, and the array parsed from it. */
+let inboxRaw: string | null = null;
+let inboxValue: readonly LegalAlert[] = EMPTY_INBOX;
+
+/**
+ * Read the inbox, returning the SAME array until storage actually changes.
+ *
+ * Cached on the raw string rather than on a timestamp or a dirty flag: writes go through
+ * `writeInbox`, which replaces that string, so the cache invalidates itself and a write
+ * from another tab (which arrives as a `storage` event) is picked up too.
+ */
 export function readInbox(): readonly LegalAlert[] {
   try {
     const raw = window.localStorage.getItem(INBOX_KEY);
-    if (!raw) return [];
-    return (JSON.parse(raw) as LegalAlert[]).slice(0, MAX_INBOX);
+    if (raw === inboxRaw) return inboxValue;
+
+    inboxRaw = raw;
+    inboxValue =
+      raw === null
+        ? EMPTY_INBOX
+        : Object.freeze((JSON.parse(raw) as LegalAlert[]).slice(0, MAX_INBOX));
+    return inboxValue;
   } catch {
-    return [];
+    return EMPTY_INBOX;
   }
 }
 

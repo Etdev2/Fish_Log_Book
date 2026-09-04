@@ -51,7 +51,20 @@ export function LimitsPage() {
     () => (bundle ? limitLines(bundle.data, dateKey, keptToday) : []),
     [bundle, dateKey, keptToday],
   );
-  const moving = lines.filter((l) => l.retained > 0);
+  /*
+   * The page is called "Today's limits", so it shows today's limits.
+   *
+   * It used to render only the lines an angler had already retained against, which meant
+   * that until you kept something it was an empty page — you could not use it to answer
+   * "how many of these am I allowed?", which is the question people open it with, usually
+   * while holding the fish. Everything is shown now, with anything you have already kept
+   * sorted to the top so a live count is never buried.
+   */
+  const shown = useMemo(
+    () => [...lines].sort((a, b) => b.retained - a.retained),
+    [lines],
+  );
+  const anyRetained = shown.some((l) => l.retained > 0);
   const audit = useMemo(
     () => (bundle ? keptAudit(bundle.data, keptToday) : []),
     [bundle, keptToday],
@@ -78,13 +91,19 @@ export function LimitsPage() {
       ) : null}
 
       <section className="flex flex-col gap-3" aria-live="polite">
-        {moving.length === 0 ? (
+        {!anyRetained && shown.length > 0 ? (
+          <p className="rounded-lg border border-hairline bg-surface p-4 text-caption text-text-muted">
+            Nothing kept yet today — these are the limits as they stand. Counts fill in the
+            moment you log a fish as <em>Kept</em>.
+          </p>
+        ) : null}
+
+        {shown.length === 0 ? (
           <p className="rounded-lg border border-hairline bg-surface p-4 text-body text-text-muted">
-            Nothing kept in the log yet today. Retained fish appear here the moment you
-            log them as <em>Kept</em>.
+            No limit lines in this pack for today.
           </p>
         ) : (
-          moving.map((line) => {
+          shown.map((line) => {
             const copy = STATE_COPY[line.state];
             const label = line.kind === "group" ? line.label : speciesDisplayName(line.id);
             return (
