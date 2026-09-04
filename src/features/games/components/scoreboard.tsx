@@ -100,12 +100,50 @@ export function Scoreboard({ sessionId }: { sessionId: string }) {
         ) : null}
       </header>
 
+      {/*
+        Team totals lead when the game has sides. Without this the board reads as four
+        individuals and the teams the captain set up have no visible effect on anything,
+        which is half a feature — the sides are the thing being played for.
+      */}
+      {standings.teams.length > 0 ? (
+        <>
+          <h2 className="text-label text-text-muted">Teams</h2>
+          <ol className="flex flex-col gap-space-2" aria-label="Team scores">
+          {standings.teams.map((team) => (
+            <li
+              key={team.team_id}
+              className={`${CARD_CLASS} flex items-center justify-between gap-space-3 p-space-4 ${
+                team.rank === 1 ? "border-signal-orange" : ""
+              }`}
+            >
+              <span className="flex min-w-0 flex-col">
+                <span className="truncate text-h3 text-text-primary">{team.team_id}</span>
+                <span className="text-caption text-text-muted">
+                  {team.participant_ids
+                    .map((id) => participants.find((p) => p.id === id)?.display_name)
+                    .filter(Boolean)
+                    .join(", ")}
+                </span>
+              </span>
+              <span className="shrink-0 text-display tabular-nums text-text-primary">{team.points}</span>
+            </li>
+          ))}
+          </ol>
+          <h2 className="text-label text-text-muted">Who caught what</h2>
+        </>
+      ) : null}
+
       <ol className="flex flex-col gap-space-3">
         {standings.rows.map((standing) => {
           const player = participants.find((p) => p.id === standing.participant_id);
           if (!player) return null;
           const colors = PARTICIPANT_CLASSES[player.color_key] ?? PARTICIPANT_CLASSES["text-link"];
-          const leading = standing.participant_id === standings.leader_id && standing.eliminated_round === null;
+          // In a team game nobody is "leading" — the side is. Highlighting a person there
+          // tells the boat the wrong thing about what is being played for.
+          const leading =
+            standings.teams.length === 0 &&
+            standing.participant_id === standings.leader_id &&
+            standing.eliminated_round === null;
           return (
             <li
               key={standing.participant_id}

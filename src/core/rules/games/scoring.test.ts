@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { SPECIES, speciesById } from "@/core/ontology/species";
 import { POINT_TEMPLATES, captainsCupDefaults, fishCricketDefaults, makeTheCutDefaults } from "./modes";
-import { awards, biggestFish } from "./results";
+import { awards, biggestFish, winningTeams } from "./results";
 import { repeatValue, score, speciesMatches, type ScoringContext } from "./scoring";
 import type { GameEvent, GameParticipant, GameRules } from "./types";
 import vectors from "../vectors/games.json";
@@ -554,5 +554,38 @@ describe("a round reset resets what the board shows, not the game's totals", () 
     const a = s.rows.find((r) => r.participant_id === "a");
     expect(a?.points).toBe(5);
     expect(a?.scoring_catches).toBe(1);
+  });
+});
+
+describe("team games are won by a side, not a person", () => {
+  const teamed = () => [
+    player("a", { team_id: "Adults" }),
+    player("b", { team_id: "Adults" }),
+    player("c", { team_id: "Kids" }),
+    player("d", { team_id: "Kids" }),
+  ];
+
+  it("names the winning team even when the top individual is on the losing side", () => {
+    // Ruby out-fishes everyone, and still loses: two steady Adults beat one hot Kid.
+    const s = score(plainCup(), teamed(), [
+      fish("c", "bluefin_tuna"), // 8 — the biggest single score in the game
+      fish("a", "yellowtail"), // 5
+      fish("b", "yellowtail"), // 5 — Adults 10, Kids 8
+    ], CTX);
+    expect(s.rows[0].participant_id).toBe("c");
+    expect(winningTeams(s)).toEqual(["Adults"]);
+  });
+
+  it("returns both sides on a genuine tie", () => {
+    const s = score(plainCup(), teamed(), [
+      fish("a", "yellowtail"),
+      fish("c", "yellowtail"),
+    ], CTX);
+    expect(winningTeams(s)).toEqual(["Adults", "Kids"]);
+  });
+
+  it("returns nothing at all when the game had no teams", () => {
+    const s = score(plainCup(), [player("a")], [fish("a", "yellowtail")], CTX);
+    expect(winningTeams(s)).toEqual([]);
   });
 });

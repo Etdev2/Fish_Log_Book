@@ -13,6 +13,19 @@
 import type { GameStandings, ScoredEvent } from "./scoring";
 import type { GameParticipant } from "./types";
 
+/**
+ * The teams that won, when the game had teams at all.
+ *
+ * Separate from `winner_ids` on purpose: in a team game the individual leader is a fact
+ * about a person, and the result is a fact about a side. Adults can win while the highest
+ * single score sits on the Kids bench.
+ */
+export function winningTeams(standings: GameStandings): readonly string[] {
+  if (standings.teams.length === 0) return [];
+  const top = standings.teams[0].points;
+  return standings.teams.filter((t) => t.points === top).map((t) => t.team_id);
+}
+
 export interface Award {
   readonly kind: "biggest_fish" | "most_species" | "released";
   readonly label: string;

@@ -5,6 +5,7 @@ import { useMemo, useState } from "react";
 import { SPECIES, speciesById } from "@/core/ontology/species";
 import { localDateOf } from "@/core/rules/catch/rules";
 import type { EventDisposition, GameParticipant, GameSession } from "@/core/rules/games/types";
+import { logHostCatch } from "../host-catch";
 import { legalForGameCatch, legalWarning } from "../legal";
 import { logGameCatch } from "../store";
 import {
@@ -66,6 +67,25 @@ export function LogCatchSheet({
     if (busy || participantId === "") return;
     setBusy(true);
     try {
+      /*
+        The host's own fish, if they asked for it, goes to their real log first, and the
+        game event then references that catch by id.
+
+        Order matters and is the opposite of what you would guess. The catch is written
+        first so the event can carry its id, which is what ADR 009 means by "references
+        rather than duplicates" — one fish, one factual record. If minting the catch fails
+        the game event still lands with a null `catch_id`, because the game must never lose
+        a fish over a bookkeeping convenience.
+      */
+      const catchId =
+        alsoLog && player !== null ? await logHostCatch(player, {
+          speciesId,
+          speciesOther: speciesId === null && query.trim().length > 0 ? query.trim() : null,
+          lengthMm: inchesToMm(lengthIn),
+          weightG: poundsToGrams(weightLb),
+          disposition,
+        }) : null;
+
       await logGameCatch({
         sessionId: session.id,
         participantId,
@@ -77,10 +97,7 @@ export function LogCatchSheet({
         personalBest,
         newSpecies,
         legal,
-        // Phase 1 links nothing: the host's opt-in mints a real catch through the
-        // ordinary catch flow, and that work lands with the log integration. Until then
-        // the toggle records the intent without inventing a half-formed catch row.
-        catchId: null,
+        catchId,
       });
       onDone();
     } finally {

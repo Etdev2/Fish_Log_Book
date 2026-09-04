@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 
 import { speciesById } from "@/core/ontology/species";
-import { awards, biggestFish } from "@/core/rules/games/results";
+import { awards, biggestFish, winningTeams } from "@/core/rules/games/results";
 import { formatWhen, modeName, pointsLabel } from "../format";
 import { summaryFor } from "./scoreboard";
 import { gameView, rematch, useGames } from "../store";
@@ -56,6 +56,7 @@ export function GameResults({ sessionId }: { sessionId: string }) {
   const winners = standings.winner_ids.length > 0
     ? standings.winner_ids
     : standings.rows.slice(0, 1).map((r) => r.participant_id);
+  const teamWinners = winningTeams(standings);
   const biggest = biggestFish(standings);
   const scoredCatches = standings.events.filter(
     (e) => e.event.kind === "catch" && e.status === "scored",
@@ -68,17 +69,42 @@ export function GameResults({ sessionId }: { sessionId: string }) {
           {modeName(session.mode)} · {formatWhen(session.completed_at ?? session.created_at)}
         </p>
         <h1 className="text-h1 text-text-primary">
-          {winners.length === 0
-            ? "No winner"
-            : winners.length === 1
-              ? `${nameOf(winners[0])} wins`
-              : `${winners.map(nameOf).join(" and ")} share it`}
+          {/*
+            "take it" rather than "wins", because a team name can be plural or singular and
+            the app does not get to choose: "Adults wins" and "Port win" are both wrong, and
+            the captain types the name. This construction is right for either.
+          */}
+          {teamWinners.length === 1
+            ? `${teamWinners[0]} take it`
+            : teamWinners.length > 1
+              ? `${teamWinners.join(" and ")} share it`
+              : winners.length === 0
+                ? "No winner"
+                : winners.length === 1
+                  ? `${nameOf(winners[0])} wins`
+                  : `${winners.map(nameOf).join(" and ")} share it`}
         </h1>
       </header>
 
+      {standings.teams.length > 0 ? (
+        <section className="flex flex-col gap-space-3" aria-labelledby="teams-heading">
+          <h2 id="teams-heading" className="text-h3 text-text-primary">
+            Final team scores
+          </h2>
+          <ol className="flex flex-col gap-space-2">
+            {standings.teams.map((team) => (
+              <li key={team.team_id} className={`${CARD_CLASS} flex items-center justify-between gap-space-3 p-space-4`}>
+                <span className="min-w-0 truncate text-body-strong text-text-primary">{team.team_id}</span>
+                <span className="shrink-0 text-h2 tabular-nums text-text-primary">{team.points}</span>
+              </li>
+            ))}
+          </ol>
+        </section>
+      ) : null}
+
       <section className="flex flex-col gap-space-3" aria-labelledby="standings-heading">
         <h2 id="standings-heading" className="text-h3 text-text-primary">
-          Final standings
+          {standings.teams.length > 0 ? "Who caught what" : "Final standings"}
         </h2>
         <ol className="flex flex-col gap-space-2">
           {standings.rows.map((row) => {

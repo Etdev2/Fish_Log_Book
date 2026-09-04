@@ -20,6 +20,13 @@ import { ENTITY_STORES, LOCAL_STORES } from "@/lib/offline/db";
 
 const GAMES_DIR = "src/features/games";
 
+/**
+ * The single sanctioned door between a game and the real Fish Log (ADR 009 §1). It exists
+ * so the host's own fish can reach their own log; it checks `is_host` itself, and it is
+ * named here so that any *other* file growing the same import fails this suite.
+ */
+const HOST_BRIDGE = join("src", "features", "games", "host-catch.ts");
+
 function sourceFiles(dir: string): readonly string[] {
   const out: string[] = [];
   for (const entry of readdirSync(dir, { withFileTypes: true })) {
@@ -51,13 +58,16 @@ describe("guest catches never become catch rows (ADR 009 §1)", () => {
     }
   });
 
-  it("never imports the Fish Log's write actions", () => {
-    for (const file of files) {
-      const text = readFileSync(file, "utf8");
-      expect(text, `${file} reaches into the catch store`).not.toMatch(
-        /from\s*["']@\/features\/catches\/(store|create)["']/,
-      );
-    }
+  it("imports the Fish Log's write actions from the host bridge and nowhere else", () => {
+    const importers = files.filter((file) =>
+      /from\s*["']@\/features\/catches\/(store|create)["']/.test(readFileSync(file, "utf8")),
+    );
+    expect(importers).toEqual([HOST_BRIDGE]);
+  });
+
+  it("keeps the host check inside the bridge rather than trusting its caller", () => {
+    const text = readFileSync(HOST_BRIDGE, "utf8");
+    expect(text).toMatch(/if\s*\(!participant\.is_host\)\s*return null;/);
   });
 });
 
