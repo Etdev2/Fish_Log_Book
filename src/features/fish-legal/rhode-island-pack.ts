@@ -8,10 +8,10 @@ import type { RegArea, RegPack, RegRule } from "./types";
 
 export const RHODE_ISLAND_PACK: RegPack = {
   id: "rhode-island-2026-09-03",
-  version: 1,
-  publishedAt: "2026-09-03T18:00:00Z",
+  version: 2,
+  publishedAt: "2026-09-04T23:30:00Z",
   notes:
-    "Rhode Island (DEM recreational table, Rev. 9/1/2026): striped bass 28\"-<31\" @1 year-round + circle-hook bait rule; bluefish 5 general / 7 party-charter; scup shore 9.5\" vs private/rental 11\" @30 May 1–Dec 31; fluke 19\" @6 Apr 1–Dec 31 with special-shore 17\" (2 of 6); tautog 16\" (one >21\", vessel 10) 3/closed/3/5; black sea bass 16\" general 3 May 16–Dec 31 (party/charter 4 then 6); cod prohibited; winter flounder 12\" @2 Mar 1–Dec 31 with Narragansett Bay north-of-Colregs prohibition.",
+    "Rhode Island DEM v2: v1 rec table plus dab 14\" no bag; monkfish 17\" whole; witch 14\" no bag; yellowtail 13\" no bag. No cobia/Spanish/king on Rev 9/1/2026 rec table.",
 };
 
 const RI = {
@@ -20,7 +20,7 @@ const RI = {
   updated: "2026-09-01",
 } as const;
 const VERIFIED = "2026-09-03";
-const pv = 1;
+const pv = 2;
 
 export const RI_AREAS: readonly RegArea[] = [
   {
@@ -205,6 +205,38 @@ export const RI_RULES: readonly RegRule[] = [
     sourceUrl: RI.url, sourceTitle: RI.title, sourceUpdatedAt: RI.updated, verifiedAt: VERIFIED,
     seasonStart: null, seasonEnd: null, bagDaily: null, possessionLimit: null, bagSharesWithGroup: false,
     minSizeIn: 19, maxSizeIn: null, sizeMeasure: "total_length", platformScope: null, depthNote: "No possession limit.",
+    checkInseason: false, staleAfterDays: 120,
+  }),
+  rule({
+    id: "ri-plaice", speciesId: "american_plaice", regAreaId: "ri-statewide", kind: "bag_limit",
+    verbatim: "American plaice (dab): 14\". 1/1 - 12/31. No limit.",
+    sourceUrl: RI.url, sourceTitle: RI.title, sourceUpdatedAt: RI.updated, verifiedAt: VERIFIED,
+    seasonStart: null, seasonEnd: null, bagDaily: null, possessionLimit: null, bagSharesWithGroup: false,
+    minSizeIn: 14, maxSizeIn: null, sizeMeasure: "total_length", platformScope: null, depthNote: "No possession limit.",
+    checkInseason: false, staleAfterDays: 120,
+  }),
+  rule({
+    id: "ri-monkfish", speciesId: "monkfish", regAreaId: "ri-statewide", kind: "bag_limit",
+    verbatim: "Monkfish (Goosefish): 17\" whole / 11\" tail. 1/1 - 12/31. 50 lbs tails/day or 166 lbs whole/day.",
+    sourceUrl: RI.url, sourceTitle: RI.title, sourceUpdatedAt: RI.updated, verifiedAt: VERIFIED,
+    seasonStart: null, seasonEnd: null, bagDaily: null, possessionLimit: null, bagSharesWithGroup: false,
+    minSizeIn: 17, maxSizeIn: null, sizeMeasure: "total_length", platformScope: null, depthNote: "50 lbs tails/day or 166 lbs whole/day.",
+    checkInseason: false, staleAfterDays: 90,
+  }),
+  rule({
+    id: "ri-witch", speciesId: "witch_flounder", regAreaId: "ri-statewide", kind: "bag_limit",
+    verbatim: "Witch Flounder (Gray Sole): 14\". 1/1 - 12/31. No limit.",
+    sourceUrl: RI.url, sourceTitle: RI.title, sourceUpdatedAt: RI.updated, verifiedAt: VERIFIED,
+    seasonStart: null, seasonEnd: null, bagDaily: null, possessionLimit: null, bagSharesWithGroup: false,
+    minSizeIn: 14, maxSizeIn: null, sizeMeasure: "total_length", platformScope: null, depthNote: "No possession limit.",
+    checkInseason: false, staleAfterDays: 120,
+  }),
+  rule({
+    id: "ri-yellowtail", speciesId: "yellowtail_flounder", regAreaId: "ri-statewide", kind: "bag_limit",
+    verbatim: "Yellowtail Flounder: 13\". 1/1 - 12/31. No limit.",
+    sourceUrl: RI.url, sourceTitle: RI.title, sourceUpdatedAt: RI.updated, verifiedAt: VERIFIED,
+    seasonStart: null, seasonEnd: null, bagDaily: null, possessionLimit: null, bagSharesWithGroup: false,
+    minSizeIn: 13, maxSizeIn: null, sizeMeasure: "total_length", platformScope: null, depthNote: "No possession limit.",
     checkInseason: false, staleAfterDays: 120,
   }),
 ];

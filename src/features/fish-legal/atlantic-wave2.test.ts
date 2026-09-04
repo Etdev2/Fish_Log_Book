@@ -72,4 +72,11 @@ describe("Atlantic wave 2 — RI / NY / NJ", () => {
     expect(regulationCard(NEW_JERSEY, "nj-marine", "spanish_mackerel", TODAY, "boat")!.bagDaily).toBe(10);
     expect(regulationCard(NEW_JERSEY, "nj-marine", "king_mackerel", TODAY, "boat")!.minSizeIn).toBe(23);
   });
+
+  it("RI dab 14 no bag; witch 14; yellowtail 13; monkfish 17", () => {
+    expect(regulationCard(RHODE_ISLAND, "ri-statewide", "american_plaice", TODAY, "boat")!.minSizeIn).toBe(14);
+    expect(regulationCard(RHODE_ISLAND, "ri-statewide", "witch_flounder", TODAY, "boat")!.minSizeIn).toBe(14);
+    expect(regulationCard(RHODE_ISLAND, "ri-statewide", "yellowtail_flounder", TODAY, "boat")!.minSizeIn).toBe(13);
+    expect(regulationCard(RHODE_ISLAND, "ri-statewide", "monkfish", TODAY, "boat")!.minSizeIn).toBe(17);
+  });
 });

@@ -8,10 +8,10 @@ import type { RegArea, RegPack, RegRule } from "./types";
 
 export const NEW_HAMPSHIRE_PACK: RegPack = {
   id: "new-hampshire-2026-09-03",
-  version: 1,
-  publishedAt: "2026-09-03T21:00:00Z",
+  version: 2,
+  publishedAt: "2026-09-04T23:30:00Z",
   notes:
-    "New Hampshire F&G saltwater recreational table (updated 2026-08-17): stripers 28–<31\" @1 year-round + circle hooks/gaff/cull bans; BSB 16.5\" @4 year-round; bluefish 5/7; cod 23\" @1 Sep 1–Oct 31 (closed Nov 1–Aug 31); haddock 17\" @15 except March; winter flounder 12\" @8; fluke 15\" no bag; shad/salmon/wolffish/ocean pout/windowpane prohibited.",
+    "New Hampshire F&G v2: v1 table plus dab 14\" no bag; monkfish 17\" no bag; redfish 9\" no bag; yellowtail 13\" no bag; pollock no state min (federal 19\"); witch no min; white perch 25; spiny dogfish no bag. Scup removed from 2026 table — not invented.",
 };
 
 const NH = {
@@ -20,7 +20,7 @@ const NH = {
   updated: "2026-08-17",
 } as const;
 const VERIFIED = "2026-09-03";
-const pv = 1;
+const pv = 2;
 
 export const NH_AREAS: readonly RegArea[] = [
   {
@@ -170,6 +170,70 @@ export const NH_RULES: readonly RegRule[] = [
     sourceUrl: NH.url, sourceTitle: NH.title, sourceUpdatedAt: NH.updated, verifiedAt: VERIFIED,
     seasonStart: null, seasonEnd: null, bagDaily: 0, possessionLimit: 0, bagSharesWithGroup: false,
     minSizeIn: null, maxSizeIn: null, sizeMeasure: null, platformScope: null, depthNote: null,
+    checkInseason: false, staleAfterDays: 120,
+  }),
+  rule({
+    id: "nh-plaice", speciesId: "american_plaice", regAreaId: "nh-coast", kind: "bag_limit",
+    verbatim: "American Plaice Recreational: Closed Season: No closed season. Minimum Length: 14 inches. Daily Bag Limit: No bag limit.",
+    sourceUrl: NH.url, sourceTitle: NH.title, sourceUpdatedAt: NH.updated, verifiedAt: VERIFIED,
+    seasonStart: null, seasonEnd: null, bagDaily: null, possessionLimit: null, bagSharesWithGroup: false,
+    minSizeIn: 14, maxSizeIn: null, sizeMeasure: "total_length", platformScope: null, depthNote: "No bag limit.",
+    checkInseason: false, staleAfterDays: 120,
+  }),
+  rule({
+    id: "nh-monkfish", speciesId: "monkfish", regAreaId: "nh-coast", kind: "bag_limit",
+    verbatim: "Monkfish Recreational: Closed Season: No closed season. Minimum Length: 17 inches. Daily Bag Limit: No bag limit.",
+    sourceUrl: NH.url, sourceTitle: NH.title, sourceUpdatedAt: NH.updated, verifiedAt: VERIFIED,
+    seasonStart: null, seasonEnd: null, bagDaily: null, possessionLimit: null, bagSharesWithGroup: false,
+    minSizeIn: 17, maxSizeIn: null, sizeMeasure: "total_length", platformScope: null, depthNote: "No bag limit.",
+    checkInseason: false, staleAfterDays: 120,
+  }),
+  rule({
+    id: "nh-pollock", speciesId: "pollock", regAreaId: "nh-coast", kind: "bag_limit",
+    verbatim: "Pollock Recreational: Closed Season: No closed season. Minimum Length: No minimum length. Daily Bag Limit: No bag limit. Special Rules: 19 inches, if taken in federal waters.",
+    sourceUrl: NH.url, sourceTitle: NH.title, sourceUpdatedAt: NH.updated, verifiedAt: VERIFIED,
+    seasonStart: null, seasonEnd: null, bagDaily: null, possessionLimit: null, bagSharesWithGroup: false,
+    minSizeIn: null, maxSizeIn: null, sizeMeasure: null, platformScope: null, depthNote: "Federal waters 19\" min.",
+    checkInseason: false, staleAfterDays: 120,
+  }),
+  rule({
+    id: "nh-redfish", speciesId: "acadian_redfish", regAreaId: "nh-coast", kind: "bag_limit",
+    verbatim: "Redfish Recreational: Closed Season: No closed season. Minimum Length: 9 inches. Daily Bag Limit: No bag limit.",
+    sourceUrl: NH.url, sourceTitle: NH.title, sourceUpdatedAt: NH.updated, verifiedAt: VERIFIED,
+    seasonStart: null, seasonEnd: null, bagDaily: null, possessionLimit: null, bagSharesWithGroup: false,
+    minSizeIn: 9, maxSizeIn: null, sizeMeasure: "total_length", platformScope: null, depthNote: "No bag limit.",
+    checkInseason: false, staleAfterDays: 120,
+  }),
+  rule({
+    id: "nh-yellowtail", speciesId: "yellowtail_flounder", regAreaId: "nh-coast", kind: "bag_limit",
+    verbatim: "Yellowtail Flounder Recreational: Closed Season: No closed season. Minimum Length: 13 inches. Daily Bag Limit: No bag limit.",
+    sourceUrl: NH.url, sourceTitle: NH.title, sourceUpdatedAt: NH.updated, verifiedAt: VERIFIED,
+    seasonStart: null, seasonEnd: null, bagDaily: null, possessionLimit: null, bagSharesWithGroup: false,
+    minSizeIn: 13, maxSizeIn: null, sizeMeasure: "total_length", platformScope: null, depthNote: "No bag limit.",
+    checkInseason: false, staleAfterDays: 120,
+  }),
+  rule({
+    id: "nh-witch", speciesId: "witch_flounder", regAreaId: "nh-coast", kind: "bag_limit",
+    verbatim: "Witch Flounder Recreational: Closed Season: No closed season. Minimum Length: No minimum length. Daily Bag Limit: No limit.",
+    sourceUrl: NH.url, sourceTitle: NH.title, sourceUpdatedAt: NH.updated, verifiedAt: VERIFIED,
+    seasonStart: null, seasonEnd: null, bagDaily: null, possessionLimit: null, bagSharesWithGroup: false,
+    minSizeIn: null, maxSizeIn: null, sizeMeasure: null, platformScope: null, depthNote: "No limit.",
+    checkInseason: false, staleAfterDays: 120,
+  }),
+  rule({
+    id: "nh-white-perch", speciesId: "white_perch", regAreaId: "nh-coast", kind: "bag_limit",
+    verbatim: "White Perch Recreational: Closed Season: No closed season. Minimum Length: No minimum length. Daily Bag Limit: 25 fish per day. Special Rules: Sale is prohibited.",
+    sourceUrl: NH.url, sourceTitle: NH.title, sourceUpdatedAt: NH.updated, verifiedAt: VERIFIED,
+    seasonStart: null, seasonEnd: null, bagDaily: 25, possessionLimit: 25, bagSharesWithGroup: false,
+    minSizeIn: null, maxSizeIn: null, sizeMeasure: null, platformScope: null, depthNote: "Sale prohibited.",
+    checkInseason: false, staleAfterDays: 90,
+  }),
+  rule({
+    id: "nh-spiny-dogfish", speciesId: "spiny_dogfish", regAreaId: "nh-coast", kind: "bag_limit",
+    verbatim: "Dogfish, Spiny Recreational: Closed Season: No closed season. Minimum Length: No minimum length. Daily Bag Limit: No bag limit. Special Rules: Finning prohibited.",
+    sourceUrl: NH.url, sourceTitle: NH.title, sourceUpdatedAt: NH.updated, verifiedAt: VERIFIED,
+    seasonStart: null, seasonEnd: null, bagDaily: null, possessionLimit: null, bagSharesWithGroup: false,
+    minSizeIn: null, maxSizeIn: null, sizeMeasure: null, platformScope: null, depthNote: "No bag limit. Finning prohibited.",
     checkInseason: false, staleAfterDays: 120,
   }),
 ];
