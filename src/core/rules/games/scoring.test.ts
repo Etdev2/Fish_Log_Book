@@ -513,3 +513,46 @@ describe("end-of-game awards", () => {
     expect(most?.participant_id).toBe("b");
   });
 });
+
+describe("a round reset resets what the board shows, not the game's totals", () => {
+  const cut = makeTheCutDefaults();
+
+  it("clears the displayed counters alongside the score", () => {
+    // The bug this pins: a day-2 board reading "1 fish · 1 species" beside a score of 0,
+    // because the fish were yesterday's and the score was not. Caught on a real screen.
+    const s = score(cut, [player("a"), player("b")], [
+      fish("a", "yellowtail", { disposition: "released" }),
+      fish("b", "kelp_bass"),
+      control({}),
+    ], CTX);
+    const a = s.rows.find((r) => r.participant_id === "a");
+    expect(a?.points).toBe(0);
+    expect(a?.scoring_catches).toBe(0);
+    expect(a?.unique_species).toEqual([]);
+    expect(a?.released).toBe(0);
+  });
+
+  it("keeps the whole game's totals for the results screen", () => {
+    const s = score(cut, [player("a"), player("b")], [
+      fish("a", "yellowtail", { disposition: "released" }),
+      fish("b", "kelp_bass"),
+      control({}),
+    ], CTX);
+    const a = s.rows.find((r) => r.participant_id === "a");
+    expect(a?.total_catches).toBe(1);
+    expect(a?.total_species).toBe(1);
+    expect(a?.total_released).toBe(1);
+  });
+
+  it("leaves both alone when scores carry between rounds", () => {
+    const carry = { ...cut, rounds: { ...cut.rounds, carry_scores: true } };
+    const s = score(carry, [player("a"), player("b")], [
+      fish("a", "yellowtail"),
+      fish("b", "kelp_bass"),
+      control({}),
+    ], CTX);
+    const a = s.rows.find((r) => r.participant_id === "a");
+    expect(a?.points).toBe(5);
+    expect(a?.scoring_catches).toBe(1);
+  });
+});

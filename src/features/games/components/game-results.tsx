@@ -92,7 +92,13 @@ export function GameResults({ sessionId }: { sessionId: string }) {
                 <span className="flex min-w-0 flex-1 flex-col">
                   <span className="truncate text-body-strong text-text-primary">{player.display_name}</span>
                   <span className="text-caption text-text-muted">
-                    {summaryFor(row)}
+                    {/* The whole game here, not just the last round. */}
+                    {summaryFor({
+                      catches: row.total_catches,
+                      species: row.total_species,
+                      released: row.total_released,
+                      handicap: row.handicap,
+                    })}
                     {row.eliminated_round !== null
                       ? ` · out after ${session.rules.rounds.multi_day ? "day" : "round"} ${row.eliminated_round}`
                       : ""}

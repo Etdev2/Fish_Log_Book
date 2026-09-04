@@ -77,10 +77,14 @@ export interface Standing {
   readonly team_id: string | null;
   readonly points: number;
   readonly handicap: number;
+  /** This round, when scores reset between rounds. Otherwise the whole game. */
   readonly scoring_catches: number;
-  readonly total_catches: number;
   readonly released: number;
   readonly unique_species: readonly string[];
+  /** The whole game, always — these never reset at a round boundary. */
+  readonly total_catches: number;
+  readonly total_species: number;
+  readonly total_released: number;
   /** Fish Cricket: target -> marks accrued (capped at `marks_to_close`). */
   readonly marks: Readonly<Record<string, number>>;
   readonly closed: readonly string[];
@@ -208,10 +212,20 @@ function largestOf(events: readonly ScoredEvent[]): readonly string[] {
 
 interface WorkingRow {
   points: number;
+  /*
+    Two sets of counters, because a round reset makes them mean different things.
+
+    A Make the Cut board that reads "1 fish · 1 species" beside a score of 0 is a board
+    that contradicts itself: those were yesterday's fish and this is today's score. So the
+    displayed counters reset with the points, and a second set that never resets carries
+    the whole game to the results screen.
+  */
   scoring_catches: number;
-  total_catches: number;
   released: number;
   species: Set<string>;
+  total_catches: number;
+  total_species: Set<string>;
+  total_released: number;
   speciesScoringCount: Map<string, number>;
   marks: Map<string, number>;
   eliminated_round: number | null;
@@ -229,9 +243,11 @@ export function score(
     rows.set(p.id, {
       points: p.handicap_points,
       scoring_catches: 0,
-      total_catches: 0,
       released: 0,
       species: new Set(),
+      total_catches: 0,
+      total_species: new Set(),
+      total_released: 0,
       speciesScoringCount: new Map(),
       marks: new Map(),
       eliminated_round: null,
@@ -323,7 +339,10 @@ export function score(
     }
 
     row.total_catches += 1;
-    if (event.disposition === "released") row.released += 1;
+    if (event.disposition === "released") {
+      row.released += 1;
+      row.total_released += 1;
+    }
 
     const zero = (status: EventScoreStatus, reason: string): void => {
       scored.push(blank(event, status, reason));
@@ -363,6 +382,7 @@ export function score(
 
     if (earned === 0) {
       row.species.add(speciesId);
+      row.total_species.add(speciesId);
       zero("zero_repeat_cap", "Already scored the limit for this species.");
       continue;
     }
@@ -417,6 +437,7 @@ export function score(
     row.points += total;
     row.scoring_catches += 1;
     row.species.add(speciesId);
+    row.total_species.add(speciesId);
     row.speciesScoringCount.set(speciesId, prior + 1);
 
     const entry: ScoredEvent = {
@@ -480,6 +501,10 @@ export function score(
         const handicap = active.find((p) => p.id === id)?.handicap_points ?? 0;
         row.points = handicap;
         row.speciesScoringCount.clear();
+        // The displayed counters reset with the score they sit beside. `total_*` does not.
+        row.scoring_catches = 0;
+        row.released = 0;
+        row.species.clear();
       }
     }
   }
@@ -568,9 +593,11 @@ function rankRows(
       points: row.points,
       handicap: p.handicap_points,
       scoring_catches: row.scoring_catches,
-      total_catches: row.total_catches,
       released: row.released,
       unique_species: [...row.species],
+      total_catches: row.total_catches,
+      total_species: row.total_species.size,
+      total_released: row.total_released,
       marks: Object.fromEntries(row.marks),
       closed: [...row.marks.entries()].filter(([, m]) => m > 0).map(([t]) => t),
       eliminated_round: row.eliminated_round,

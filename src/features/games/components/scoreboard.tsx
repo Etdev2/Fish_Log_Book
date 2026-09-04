@@ -122,7 +122,12 @@ export function Scoreboard({ sessionId }: { sessionId: string }) {
                 <span className="text-caption text-text-muted">
                   {standing.eliminated_round !== null
                     ? `Out after ${session.rules.rounds.multi_day ? "day" : "round"} ${standing.eliminated_round}`
-                    : summaryFor(standing)}
+                    : summaryFor({
+                        catches: standing.scoring_catches,
+                        species: standing.unique_species.length,
+                        released: standing.released,
+                        handicap: standing.handicap,
+                      })}
                 </span>
                 {session.rules.cricket !== null ? (
                   <Marks
@@ -254,12 +259,12 @@ function NoSuchGame() {
  * a moving boat should provoke.
  */
 export function summaryFor(standing: {
-  scoring_catches: number;
-  unique_species: readonly string[];
+  catches: number;
+  species: number;
   released: number;
   handicap: number;
 }): string {
-  const parts = [`${standing.scoring_catches} fish`, `${standing.unique_species.length} species`];
+  const parts = [`${standing.catches} fish`, `${standing.species} species`];
   if (standing.released > 0) parts.push(`${standing.released} released`);
   if (standing.handicap !== 0) {
     parts.push(`${standing.handicap > 0 ? "+" : ""}${standing.handicap} head start`);
