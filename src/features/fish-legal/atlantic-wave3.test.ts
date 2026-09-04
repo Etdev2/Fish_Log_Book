@@ -80,4 +80,13 @@ describe("Atlantic wave 3 — CT / NH / ME", () => {
     expect(regulationCard(NEW_HAMPSHIRE, "nh-coast", "yellowtail_flounder", TODAY, "boat")!.minSizeIn).toBe(13);
     expect(regulationCard(NEW_HAMPSHIRE, "nh-coast", "white_perch", TODAY, "boat")!.bagDaily).toBe(25);
   });
+
+  it("ME territorial halibut closed Sep 3; redfish 9; monkfish 17; shad 2; eel 9 @25", () => {
+    expect(regulationCard(MAINE, "me-coast", "atlantic_halibut", TODAY, "boat")!.verdict).toBe("release");
+    expect(regulationCard(MAINE, "me-coast", "atlantic_halibut", "2026-06-01", "boat")!.minSizeIn).toBe(41);
+    expect(regulationCard(MAINE, "me-coast", "acadian_redfish", TODAY, "boat")!.minSizeIn).toBe(9);
+    expect(regulationCard(MAINE, "me-coast", "monkfish", TODAY, "boat")!.minSizeIn).toBe(17);
+    expect(regulationCard(MAINE, "me-coast", "american_shad", TODAY, "boat")!.bagDaily).toBe(2);
+    expect(regulationCard(MAINE, "me-coast", "american_eel", TODAY, "boat")!.minSizeIn).toBe(9);
+  });
 });

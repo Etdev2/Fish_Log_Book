@@ -8,10 +8,10 @@ import type { RegArea, RegPack, RegRule } from "./types";
 
 export const MAINE_PACK: RegPack = {
   id: "maine-2026-09-03",
-  version: 1,
-  publishedAt: "2026-09-03T21:00:00Z",
+  version: 2,
+  publishedAt: "2026-09-05T18:00:00Z",
   notes:
-    "Maine DMR 2026: stripers 28–31\" inclusive @1 year-round (Kennebec C&R May 1–Jun 30, closed Dec 1–Jun 30 except that C&R window; EEZ prohibited) + circle-hook bait / no gaff; cod 23\" @1 Sep 1–Oct 31; haddock 17\" @15 except March; winter flounder 12\" @8; fluke 20\" @2; BSB 13\" @10 May 19–Sep 21 and Oct 18–Dec 31; bluefish 5 + circle-hook bait; wolffish prohibited.",
+    "Maine DMR v2: v1 table plus territorial halibut 41\" May 18–Jun 13 (tags, 5/year rec); redfish 9\" no bag; monkfish 17\" no bag; American shad 2/day; American eel 9\" @25. Tautog named on the sheet without size/bag — not invented.",
 };
 
 const ME_SB = {
@@ -24,8 +24,13 @@ const ME_GF = {
   title: "Maine DMR — 2026 Saltwater Recreational Fishing Regulations (Groundfish and Other Finfish, posted July 14, 2026)",
   updated: "2026-07-01",
 } as const;
-const VERIFIED = "2026-09-03";
-const pv = 1;
+const ME_SR = {
+  url: "https://www.maine.gov/dmr/sites/maine.gov.dmr/files/inline-files/2026_searun_regs.pdf",
+  title: "Maine DMR — 2026 Sea Run Recreational Fishing Regulations",
+  updated: "2026-03-19",
+} as const;
+const VERIFIED = "2026-09-05";
+const pv = 2;
 
 export const ME_AREAS: readonly RegArea[] = [
   {
@@ -178,6 +183,54 @@ export const ME_RULES: readonly RegRule[] = [
     seasonStart: null, seasonEnd: null, bagDaily: 0, possessionLimit: 0, bagSharesWithGroup: false,
     minSizeIn: null, maxSizeIn: null, sizeMeasure: null, platformScope: null, depthNote: null,
     checkInseason: false, staleAfterDays: 120,
+  }),
+  rule({
+    id: "me-halibut", speciesId: "atlantic_halibut", regAreaId: "me-coast", kind: "bag_limit",
+    verbatim: "ATLANTIC HALIBUT: Size: Minimum size 41 inches. Bag limit: Vessels may land no more than 5 fish (recreational) / 25 fish (charter) per year. All retained fish shall immediately be tagged with an approved landings tag. Maine territorial waters; Season: Halibut can be retained from sunrise on May 18 through sunset on June 13th. No fishing on Wednesdays and Thursdays. Federal waters: No season, no more than 1 fish per day.",
+    sourceUrl: ME_GF.url, sourceTitle: ME_GF.title, sourceUpdatedAt: ME_GF.updated, verifiedAt: VERIFIED,
+    seasonStart: "05-18", seasonEnd: "06-13", bagDaily: null, possessionLimit: 5, bagSharesWithGroup: false,
+    minSizeIn: 41, maxSizeIn: null, sizeMeasure: "total_length", platformScope: null, depthNote: "Territorial: tags, 5/year rec, no Wed/Thu. Federal 1/day, no season.",
+    checkInseason: true, staleAfterDays: 30,
+  }),
+  rule({
+    id: "me-halibut-season", speciesId: "atlantic_halibut", regAreaId: "me-coast", kind: "season",
+    verbatim: "Maine territorial waters; Season: Halibut can be retained from sunrise on May 18 through sunset on June 13th. No fishing on Wednesdays and Thursdays (no harvesting or gear in the water).",
+    sourceUrl: ME_GF.url, sourceTitle: ME_GF.title, sourceUpdatedAt: ME_GF.updated, verifiedAt: VERIFIED,
+    seasonStart: "05-18", seasonEnd: "06-13", bagDaily: null, possessionLimit: null, bagSharesWithGroup: false,
+    minSizeIn: null, maxSizeIn: null, sizeMeasure: null, platformScope: null, depthNote: "No Wed/Thu in territorial waters.",
+    checkInseason: true, staleAfterDays: 30,
+  }),
+  rule({
+    id: "me-redfish", speciesId: "acadian_redfish", regAreaId: "me-coast", kind: "bag_limit",
+    verbatim: "ACADIAN REDFISH: Size: Minimum size 9 inches. No bag limit.",
+    sourceUrl: ME_GF.url, sourceTitle: ME_GF.title, sourceUpdatedAt: ME_GF.updated, verifiedAt: VERIFIED,
+    seasonStart: null, seasonEnd: null, bagDaily: null, possessionLimit: null, bagSharesWithGroup: false,
+    minSizeIn: 9, maxSizeIn: null, sizeMeasure: "total_length", platformScope: null, depthNote: "No bag limit.",
+    checkInseason: false, staleAfterDays: 120,
+  }),
+  rule({
+    id: "me-monkfish", speciesId: "monkfish", regAreaId: "me-coast", kind: "bag_limit",
+    verbatim: "MONKFISH: Size: Minimum size 17 inches. Bag limit: none.",
+    sourceUrl: ME_GF.url, sourceTitle: ME_GF.title, sourceUpdatedAt: ME_GF.updated, verifiedAt: VERIFIED,
+    seasonStart: null, seasonEnd: null, bagDaily: null, possessionLimit: null, bagSharesWithGroup: false,
+    minSizeIn: 17, maxSizeIn: null, sizeMeasure: "total_length", platformScope: null, depthNote: "No bag limit.",
+    checkInseason: false, staleAfterDays: 120,
+  }),
+  rule({
+    id: "me-american-eel", speciesId: "american_eel", regAreaId: "me-coast", kind: "bag_limit",
+    verbatim: "AMERICAN EEL: Method of take: speargun, harpoon, trap or hook and line. Bag Limit: 25 eels per angler per day, personal use only. Size: minimum size 9 inches.",
+    sourceUrl: ME_SR.url, sourceTitle: ME_SR.title, sourceUpdatedAt: ME_SR.updated, verifiedAt: VERIFIED,
+    seasonStart: null, seasonEnd: null, bagDaily: 25, possessionLimit: 25, bagSharesWithGroup: false,
+    minSizeIn: 9, maxSizeIn: null, sizeMeasure: "total_length", platformScope: null, depthNote: "Personal use only.",
+    checkInseason: false, staleAfterDays: 90,
+  }),
+  rule({
+    id: "me-american-shad", speciesId: "american_shad", regAreaId: "me-coast", kind: "bag_limit",
+    verbatim: "AMERICAN SHAD: Method of take: hook and line only. Bag limit: a person may take or possess only 2 fish per day. Size: No minimum size.",
+    sourceUrl: ME_SR.url, sourceTitle: ME_SR.title, sourceUpdatedAt: ME_SR.updated, verifiedAt: VERIFIED,
+    seasonStart: null, seasonEnd: null, bagDaily: 2, possessionLimit: 2, bagSharesWithGroup: false,
+    minSizeIn: null, maxSizeIn: null, sizeMeasure: null, platformScope: null, depthNote: "Hook and line only.",
+    checkInseason: true, staleAfterDays: 60,
   }),
 ];
 
