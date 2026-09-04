@@ -16,8 +16,7 @@ the app cannot do its headline job for anyone who does not fish that one bay, wh
 outranks every feature idea we have.
 
 ## Now
-- Publish a contact address and confirm the governing jurisdiction, then flip `LEGAL_CONTACT.resolved` in `src/core/legal/documents.ts`. Until then the notices render as incomplete and the app is not ready for the public. Founder decision, one line of code — `ceo`
-- Attorney review of the three notices. They are drafted, specific and honest, but written by an engineer — `counsel`, then a real lawyer
+- Everything blocking public release now lives in `docs/team/PRE-SHIP-CHECKLIST.md`, with the legal questions tracked as issue #56. A legal team answers those before ship (founder, 2026-09-04) — `ceo`
 - Confirm the NOAA tide fetch against the live service. Written from the API docs and never exercised: this environment's proxy blocks `api.tidesandcurrents.noaa.gov`. One person with signal opening the tide chart settles it — `head-dev`
 
 ## Next

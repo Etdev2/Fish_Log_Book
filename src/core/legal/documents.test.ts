@@ -49,10 +49,13 @@ describe("legal documents", () => {
     expect(legalDocument("cookies")).toBeNull();
   });
 
-  it("keeps the contact block honest — an address means resolved, and the reverse", () => {
-    // Guards the ship-with-a-blank case in both directions: a filled address that still
-    // claims to be unresolved would hide a real contact behind the pending notice.
-    expect(LEGAL_CONTACT.resolved).toBe(LEGAL_CONTACT.email.length > 0);
+  it("only counts as resolved once BOTH the address and the jurisdiction are filled in", () => {
+    // Guards it in both directions. Half-filled must not read as resolved: shipping a
+    // governing-law clause nobody chose is the failure this exists to prevent. And a
+    // fully-filled block that still claims to be unresolved would hide a real contact
+    // behind the pending notice.
+    const complete = LEGAL_CONTACT.email.length > 0 && LEGAL_CONTACT.jurisdiction.length > 0;
+    expect(LEGAL_CONTACT.resolved).toBe(complete);
   });
 });
 
