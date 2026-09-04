@@ -8,10 +8,10 @@ import type { RegArea, RegPack, RegRule } from "./types";
 
 export const NEW_YORK_PACK: RegPack = {
   id: "new-york-2026-09-03",
-  version: 1,
-  publishedAt: "2026-09-03T18:00:00Z",
+  version: 2,
+  publishedAt: "2026-09-04T22:00:00Z",
   notes:
-    "New York (DEC recreational saltwater table, last changed 2026-05-12): marine stripers 28–31\" @1 Apr 15–Dec 15 (Hudson north of GWB 23–28\" Apr 1–Nov 30); fluke 19\" May 4–Aug 1 then 19.5\" Aug 2–Oct 15 @3; BSB 16\" 3 then 6; scup shore 9.5\" / vessel 11\" @30; tautog LIS vs NY Bight split; bluefish 5/7; winter flounder Apr 1–May 30 @2.",
+    "New York DEC v2: v1 table plus Spanish mackerel 14\" @15; king mackerel 23\" @3; red drum no possession over 27\".",
 };
 
 const NY = {
@@ -20,7 +20,7 @@ const NY = {
   updated: "2026-05-12",
 } as const;
 const VERIFIED = "2026-09-03";
-const pv = 1;
+const pv = 2;
 
 export const NY_AREAS: readonly RegArea[] = [
   {
@@ -273,6 +273,30 @@ export const NY_RULES: readonly RegRule[] = [
     seasonStart: null, seasonEnd: null, bagDaily: 0, possessionLimit: 0, bagSharesWithGroup: false,
     minSizeIn: null, maxSizeIn: null, sizeMeasure: null, platformScope: null, depthNote: null,
     checkInseason: false, staleAfterDays: 90,
+  }),
+  rule({
+    id: "ny-spanish-mackerel", speciesId: "spanish_mackerel", regAreaId: "ny-marine", kind: "bag_limit",
+    verbatim: "Spanish mackerel: 14\". Possession 15. All year.",
+    sourceUrl: NY.url, sourceTitle: NY.title, sourceUpdatedAt: NY.updated, verifiedAt: VERIFIED,
+    seasonStart: null, seasonEnd: null, bagDaily: 15, possessionLimit: 15, bagSharesWithGroup: false,
+    minSizeIn: 14, maxSizeIn: null, sizeMeasure: "total_length", platformScope: null, depthNote: null,
+    checkInseason: true, staleAfterDays: 60,
+  }),
+  rule({
+    id: "ny-king-mackerel", speciesId: "king_mackerel", regAreaId: "ny-marine", kind: "bag_limit",
+    verbatim: "King mackerel: 23\". Possession 3. All year.",
+    sourceUrl: NY.url, sourceTitle: NY.title, sourceUpdatedAt: NY.updated, verifiedAt: VERIFIED,
+    seasonStart: null, seasonEnd: null, bagDaily: 3, possessionLimit: 3, bagSharesWithGroup: false,
+    minSizeIn: 23, maxSizeIn: null, sizeMeasure: "total_length", platformScope: null, depthNote: null,
+    checkInseason: true, staleAfterDays: 60,
+  }),
+  rule({
+    id: "ny-red-drum", speciesId: "red_drum", regAreaId: "ny-marine", kind: "bag_limit",
+    verbatim: "Red drum: No size limit. No limit for fish less than 27\" TL. Fish greater than 27\" TL shall not be possessed. All year.",
+    sourceUrl: NY.url, sourceTitle: NY.title, sourceUpdatedAt: NY.updated, verifiedAt: VERIFIED,
+    seasonStart: null, seasonEnd: null, bagDaily: null, possessionLimit: null, bagSharesWithGroup: false,
+    minSizeIn: null, maxSizeIn: 27, sizeMeasure: "total_length", platformScope: null, depthNote: "No daily bag under 27\".",
+    checkInseason: true, staleAfterDays: 60,
   }),
 ];
 

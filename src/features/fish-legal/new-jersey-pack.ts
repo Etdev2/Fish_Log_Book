@@ -8,10 +8,10 @@ import type { RegArea, RegPack, RegRule } from "./types";
 
 export const NEW_JERSEY_PACK: RegPack = {
   id: "new-jersey-2026-09-03",
-  version: 1,
-  publishedAt: "2026-09-03T18:00:00Z",
+  version: 2,
+  publishedAt: "2026-09-04T22:00:00Z",
   notes:
-    "New Jersey (NJDEP Attention Anglers 2026): stripers 28–31\" @1 (ocean 0–3 mi year-round; other marine Mar 1–Dec 31; EEZ closed); fluke 18\" @3 May 4–Sep 25 (Delaware Bay 17\"; IBSP 16\" @2); BSB 12.5\" 10/1/10/15 windows; tautog 15\" 4/4/1/5 with March and May–July closed; bluefish 5 private/shore, 7 for-hire; weakfish 13\" @1.",
+    "New Jersey NJDEP v2: v1 table plus cobia 43\" @1 / 2 vessel; Spanish mackerel 14\" @10; king mackerel 23\" @3.",
 };
 
 const NJ = {
@@ -20,7 +20,7 @@ const NJ = {
   updated: "2026-03-01",
 } as const;
 const VERIFIED = "2026-09-03";
-const pv = 1;
+const pv = 2;
 
 export const NJ_AREAS: readonly RegArea[] = [
   {
@@ -247,6 +247,30 @@ export const NJ_RULES: readonly RegRule[] = [
     seasonStart: null, seasonEnd: null, bagDaily: null, possessionLimit: null, bagSharesWithGroup: false,
     minSizeIn: null, maxSizeIn: null, sizeMeasure: null, platformScope: null, depthNote: null,
     checkInseason: false, staleAfterDays: 90,
+  }),
+  rule({
+    id: "nj-cobia", speciesId: "cobia", regAreaId: "nj-marine", kind: "bag_limit",
+    verbatim: "Cobia: 1 per person, 2 per vessel. 43\".",
+    sourceUrl: NJ.url, sourceTitle: NJ.title, sourceUpdatedAt: NJ.updated, verifiedAt: VERIFIED,
+    seasonStart: null, seasonEnd: null, bagDaily: 1, possessionLimit: 1, bagSharesWithGroup: false,
+    minSizeIn: 43, maxSizeIn: null, sizeMeasure: "total_length", platformScope: null, depthNote: "2 per vessel.",
+    checkInseason: true, staleAfterDays: 60,
+  }),
+  rule({
+    id: "nj-spanish-mackerel", speciesId: "spanish_mackerel", regAreaId: "nj-marine", kind: "bag_limit",
+    verbatim: "Spanish Mackerel: 10. 14\".",
+    sourceUrl: NJ.url, sourceTitle: NJ.title, sourceUpdatedAt: NJ.updated, verifiedAt: VERIFIED,
+    seasonStart: null, seasonEnd: null, bagDaily: 10, possessionLimit: 10, bagSharesWithGroup: false,
+    minSizeIn: 14, maxSizeIn: null, sizeMeasure: "total_length", platformScope: null, depthNote: null,
+    checkInseason: true, staleAfterDays: 60,
+  }),
+  rule({
+    id: "nj-king-mackerel", speciesId: "king_mackerel", regAreaId: "nj-marine", kind: "bag_limit",
+    verbatim: "King Mackerel: 3. 23\".",
+    sourceUrl: NJ.url, sourceTitle: NJ.title, sourceUpdatedAt: NJ.updated, verifiedAt: VERIFIED,
+    seasonStart: null, seasonEnd: null, bagDaily: 3, possessionLimit: 3, bagSharesWithGroup: false,
+    minSizeIn: 23, maxSizeIn: null, sizeMeasure: "total_length", platformScope: null, depthNote: null,
+    checkInseason: true, staleAfterDays: 60,
   }),
 ];
 

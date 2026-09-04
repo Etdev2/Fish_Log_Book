@@ -66,4 +66,10 @@ describe("Atlantic wave 3 — CT / NH / ME", () => {
     expect(ken!.bagDaily).toBe(1);
     expect(regulationCard(MAINE, "me-coast", "atlantic_wolffish", TODAY, "boat")!.verdict).toBe("release");
   });
+  it("CT red drum 27 max @1; American shad prohibited on LIS", () => {
+    const rd = regulationCard(CONNECTICUT, "ct-lis", "red_drum", TODAY, "boat");
+    expect(rd!.maxSizeIn).toBe(27);
+    expect(rd!.bagDaily).toBe(1);
+    expect(regulationCard(CONNECTICUT, "ct-lis", "american_shad", TODAY, "boat")!.verdict).toBe("release");
+  });
 });
