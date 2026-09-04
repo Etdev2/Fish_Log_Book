@@ -155,6 +155,29 @@ export function phaseName(lunationDeg: number): MoonPhase["name"] {
  * anywhere from 29.27 to 29.83 days, and clamping the number to the mean would be a
  * fabrication. Treat 0..29.9 as the true range.
  */
+/**
+ * The two raw lunar numbers a catch stores, from a moment in time.
+ *
+ * One definition, because two callers need it and they must not drift: the snapshot
+ * writes these at log time, and the record screen computes the same pair for older
+ * catches whose snapshot predates the app storing them. Both must produce the same
+ * answer for the same instant — which they do, because the moon's phase depends on
+ * nothing but when.
+ *
+ * Phase angle is the correlate; illumination is for display (ontology §3). Age in days
+ * maps onto the synodic month, 29.53 days over 360°.
+ */
+export function moonReading(atMs: number): {
+  readonly phaseAngleDeg: number;
+  readonly illuminationFraction: number;
+} {
+  const moon = moonPhaseAt(atMs as Instant);
+  return {
+    phaseAngleDeg: Math.round((moon.ageDays / MEAN_SYNODIC_MONTH_DAYS) * 360 * 1000) / 1000,
+    illuminationFraction: Math.round(moon.illumination * 10_000) / 10_000,
+  };
+}
+
 export function moonPhaseAt(at: Instant): MoonPhase {
   const atMs: number = at;
   const lunationDeg = lunationAngleDeg(atMs);

@@ -9,4 +9,4 @@
  */
 export type { DaylightPhase, DaylightSpan, GeoPoint, MoonPhase, SunEvents } from "./types";
 export { daylightSpans, sunEventsFor } from "./sun";
-export { moonPhaseAt, phaseName } from "./moon";
+export { moonPhaseAt, moonReading, phaseName } from "./moon";

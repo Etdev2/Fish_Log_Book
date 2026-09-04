@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 
-import { phaseName } from "@/core/rules/astro";
+import { moonReading, phaseName } from "@/core/rules/astro";
 import { compassLabel } from "@/core/rules/catch/measurement";
 import type { SearchableCatch } from "@/core/rules/catch/search";
 import {
@@ -214,9 +214,12 @@ export function CatchEnvironmentSection({
   snapshot,
   unitSystem,
   zone,
+  observedAt,
 }: {
   /** The catch's own IANA zone. Sun times are read in the zone the fish was caught in. */
   zone: string;
+  /** When the fish was caught. The moon is computed from this when the snapshot lacks it. */
+  observedAt: string;
   snapshot: {
     water_temp_c: number | null;
     pressure_hpa: number | null;
@@ -232,6 +235,26 @@ export function CatchEnvironmentSection({
   };
   unitSystem: UnitSystem;
 }) {
+  /*
+   * The moon, from the snapshot when it has one and from the clock when it does not.
+   *
+   * Catches logged before the app recorded lunar data — and every catch logged without a
+   * GPS fix, back when the sun and moon were skipped together — carry nulls that will
+   * never fill in. The moon does not need backfilling: its phase is a function of the
+   * instant alone, so the value computed now is the same value that would have been
+   * written then. Nothing is stored; this is a reading, like the phase name beside it.
+   */
+  const moon = ((): { phaseAngleDeg: number; illuminationFraction: number } | null => {
+    if (snapshot.moon_illumination_fraction !== null && snapshot.moon_phase_angle_deg !== null) {
+      return {
+        phaseAngleDeg: snapshot.moon_phase_angle_deg,
+        illuminationFraction: snapshot.moon_illumination_fraction,
+      };
+    }
+    const atMs = Date.parse(observedAt);
+    return Number.isNaN(atMs) ? null : moonReading(atMs);
+  })();
+
   const rows: (readonly [string, string] | null)[] = [
     snapshot.water_temp_c !== null
       ? ["Water temp", formatTemperature(snapshot.water_temp_c, unitSystem) as string]
@@ -259,20 +282,18 @@ export function CatchEnvironmentSection({
           )}`,
         ]
       : null,
-    snapshot.moon_illumination_fraction !== null
+    moon !== null
       ? [
           "Moon",
           /*
-           * The name is derived here rather than stored: spec §18 keeps raw values in the
-           * snapshot and nothing derived. Illumination alone reads as a number nobody
-           * asked for — "waxing gibbous · 78% lit" is the sentence an angler would say.
+           * The phase NAME is derived here rather than stored: spec §18 keeps raw values
+           * in the snapshot and nothing derived. Illumination alone reads as a number
+           * nobody asked for — "waxing gibbous · 78% lit" is the sentence an angler says.
            * Both are shown, never the name alone, per the note in moon.ts.
            */
-          `${
-            snapshot.moon_phase_angle_deg !== null
-              ? `${MOON_PHASE_LABEL[phaseName(snapshot.moon_phase_angle_deg)]} · `
-              : ""
-          }${Math.round(snapshot.moon_illumination_fraction * 100)}% lit`,
+          `${MOON_PHASE_LABEL[phaseName(moon.phaseAngleDeg)]} · ${Math.round(
+            moon.illuminationFraction * 100,
+          )}% lit`,
         ]
       : null,
   ];

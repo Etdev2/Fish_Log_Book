@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 
+import { moonReading } from "@/core/rules/astro";
+
 import { buildCatchSnapshot } from "./conditions";
 
 /**
@@ -57,5 +59,37 @@ describe("lunar data on a catch", () => {
     expect(snapshot.moon_illumination_fraction).toBeLessThanOrEqual(1);
     expect(snapshot.moon_phase_angle_deg).toBeGreaterThanOrEqual(0);
     expect(snapshot.moon_phase_angle_deg).toBeLessThan(361);
+  });
+});
+
+describe("the moon on an older catch", () => {
+  /**
+   * Founder request, 2026-09-04: a past record showed no lunar data at all. Catches logged
+   * before the app stored the moon — and every catch logged without a fix, back when sun
+   * and moon were skipped together — carry nulls that no enrichment pass will ever fill.
+   *
+   * They do not need one. The moon is a function of the instant, so the reading computed
+   * at view time is the same number that would have been written at log time. These pin
+   * that equivalence, because it is the whole justification for computing it late.
+   */
+  it("computes the same reading now as the snapshot would have stored then", () => {
+    const snapshot = buildCatchSnapshot(input(33.6, -118.0), "live");
+    const late = moonReading(Date.parse(AT));
+
+    expect(late.phaseAngleDeg).toBe(snapshot.moon_phase_angle_deg);
+    expect(late.illuminationFraction).toBe(snapshot.moon_illumination_fraction);
+  });
+
+  it("is identical for a backfilled catch and a live one at the same moment", () => {
+    const live = buildCatchSnapshot(input(null, null), "live");
+    const backfilled = buildCatchSnapshot(input(null, null), "backfill");
+    expect(backfilled.moon_illumination_fraction).toBe(live.moon_illumination_fraction);
+  });
+
+  it("moves across a month, so it is a real reading and not a constant", () => {
+    const readings = ["2026-09-02", "2026-09-09", "2026-09-16", "2026-09-23"].map(
+      (d) => moonReading(Date.parse(`${d}T18:00:00.000Z`)).illuminationFraction,
+    );
+    expect(new Set(readings).size).toBe(readings.length);
   });
 });

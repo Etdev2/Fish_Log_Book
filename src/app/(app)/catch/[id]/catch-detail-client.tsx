@@ -26,6 +26,21 @@ import { CatchTidePanel } from "@/features/conditions/components/catch-tide-pane
  * Edit reuses the SAME sheet as the fish log, driven by the same update path, so an edit
  * here and an edit there cannot drift apart.
  */
+/** A snapshot-shaped blank, for a catch whose enrichment row never arrived. */
+const EMPTY_SNAPSHOT = {
+  water_temp_c: null,
+  pressure_hpa: null,
+  wind_speed_ms: null,
+  wind_dir_deg: null,
+  sunrise_utc: null,
+  sunset_utc: null,
+  moon_phase_angle_deg: null,
+  moon_illumination_fraction: null,
+  minutes_from_sunrise: null,
+  minutes_from_sunset: null,
+  provenance: {},
+} as const;
+
 export function CatchDetailClient({
   catchId,
   unitSystem,
@@ -126,13 +141,17 @@ export function CatchDetailClient({
   return (
     <>
       <CatchRecordView item={item} unitSystem={unitSystem} onEdit={openEdit} />
-      {snapshot ? (
-        <CatchEnvironmentSection
-          snapshot={snapshot}
-          unitSystem={unitSystem}
-          zone={item.record.caught_tz}
-        />
-      ) : null}
+      {/*
+        Rendered even with no snapshot row: the moon is always knowable from the catch's
+        own timestamp, so "Conditions" should never be an empty space on a record that has
+        a time — which is every record.
+      */}
+      <CatchEnvironmentSection
+        snapshot={snapshot ?? EMPTY_SNAPSHOT}
+        unitSystem={unitSystem}
+        zone={item.record.caught_tz}
+        observedAt={item.record.caught_at}
+      />
       <CatchTidePanel snapshot={snapshot} unitSystem={unitSystem} />
       <QuickLogSheet
         request={logRequest}

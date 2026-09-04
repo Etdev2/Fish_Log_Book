@@ -1,4 +1,4 @@
-import { moonPhaseAt, sunEventsFor, type GeoPoint } from "@/core/rules/astro";
+import { moonReading, sunEventsFor, type GeoPoint } from "@/core/rules/astro";
 import { degrees, instant } from "@/core/units";
 import { uuidv7 } from "@/core/sync/uuid";
 import { LOCAL_ANGLER_ID } from "./store";
@@ -119,10 +119,10 @@ function moonFields(atMs: number): {
   moon_phase_angle_deg: number;
   moon_illumination_fraction: number;
 } {
-  const moon = moonPhaseAt(instant(atMs));
+  const reading = moonReading(atMs);
   return {
-    moon_phase_angle_deg: Math.round((moon.ageDays / 29.530588853) * 360 * 1000) / 1000,
-    moon_illumination_fraction: Math.round(moon.illumination * 10_000) / 10_000,
+    moon_phase_angle_deg: reading.phaseAngleDeg,
+    moon_illumination_fraction: reading.illuminationFraction,
   };
 }
 
