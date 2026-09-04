@@ -18,6 +18,15 @@
 export interface TraitOption {
   readonly id: string;
   readonly label: string;
+  /**
+   * Optional key of a little diagram to show beside the label.
+   *
+   * A key rather than an image: the drawing lives in the UI layer, so this pure module
+   * stays free of presentation, and a pack can name a figure without knowing how it is
+   * drawn. Options with no figure simply read as text — most do not need one, and a
+   * decorative picture beside every answer would bury the two that matter.
+   */
+  readonly figure?: string;
 }
 
 /**

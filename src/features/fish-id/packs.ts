@@ -34,18 +34,18 @@ export const SALMON_PACK: TraitPack = {
       id: "tail-spots",
       question: "What do the spots do on the tail?",
       options: [
-        { id: "tail-both", label: "Spots on both lobes" },
-        { id: "tail-upper", label: "Spots on the upper lobe only" },
-        { id: "tail-whole", label: "Large oval spots over the whole tail" },
-        { id: "tail-none", label: "No spots on the tail" },
+        { id: "tail-both", label: "Spots on both lobes", figure: "tail-spots-both" },
+        { id: "tail-upper", label: "Spots on the upper lobe only", figure: "tail-spots-upper" },
+        { id: "tail-whole", label: "Large oval spots over the whole tail", figure: "tail-spots-whole" },
+        { id: "tail-none", label: "No spots on the tail", figure: "tail-spots-none" },
       ],
     },
     {
       id: "gums",
       question: "Pull back the lip — what colour is the gum line?",
       options: [
-        { id: "gums-black", label: "Black gums" },
-        { id: "gums-white", label: "White gums" },
+        { id: "gums-black", label: "Black gums", figure: "gums-black" },
+        { id: "gums-white", label: "White gums", figure: "gums-white" },
       ],
     },
     {
@@ -212,18 +212,18 @@ export const SOCAL_BASS_PACK: TraitPack = {
       id: "spine",
       question: "Look at the spiny part of the back fin. Is one spine much longer?",
       options: [
-        { id: "spine-even", label: "All about the same height" },
-        { id: "spine-third", label: "The third spine is clearly the longest" },
+        { id: "spine-even", label: "All about the same height", figure: "spines-even" },
+        { id: "spine-third", label: "The third spine is clearly the longest", figure: "spine-third-long" },
       ],
     },
     {
       id: "pattern",
       question: "What is the pattern on the body?",
       options: [
-        { id: "pattern-blotch", label: "Pale blotches on olive or brown" },
-        { id: "pattern-bars", label: "Dark vertical bars on the sides" },
-        { id: "pattern-spots", label: "Orange, brown or black spots" },
-        { id: "pattern-plain", label: "Plain, no real pattern" },
+        { id: "pattern-blotch", label: "Pale blotches on olive or brown", figure: "body-blotches" },
+        { id: "pattern-bars", label: "Dark vertical bars on the sides", figure: "body-bars" },
+        { id: "pattern-spots", label: "Orange, brown or black spots", figure: "body-spots" },
+        { id: "pattern-plain", label: "Plain, no real pattern", figure: "body-plain" },
       ],
     },
     {

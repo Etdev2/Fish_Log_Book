@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useMemo, useState } from "react";
 
+import { TraitFigure, type TraitFigureKey } from "@/components/trait-figure";
 import { identify } from "@/core/rules/identification/identify";
 import type { Candidate, TraitPack } from "@/core/rules/identification/types";
 
@@ -73,12 +74,16 @@ export function PackWizard({ pack }: { pack: TraitPack }) {
                   type="button"
                   onClick={() => toggle(question.id, option.id)}
                   aria-pressed={on}
-                  className={`min-h-touch-floor rounded-full border px-4 text-label transition-colors ${FOCUS} active:scale-95 motion-reduce:transition-none ${
+                  className={`flex min-h-touch-floor items-center gap-2 rounded-full border px-4 text-label transition-colors ${FOCUS} active:scale-95 motion-reduce:transition-none ${
                     on
                       ? "border-signal-orange bg-signal-orange text-ink-on-orange"
                       : "border-border-interactive bg-surface text-text-link"
                   }`}
                 >
+                  {/* Drawn in currentColor, so it reads on the chip whether it is selected or not. */}
+                  {option.figure !== undefined ? (
+                    <TraitFigure figure={option.figure as TraitFigureKey} />
+                  ) : null}
                   {option.label}
                 </button>
               );
