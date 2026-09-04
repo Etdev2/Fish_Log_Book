@@ -1,0 +1,21 @@
+{
+  "_comment": "Boat Games scoring vectors (ADR 003 §4, ADR 009 §3). These are what let a future Swift client be checked against this engine rather than re-derived from it. Each case is a rules preset, a list of catches, and the expected points per participant.",
+  "repeatValue": [
+    { "why": "unlimited pays full every time", "base": 3, "prior": 0, "rule": { "kind": "unlimited" }, "expect": 3 },
+    { "why": "unlimited, tenth fish", "base": 3, "prior": 9, "rule": { "kind": "unlimited" }, "expect": 3 },
+    { "why": "unique_only pays the first", "base": 5, "prior": 0, "rule": { "kind": "unique_only" }, "expect": 5 },
+    { "why": "unique_only pays nothing after", "base": 5, "prior": 1, "rule": { "kind": "unique_only" }, "expect": 0 },
+    { "why": "capped at 3 pays the third", "base": 3, "prior": 2, "rule": { "kind": "capped", "count": 3 }, "expect": 3 },
+    { "why": "capped at 3 stops at the fourth", "base": 3, "prior": 3, "rule": { "kind": "capped", "count": 3 }, "expect": 0 },
+    { "why": "diminishing halves", "base": 8, "prior": 1, "rule": { "kind": "diminishing" }, "expect": 4 },
+    { "why": "diminishing quarters", "base": 8, "prior": 2, "rule": { "kind": "diminishing" }, "expect": 2 },
+    { "why": "diminishing floors at one, never zero", "base": 8, "prior": 9, "rule": { "kind": "diminishing" }, "expect": 1 },
+    { "why": "diminishing on a one-pointer stays one", "base": 1, "prior": 5, "rule": { "kind": "diminishing" }, "expect": 1 }
+  ],
+  "speciesMatches": [
+    { "why": "exact", "species": "kelp_bass", "rule": "kelp_bass", "expect": true },
+    { "why": "rolls up to its group", "species": "vermilion_rockfish", "rule": "rockfish", "expect": true },
+    { "why": "a different group does not match", "species": "vermilion_rockfish", "rule": "surfperch", "expect": false },
+    { "why": "a group does not match downward", "species": "rockfish", "rule": "vermilion_rockfish", "expect": false }
+  ]
+}
