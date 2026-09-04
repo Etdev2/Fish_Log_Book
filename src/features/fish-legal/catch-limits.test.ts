@@ -129,3 +129,51 @@ describe("limitCheckForLog", () => {
     expect(limitCheckForLog(bundle, "not_a_species", new Map())).toEqual([]);
   });
 });
+
+describe("one line per species, and the right one for today", () => {
+  /**
+   * Founder-visible bug, 2026-09-04: the limits page showed white seabass twice — "3/day"
+   * and "1/day" — because SoCal carries a year-round rule and a spring window as two
+   * separate bag_limit rules. Two lines, one id, contradictory advice.
+   */
+  it("never emits two lines with the same id", () => {
+    const ids = limitLines(SOCAL, "2026-09-04", new Map()).map((l) => l.id);
+    expect(ids.filter((v, i) => ids.indexOf(v) !== i)).toEqual([]);
+  });
+
+  it("shows white seabass at three a day outside the spring window", () => {
+    const line = limitLines(SOCAL, "2026-09-04", new Map()).find(
+      (l) => l.id === "white_seabass",
+    );
+    expect(line?.limit).toBe(3);
+  });
+
+  it("shows one a day inside it — 15 March to 15 June south of Point Conception", () => {
+    for (const day of ["2026-03-15", "2026-05-01", "2026-06-15"]) {
+      const line = limitLines(SOCAL, day, new Map()).find((l) => l.id === "white_seabass");
+      expect(line?.limit).toBe(1);
+    }
+  });
+
+  it("is back to three the day after the window closes", () => {
+    const line = limitLines(SOCAL, "2026-06-16", new Map()).find(
+      (l) => l.id === "white_seabass",
+    );
+    expect(line?.limit).toBe(3);
+  });
+
+  it("applies the window in a later year too — seasons recur, the pack's dates do not", () => {
+    const line = limitLines(SOCAL, "2027-05-01", new Map()).find(
+      (l) => l.id === "white_seabass",
+    );
+    expect(line?.limit).toBe(1);
+  });
+
+  it("still counts what was kept against whichever line survives", () => {
+    const line = limitLines(SOCAL, "2026-05-01", new Map([["white_seabass", 1]])).find(
+      (l) => l.id === "white_seabass",
+    );
+    expect(line?.retained).toBe(1);
+    expect(line?.state).toBe("reached");
+  });
+});
