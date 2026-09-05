@@ -1,12 +1,32 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { StripePaymentProvider, verifyStripeWebhook, type StripeClientPort } from "./stripe-provider";
+import {
+  StripePaymentProvider,
+  verifyStripeWebhook,
+  type StripeClientPort,
+  type StripePaymentIntentLike,
+  type StripeRefundLike,
+} from "./stripe-provider";
 
 function client(): StripeClientPort {
   return {
-    createPaymentIntent: vi.fn(async (input) => ({ id: "pi_1", status: "succeeded", amount: input.amount, currency: input.currency })),
-    retrievePaymentIntent: vi.fn(async () => ({ id: "pi_1", status: "succeeded", amount: 5000, currency: "usd" })),
-    createRefund: vi.fn(async (input) => ({ id: "re_1", amount: input.amount, status: "succeeded" })),
+    createPaymentIntent: vi.fn(async (input): Promise<StripePaymentIntentLike> => ({
+      id: "pi_1",
+      status: "succeeded",
+      amount: input.amount,
+      currency: input.currency,
+    })),
+    retrievePaymentIntent: vi.fn(async (): Promise<StripePaymentIntentLike> => ({
+      id: "pi_1",
+      status: "succeeded",
+      amount: 5000,
+      currency: "usd",
+    })),
+    createRefund: vi.fn(async (input): Promise<StripeRefundLike> => ({
+      id: "re_1",
+      amount: input.amount,
+      status: "succeeded",
+    })),
   };
 }
 
@@ -26,7 +46,13 @@ describe("StripePaymentProvider", () => {
 
   it("maps Stripe requires_action without calling it confirmed", async () => {
     const port = client();
-    port.createPaymentIntent = vi.fn(async () => ({ id: "pi_2", status: "requires_action", amount: 5000, currency: "usd", client_secret: "secret" }));
+    port.createPaymentIntent = vi.fn(async (): Promise<StripePaymentIntentLike> => ({
+      id: "pi_2",
+      status: "requires_action",
+      amount: 5000,
+      currency: "usd",
+      client_secret: "secret",
+    }));
     const result = await new StripePaymentProvider(port).createPayment({ orderId: "o1", amountMinor: 5000, currency: "USD", idempotencyKey: "idem-2" });
     expect(result.status).toBe("REQUIRES_ACTION");
   });
