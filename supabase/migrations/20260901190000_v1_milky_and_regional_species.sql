@@ -84,6 +84,5 @@ insert into public.species (id, common_name, scientific_name, is_group, rolls_up
   ('northern_pike',      'Northern pike',                     'Esox lucius',                false, null,      'fresh', 'open',      510, false),
   ('black_crappie',      'Black crappie',                     'Pomoxis nigromaculatus',     false, null,      'fresh', 'regulated', 511, false),
   ('bluegill',           'Bluegill',                          'Lepomis macrochirus',        false, null,      'fresh', 'open',      512, false),
-  ('channel_catfish',    'Channel catfish',                   'Ictalurus punctatus',        false, 'catfish', 'fresh', 'open',      513, false);
-
+  ('channel_catfish',    'Channel catfish',                   'Ictalurus punctatus',        false, 'catfish', 'fresh', 'open',      513, false)
 on conflict (id) do nothing;
