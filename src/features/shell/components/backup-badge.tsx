@@ -14,6 +14,7 @@ import { describeBackupState, fromOutboxBackup } from "../queries/backup-state";
 export function BackupBadge() {
   const log = useLog();
   useEffect(() => {
+    // Installs the listeners AND binds the session, so this stays one call.
     installFlushListeners();
   }, []);
   const state = fromOutboxBackup(log.backup, Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL));
