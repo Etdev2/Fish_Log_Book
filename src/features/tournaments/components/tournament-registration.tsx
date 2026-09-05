@@ -1,69 +1,94 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useId, useState } from "react";
 
 import { createClient } from "@/lib/supabase/client";
-import { getDemoEntry, getDemoTournament, hasSupabaseBrowserConfig, registerDemoEntry, type DemoEntry } from "../demo-store";
-import { TOURNAMENT_CARD, TOURNAMENT_INPUT, TOURNAMENT_PRIMARY_BUTTON, TOURNAMENT_SECONDARY_BUTTON } from "../ui-classes";
+import { getDemoEntry, hasSupabaseBrowserConfig, registerDemoEntry, type DemoEntry } from "../demo-store";
+import { entrySteps, statusPresentation, TONE_CLASSES } from "../format";
+import { useDemoMode, useTournament } from "../use-tournament";
+import { BIG_ACTION, CARD_PADDED, INPUT, PAGE, SECONDARY_BUTTON } from "../ui-classes";
+import { AlertIcon, CheckIcon, PendingIcon } from "./icons";
+import {
+  BackLink,
+  DemoNote,
+  ErrorScreen,
+  LoadingScreen,
+  SectionHeading,
+  TournamentHero,
+  TournamentTabs,
+} from "./tournament-chrome";
 
-type TournamentRegistrationState = { id: string; name: string; status: string; visibility: string };
-type ExistingEntry = Pick<DemoEntry, "id" | "registration_status" | "eligibility_status" | "check_in_status" | "competition_status">;
+type ExistingEntry = Pick<
+  DemoEntry,
+  "id" | "registration_status" | "eligibility_status" | "check_in_status" | "competition_status"
+>;
 
+/**
+ * /tournaments/[id]/register — entering, and knowing where your entry stands.
+ *
+ * UX-001 §5: "Do not collapse all state into 'registered'." The old screen technically
+ * obeyed that — it printed all four states — but as a 2×2 grid of lowercased enums
+ * (`not_checked_in`, `unknown`), which tells an angler standing on a dock exactly nothing
+ * about whether they are allowed to fish. Each state now gets a line, a plain word, and
+ * the sentence that says what to do about it.
+ */
 export function TournamentRegistration({ tournamentId }: { tournamentId: string }) {
-  const [tournament, setTournament] = useState<TournamentRegistrationState | null>(null);
+  const load = useTournament(tournamentId);
+  const demoMode = useDemoMode();
+
   const [entry, setEntry] = useState<ExistingEntry | null>(null);
   const [displayName, setDisplayName] = useState("");
-  const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const demoMode = !hasSupabaseBrowserConfig();
+  const fieldId = useId();
 
-  async function refresh() {
-    if (demoMode) {
-      const demoTournament = getDemoTournament(tournamentId);
-      if (!demoTournament) {
-        setError("Demo tournament unavailable on this device.");
-        setLoading(false);
-        return;
-      }
-      setTournament({ id: demoTournament.id, name: demoTournament.name, status: demoTournament.status, visibility: demoTournament.visibility });
+  const refresh = useCallback(async () => {
+    if (!hasSupabaseBrowserConfig()) {
       setEntry(getDemoEntry(tournamentId));
-      setLoading(false);
       return;
     }
 
-    try {
-      const supabase = createClient();
-      const { data: authData } = await supabase.auth.getUser();
-      const { data: tournamentData, error: tournamentError } = await supabase.from("tournament").select("id,name,status,visibility").eq("id", tournamentId).maybeSingle();
-      if (tournamentError || !tournamentData) {
-        setError(tournamentError?.message ?? "Tournament unavailable.");
-        setLoading(false);
-        return;
-      }
+    const supabase = createClient();
+    const { data: authData } = await supabase.auth.getUser();
+    if (!authData.user) return;
 
-      setTournament(tournamentData as TournamentRegistrationState);
-      if (authData.user) {
-        const { data: identityRows } = await supabase.from("tournament_entry_identity").select("tournament_entry_id").eq("claimed_angler_id", authData.user.id);
-        const candidateIds = (identityRows ?? []).map((row) => row.tournament_entry_id);
-        if (candidateIds.length > 0) {
-          const { data: entryData } = await supabase.from("tournament_entry").select("id,registration_status,eligibility_status,check_in_status,competition_status").eq("tournament_id", tournamentId).in("id", candidateIds).is("deleted_at", null).maybeSingle();
-          setEntry((entryData as ExistingEntry | null) ?? null);
-        }
-      }
-      setLoading(false);
-    } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "Tournament registration could not be loaded.");
-      setLoading(false);
+    // An entry is reached through the identity claim rather than by user id, because a
+    // tournament keeps its own participant identity — the same person can be an entrant in
+    // an event they later stop having an account for, and the result still has to stand.
+    const { data: identityRows } = await supabase
+      .from("tournament_entry_identity")
+      .select("tournament_entry_id")
+      .eq("claimed_angler_id", authData.user.id);
+
+    const candidateIds = (identityRows ?? []).map((row) => row.tournament_entry_id);
+    if (candidateIds.length === 0) {
+      setEntry(null);
+      return;
     }
-  }
+
+    const { data: entryData } = await supabase
+      .from("tournament_entry")
+      .select("id,registration_status,eligibility_status,check_in_status,competition_status")
+      .eq("tournament_id", tournamentId)
+      .in("id", candidateIds)
+      .is("deleted_at", null)
+      .maybeSingle();
+
+    setEntry((entryData as ExistingEntry | null) ?? null);
+  }, [tournamentId]);
 
   useEffect(() => {
-    void Promise.resolve().then(refresh);
-    // refresh depends only on tournamentId/demoMode and intentionally owns the client instance.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [demoMode, tournamentId]);
+    let cancelled = false;
+    void (async () => {
+      await Promise.resolve();
+      if (cancelled) return;
+      await refresh();
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [refresh]);
 
   async function register(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -78,7 +103,10 @@ export function TournamentRegistration({ tournamentId }: { tournamentId: string 
 
     try {
       const supabase = createClient();
-      const { error: registrationError } = await supabase.rpc("register_self_for_tournament", { target_tournament_id: tournamentId, participant_display_name: displayName.trim() });
+      const { error: registrationError } = await supabase.rpc("register_self_for_tournament", {
+        target_tournament_id: tournamentId,
+        participant_display_name: displayName.trim(),
+      });
       if (registrationError) setError(registrationError.message);
       else await refresh();
     } catch (cause) {
@@ -88,39 +116,117 @@ export function TournamentRegistration({ tournamentId }: { tournamentId: string 
     }
   }
 
-  if (loading) return <div className="mx-auto max-w-reading px-space-4 py-space-5 text-body text-text-muted">Loading registration…</div>;
-  if (!tournament) return <div className="mx-auto max-w-reading px-space-4 py-space-5 text-body text-error-red">{error ?? "Tournament unavailable."}</div>;
+  if (load.state === "loading") return <LoadingScreen label="Loading registration" />;
+  if (load.state === "error") return <ErrorScreen message={load.message} />;
+
+  const tournament = load.tournament;
 
   return (
-    <div className="mx-auto flex max-w-reading flex-col gap-space-5 px-space-4 py-space-5">
-      <header className="flex flex-col gap-space-2">
-        <Link href={`/tournaments/${tournament.id}/overview`} className="text-caption text-text-link">← Overview</Link>
-        <h1 className="text-h1 text-text-primary">Register</h1>
-        <p className="text-body text-text-muted">{tournament.name}</p>
-        {demoMode ? <p className="text-caption text-text-muted">Demo mode · registration is saved only on this device.</p> : null}
-      </header>
+    <div className={PAGE}>
+      <TournamentHero
+        tournament={tournament}
+        // The hero repeats the tournament name directly below, so the eyebrow names the
+        // destination instead of saying the same words twice.
+        eyebrow={<BackLink href={`/tournaments/${tournament.id}/overview`}>Overview</BackLink>}
+      />
+
+      <TournamentTabs tournamentId={tournament.id} />
 
       {entry ? (
-        <section className={`${TOURNAMENT_CARD} flex flex-col gap-space-3`}>
-          <h2 className="text-h3 text-text-primary">Your entry</h2>
-          <dl className="grid grid-cols-2 gap-space-3 text-caption">
-            <div><dt className="text-text-muted">Registration</dt><dd className="capitalize text-text-primary">{entry.registration_status.toLowerCase().replaceAll("_", " ")}</dd></div>
-            <div><dt className="text-text-muted">Eligibility</dt><dd className="capitalize text-text-primary">{entry.eligibility_status.toLowerCase().replaceAll("_", " ")}</dd></div>
-            <div><dt className="text-text-muted">Check-in</dt><dd className="capitalize text-text-primary">{entry.check_in_status.toLowerCase().replaceAll("_", " ")}</dd></div>
-            <div><dt className="text-text-muted">Competition</dt><dd className="capitalize text-text-primary">{entry.competition_status.toLowerCase().replaceAll("_", " ")}</dd></div>
-          </dl>
-          <p className="text-caption text-text-muted">Payment, eligibility and competition status are tracked separately so one cannot silently change another.</p>
+        <section className={`${CARD_PADDED} flex flex-col gap-space-4`} aria-labelledby="entry-heading">
+          <SectionHeading>
+            <span id="entry-heading">You are entered</span>
+          </SectionHeading>
+
+          {/*
+            Four separate states, deliberately. Payment, eligibility, check-in and
+            competition move independently — one being green does not make the others
+            green, and an entry that is confirmed but not checked in is a real situation a
+            person needs to be able to see on a phone at 5am.
+          */}
+          <ol className="flex flex-col gap-space-4">
+            {entrySteps(entry).map((item) => {
+              const classes = TONE_CLASSES[item.tone];
+              const Icon =
+                item.tone === "open" || item.tone === "live"
+                  ? CheckIcon
+                  : item.tone === "attention" || item.tone === "stopped"
+                    ? AlertIcon
+                    : PendingIcon;
+              return (
+                <li key={item.label} className="flex items-start gap-space-3">
+                  <span className={`mt-space-1 ${classes.text}`}>
+                    <Icon />
+                  </span>
+                  <span className="flex flex-col gap-space-1">
+                    <span className="text-caption text-text-muted">{item.label}</span>
+                    <span className={`text-body-strong ${classes.text}`}>{item.value}</span>
+                    <span className="text-caption text-text-muted">{item.hint}</span>
+                  </span>
+                </li>
+              );
+            })}
+          </ol>
+
+          <p className="border-t border-hairline pt-space-3 text-caption text-text-muted">
+            These four are tracked separately on purpose, so that none of them can quietly change
+            another. Paying does not make you eligible, and checking in does not score you.
+          </p>
+
+          <Link href={`/tournaments/${tournament.id}/rules`} className={SECONDARY_BUTTON}>
+            What am I signing up to?
+          </Link>
         </section>
       ) : tournament.status === "REGISTRATION_OPEN" ? (
-        <form onSubmit={register} className={`${TOURNAMENT_CARD} flex flex-col gap-space-4`}>
-          <div className="flex flex-col gap-space-1"><h2 className="text-h3 text-text-primary">Enter tournament</h2><p className="text-caption text-text-muted">Your account is linked to this entry, while the tournament keeps its own historical participant identity.</p></div>
-          <label className="flex flex-col gap-space-2"><span className="text-label text-text-primary">Display name</span><input required maxLength={80} value={displayName} onChange={(event) => setDisplayName(event.target.value)} className={TOURNAMENT_INPUT} placeholder="Name shown in the tournament" /></label>
-          {error ? <p role="alert" className="text-body text-error-red">{error}</p> : null}
-          <button type="submit" className={TOURNAMENT_PRIMARY_BUTTON} disabled={submitting || displayName.trim().length === 0}>{submitting ? "Registering…" : "Register"}</button>
+        <form onSubmit={register} className={`${CARD_PADDED} flex flex-col gap-space-4`}>
+          <SectionHeading>Enter this tournament</SectionHeading>
+          <label className="flex flex-col gap-space-2">
+            <span className="text-label text-text-primary">What name should show on the board?</span>
+            <input
+              id={`${fieldId}-name`}
+              required
+              maxLength={80}
+              value={displayName}
+              onChange={(event) => setDisplayName(event.target.value)}
+              className={INPUT}
+              placeholder="How your crew knows you"
+              autoComplete="nickname"
+            />
+            <span className="text-caption text-text-muted">
+              This is what other anglers see. Your account stays linked to the entry behind the
+              scenes, so the tournament keeps its own record even if your account changes later.
+            </span>
+          </label>
+
+          {error ? (
+            <p role="alert" className="text-body text-error-red">
+              {error}
+            </p>
+          ) : null}
+
+          <button type="submit" className={BIG_ACTION} disabled={submitting || displayName.trim().length === 0}>
+            {submitting ? "Entering…" : "Enter tournament"}
+          </button>
+          {displayName.trim().length === 0 ? (
+            <p className="text-caption text-text-muted">Add a name to enter.</p>
+          ) : null}
         </form>
       ) : (
-        <section className={`${TOURNAMENT_CARD} flex flex-col gap-space-3`}><h2 className="text-h3 text-text-primary">Registration is not open</h2><p className="text-body text-text-muted">Current tournament state: {tournament.status.toLowerCase().replaceAll("_", " ")}.</p><Link href={`/tournaments/${tournament.id}/overview`} className={TOURNAMENT_SECONDARY_BUTTON}>Back to overview</Link></section>
+        <section className={`${CARD_PADDED} flex flex-col gap-space-3`}>
+          <SectionHeading>Entries are not open</SectionHeading>
+          <p className="text-body text-text-primary">{statusPresentation(tournament.status).blurb}</p>
+          <p className="text-caption text-text-muted">
+            {tournament.status === "DRAFT"
+              ? "The organizer has not opened this one up yet."
+              : "If you think you should be in this tournament, the organizer can add you."}
+          </p>
+          <Link href={`/tournaments/${tournament.id}/overview`} className={SECONDARY_BUTTON}>
+            Back to the tournament
+          </Link>
+        </section>
       )}
+
+      {demoMode ? <DemoNote /> : null}
     </div>
   );
 }
