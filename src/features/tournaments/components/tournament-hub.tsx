@@ -35,32 +35,39 @@ export function TournamentHub() {
 
   useEffect(() => {
     let cancelled = false;
-    const supabase = createClient();
 
     async function load() {
-      const [ownedResult, publicResult] = await Promise.all([
-        supabase
-          .from("tournament")
-          .select("id,name,status,visibility,starts_at,ends_at,organization_id")
-          .is("deleted_at", null)
-          .order("created_at", { ascending: false }),
-        supabase
-          .from("public_tournament")
-          .select("id,name,status,visibility,starts_at,ends_at,organization_id")
-          .eq("visibility", "PUBLIC")
-          .order("created_at", { ascending: false })
-          .limit(12),
-      ]);
+      try {
+        const supabase = createClient();
+        const [ownedResult, publicResult] = await Promise.all([
+          supabase
+            .from("tournament")
+            .select("id,name,status,visibility,starts_at,ends_at,organization_id")
+            .is("deleted_at", null)
+            .order("created_at", { ascending: false }),
+          supabase
+            .from("public_tournament")
+            .select("id,name,status,visibility,starts_at,ends_at,organization_id")
+            .eq("visibility", "PUBLIC")
+            .order("created_at", { ascending: false })
+            .limit(12),
+        ]);
 
-      if (cancelled) return;
-      const firstError = ownedResult.error ?? publicResult.error;
-      if (firstError) {
-        setError(firstError.message);
-      } else {
+        if (cancelled) return;
+        const firstError = ownedResult.error ?? publicResult.error;
+        if (firstError) {
+          setError(firstError.message);
+          return;
+        }
+
         setOwned((ownedResult.data ?? []) as TournamentCardData[]);
         setPublicTournaments((publicResult.data ?? []) as TournamentCardData[]);
+      } catch (cause) {
+        if (cancelled) return;
+        setError(cause instanceof Error ? cause.message : "Tournament data could not be loaded.");
+      } finally {
+        if (!cancelled) setLoading(false);
       }
-      setLoading(false);
     }
 
     void load();
@@ -87,9 +94,14 @@ export function TournamentHub() {
 
       {loading ? <p className="text-body text-text-muted">Loading tournaments…</p> : null}
       {error ? (
-        <div className={`${TOURNAMENT_CARD} flex flex-col gap-space-2`} role="alert">
-          <p className="text-body-strong text-error-red">Tournament data could not be loaded.</p>
-          <p className="text-caption text-text-muted">{error}</p>
+        <div className={`${TOURNAMENT_CARD} flex flex-col gap-space-3`} role="alert">
+          <div className="flex flex-col gap-space-1">
+            <p className="text-body-strong text-error-red">Tournament data could not be loaded.</p>
+            <p className="text-caption text-text-muted">{error}</p>
+          </div>
+          <button type="button" className={TOURNAMENT_PRIMARY_BUTTON} onClick={() => window.location.reload()}>
+            Try again
+          </button>
         </div>
       ) : null}
 
