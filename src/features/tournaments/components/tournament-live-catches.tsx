@@ -48,9 +48,11 @@ export function TournamentLiveCatches({ tournamentId }: { tournamentId: string }
   }
 
   useEffect(() => {
-    refresh();
-    // local demo storage is keyed by tournament id.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // Schedule the localStorage synchronization asynchronously so this effect does not
+    // synchronously cascade a state update during the commit phase.
+    void Promise.resolve().then(() => {
+      setCatches(getDemoTournamentCatches(tournamentId));
+    });
   }, [tournamentId]);
 
   function submit(event: React.FormEvent<HTMLFormElement>) {
