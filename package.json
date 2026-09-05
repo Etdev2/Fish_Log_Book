@@ -12,8 +12,9 @@
     "lint": "eslint",
     "tokens:check": "node scripts/tokens.mjs --check",
     "tripwires": "node scripts/check-tripwires.mjs",
+    "migrations:check": "node scripts/check-migration-versions.mjs",
     "test": "vitest run",
-    "verify": "npm run tokens:check && npm run tripwires && npm run lint && tsc --noEmit && npm run test"
+    "verify": "npm run tokens:check && npm run tripwires && npm run migrations:check && npm run lint && tsc --noEmit && npm run test"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.5",
