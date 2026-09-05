@@ -1,13 +1,5 @@
-# Runs what a contributor runs before pushing, on every pull request.
-#
-# This exists because `main` sat red for three days and nothing said a word. The only
-# check on a PR was Vercel, which runs `next build` — a build passes happily while tests
-# fail, and that is exactly what happened: a migration and its TypeScript pack drifted
-# apart by two characters, the parity test caught it, and the PR merged anyway.
-#
-# `npm run verify` is deliberately the same command a person types locally
-# (docs/team/HOUSE-RULES.md §4), not a CI-only variant. A separate list here would drift
-# from the local one, and then "it passes on my machine" becomes true and useless.
+# Runs the repository verification gate, a fresh-database migration smoke test, and build
+# on every pull request and every push to main.
 name: verify
 
 on:
@@ -15,8 +7,6 @@ on:
   push:
     branches: [main]
 
-# A second push to the same PR makes the first run pointless. Cancel it rather than pay
-# for both — but never cancel a run on main, where the history of what passed matters.
 concurrency:
   group: verify-${{ github.ref }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
@@ -28,24 +18,46 @@ jobs:
   verify:
     runs-on: ubuntu-latest
     timeout-minutes: 15
+
+    # SQL migrations are executable code. Running them in filename order against a fresh
+    # PostgreSQL instance catches syntax, dependency, and ordering defects that static
+    # TypeScript/unit checks cannot see. This service is isolated to the Actions runner.
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: fish_log_book_ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d fish_log_book_ci"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/fish_log_book_ci
+
     steps:
       - uses: actions/checkout@v4
 
       - uses: actions/setup-node@v4
         with:
-          # Matches the version the project is developed on. `npm cache` here needs the
-          # lockfile, which is committed.
           node-version: '22'
           cache: npm
 
-      # `npm ci` rather than `npm install`: it installs exactly the lockfile and fails if
-      # package.json and the lockfile disagree, which is itself worth catching.
+      # Installs exactly the lockfile and also catches package/lockfile drift.
       - run: npm ci
 
-      # tokens:check, tripwires, lint, tsc, and the test suite — the whole gate.
+      # tokens:check, tripwires, lint, tsc, and the unit/regression suite.
       - run: npm run verify
 
-      # The build is not part of `verify` and Vercel already runs it, but Vercel only
-      # builds the branches it is wired to. Running it here means a red build is caught
-      # on the PR by the same check as everything else.
+      # Apply every Supabase migration to a fresh Postgres database with ON_ERROR_STOP=1.
+      # The harness bootstraps only the minimal auth/API-role surface the SQL expects.
+      - name: Smoke-test database migrations
+        run: bash scripts/check-migrations-postgres.sh
+
+      # Vercel builds previews, but this keeps build correctness in the same required gate.
       - run: npm run build
