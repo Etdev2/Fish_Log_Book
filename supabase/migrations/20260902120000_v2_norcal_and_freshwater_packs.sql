@@ -13,8 +13,24 @@ insert into public.reg_area (id, authority, kind, name, parent_id, boundary_geoj
   ('ca-ocean-northern', 'cdfw', 'ocean_region', 'Northern Management Area — 40°10′ N to the Oregon line', null, null, 'https://wildlife.ca.gov/Fishing/Ocean/Regulations/Fishing-Map/Northern', '2026-09-01', 'Envelope for pack resolution; coast-anchored east edge, open-ocean west edge.')
 on conflict (id) do nothing;
 
+-- The RCG rules below name individual rockfish by species, and `reg_rule.species_id` is
+-- a foreign key. These eight were only seeded by the PNW pack four migrations later, so
+-- against a real database this file failed on a foreign key that a text-concatenating
+-- parity check could never see. Rows copied verbatim from their canonical definition in
+-- `20260902160000_v1_pnw_wa_or_packs.sql`; `on conflict` makes that later insert a no-op.
+insert into public.species (id, common_name, scientific_name, is_group, rolls_up_to, water_class, take_status, sort_order, needs_review) values
+  ('canary_rockfish', 'Canary rockfish', 'Sebastes pinniger', false, 'rockfish', 'salt', 'regulated', 456, false),
+  ('blue_rockfish', 'Blue rockfish', 'Sebastes mystinus', false, 'rockfish', 'salt', 'regulated', 457, false),
+  ('black_rockfish', 'Black rockfish', 'Sebastes melanops', false, 'rockfish', 'salt', 'regulated', 458, false),
+  ('yellowtail_rockfish', 'Yellowtail rockfish', 'Sebastes flavidus', false, 'rockfish', 'salt', 'regulated', 459, false),
+  ('widow_rockfish', 'Widow rockfish', 'Sebastes entomelas', false, 'rockfish', 'salt', 'regulated', 460, false),
+  ('bocaccio', 'Bocaccio', 'Sebastes paucispinis', false, 'rockfish', 'salt', 'regulated', 461, false),
+  ('copper_rockfish', 'Copper rockfish', 'Sebastes caurinus', false, 'rockfish', 'salt', 'regulated', 462, false),
+  ('vermilion_rockfish', 'Vermilion rockfish', 'Sebastes miniatus', false, 'rockfish', 'salt', 'regulated', 464, false)
+on conflict (id) do nothing;
+
 insert into public.reg_group (id, name, member_species_ids, source_url, verified_at) values
-  ('rcg-complex-norcal', 'Rockfish, Cabezon & Greenlings (RCG) — Northern combo', ARRAY['black_rockfish','blue_rockfish','brown_rockfish','calico_rockfish','china_rockfish','copper_rockfish','gopher_rockfish','grass_rockfish','kelp_rockfish','olive_rockfish','treefish','cabezon','kelp_greenling','bocaccio','canary_rockfish','vermilion_rockfish','widow_rockfish','yellowtail_rockfish']::text[], null, '2026-09-01')
+  ('rcg-complex-norcal', 'Rockfish, Cabezon & Greenlings (RCG) — Northern combo', ARRAY['black_rockfish','blue_rockfish','brown_rockfish','calico_rockfish','china_rockfish','copper_rockfish','gopher_rockfish','grass_rockfish','kelp_rockfish','olive_rockfish','treefish','cabezon','kelp_greenling','bocaccio','canary_rockfish','vermilion_rockfish','widow_rockfish','yellowtail_rockfish']::text[], 'https://wildlife.ca.gov/Fishing/Ocean/Regulations/Groundfish-Summary', '2026-09-01')
 on conflict (id) do nothing;
 
 insert into public.reg_rule
@@ -58,7 +74,7 @@ insert into public.reg_area (id, authority, kind, name, parent_id, boundary_geoj
 on conflict (id) do nothing;
 
 insert into public.reg_group (id, name, member_species_ids, source_url, verified_at) values
-  ('ca-black-bass', 'Black bass (largemouth, smallmouth, spotted)', ARRAY['largemouth_bass','smallmouth_bass','spotted_bass']::text[], null, '2026-09-01')
+  ('ca-black-bass', 'Black bass (largemouth, smallmouth, spotted)', ARRAY['largemouth_bass','smallmouth_bass','spotted_bass']::text[], 'https://wildlife.ca.gov/Regulations', '2026-09-01')
 on conflict (id) do nothing;
 
 insert into public.reg_rule
