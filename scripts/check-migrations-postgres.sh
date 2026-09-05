@@ -24,6 +24,12 @@ $$;
 
 CREATE SCHEMA IF NOT EXISTS auth;
 
+-- Supabase owns auth.users in hosted projects. The application only needs its UUID primary
+-- key as a foreign-key target, so CI provides the smallest compatible stand-in.
+CREATE TABLE IF NOT EXISTS auth.users (
+  id uuid PRIMARY KEY
+);
+
 CREATE OR REPLACE FUNCTION auth.uid()
 RETURNS uuid
 LANGUAGE sql
