@@ -4,201 +4,334 @@
 **Workstream:** Fishing Tournament OS  
 **Owner:** System Architect  
 **Priority:** P0 — Blocking  
-**Type:** Architecture / Design Specification  
-**Status:** Ready for Architecture Review
+**Type:** Architecture Decision / Handoff Specification  
+**Status:** FINAL REVIEW CANDIDATE
 
 ---
 
-## 1. Mission
+## 1. Decision Summary
 
-Design the foundational architecture required to transform Fish Games into a commercial, multi-tenant Fishing Tournament Operating System that supports both:
+Fish Games will evolve into one shared tournament platform serving both individual/B2C and professional/B2B customers.
 
-- **B2C:** individual users creating private, invite-only, community, or small paid tournaments for friends and other anglers.
-- **B2B:** clubs, brands, marinas, fleets, tournament directors, circuits, and enterprise tournament organizations running professional events on the same platform.
+The following architecture decisions are approved for implementation planning:
 
-The platform must use one reusable tournament engine rather than separate implementations for B2C and B2B.
-
-This ticket exists to prevent the product from being hard-coded around one tournament format, one customer type, or one payment method.
+1. **Every tournament belongs to exactly one `Organization`.** There is no separate `USER` tournament ownership path.
+2. **Individual creators receive a lightweight personal organization/workspace.** Private friend tournaments and enterprise tournaments therefore use the same tenancy, authorization, billing, scoring, judging, and audit infrastructure.
+3. **The existing Fish Games event/scoring architecture is preserved and evolved, not replaced.** Existing `GameSession`, `GameEvent`, `GameRules`, deterministic event ordering, UUIDv7 idempotency, immutable void/adjustment behavior, and Fish Legal snapshots are migration assets.
+4. **Official tournament state is server-authoritative; capture is local-first.** Devices may operate offline, queue evidence/events, and reconcile later.
+5. **Tournament rules, scoring configuration, Fair Play policy, and regulatory context are versioned/snapshotted for official competition.** Historic results never silently change because configuration changed later.
+6. **Divisions and award categories are separate concepts.** One entry may belong to a competition division while qualifying for multiple awards/jackpots.
+7. **Tournament entries are separate from users.** Guest/imported competitors are supported and may later claim/link an account.
+8. **Teams and boats are separate domain entities.** A team may use a boat; neither identity is inferred from the other.
+9. **Catch claim, evidence, verification checks, human review, penalties, and official score are separate records.** Original evidence is preserved.
+10. **Fair Play is explainable.** QR, GPS, timestamp, duplicate-photo, entry, boat, and metadata checks produce discrete signals/results rather than one opaque fraud score.
+11. **Public tournament views use explicit publication projections.** Raw GPS, payment data, device metadata, private Fair Play evidence, and internal notes are private by default.
+12. **Payments are separated from competition state.** Orders/payments fund registrations and pools; scoring determines results; a separate approved payout workflow moves funds.
+13. **Fiat and crypto collection share a provider abstraction.** Stripe is the initial fiat target; MetaMask is the initial wallet target.
+14. **Crypto collection and crypto prize payout are separate feature capabilities.** Crypto payouts require independent enablement/compliance review.
+15. **All high-value mutations are auditable and idempotent.** Financial and competition history cannot be silently rewritten.
 
 ---
 
-## 2. Core Product Principle
+## 2. Existing Architecture to Preserve
 
-The same underlying tournament technology must power both individual and commercial use cases.
+The current Fish Games implementation already contains valuable properties that must remain true through migration:
+
+- offline-first local persistence,
+- UUIDv7 event identifiers,
+- monotonic per-session event sequence ordering independent of device clock,
+- pure scoring logic outside React/UI,
+- derived scoreboard rather than mutable scoreboard state,
+- append-only void/adjustment behavior instead of destructive edits,
+- Fish Legal snapshots frozen on game events,
+- guest participant hooks via `claimed_user_id`.
+
+### Migration rule
+
+Do not perform a greenfield rewrite of Fish Games.
+
+The tournament platform should introduce durable server-backed tournament entities while adapting the existing event/scoring concepts into the new model. Existing Boat Games can continue operating during migration through adapters until equivalent tournament behavior is available.
+
+---
+
+## 3. Canonical Tenancy Model
+
+### 3.1 Organization is the only tenant boundary
 
 ```text
-Fish Games Platform
-│
-├── B2C / Individual Market
-│   ├── Private Friend Tournaments
-│   ├── Invite-Only Competitions
-│   ├── Public Community Tournaments
-│   └── Small Paid Tournaments
-│
-└── B2B / Tournament Operators
-    ├── Clubs
-    ├── Tournament Directors
-    ├── Circuits
-    ├── Brands
-    ├── Marinas / Fleets
-    └── Enterprise Tournament Organizations
+User
+  ↓ membership
+Organization
+  ↓ owns
+Tournament
 ```
 
-The tournament engine, scoring engine, registration, payments, judging, leaderboard, rules, audit trail, catch evidence, and Fair Play systems should be shared.
-
-Commercial capabilities should be layered through permissions, configuration, feature flags, subscriptions, and organization ownership—not duplicated codebases.
-
----
-
-## 3. Target Hierarchy
-
-The architecture should support:
+Every tournament has:
 
 ```text
-Platform
-  ├── User-owned Tournament
-  └── Organization
-       ├── Organization Members
-       ├── Branding
-       ├── Staff
-       ├── Circuits / Series
-       │    └── Seasons
-       │         └── Tournaments
-       └── Standalone Tournaments
+organization_id NOT NULL
 ```
 
-A tournament may be owned directly by an individual user or by an organization.
+There is no polymorphic `owner_type = USER | ORGANIZATION` in the canonical tournament model.
 
-The architect must define the cleanest ownership model without duplicating tournament tables.
+### 3.2 Personal organizations
+
+An individual user creating a casual tournament receives or uses a personal organization/workspace.
+
+Example:
+
+```text
+Organization
+  id: org_elliott_personal
+  kind: PERSONAL
+  owner: Elliott
+
+Tournament
+  name: Saturday Yellowtail Challenge
+  organization_id: org_elliott_personal
+  visibility: INVITE_ONLY
+```
+
+A professional customer uses the same architecture:
+
+```text
+Organization
+  kind: BUSINESS
+  name: Pacific Coast Tournament Series
+
+Tournament
+  organization_id: pacific_coast_org
+```
+
+### 3.3 Organization kinds
+
+Recommended:
+
+```text
+PERSONAL
+CLUB
+BUSINESS
+NONPROFIT
+ENTERPRISE
+PLATFORM
+```
+
+`kind` affects available product capabilities and onboarding, not data ownership semantics.
+
+### 3.4 Why this is mandatory
+
+A single tenant model simplifies:
+
+- RLS,
+- role resolution,
+- Stripe connected accounts,
+- subscriptions,
+- tournament transfer/upgrades,
+- public/private data projections,
+- audit attribution,
+- analytics,
+- feature flags,
+- support tooling.
 
 ---
 
-## 4. Multi-Tenant Requirement
+## 4. Tournament Hierarchy
 
-This is a true multi-tenant system.
+```text
+Organization
+ ├── Standalone Tournament
+ └── Circuit / Series
+      └── Season
+           └── Tournament
+```
+
+`Tournament.organization_id` is mandatory.
+
+`Tournament.season_id` is nullable.
+
+A circuit/series is one domain concept. UI terminology may display “Circuit”, “Series”, “Trail”, or another label without creating separate database entities.
+
+---
+
+## 5. Core Entities
+
+### Identity and tenancy
+
+```text
+User
+Profile
+Organization
+OrganizationMember
+OrganizationInvitation
+OrganizationFeature
+```
+
+### Tournament structure
+
+```text
+Circuit
+Season
+Tournament
+TournamentStaff
+TournamentRuleSetVersion
+TournamentScoringVersion
+TournamentVerificationPolicyVersion
+TournamentBoundaryVersion
+TournamentDivision
+TournamentAwardCategory
+TournamentSpeciesRule
+```
+
+### Participation
+
+```text
+TournamentEntry
+TournamentEntryIdentity
+TournamentTeam
+TournamentTeamMember
+Boat
+TournamentBoat
+```
+
+### Competition and integrity
+
+```text
+TournamentCatch
+CatchEvidence
+VerificationSession
+VerificationCheck
+FairPlaySignal
+CatchReview
+TournamentPenalty
+TournamentDispute
+```
+
+### Results
+
+```text
+ScoreComputation
+Standing
+LeaderboardSnapshot
+FinalResultSet
+```
+
+### Commerce
+
+```text
+Order
+OrderItem
+Payment
+PaymentAttempt
+PaymentAllocation
+Refund
+PlatformFee
+OrganizerPaymentAccount
+PrizePool
+PrizePoolEntry
+PayoutInstruction
+Payout
+WalletConnection
+CryptoPayment
+FinancialEvent
+```
+
+### Integrity
+
+```text
+AuditEvent
+IdempotencyRecord
+```
+
+---
+
+## 6. User, Entrant, and Guest Identity
+
+`User` is an authenticated Fish Games account.
+
+`TournamentEntry` is participation in one tournament and must not require an existing user account.
+
+Use a participant identity record capable of representing:
+
+```text
+REGISTERED_USER
+GUEST
+IMPORTED
+```
+
+A B2B organizer must be able to import or register competitors who do not yet use Fish Games.
+
+Later account claiming/linking must preserve the original tournament entry and audit history rather than replacing it.
+
+### Required invariant
+
+```text
+TournamentEntry.tournament_id = exactly one tournament
+```
+
+A user may hold staff roles in one tournament, compete in another, and own an organization independently.
+
+---
+
+## 7. Divisions and Award Categories
+
+These are separate.
+
+### TournamentDivision
+
+Represents a competitive field or classification.
 
 Examples:
 
-- Fish Games
-- Pacific Coast Tournament Series
-- Florida Kingfish Association
-- A private user-created friends tournament
+- Pro
+- Amateur
+- Junior
+- Kayak
+- Private Boat
+- Sport Boat
 
-Private administrative data must be isolated.
+### TournamentAwardCategory
 
-Organization A must never be able to access Organization B's private administrative data.
+Represents a result/prize category.
 
-A user-owned private tournament must not expose private data to unrelated users.
+Examples:
 
-Authorization must be enforced server-side and, where applicable, at the database/RLS layer.
+- Overall Winner
+- Biggest Fish
+- Biggest Yellowtail
+- Daily Jackpot
+- Women's Division Award
+- Optional Side Pot
 
-UI hiding is not security.
+An entry may have a primary or permitted set of divisions and may qualify for multiple award categories.
 
----
-
-## 5. Required Domain Entities
-
-The architect must define ownership, responsibility, relationships, lifecycle, and security for at least:
-
-### Identity
-- User
-- Profile / Angler Profile
-
-### Organization
-- Organization
-- OrganizationMember
-- OrganizationInvitation
-
-### Tournament hierarchy
-- Circuit / Series
-- Season
-- Tournament
-- TournamentStaff
-
-### Competition configuration
-- TournamentDivision
-- TournamentAwardCategory
-- TournamentSpecies
-- TournamentRule
-- TournamentBoundary
-- TournamentScoringConfiguration
-- TournamentVerificationPolicy
-
-### Participation
-- TournamentEntry
-- TournamentTeam
-- TournamentTeamMember
-- Boat
-- TournamentBoat
-
-### Competition evidence / integrity
-- TournamentCatch
-- CatchEvidence
-- CatchReview
-- VerificationSession
-- FairPlayAssessment
-- FairPlaySignal
-- EvidenceFingerprint
-- TournamentPenalty
-- TournamentDispute
-
-### Results
-- Score / Standing
-- LeaderboardSnapshot
-
-### Platform integrity
-- AuditEvent
-
-### Commerce
-- Order
-- OrderItem
-- Payment
-- PaymentAttempt
-- PaymentAllocation
-- Refund
-- PlatformFee
-- OrganizerPaymentAccount
-- PrizePool
-- PrizePoolEntry
-- Payout
-- WalletConnection
-- CryptoPayment
-- FinancialEvent
+Do not model all prizes as divisions.
 
 ---
 
-## 6. Tournament Ownership Model
+## 8. Team and Boat Model
 
-The architect must resolve how a tournament can be owned by either:
+A `TournamentTeam` is a competitor grouping.
 
-- an individual user, or
-- an organization.
+A `Boat` is a reusable vessel identity.
 
-Evaluate approaches such as:
+A `TournamentBoat` is the vessel's tournament-specific registration/inspection/check-in state.
 
-```text
-TournamentOwner
-  owner_type: USER | ORGANIZATION
-  owner_id
-```
+A team may reference a tournament boat, but neither record owns the other.
 
-or nullable foreign keys with strict constraints.
+This supports:
 
-Requirements:
+- team events without boats,
+- boat events with changing rosters,
+- multiple teams associated with a fleet,
+- reusable boat profiles across tournaments.
 
-- no duplicate tournament implementation,
-- deterministic ownership,
-- secure authorization,
-- easy upgrade path from user-owned B2C tournament to organization-managed tournament if product strategy later permits,
-- consistent billing and audit attribution.
+Sensitive vessel data is private unless explicitly published.
 
 ---
 
-## 7. Tournament Lifecycle
+## 9. Tournament Lifecycle
 
-Design an explicit state machine.
-
-Suggested starting states:
+Canonical states:
 
 ```text
 DRAFT
@@ -213,141 +346,120 @@ FINAL
 CANCELLED
 ```
 
-Define valid transitions, roles allowed to trigger each transition, and effects on registration, catch submission, judging, scoring, payments/refunds, and post-final corrections.
-
-Final results must not silently mutate.
-
----
-
-## 8. User vs Angler vs Tournament Entry
-
-Do not model `User = Tournament Competitor`.
-
-A user is an identity and may be a tournament creator in one event, an angler in another, a judge in another, and an organization owner elsewhere.
-
-A `TournamentEntry` must represent participation in exactly one tournament.
-
-The architect must decide whether a reusable `AnglerProfile` is necessary or whether profile data belongs elsewhere.
-
----
-
-## 9. Tournament Entry Model
-
-A tournament entry may need to represent entrant/user, division, team, boat, entry number, registration state, payment state, eligibility state, check-in state, and competition state.
-
-Do not collapse unrelated concerns into one ambiguous status unless there is a justified state model.
-
----
-
-## 10. Team and Boat Separation
-
-A team is not a boat.
+### Allowed high-level transitions
 
 ```text
-Team Pacific
-  competes aboard
-FV Pacific
+DRAFT -> REGISTRATION_OPEN | CANCELLED
+REGISTRATION_OPEN -> REGISTRATION_CLOSED | CANCELLED
+REGISTRATION_CLOSED -> READY | REGISTRATION_OPEN | CANCELLED
+READY -> LIVE | CANCELLED
+LIVE -> PAUSED | COMPLETED
+PAUSED -> LIVE | COMPLETED | CANCELLED
+COMPLETED -> RESULTS_PENDING
+RESULTS_PENDING -> FINAL
 ```
 
-Evaluate `TournamentTeam`, `TournamentTeamMember`, `Boat`, and `TournamentBoat`.
+`FINAL` is terminal for normal operations.
 
-Recommended initial direction: tournament-specific teams, reusable boats where appropriate.
+Corrections after `FINAL` require a privileged audited correction workflow producing a new result-set version; previous final results remain historically addressable.
 
----
-
-## 11. Divisions vs Award Categories
-
-Resolve whether competitive divisions and award categories are separate concepts.
-
-An entrant may simultaneously qualify for Overall, Private Boat, Junior, and Big Fish.
-
-Avoid forcing one-entry-one-division if real tournament structures require overlapping categories.
+Financial refunds do not automatically roll tournament lifecycle backward.
 
 ---
 
-## 12. Species Configuration
+## 10. Versioned Competition Configuration
 
-Use a global species model plus tournament-specific configuration.
+When a tournament becomes `LIVE`, official competition configuration must point to immutable versions of:
+
+- rule set,
+- scoring configuration,
+- verification/Fair Play policy,
+- tournament boundaries,
+- eligible species rules,
+- relevant Fish Legal/regulatory snapshot references.
+
+Draft configuration may be edited before start.
+
+Once a version has been used by official competition evidence, edits create a new version rather than mutating the old one.
+
+This is required for reproducible historical scoring and disputes.
+
+---
+
+## 11. Fish Legal Boundary
+
+Fish Legal and tournament rules remain separate.
 
 ```text
-Species
-TournamentSpecies
+Regulatory Context (Fish Legal)
+        ↓
+Tournament Rule Eligibility
+        ↓
+Fair Play / Evidence Checks
+        ↓
+Human Adjudication
+        ↓
+Scoring Eligibility
 ```
 
-Tournament-specific attributes may include eligible status, min/max length, min/max weight, count limits, points, multiplier, and bonus rules.
+A tournament may be stricter than law.
 
-Do not mix tournament species rules with Fish Legal regulations.
+A tournament cannot override law.
+
+A missing/unverified legal data pack produces `UNKNOWN`, not an automatic legal declaration.
+
+Competition records retain the regulatory snapshot/version used at the time of adjudication.
 
 ---
 
-## 13. Fish Legal Boundary
+## 12. Catch / Evidence Model
 
-Legal regulations and tournament rules are separate systems.
+### TournamentCatch
+
+Represents the competitor's factual claim.
+
+Suggested immutable/raw fields include:
 
 ```text
-Fish Legal
-  -> regulatory validation
-
-Tournament Engine
-  -> tournament eligibility
-
-Verification Engine
-  -> final competition evaluation
+id
+tournament_id
+entry_id
+team_id nullable
+tournament_boat_id nullable
+species_id
+caught_at_device
+submitted_at_device
+received_at_server
+length_mm nullable
+weight_g nullable
+disposition nullable
+client_generated_id
+status
+created_at
 ```
 
-A tournament may prohibit something that is otherwise legal. A tournament may not make illegal fishing legal.
+Original claimed measurements are not rewritten to represent penalties.
 
----
+### CatchEvidence
 
-## 14. Tournament Rules and Versioning
-
-Design `TournamentRule` with categories such as eligibility, species, boundary, gear, method, measurement, photo, weigh-in, timing, boat, team, sportsmanship, safety, penalties, protests, tie breakers, and custom.
-
-Rules must be versioned or snapshotted before competition begins so historical results always point to the rules under which they were earned.
-
----
-
-## 15. Boundaries and Geofencing
-
-Evaluate `TournamentBoundary` with types such as INCLUDE, EXCLUDE, CHECK_IN, WEIGH_IN, and START_AREA.
-
-The model should be compatible with future polygons, circles, coordinates, and predefined regulatory areas.
-
-Do not build the map editor in ARCH-001.
-
----
-
-## 16. Catch Domain
-
-Treat a tournament catch as competition evidence, not simply fish + weight.
-
-Evaluate separation into:
+Evidence is one-to-many and typed:
 
 ```text
-TournamentCatch
-CatchEvidence
-CatchReview
+PHOTO
+VIDEO
+GPS
+MEASUREMENT
+WEIGHT
+DEVICE_METADATA
+WITNESS
+QR_VERIFICATION
+WEIGHMASTER
+CUSTOM
 ```
 
-`TournamentCatch` represents the competitor claim. `CatchEvidence` represents proof. `CatchReview` represents adjudication.
+Original evidence objects are retained. Public derivatives are separate assets/projections.
 
-Potential catch fields include tournament_id, entry_id, team_id, boat_id, species_id, caught_at, submitted_at, latitude/longitude, gps_accuracy, weight, length, measurement_method, status, and client_generated_id.
-
----
-
-## 17. Catch Evidence
-
-Evidence types should be extensible.
-
-Examples: PHOTO, VIDEO, GPS, MEASUREMENT, WEIGHT, DEVICE_METADATA, WITNESS, WEIGHMASTER, QR_VERIFICATION, CUSTOM.
-
-One catch may have multiple evidence records.
-
----
-
-## 18. Catch State Machine
-
-Recommended starting states:
+### Catch lifecycle
 
 ```text
 DRAFT
@@ -355,555 +467,868 @@ SUBMITTED
 UNDER_REVIEW
 APPROVED
 REJECTED
-FLAGGED
 DISQUALIFIED
 PROTESTED
 FINAL
 ```
 
-Define valid transitions and roles.
-
-Verification level must remain separate from catch lifecycle state.
+`FLAGGED` is not a catch lifecycle state; flags are represented by verification/Fair Play signals so multiple simultaneous concerns can exist without corrupting state semantics.
 
 ---
 
-## 19. Verification and Fair Play
+## 13. Fair Play Architecture
 
-Fish Games must support a configurable competition-integrity layer designed to reduce recycled photos, duplicate fish submissions, impersonation, out-of-bounds catches, out-of-time catches, and evidence tampering.
+Fair Play must be explainable and composable.
+
+Do not store a single opaque “fraud score” as the official reason for rejection.
+
+### VerificationCheck
+
+Each check records:
 
 ```text
-Catch Submission
-  -> Evidence Collection
-  -> Fair Play Verification
-  -> Judge Review
-  -> Scoring Eligibility
-```
-
-Potential verification levels:
-
-- SELF_REPORTED
-- PHOTO_VERIFIED
-- METADATA_VERIFIED
-- JUDGE_VERIFIED
-- OFFICIAL_VERIFIED
-
-Automation should detect and flag. Judges should adjudicate disputed or high-value cases. All material integrity decisions must be auditable.
-
----
-
-## 20. Tournament Verification Policy
-
-Create a configurable tournament verification policy rather than hard-coding one requirement for every event.
-
-Possible requirements:
-
-- photo,
-- video,
-- GPS,
-- tournament identifier,
-- rotating QR,
-- measurement board,
-- scale evidence,
-- device metadata,
-- weighmaster confirmation,
-- official review.
-
-Support product presets such as Basic, Standard, Strict, and Custom over the same underlying verification engine.
-
----
-
-## 21. QR Verification Architecture
-
-QR technology must be optional and extensible.
-
-Potential uses:
-
-- Tournament QR
-- Rotating time-window QR
-- Angler/entry QR
-- Boat QR
-- Weigh-station QR
-- Check-in QR
-- Catch/session QR
-
-Do not treat QR appearance as security. Use server-issued identifiers or signed tokens and avoid storing sensitive data in QR payloads.
-
-Potential `VerificationSession` fields:
-
-```text
-id
-tournament_id
 type
-token_reference
-valid_from
-valid_until
-status
-created_by
+result: PASS | FAIL | WARNING | UNKNOWN | NOT_REQUIRED
+policy_version_id
+evidence references
+machine/human source
+reason code
 created_at
 ```
 
-Potential types: TOURNAMENT, ANGLER, BOAT, WEIGH_STATION, CHECK_IN, CATCH.
-
-Architect must determine whether signed time-window tokens or server-issued random tokens are preferable.
-
----
-
-## 22. Photo Verification and Duplicate Detection
-
-Preserve original uploaded evidence where possible. Display/compressed derivatives should remain separate.
-
-Evaluate evidence hashing/fingerprinting so the system can detect the same image or evidence reused across catches.
-
-Potential duplicate checks:
-
-- duplicate image fingerprint,
-- same evidence attached to multiple catches,
-- reused QR/session,
-- duplicate client-generated IDs,
-- suspicious timestamp patterns.
-
-These should produce review signals rather than automatic accusations unless a rule is deterministic and safe to enforce.
-
----
-
-## 23. GPS and Time Verification
-
-GPS result should support INSIDE, OUTSIDE, and UNKNOWN. Poor accuracy must not silently become a definitive failure.
-
-Store separate timestamps such as:
-
-- device_capture_time,
-- device_submission_time,
-- server_received_time,
-- verified_time.
-
-Do not rely solely on the device clock.
-
----
-
-## 24. Fair Play Signals
-
-Evaluate `FairPlayAssessment` with statuses such as PASS, WARNING, REVIEW_REQUIRED, FAIL, UNKNOWN.
-
-Potential `FairPlaySignal` types:
-
-- QR_EXPIRED
-- GPS_OUTSIDE_BOUNDARY
-- PHOTO_DUPLICATE
-- TIMESTAMP_MISMATCH
-- UNREGISTERED_ENTRY
-- REUSED_IDENTIFIER
-- DEVICE_TIME_ANOMALY
-- MISSING_REQUIRED_EVIDENCE
-
-Signals should include severity, evidence, timestamp, and resolution status.
-
----
-
-## 25. Offline QR / Integrity Support
-
-Because tournaments may happen offshore, integrity checks must tolerate unreliable connectivity.
-
-Evaluate signed tokens that can be downloaded before departure, verified locally where appropriate, stored with scan metadata, and reconciled with the server later.
-
-Do not silently weaken verification when offline. Record what could and could not be verified at the time.
-
----
-
-## 26. Scoring Service Boundary
-
-Authoritative tournament scoring must not live in UI components.
+Initial types:
 
 ```text
-Tournament Configuration
-+ Eligible Catches
+PHOTO_PRESENT
+PHOTO_DUPLICATE
+GPS_BOUNDARY
+GPS_ACCURACY
+TIME_WINDOW
+QR_TOKEN
+ENTRY_ACTIVE
+BOAT_VALID
+MEASUREMENT_PRESENT
+WEIGHT_PRESENT
+DEVICE_METADATA
+WEIGHMASTER_CONFIRMATION
+```
+
+### FairPlaySignal
+
+Signals are explainable concerns such as:
+
+```text
+QR_EXPIRED
+QR_REUSED
+GPS_OUTSIDE_BOUNDARY
+GPS_LOW_ACCURACY
+PHOTO_DUPLICATE
+TIMESTAMP_MISMATCH
+UNREGISTERED_ENTRY
+DEVICE_TIME_ANOMALY
+MISSING_REQUIRED_EVIDENCE
+```
+
+Signals never silently alter measurements or scores.
+
+Tournament verification policy determines which deterministic failures block approval and which require judge review.
+
+### Human authority
+
+Automation detects and explains.
+
+Officials adjudicate disputed/high-value cases.
+
+All overrides require reason + actor + timestamp.
+
+---
+
+## 14. QR Verification
+
+QR is an optional verification transport, not inherently proof by itself.
+
+Supported session purposes may include:
+
+```text
+TOURNAMENT_WINDOW
+ENTRY_IDENTITY
+BOAT_IDENTITY
+CHECK_IN
+WEIGH_STATION
+CATCH_SESSION
+```
+
+### QR payload rule
+
+Use opaque server identifiers and/or cryptographically signed tokens.
+
+Do not encode sensitive personal or financial information.
+
+### Rotating QR
+
+A tournament may create signed time-window tokens:
+
+```text
+valid_from
+valid_until
+purpose
+tournament_id
+nonce/session_id
+signature/key version
+```
+
+### Offline behavior
+
+Pre-issued signed verification material may be downloaded before departure and validated locally when safe.
+
+Offline validation produces a locally recorded verification result that is revalidated/reconciled by the server when connectivity returns.
+
+Offline validation must record what could not be confirmed server-side at capture time.
+
+---
+
+## 15. Duplicate Evidence Detection
+
+Store deterministic hashes/fingerprints for evidence where technically appropriate.
+
+At minimum detect exact re-use of the same uploaded binary/evidence identifier.
+
+Future perceptual image similarity may generate review signals but must not automatically accuse/disqualify a competitor without deterministic policy support or human review.
+
+Evidence fingerprints are private integrity metadata.
+
+---
+
+## 16. GPS and Time Trust Model
+
+Store separately:
+
+```text
+device_capture_time
+device_submission_time
+server_received_time
+verified_time
+latitude
+longitude
+accuracy_m
+source
+```
+
+GPS boundary evaluation returns:
+
+```text
+INSIDE
+OUTSIDE
+UNKNOWN
+```
+
+Low accuracy can produce `UNKNOWN` or a warning according to policy.
+
+Device time is evidence, not authoritative server time.
+
+Impossible or suspicious timing generates a signal instead of silently rewriting timestamps.
+
+---
+
+## 17. Scoring Service Boundary
+
+Authoritative scoring is pure/domain logic outside UI components.
+
+```text
+Frozen Scoring Version
++ Eligible Approved Catches
 + Penalties
 + Tie Breakers
-  -> Scoring Engine
-  -> Standings
++ Award Categories
+        ↓
+Scoring Engine
+        ↓
+ScoreComputation
+        ↓
+Standing / Leaderboard Projection
 ```
 
-Initial scoring modes should be architecturally supportable:
-
-- BIGGEST_FISH
-- TOTAL_WEIGHT
-- BEST_N_WEIGHT
-- TOTAL_LENGTH
-- BIGGEST_LENGTH
-- POINTS
-- SPECIES_POINTS
-- SPECIES_MULTIPLIER
-- EVERY_FISH_COUNTS
-- CUSTOM
-
-Determine configuration storage, validation strategy, recalculation behavior, persistence/snapshot strategy, and deterministic finalization.
-
----
-
-## 27. Penalties and Tie Breakers
-
-Penalties must be first-class records and must not silently overwrite original catch evidence.
-
-Potential targets: Catch, Entry, Team, Boat.
-
-Potential types: POINT_DEDUCTION, WEIGHT_DEDUCTION, TIME_PENALTY, CATCH_REMOVAL, DISQUALIFICATION, CUSTOM.
-
-Tie breakers must be ordered and deterministic.
-
----
-
-## 28. Disputes and Audit Trail
-
-Design a formal dispute/protest lifecycle.
-
-Every material action affecting competition results should generate an audit event.
-
-Examples include tournament published, rule changed, tournament started, catch submitted/edited/approved/rejected, penalty applied/removed, score recalculated, QR issued/rotated/scanned/rejected, Fair Play assessment changed, tournament ended, results finalized, and final result corrected.
-
-Critical tournament history should be append-only where practical.
-
----
-
-## 29. Authorization Model
-
-Evaluate separate relationships for OrganizationMember, TournamentStaff, and TournamentEntry.
-
-Potential roles:
-
-- PLATFORM_ADMIN
-- ORGANIZATION_OWNER
-- ORGANIZATION_ADMIN
-- ORGANIZATION_STAFF
-- FINANCE_ADMIN
-- TOURNAMENT_DIRECTOR
-- TOURNAMENT_ADMIN
-- JUDGE
-- WEIGHMASTER
-- STAFF
-- CAPTAIN
-- ANGLER
-- SPECTATOR
-
-A user may have different roles in different tournaments.
-
-Produce a complete permission matrix.
-
----
-
-## 30. B2C Capability Model
-
-The architecture must support user-created tournaments such as:
+Initial supported scoring families:
 
 ```text
-Creator: individual user
-Visibility: invite-only
-Participants: 6
-Scoring: biggest yellowtail
-Duration: one day
-Entry Fee: optional
-Judges: optional
-Verification: photo + tournament code
+BIGGEST_FISH
+TOTAL_WEIGHT
+BEST_N_WEIGHT
+TOTAL_LENGTH
+BIGGEST_LENGTH
+POINTS
+SPECIES_POINTS
+SPECIES_MULTIPLIER
+EVERY_FISH_COUNTS
 ```
 
-Potential visibility modes: PRIVATE, INVITE_ONLY, UNLISTED, PUBLIC.
+`CUSTOM` may exist only through a validated, versioned configuration/plugin contract; arbitrary executable customer code is out of scope.
 
-Do not create a separate B2C scoring, registration, payment, or verification system.
+### Existing scoring migration
 
----
+Current `GameRules`/pure scoring functions remain available for Boat Games and may become adapters or reusable primitives where semantics match. Do not force professional tournament scoring into existing casual game-mode types.
 
-## 31. B2B Capability Model
+### Final results
 
-The same engine must scale to hundreds or thousands of participants, organizations and staff, divisions, boats/teams, judging, traditional weigh-ins, multi-day events, sponsor presentation, public leaderboards, registration fees, side pots, reporting, white-label branding, circuits and seasons, and strict Fair Play policies.
-
-Commercial capabilities should be enabled through plans, feature flags, and configuration.
+Finalization stores a `FinalResultSet` referencing exact configuration versions and source competition records.
 
 ---
 
-## 32. Financial Architecture
+## 18. Penalties
 
-Payments are a first-class architecture concern.
+Penalties are first-class append-only records.
 
-The system must eventually support tournament entry fees, team fees, boat fees, membership fees, late fees, side pots/jackpots, merchandise, donations, refunds, platform fees, organizer revenue, prize pools, payouts, fiat payments, crypto payments, fiat payouts, and separately enabled crypto payouts.
-
-Never model payment as only `paid = true`.
+Targets may include:
 
 ```text
-Tournament Entry
-  -> Order
-  -> Order Items
-  -> Payment
-  -> Payment Allocation
+CATCH
+ENTRY
+TEAM
+BOAT
 ```
 
----
-
-## 33. Payment Provider Abstraction
-
-Tournament logic must not depend directly on Stripe or MetaMask.
-
-Define a provider boundary such as:
+Types may include:
 
 ```text
-PaymentService
-  createPayment()
-  confirmPayment()
-  getPaymentStatus()
-  refundPayment()
+POINT_DEDUCTION
+WEIGHT_DEDUCTION
+TIME_PENALTY
+CATCH_REMOVAL
+DISQUALIFICATION
+CUSTOM
 ```
 
-Initial provider implementations to evaluate:
+Original catch weight/length remains unchanged.
 
-- StripePaymentProvider
-- CryptoPaymentProvider
-
-Tournament registration should consume a unified payment state.
+Penalty removal/reversal creates an audited reversing record or status transition; it does not erase history.
 
 ---
 
-## 34. Fiat / Stripe Architecture
+## 19. Reviews and Disputes
 
-Evaluate Stripe Connect for B2B organizer accounts.
+### CatchReview
+
+Multiple reviews are allowed.
+
+A review records actor, role, decision, reasons, evidence considered, and timestamps.
+
+### TournamentDispute
+
+Lifecycle:
 
 ```text
-Angler
- -> Checkout
- -> Stripe
- -> Fish Games platform fee
- -> Tournament organizer allocation
+OPEN
+UNDER_REVIEW
+UPHELD
+OVERTURNED
+DENIED
+CLOSED
 ```
 
-Organization-level financial accounts should store provider identifiers/status, not sensitive bank credentials.
-
-Fee models must be configurable: percentage, flat fee, percentage + flat, subscription + reduced fee, or enterprise agreement.
+Dispute outcomes never delete original decisions; they create new audited decisions/state.
 
 ---
 
-## 35. Crypto / MetaMask Architecture
+## 20. Authorization Model
 
-Support optional wallet-based checkout with MetaMask as the initial wallet target, without hard-coding MetaMask as the only future wallet.
+Use three independent relationships:
 
 ```text
-Checkout
- -> choose Crypto
- -> connect wallet
- -> verify network
- -> generate temporary quote
- -> user signs transaction
- -> transaction broadcast
- -> independent confirmation
- -> payment confirmed
- -> tournament entry activated
+OrganizationMember  -> tenant-level authority
+TournamentStaff     -> event operational authority
+TournamentEntry     -> competitor participation
 ```
 
-Never request or store seed phrases, private keys, or wallet passwords.
-
-Store only necessary public wallet identifiers, transaction hashes, quote metadata, and verification state.
-
----
-
-## 36. Fiat and Crypto Unified at Order Layer
-
-The tournament engine should ultimately see `Payment Status = CONFIRMED`, not care whether payment came from card, Apple Pay, bank, ETH, stablecoin, or another future provider.
-
-Provider complexity remains behind the payment service.
-
----
-
-## 37. Crypto Acceptance vs Crypto Payouts
-
-These are separate capabilities.
+Recommended roles:
 
 ```text
-Capability A: accept crypto payments
-Capability B: pay tournament prizes in crypto
+PLATFORM_ADMIN
+ORGANIZATION_OWNER
+ORGANIZATION_ADMIN
+ORGANIZATION_STAFF
+FINANCE_ADMIN
+TOURNAMENT_DIRECTOR
+TOURNAMENT_ADMIN
+JUDGE
+WEIGHMASTER
+STAFF
+CAPTAIN
+ANGLER
 ```
 
-Capability B must be independently feature-flagged and subject to separate compliance review.
+### Permission principles
 
-Do not assume accepting crypto automatically enables crypto payouts.
+- Organization owners/admins manage their organization, not other tenants.
+- Finance roles do not automatically receive judging permissions.
+- Judges do not automatically receive financial permissions.
+- Tournament staff roles are scoped to a tournament unless explicitly inherited from an organization permission.
+- Angler participation does not grant tournament administration.
+- Public spectator access is not a role assignment; it uses explicit public projections.
+- Platform-admin actions require separate privileged service authorization and auditing.
+
+All sensitive mutations re-resolve authorization server-side.
+
+Client-provided role/tenant claims are never trusted as authority.
 
 ---
 
-## 38. Prize Pools and Payouts
+## 21. Public vs Private Data Classification
 
-Prize pools must be first-class records.
+### Publicable by explicit tournament configuration
 
-Examples include overall prize pool, big fish pool, species jackpot, team pool, and optional side pot.
+Examples:
 
-Track participation explicitly.
+- tournament name/dates,
+- public rules,
+- sponsor branding,
+- competitor display name,
+- approved public catch photo,
+- public weight/length,
+- leaderboard/standings,
+- selected boat/team display information.
 
-The scoring engine may calculate winners but must never directly move money.
+### Private by default
+
+- exact raw catch GPS,
+- device metadata,
+- private evidence originals,
+- internal judge notes,
+- Fair Play signals/details,
+- payment details,
+- wallet addresses unless required for an explicit public feature,
+- bank/provider account identifiers,
+- private vessel registration information,
+- contact information.
+
+Public pages query dedicated safe projections/views/API DTOs rather than exposing raw tables.
+
+---
+
+## 22. Financial Domain
+
+Tournament competition and money are separated.
 
 ```text
-Final Results
- -> Payout Calculation
- -> Human Review / Approval
- -> Payout Instruction
- -> Payment Provider
+Registration / Purchase Intent
+        ↓
+Order + OrderItems
+        ↓
+Payment(s)
+        ↓
+Allocation
+   ├── Organizer Revenue
+   ├── Platform Fee
+   └── Prize Pool Funding
 ```
 
----
+Do not model registration payment as `paid: boolean`.
 
-## 39. Crypto Quotes and Confirmation
-
-If entry fees are denominated in fiat, generate a temporary crypto quote and store fiat amount/currency, crypto amount/asset, exchange rate, quoted_at, and expires_at.
-
-A wallet signature is not proof of confirmed payment.
-
-Blockchain confirmation must be independently verified server-side.
-
-Transaction hashes must be unique to prevent replay/double-crediting.
-
----
-
-## 40. Financial Security
-
-Requirements:
-
-- no raw card storage,
-- no CVV storage,
-- no private crypto keys,
-- no seed phrase collection,
-- verify provider webhooks/signatures,
-- verify blockchain transactions independently,
-- server-side refund/payout authorization,
-- idempotent financial operations,
-- financial audit events,
-- finance permissions separate from judging permissions.
-
----
-
-## 41. Compliance Boundary
-
-Entry fees, prize pools, paid contests, crypto, payouts, tax reporting, and jurisdiction-specific rules may have legal/compliance implications.
-
-Architecture must support feature flags by organization, tournament, and jurisdiction.
-
-Do not encode assumptions that all tournaments can legally offer the same financial features everywhere.
-
----
-
-## 42. Offline / Sync Requirements
-
-Fishing tournaments must not assume connectivity.
-
-Design for future offline-capable submissions with client_generated_id, device timestamps, local queue, idempotent sync, server received timestamp, conflict states, and evidence upload recovery.
-
-Potential sync states: PENDING, SYNCED, CONFLICT, FAILED.
-
-Do not silently overwrite competition evidence during conflict resolution.
-
----
-
-## 43. Security / RLS Requirements
-
-If Supabase/Postgres remains the persistence layer, evaluate RLS for tenant-sensitive records.
-
-Every protected tournament record must have a deterministic ownership path to either owner user or organization.
-
-All sensitive mutations must re-check permission server-side.
-
-Never trust role or ownership identifiers supplied by the client.
-
----
-
-## 44. Migration Strategy
-
-Review the existing Fish Games / Fish Log Book implementation before proposing migrations.
-
-ARCH-001 must identify existing entities that can be reused, entities requiring replacement, backwards-compatible migration steps, data conversion requirements, temporary adapters if needed, and features that must remain working during migration.
-
-Avoid destructive rewrites unless clearly justified.
-
----
-
-## 45. Required Deliverable
-
-Finalize this document with:
-
-1. Executive architecture decision summary
-2. Entity relationship diagram
-3. Ownership model for USER and ORGANIZATION tournaments
-4. Entity responsibilities
-5. Tournament lifecycle state machine
-6. Catch lifecycle state machine
-7. Verification/Fair Play architecture
-8. QR/session architecture
-9. Payment lifecycle state machine
-10. Permission matrix
-11. B2C vs B2B capability matrix
-12. Scoring service boundary
-13. Rule/Fish Legal boundary
-14. Payment provider abstraction
-15. Stripe Connect model
-16. MetaMask/crypto model
-17. Prize pool and payout model
-18. Audit/event strategy
-19. RLS / server authorization strategy
-20. Offline/idempotency strategy
-21. Proposed schema
-22. Migration plan from existing implementation
-23. Risks
-24. Open questions
-25. Recommended implementation sequence
-
----
-
-## 46. Architect Acceptance Criteria
-
-ARCH-001 is complete only when the architecture can answer without ambiguity:
-
-- Who owns a tournament?
-- Can a user create a private tournament without an organization?
-- How can ownership migrate if needed?
-- How are organizations and private tournaments isolated?
-- What is a tournament entry?
-- How do teams and boats differ?
-- Can one entrant qualify for multiple categories?
-- How are rules versioned?
-- How does Fish Legal remain separate?
-- What is the authoritative catch record?
-- How is evidence stored?
-- How is judging represented?
-- How does Fair Play assess photo, GPS, time, and QR evidence?
-- How are QR tokens issued, rotated, signed, and reconciled offline?
-- How are duplicate photos/evidence detected?
-- What triggers automatic failure versus human review?
-- How is authoritative scoring performed?
-- How are penalties and tie breakers represented?
-- How are final results locked?
-- How are disputes audited?
-- How does registration interact with orders/payments?
-- How are platform fees represented?
-- How does Stripe Connect map to organizations?
-- How does MetaMask fit behind a provider abstraction?
-- How is a crypto transaction independently verified?
-- How do prize pools differ from organizer revenue?
-- How are payouts approved?
-- How are fiat payouts separated from crypto payouts?
-- Which capabilities are feature-flagged?
-- How will offline submissions avoid duplicates?
-- How will the existing app migrate safely?
-
----
-
-## 47. Implementation Gate
-
-The architect may inspect the codebase, document decisions, produce diagrams, propose schema, and identify migration steps.
-
-Do **not** implement production tournament migrations, Stripe, MetaMask, prize payouts, or large UI changes until this architecture is reviewed and converted into implementation tickets.
-
-Once ARCH-001 is approved, implementation should be decomposed into separate tickets beginning with the minimum vertical slice:
+Order-item types may include:
 
 ```text
-Tournament Ownership / Tenancy
- -> Tournament Creation
- -> Registration
- -> Catch Submission
- -> Fair Play / Judge Review
- -> Scoring Engine
- -> Leaderboard
- -> Finalization
+TOURNAMENT_ENTRY
+TEAM_ENTRY
+BOAT_ENTRY
+MEMBERSHIP
+LATE_FEE
+SIDE_POT
+JACKPOT
+MERCHANDISE
+DONATION
+CUSTOM
 ```
 
-Financial implementation should follow the approved payment domain contract rather than being built ad hoc inside registration.
+Payment status and tournament-entry status are separate state machines connected by explicit business rules.
+
+---
+
+## 23. Payment Provider Abstraction
+
+Tournament code depends on a provider-neutral payment interface.
+
+Conceptual contract:
+
+```text
+createPayment
+confirmPayment
+getPaymentStatus
+refundPayment
+```
+
+Initial adapters:
+
+```text
+StripePaymentProvider
+CryptoPaymentProvider
+```
+
+Provider webhooks/server verification are authoritative for final payment status.
+
+---
+
+## 24. Stripe / Fiat
+
+Evaluate Stripe Connect for business organizations.
+
+`OrganizerPaymentAccount` stores provider account IDs and onboarding/capability state, never raw banking credentials.
+
+Platform fee configuration is explicit and attributable to organization/tournament/order/payment.
+
+Fee strategy may support:
+
+- percentage,
+- flat,
+- percentage + flat,
+- subscription-linked pricing,
+- enterprise contract pricing.
+
+Exact commercial pricing is product configuration, not core scoring logic.
+
+---
+
+## 25. Crypto / MetaMask
+
+MetaMask is the initial wallet UX target; wallet architecture must remain provider-neutral.
+
+Never request/store:
+
+- private keys,
+- seed phrases,
+- wallet passwords.
+
+For fiat-denominated entry fees, crypto checkout creates a temporary quote containing:
+
+```text
+fiat amount/currency
+crypto amount/asset
+exchange rate/source
+quoted_at
+expires_at
+network/chain
+```
+
+A wallet signature or submitted transaction hash does not equal confirmed payment.
+
+Server-side chain/provider verification confirms transaction finality according to configured policy.
+
+Transaction identifiers must be unique/idempotent to prevent replay/double credit.
+
+---
+
+## 26. Crypto Collection vs Crypto Payout
+
+Two independent capabilities:
+
+```text
+ACCEPT_CRYPTO_PAYMENT
+ENABLE_CRYPTO_PAYOUT
+```
+
+Accepting crypto does not enable prize payout in crypto.
+
+Crypto payout requires separate organization/tournament capability flags, operational controls, and compliance approval.
+
+---
+
+## 27. Prize Pools and Payouts
+
+`PrizePool` represents restricted competition funding and is separate from organizer revenue.
+
+Examples:
+
+- overall purse,
+- big-fish pool,
+- species jackpot,
+- optional side pot.
+
+Participation in optional pools is explicit via `PrizePoolEntry` and linked order items.
+
+### Money movement boundary
+
+```text
+FinalResultSet
+        ↓
+Payout Calculation
+        ↓
+PayoutInstruction (DRAFT)
+        ↓
+Authorized Human Approval
+        ↓
+Payout Provider
+        ↓
+Payout status/events
+```
+
+The scoring engine never sends money.
+
+Payout instructions reference the final result version used to calculate them.
+
+---
+
+## 28. Financial Audit / Ledger Principles
+
+Financial history uses append-only events where practical.
+
+Record:
+
+- order created,
+- payment attempted,
+- payment confirmed/failed,
+- payment allocation,
+- platform fee assessed,
+- refund requested/confirmed,
+- payout instruction created/approved,
+- payout submitted/completed/failed,
+- crypto transaction submitted/confirmed.
+
+Refunds and reversals create records; they do not delete the original payment history.
+
+All financial operations are idempotent.
+
+---
+
+## 29. Compliance Boundary
+
+Paid contests, side pots, prize payouts, taxes, money transmission, crypto, and tournament rules may vary by jurisdiction.
+
+Architecture must support capability gating by:
+
+```text
+platform
+organization
+tournament
+jurisdiction
+```
+
+Legal/compliance enablement is separate from technical capability.
+
+No architecture assumption means a feature is legal everywhere merely because the code supports it.
+
+---
+
+## 30. Offline-First / Server-Authoritative Model
+
+The app must work offshore.
+
+### Local capture
+
+Devices may create locally:
+
+- catches,
+- evidence metadata,
+- QR scans,
+- check-ins where permitted,
+- local verification observations.
+
+Every locally generated mutation uses a deterministic client ID/idempotency key.
+
+### Server reconciliation
+
+Server is authoritative for:
+
+- tenant membership,
+- official tournament lifecycle,
+- official registration status,
+- official payment status,
+- official verification results after reconciliation,
+- judge decisions,
+- scoring/final standings,
+- payouts.
+
+### Sync statuses
+
+```text
+PENDING
+SYNCED
+CONFLICT
+FAILED
+```
+
+Conflicts never silently overwrite competition evidence.
+
+Server receipt time is stored separately from device capture time.
+
+---
+
+## 31. Event / Audit Architecture
+
+All material competition and financial changes produce `AuditEvent` or domain-specific immutable financial events.
+
+Examples:
+
+```text
+TOURNAMENT_PUBLISHED
+RULE_VERSION_ACTIVATED
+TOURNAMENT_STARTED
+CATCH_SUBMITTED
+CATCH_EVIDENCE_ADDED
+VERIFICATION_CHECK_COMPLETED
+JUDGE_DECISION_RECORDED
+PENALTY_APPLIED
+DISPUTE_RESOLVED
+RESULT_SET_FINALIZED
+FINAL_RESULT_CORRECTED
+ORDER_CREATED
+PAYMENT_CONFIRMED
+REFUND_CONFIRMED
+PAYOUT_APPROVED
+```
+
+Audit records include actor/service, tenant, tournament, entity identifiers, action, reason, timestamps, and safe previous/new state references where appropriate.
+
+---
+
+## 32. RLS / Server Authorization
+
+Supabase/Postgres remains the expected persistence direction unless a later ADR changes it.
+
+### RLS principle
+
+Every tenant-sensitive row has a deterministic path to `organization_id` directly or through a protected parent.
+
+Favor direct `organization_id` on high-volume/security-critical tables when it materially simplifies policies and indexing, while preserving relational constraints to tournament ownership.
+
+### Service operations
+
+Privileged server/service-role operations still perform application-layer authorization before mutation; bypassing RLS is not permission by itself.
+
+### Public reads
+
+Public APIs/views expose allowlisted fields only.
+
+---
+
+## 33. Proposed Relationship Sketch
+
+```text
+User
+  └─< OrganizationMember >─ Organization
+                               ├─< Circuit ─< Season
+                               └─< Tournament
+                                    ├─< TournamentStaff
+                                    ├─< TournamentDivision
+                                    ├─< TournamentAwardCategory
+                                    ├─< TournamentEntry
+                                    │     ├─< TournamentTeamMember >─ TournamentTeam
+                                    │     └── identity/user claim
+                                    ├─< TournamentBoat >─ Boat
+                                    ├─< TournamentCatch
+                                    │     ├─< CatchEvidence
+                                    │     ├─< VerificationCheck
+                                    │     ├─< FairPlaySignal
+                                    │     └─< CatchReview
+                                    ├─< TournamentPenalty
+                                    ├─< TournamentDispute
+                                    ├─< Standing / LeaderboardSnapshot
+                                    ├─< Order ─< OrderItem
+                                    │     └─< Payment / Refund / Allocation
+                                    ├─< PrizePool ─< PrizePoolEntry
+                                    └─< PayoutInstruction ─< Payout
+```
+
+Exact SQL tables/constraints belong in the implementation schema ticket, but implementation must conform to these domain boundaries.
+
+---
+
+## 34. Migration from Existing Fish Games
+
+### Phase A — preserve
+
+Current casual Fish Games continues using existing `GameSession`, `GameParticipant`, `GameEvent`, and pure scoring behavior.
+
+### Phase B — introduce tournament server domain
+
+Create organization/tenancy and tournament domain without deleting existing local stores.
+
+### Phase C — adapters
+
+Provide adapters/mappers for concepts that are compatible:
+
+```text
+Game participant -> tournament entry/guest identity where promoted
+Game event -> tournament catch/event evidence where promoted
+Game scoring configuration -> selected reusable scoring primitives
+Fish Legal snapshot -> tournament regulatory snapshot model
+```
+
+Do not force all casual game events into professional tournament tables automatically.
+
+### Phase D — convergence
+
+New tournament UX uses the server-backed tournament engine with offline capture support. Casual Boat Games may remain a lightweight mode sharing scoring/evidence primitives where useful.
+
+### Migration invariants
+
+- existing catches remain intact,
+- existing Boat Games remain playable during staged migration,
+- no existing event IDs are reissued,
+- no historic legal/scoring result is silently rewritten,
+- destructive migrations require explicit backup/rollback plan.
+
+---
+
+## 35. B2C vs B2B Capability Matrix
+
+| Capability | Personal / Friend Tournament | B2B / Enterprise |
+|---|---:|---:|
+| Shared tournament engine | Yes | Yes |
+| Invite-only event | Yes | Yes |
+| Public registration | Optional | Yes |
+| Guest/imported entrants | Yes | Yes |
+| Teams/boats | Optional | Yes |
+| Configurable scoring | Yes | Yes |
+| Photo/QR/GPS Fair Play | Configurable | Configurable/Strict |
+| Official judging | Optional | Yes |
+| Entry fees | Feature-gated | Yes where enabled |
+| Crypto payment | Feature-gated | Feature-gated |
+| Crypto payout | Separately gated | Separately gated |
+| Prize pools | Feature/jurisdiction gated | Feature/jurisdiction gated |
+| Circuits/seasons | Optional/Premium | Yes |
+| Organization staff | Minimal | Yes |
+| White-label branding | No/limited | Premium |
+| Sponsor tools | Limited | Yes |
+| Advanced reporting | Limited | Yes |
+
+Capabilities change by plan/feature flag; the underlying tournament model does not.
+
+---
+
+## 36. Implementation Sequence
+
+No broad parallel implementation begins until this document is approved and converted into bounded tickets.
+
+Recommended dependency order:
+
+```text
+T-001 Tenant / Organization Foundation
+        ↓
+T-002 Tournament Core + Lifecycle + Versioning
+        ↓
+T-003 Entry / Guest Identity / Registration
+        ↓
+T-004 Catch + Evidence + Offline Idempotency
+        ↓
+T-005 Fair Play / Verification / QR
+        ↓
+T-006 Judge Review + Penalties + Disputes
+        ↓
+T-007 Scoring Engine + Standings + Finalization
+        ↓
+T-008 Public Leaderboard / Tournament Projections
+```
+
+Financial work can begin in a separate lane after `T-001` and tournament/entry contracts are stable:
+
+```text
+PAY-001 Order / Payment Domain
+PAY-002 Stripe Provider
+PAY-003 Crypto / MetaMask Provider
+PAY-004 Prize Pools / Payout Instructions
+```
+
+UI work may proceed in parallel only against approved contracts/mocks and with non-overlapping write lanes.
+
+---
+
+## 37. Parallel-Agent Contract
+
+The repository AI operating system remains authoritative.
+
+For this initiative:
+
+- one coordinating COO owns sequencing,
+- architect owns structural decisions,
+- each implementation ticket has one write lane,
+- agents do not independently change shared contracts,
+- unexpected architecture needs return to architect,
+- code reviewers remain read-only,
+- git-integrator alone integrates approved lanes,
+- no duplicate Claude/Codex work unless intentionally requested.
+
+Shared contracts that require architect approval to change after implementation begins:
+
+- organization/tenant ownership,
+- tournament lifecycle,
+- entry identity model,
+- catch/evidence boundaries,
+- configuration versioning,
+- scoring service interface,
+- payment provider interface,
+- Fair Play verification result semantics,
+- public/private data classification.
+
+---
+
+## 38. Risks / Required Follow-Up Reviews
+
+Implementation tickets must explicitly address these risks:
+
+1. RLS complexity and cross-tenant leakage.
+2. Offline conflict/replay/idempotency correctness.
+3. Media evidence storage costs and retention.
+4. Explainability/false positives in Fair Play checks.
+5. Payment and payout compliance by jurisdiction.
+6. Crypto price volatility and transaction finality.
+7. Result reproducibility after rule/configuration updates.
+8. Scaling leaderboard reads during live events.
+9. Migration compatibility with existing Boat Games.
+10. Privacy of raw catch locations and competitor evidence.
+
+Security, payment, and compliance tickets require specialist review before production enablement.
+
+---
+
+## 39. Deferred / Non-Blocking Decisions
+
+These do not block Phase 1 architecture:
+
+- custom domains,
+- native white-label apps,
+- livestream/broadcast production,
+- hardware weigh-station integrations,
+- satellite messaging integrations,
+- advanced perceptual-image ML,
+- sponsor analytics,
+- international tax automation,
+- arbitrary customer scoring code,
+- blockchain smart-contract prize escrow.
+
+The domain model intentionally leaves room for them without requiring them now.
+
+---
+
+## 40. Final Architecture Acceptance Criteria
+
+ARCH-001 is approved only if the reviewer confirms:
+
+- every tournament has one organization tenant,
+- personal tournaments use personal organizations,
+- RLS has one deterministic tenant ownership path,
+- guest/imported entries do not require Fish Games accounts,
+- teams and boats are independent,
+- divisions and awards are independent,
+- rules/scoring/Fair Play/boundaries can be versioned/frozen,
+- original catch evidence is not destructively rewritten,
+- Fair Play checks are discrete/explainable,
+- QR has signed/opaque token semantics and offline reconciliation,
+- scoring is authoritative outside UI and reproducible,
+- final result corrections are versioned/audited,
+- public projections exclude sensitive raw data,
+- fiat and crypto payments share a provider-neutral boundary,
+- crypto payout is separately gated from crypto acceptance,
+- scoring never directly sends money,
+- prize pools and organizer revenue are separate,
+- financial operations are auditable/idempotent,
+- offline capture reconciles to server-authoritative official state,
+- migration preserves existing Fish Games integrity properties,
+- implementation can be split into exclusive agent write lanes without changing these contracts.
+
+---
+
+## 41. Implementation Gate
+
+**DO NOT OPEN THE IMPLEMENTATION BOARD UNTIL THE FINAL REVIEW PASSES.**
+
+After approval, the coordinating architect/COO converts this architecture into dependency-ordered implementation tickets with explicit owners, allowed-write paths, dependencies, acceptance criteria, and tests.
+
+No implementation agent may reinterpret or silently replace the architectural contracts in this document.
