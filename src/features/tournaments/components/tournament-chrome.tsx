@@ -202,6 +202,7 @@ export function TournamentHero({
 const TABS = [
   ["Overview", "overview"],
   ["Enter", "register"],
+  ["Who's in", "participants"],
   ["Catches", "catches"],
   ["Standings", "leaderboard"],
   ["Rules", "rules"],

@@ -22,16 +22,6 @@ export type DemoEntry = {
   display_name: string;
 };
 
-/** A public-safe standings row: exactly the fields `core/tournaments/public-projection` allows. */
-export type DemoStanding = {
-  rank: number;
-  display_name: string;
-  species: string;
-  weight_lb: number;
-  /** Official once every review behind it is closed; provisional until then. */
-  official: boolean;
-};
-
 const TOURNAMENTS_KEY = "fish-log-book:demo-tournaments";
 const ENTRIES_KEY = "fish-log-book:demo-tournament-entries";
 
@@ -105,21 +95,6 @@ function seedTournaments(): DemoTournament[] {
     },
   ];
 }
-
-const SEED_STANDINGS: Readonly<Record<string, readonly DemoStanding[]>> = {
-  "demo-harbor-shootout": [
-    { rank: 1, display_name: "M. Rivera", species: "Yellowtail", weight_lb: 28.6, official: true },
-    { rank: 2, display_name: "J. Park", species: "Yellowtail", weight_lb: 24.2, official: true },
-    { rank: 3, display_name: "A. Lewis", species: "White seabass", weight_lb: 21.9, official: false },
-    { rank: 4, display_name: "D. Okafor", species: "Yellowtail", weight_lb: 19.4, official: true },
-    { rank: 5, display_name: "T. Nguyen", species: "Calico bass", weight_lb: 8.1, official: true },
-  ],
-  "demo-crew-cup": [
-    { rank: 1, display_name: "Sam", species: "Lingcod", weight_lb: 17.2, official: true },
-    { rank: 2, display_name: "Dad", species: "Lingcod", weight_lb: 15.8, official: true },
-    { rank: 3, display_name: "Ellie", species: "Rockfish", weight_lb: 6.4, official: true },
-  ],
-};
 
 export function hasSupabaseBrowserConfig(): boolean {
   return Boolean(
@@ -198,11 +173,3 @@ export function registerDemoEntry(tournamentId: string, displayName: string): De
   return entry;
 }
 
-/**
- * Standings for the seeded demo events only. A tournament the founder creates has no
- * standings, and inventing some would teach the wrong thing about where scores come from —
- * the empty leaderboard with "nothing has been scored yet" is the honest screen.
- */
-export function getDemoStandings(tournamentId: string): readonly DemoStanding[] {
-  return SEED_STANDINGS[tournamentId] ?? [];
-}
