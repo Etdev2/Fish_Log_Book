@@ -14,8 +14,16 @@ import { CARD_CLASS } from "../ui-classes";
  *
  * Two shapes on purpose. With a game running it is an amber card that is hard to walk
  * past, because the likeliest reason this angler opened the app at all is that a game is
- * live and the phone went to sleep. With nothing running it is one quiet line — Boat
- * Games must not shout at somebody who only came to log a fish.
+ * live and the phone went to sleep. With nothing running it is a plain card — present,
+ * tappable, and not competing with the catch button.
+ *
+ * The resting state was a single line of muted text until 2026-09-04, on the reasoning
+ * that Boat Games must not shout at somebody who only came to log a fish. That was wrong
+ * in a way worth recording: sitting above the "Fish Log" heading with no border and no
+ * background, it read as a page subtitle rather than a destination, and the founder — who
+ * had just watched the feature being built — went looking for it twice and could not find
+ * it. Restraint is right; invisibility is not the same thing. A bordered card with the
+ * name on its own line is still quiet, and can actually be seen.
  */
 export function GamesEntry() {
   const games = useGames();
@@ -26,13 +34,22 @@ export function GamesEntry() {
 
   if (!active) {
     return (
-      <Link
-        href="/games"
-        className="flex min-h-touch-floor items-center justify-between gap-space-3 px-space-4 text-body text-text-link"
-      >
-        <span>Boat Games — play against the crew</span>
-        <span aria-hidden="true">→</span>
-      </Link>
+      <div className="px-space-4">
+        <Link
+          href="/games"
+          className={`${CARD_CLASS} flex min-h-touch-floor items-center justify-between gap-space-3 p-space-4`}
+        >
+          <span className="flex flex-col">
+            <span className="text-body-strong text-text-primary">Boat Games</span>
+            <span className="text-caption text-text-muted">
+              Play against the crew — no signal needed
+            </span>
+          </span>
+          <span aria-hidden="true" className="shrink-0 text-body text-signal-orange">
+            →
+          </span>
+        </Link>
+      </div>
     );
   }
 
