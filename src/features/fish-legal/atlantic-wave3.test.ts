@@ -66,4 +66,18 @@ describe("Atlantic wave 3 — CT / NH / ME", () => {
     expect(ken!.bagDaily).toBe(1);
     expect(regulationCard(MAINE, "me-coast", "atlantic_wolffish", TODAY, "boat")!.verdict).toBe("release");
   });
+  it("CT red drum 27 max @1; American shad prohibited on LIS", () => {
+    const rd = regulationCard(CONNECTICUT, "ct-lis", "red_drum", TODAY, "boat");
+    expect(rd!.maxSizeIn).toBe(27);
+    expect(rd!.bagDaily).toBe(1);
+    expect(regulationCard(CONNECTICUT, "ct-lis", "american_shad", TODAY, "boat")!.verdict).toBe("release");
+  });
+
+  it("NH dab 14; monkfish 17; redfish 9; yellowtail 13; white perch 25", () => {
+    expect(regulationCard(NEW_HAMPSHIRE, "nh-coast", "american_plaice", TODAY, "boat")!.minSizeIn).toBe(14);
+    expect(regulationCard(NEW_HAMPSHIRE, "nh-coast", "monkfish", TODAY, "boat")!.minSizeIn).toBe(17);
+    expect(regulationCard(NEW_HAMPSHIRE, "nh-coast", "acadian_redfish", TODAY, "boat")!.minSizeIn).toBe(9);
+    expect(regulationCard(NEW_HAMPSHIRE, "nh-coast", "yellowtail_flounder", TODAY, "boat")!.minSizeIn).toBe(13);
+    expect(regulationCard(NEW_HAMPSHIRE, "nh-coast", "white_perch", TODAY, "boat")!.bagDaily).toBe(25);
+  });
 });

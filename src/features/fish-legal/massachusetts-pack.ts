@@ -16,10 +16,10 @@ import type { RegArea, RegPack, RegRule } from "./types";
 
 export const MASSACHUSETTS_PACK: RegPack = {
   id: "massachusetts-2026-09-03",
-  version: 1,
-  publishedAt: "2026-09-03T12:00:00Z",
+  version: 2,
+  publishedAt: "2026-09-04T23:00:00Z",
   notes:
-    "Massachusetts (DMF saltwater table, updated 2026-04-28): full finfish digest — " +
+    "Massachusetts DMF v2 (table re-verified 2026-09-04): American shad other waters encoded as prohibited (Merrimack/Connecticut Rivers 3-fish is freshwater). Full finfish digest — " +
     "striped bass slot 28\" to <31\" @1 with circle-hook/no-gaff/no-high-grading " +
     "handling law, bluefish 5 (shore/private) vs 7 (for-hire), scup platform-split " +
     "(shore 9.5\", vessel/for-hire 11\"), fluke vessel 17.5\" vs shore 16.5\" " +
@@ -37,8 +37,8 @@ const MA = {
   title: "Massachusetts DMF — Recreational saltwater fishing regulations",
   updated: "2026-04-28",
 } as const;
-const VERIFIED = "2026-09-03";
-const pv = 1;
+const VERIFIED = "2026-09-04";
+const pv = 2;
 
 export const MA_AREAS: readonly RegArea[] = [
   {
@@ -379,7 +379,7 @@ export const MA_RULES: readonly RegRule[] = [
     checkInseason: false, staleAfterDays: 60,
   }),
   rule({
-    id: "ma-american-shad", speciesId: "american_shad", regAreaId: "ma-statewide", kind: "note",
+    id: "ma-american-shad", speciesId: "american_shad", regAreaId: "ma-statewide", kind: "prohibited",
     verbatim:
       "American Shad (Merrimack and Connecticut Rivers): no size limit, year round, 3 fish. American Shad (Other Waters): Prohibited. Catch and release only.",
     sourceUrl: MA.url, sourceTitle: MA.title, sourceUpdatedAt: MA.updated, verifiedAt: VERIFIED,

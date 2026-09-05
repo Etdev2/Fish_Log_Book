@@ -57,4 +57,26 @@ describe("Atlantic wave 2 — RI / NY / NJ", () => {
     expect(regulationCard(NEW_JERSEY, "nj-marine", "black_sea_bass", TODAY, "boat")!.bagDaily).toBe(1);
     expect(regulationCard(NEW_JERSEY, "nj-marine", "tautog", TODAY, "boat")!.bagDaily).toBe(1);
   });
+  it("NY Spanish 14 @15; king 23 @3; red drum max 27", () => {
+    const sm = regulationCard(NEW_YORK, "ny-marine", "spanish_mackerel", TODAY, "boat");
+    expect(sm!.minSizeIn).toBe(14);
+    expect(sm!.bagDaily).toBe(15);
+    expect(regulationCard(NEW_YORK, "ny-marine", "king_mackerel", TODAY, "boat")!.minSizeIn).toBe(23);
+    expect(regulationCard(NEW_YORK, "ny-marine", "red_drum", TODAY, "boat")!.maxSizeIn).toBe(27);
+  });
+
+  it("NJ cobia 43 @1; Spanish 14 @10; king 23 @3", () => {
+    const cobia = regulationCard(NEW_JERSEY, "nj-marine", "cobia", TODAY, "boat");
+    expect(cobia!.minSizeIn).toBe(43);
+    expect(cobia!.bagDaily).toBe(1);
+    expect(regulationCard(NEW_JERSEY, "nj-marine", "spanish_mackerel", TODAY, "boat")!.bagDaily).toBe(10);
+    expect(regulationCard(NEW_JERSEY, "nj-marine", "king_mackerel", TODAY, "boat")!.minSizeIn).toBe(23);
+  });
+
+  it("RI dab 14 no bag; witch 14; yellowtail 13; monkfish 17", () => {
+    expect(regulationCard(RHODE_ISLAND, "ri-statewide", "american_plaice", TODAY, "boat")!.minSizeIn).toBe(14);
+    expect(regulationCard(RHODE_ISLAND, "ri-statewide", "witch_flounder", TODAY, "boat")!.minSizeIn).toBe(14);
+    expect(regulationCard(RHODE_ISLAND, "ri-statewide", "yellowtail_flounder", TODAY, "boat")!.minSizeIn).toBe(13);
+    expect(regulationCard(RHODE_ISLAND, "ri-statewide", "monkfish", TODAY, "boat")!.minSizeIn).toBe(17);
+  });
 });

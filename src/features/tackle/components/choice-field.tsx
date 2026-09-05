@@ -12,17 +12,24 @@ import { CHIP_CLASS, CHIP_OFF, CHIP_ON } from "../ui-classes";
  */
 export function ChoiceField({
   field,
+  options,
   value,
   recents,
   onChange,
 }: {
   field: AttributeField;
+  /**
+   * The options to show, already resolved by `fieldOptions` (ADR 008). This component
+   * stays dumb on purpose: a field whose choices depend on another field is a domain
+   * rule, and the caller owns it.
+   */
+  options: readonly string[];
   value: string;
   recents: readonly string[];
   onChange: (value: string) => void;
 }) {
   const customInputId = useId();
-  const knownOptions = suggestedOptions(field.options, recents, field.maxChips);
+  const knownOptions = suggestedOptions(options, recents, field.maxChips);
   const valueIsCustom = value !== "" && !knownOptions.some((option) => option === value);
   const [customOpen, setCustomOpen] = useState(valueIsCustom);
   const showCustomInput = customOpen || valueIsCustom;
@@ -32,6 +39,15 @@ export function ChoiceField({
       <legend className="text-label">
         {field.label} <span className="font-normal text-text-muted">(optional)</span>
       </legend>
+      {/*
+        A dependent field before its controller is answered: no chips would leave a bare
+        "Other…" and no way to know why. Say what to do instead. Other… stays available,
+        because somebody who knows their reel is a 30 should not be blocked on picking a
+        type first.
+      */}
+      {knownOptions.length === 0 && field.emptyHint ? (
+        <p className="text-caption text-text-muted">{field.emptyHint}</p>
+      ) : null}
       <div className="flex flex-wrap gap-3" role="group" aria-label={`${field.label} choices`}>
         {knownOptions.map((option) => {
           const selected = value === option;

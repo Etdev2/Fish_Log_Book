@@ -12,6 +12,7 @@ import {
   type RecentsMap,
   type TackleDraft,
   type TackleItem,
+  fieldOptions,
 } from "../types";
 import { ChoiceField } from "./choice-field";
 import { QuantityStepper } from "./quantity-stepper";
@@ -284,6 +285,7 @@ function EditorForm({
           <ChoiceField
             key={`${categorySpec.id}:${field.key}`}
             field={field}
+            options={fieldOptions(field, draft.attributes)}
             value={draft.attributes[field.key] ?? ""}
             recents={draft.category ? recents[`${draft.category}:${field.key}`] ?? [] : []}
             onChange={(value) => setAttribute(field.key, value)}

@@ -170,6 +170,17 @@ export interface RigRecord {
   readonly trip_id: string;
   /** Rod 1, Rod 2, … Stable for the life of the trip; revisions accrue within a slot. */
   readonly slot: number;
+  /**
+   * The lineage this rod belongs to — "my 40-lb yo-yo stick", across every trip it has
+   * ever been fished on (ADR 008). Minted once at first creation and copied forward by
+   * every revision, including retiring and bringing back.
+   *
+   * `slot` cannot do this job: `nextRodSlot` scopes it to a trip, so Rod 1 in June and
+   * Rod 1 in July are unrelated. Name cannot either — renaming would fork the lineage
+   * and two unnamed rods would merge. Optional because a row can arrive from a sync
+   * path older than this field; `quiverKeyOf` stays total when it does.
+   */
+  readonly quiver_id?: string;
   /** The angler's own name for it — "40 lb Flyline". Falls back to "Rod {slot}". */
   readonly name: string | null;
   readonly setup_type: SetupType | null;

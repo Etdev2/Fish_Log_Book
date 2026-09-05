@@ -4,6 +4,7 @@ import { usePathname } from "next/navigation";
 
 import { useQuickMarkEnabled } from "@/features/settings/shortcuts";
 import { BackupBadge } from "./backup-badge";
+import { NavDrawer } from "./nav-drawer";
 import { QuickMarkAction } from "./quick-mark-action";
 import { ShellNav } from "./shell-nav";
 
@@ -16,8 +17,11 @@ import { ShellNav } from "./shell-nav";
  * shortcuts (default off) and, when on, renders bottom-right above the nav where the
  * thumb already is. See `quick-mark-action.tsx` for why there rather than anywhere else.
  *
- * With it gone the header carries only the backup badge, so it collapses to a single
- * quiet status line rather than leaving a hole where the button was.
+ * The header carries the backup badge and, since 2026-09-04, the Menu button that opens
+ * the navigation drawer. Six bottom-bar slots could never hold fourteen destinations, and
+ * the overflow had been landing inside other screens — the Passport behind Settings, Boat
+ * Games behind the Fish Log — which is why the founder could not find his own feature the
+ * day after it shipped. The drawer is the answer; the bar is unchanged.
  *
  * **One route is immersive.** The tide screen is a single-screen instrument — the brief
  * for it is explicit that nothing else may consume its vertical room and that the page
@@ -52,7 +56,13 @@ export function ShellFrame({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="flex min-h-dvh flex-col">
-      <header className="flex items-center border-b border-hairline px-4 py-3">
+      {/*
+        The header carries the way into everything (`nav-drawer.tsx`) on the left and the
+        backup status on the right. The bottom bar stays at six for the everyday
+        destinations; the drawer is how the other eight stop being a treasure hunt.
+      */}
+      <header className="flex items-center justify-between gap-space-3 border-b border-hairline px-4 py-2">
+        <NavDrawer />
         <BackupBadge />
       </header>
 

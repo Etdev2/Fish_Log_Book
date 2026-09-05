@@ -38,6 +38,16 @@ describe("Atlantic wave 4 — DE / MD / VA / NC / SC / GA", () => {
     expect(regulationCard(DELAWARE, "de-tidal", "striped_bass", TODAY, "boat")!.bagDaily).toBe(1);
   });
 
+  it("DE cobia 43 @2; Spanish 14 @15; scup 9 @30; bluefish 5; weakfish 13 @1", () => {
+    const cobia = regulationCard(DELAWARE, "de-tidal", "cobia", TODAY, "boat");
+    expect(cobia!.minSizeIn).toBe(43);
+    expect(cobia!.bagDaily).toBe(2);
+    expect(regulationCard(DELAWARE, "de-tidal", "spanish_mackerel", TODAY, "boat")!.bagDaily).toBe(15);
+    expect(regulationCard(DELAWARE, "de-tidal", "scup", TODAY, "boat")!.minSizeIn).toBe(9);
+    expect(regulationCard(DELAWARE, "de-tidal", "bluefish", TODAY, "boat")!.bagDaily).toBe(5);
+    expect(regulationCard(DELAWARE, "de-tidal", "weakfish", TODAY, "boat")!.minSizeIn).toBe(13);
+  });
+
   it("MD ocean stripers 28–31; Bay 19–24 on Sep 3; fluke 17.5 @4", () => {
     const ocean = regulationCard(MARYLAND, "md-atlantic", "striped_bass", TODAY, "boat");
     expect(ocean!.minSizeIn).toBe(28);
@@ -47,9 +57,38 @@ describe("Atlantic wave 4 — DE / MD / VA / NC / SC / GA", () => {
     expect(regulationCard(MARYLAND, "md-atlantic", "summer_flounder", TODAY, "boat")!.minSizeIn).toBe(17.5);
   });
 
-  it("VA coastal stripers open Sep 3; BSB bag 15", () => {
+  it("MD tautog 16 @2 on Sep 3 (summer window); red drum 18–27 @1; Spanish 14 @15", () => {
+    const tog = regulationCard(MARYLAND, "md-atlantic", "tautog", TODAY, "boat");
+    expect(tog!.bagDaily).toBe(2);
+    expect(tog!.minSizeIn).toBe(16);
+    expect(regulationCard(MARYLAND, "md-atlantic", "tautog", "2026-06-01", "boat")!.verdict).toBe("release");
+    const rd = regulationCard(MARYLAND, "md-chesapeake", "red_drum", TODAY, "boat");
+    expect(rd!.bagDaily).toBe(1);
+    expect(rd!.maxSizeIn).toBe(27);
+    expect(regulationCard(MARYLAND, "md-atlantic", "spanish_mackerel", TODAY, "boat")!.bagDaily).toBe(15);
+  });
+
+  it("VA coastal stripers open Sep 3; BSB 13 @15; tautog 16 @4; fluke 17.5 @4", () => {
     expect(regulationCard(VIRGINIA, "va-coast", "striped_bass", TODAY, "boat")!.bagDaily).toBe(1);
-    expect(regulationCard(VIRGINIA, "va-coast", "black_sea_bass", TODAY, "boat")!.bagDaily).toBe(15);
+    const bsb = regulationCard(VIRGINIA, "va-coast", "black_sea_bass", TODAY, "boat");
+    expect(bsb!.bagDaily).toBe(15);
+    expect(bsb!.minSizeIn).toBe(13);
+    expect(regulationCard(VIRGINIA, "va-coast", "tautog", TODAY, "boat")!.bagDaily).toBe(4);
+    expect(regulationCard(VIRGINIA, "va-coast", "summer_flounder", TODAY, "boat")!.minSizeIn).toBe(17.5);
+  });
+
+  it("VA Bay stripers closed Sep 3; cobia still open @1 43in; specks 5 @14", () => {
+    expect(regulationCard(VIRGINIA, "va-chesapeake", "striped_bass", TODAY, "boat")!.verdict).toBe("release");
+    const cobia = regulationCard(VIRGINIA, "va-coast", "cobia", TODAY, "boat");
+    expect(cobia!.bagDaily).toBe(1);
+    expect(cobia!.minSizeIn).toBe(43);
+    expect(regulationCard(VIRGINIA, "va-coast", "spotted_seatrout", TODAY, "boat")!.bagDaily).toBe(5);
+    expect(regulationCard(VIRGINIA, "va-coast", "red_drum", TODAY, "boat")!.maxSizeIn).toBe(26);
+  });
+
+  it("VA tautog closed late May; specks closed mid-April 2026", () => {
+    expect(regulationCard(VIRGINIA, "va-coast", "tautog", "2026-05-20", "boat")!.verdict).toBe("release");
+    expect(regulationCard(VIRGINIA, "va-coast", "spotted_seatrout", "2026-04-15", "boat")!.verdict).toBe("release");
   });
 
   it("NC flounder open Sep 1–14; red drum 18–27 @1; tarpon prohibited", () => {
@@ -65,6 +104,14 @@ describe("Atlantic wave 4 — DE / MD / VA / NC / SC / GA", () => {
     expect(rd!.maxSizeIn).toBe(25);
     expect(rd!.bagDaily).toBe(1);
     expect(regulationCard(SOUTH_CAROLINA, "sc-state-waters", "striped_bass", TODAY, "boat")!.verdict).toBe("release");
+  });
+
+  it("SC cobia 36 FL @1; king 24 FL @3; Spanish 12 FL @15", () => {
+    const cobia = regulationCard(SOUTH_CAROLINA, "sc-state-waters", "cobia", TODAY, "boat");
+    expect(cobia!.bagDaily).toBe(1);
+    expect(cobia!.minSizeIn).toBe(36);
+    expect(regulationCard(SOUTH_CAROLINA, "sc-state-waters", "king_mackerel", TODAY, "boat")!.bagDaily).toBe(3);
+    expect(regulationCard(SOUTH_CAROLINA, "sc-state-waters", "spanish_mackerel", TODAY, "boat")!.minSizeIn).toBe(12);
   });
 
   it("GA red drum 14–23 @5; cobia open @1", () => {

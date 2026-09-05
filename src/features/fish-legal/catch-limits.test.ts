@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import type { CatchRecord } from "@/core/rules/catch/types";
-import { limitCheckForLog, limitLines, talliedKeptToday } from "./catch-limits";
+import { limitCheckForLog, limitLines, talliedKeptToday, undecidedToday } from "./catch-limits";
 import { SOCAL } from "./reg-data";
 
 const ZONE = "America/Los_Angeles";
@@ -127,5 +127,112 @@ describe("limitCheckForLog", () => {
 
   it("returns nothing for a species the pack doesn't limit", () => {
     expect(limitCheckForLog(bundle, "not_a_species", new Map())).toEqual([]);
+  });
+});
+
+describe("one line per species, and the right one for today", () => {
+  /**
+   * Founder-visible bug, 2026-09-04: the limits page showed white seabass twice — "3/day"
+   * and "1/day" — because SoCal carries a year-round rule and a spring window as two
+   * separate bag_limit rules. Two lines, one id, contradictory advice.
+   */
+  it("never emits two lines with the same id", () => {
+    const ids = limitLines(SOCAL, "2026-09-04", new Map()).map((l) => l.id);
+    expect(ids.filter((v, i) => ids.indexOf(v) !== i)).toEqual([]);
+  });
+
+  it("shows white seabass at three a day outside the spring window", () => {
+    const line = limitLines(SOCAL, "2026-09-04", new Map()).find(
+      (l) => l.id === "white_seabass",
+    );
+    expect(line?.limit).toBe(3);
+  });
+
+  it("shows one a day inside it — 15 March to 15 June south of Point Conception", () => {
+    for (const day of ["2026-03-15", "2026-05-01", "2026-06-15"]) {
+      const line = limitLines(SOCAL, day, new Map()).find((l) => l.id === "white_seabass");
+      expect(line?.limit).toBe(1);
+    }
+  });
+
+  it("is back to three the day after the window closes", () => {
+    const line = limitLines(SOCAL, "2026-06-16", new Map()).find(
+      (l) => l.id === "white_seabass",
+    );
+    expect(line?.limit).toBe(3);
+  });
+
+  it("applies the window in a later year too — seasons recur, the pack's dates do not", () => {
+    const line = limitLines(SOCAL, "2027-05-01", new Map()).find(
+      (l) => l.id === "white_seabass",
+    );
+    expect(line?.limit).toBe(1);
+  });
+
+  it("still counts what was kept against whichever line survives", () => {
+    const line = limitLines(SOCAL, "2026-05-01", new Map([["white_seabass", 1]])).find(
+      (l) => l.id === "white_seabass",
+    );
+    expect(line?.retained).toBe(1);
+    expect(line?.state).toBe("reached");
+  });
+});
+
+describe("fish logged without a kept-or-released answer", () => {
+  /**
+   * Founder report, 2026-09-04: "when I add a white seabass it does not subtract from
+   * today's limits". It counted correctly when marked Kept — but the fast log flow never
+   * asks, so a quickly-logged fish sat outside the tally with nothing said about it.
+   * Silence is the wrong direction here: it under-reports the box.
+   */
+  const at = (iso: string, disposition: "kept" | "released" | null): CatchRecord =>
+    ({
+      id: `c-${iso}-${disposition}`,
+      angler_id: "a",
+      trip_id: "t",
+      caught_at: iso,
+      caught_tz: "America/Los_Angeles",
+      local_date: iso.slice(0, 10),
+      species_id: "white_seabass",
+      disposition,
+      quantity: 1,
+      deleted_at: null,
+      resolution_state: "confirmed",
+      outcome: "landed",
+    }) as unknown as CatchRecord;
+
+  const DAY = "2026-09-04";
+  const NOON = "2026-09-04T19:00:00.000Z"; // midday in Los Angeles
+  const ZONE = "America/Los_Angeles";
+
+  it("lists a fish with no disposition", () => {
+    expect(undecidedToday([at(NOON, null)], DAY, ZONE)).toHaveLength(1);
+  });
+
+  it("does not list one that was answered either way", () => {
+    expect(undecidedToday([at(NOON, "kept")], DAY, ZONE)).toEqual([]);
+    expect(undecidedToday([at(NOON, "released")], DAY, ZONE)).toEqual([]);
+  });
+
+  it("does not count an unanswered fish against the bag", () => {
+    const tally = talliedKeptToday([at(NOON, null)], DAY, ZONE);
+    expect(tally.get("white_seabass")).toBeUndefined();
+  });
+
+  it("counts it the moment it is answered kept", () => {
+    const tally = talliedKeptToday([at(NOON, "kept")], DAY, ZONE);
+    expect(tally.get("white_seabass")).toBe(1);
+  });
+
+  it("is scoped to the angler's day, not UTC", () => {
+    // 06:00 UTC on the 5th is still the evening of the 4th in Los Angeles.
+    const lateEvening = "2026-09-05T04:00:00.000Z";
+    expect(undecidedToday([at(lateEvening, null)], DAY, ZONE)).toHaveLength(1);
+  });
+
+  it("ignores deleted and dismissed rows", () => {
+    const deleted = { ...at(NOON, null), deleted_at: NOON } as CatchRecord;
+    const dismissed = { ...at(NOON, null), resolution_state: "dismissed" } as CatchRecord;
+    expect(undecidedToday([deleted, dismissed], DAY, ZONE)).toEqual([]);
   });
 });

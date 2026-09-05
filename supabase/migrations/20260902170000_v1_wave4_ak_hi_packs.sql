@@ -28,10 +28,10 @@ insert into public.reg_area (id, authority, kind, name, parent_id, boundary_geoj
 on conflict (id) do nothing;
 
 insert into public.reg_group (id, name, member_species_ids, source_url, verified_at) values
-  ('akse-4salmon', 'Chum, coho, pink & sockeye salmon (16 inches or longer)', '["chum_salmon","coho_salmon","pink_salmon","sockeye_salmon"]', 'https://www.adfg.alaska.gov/static/regulations/fishregulations/PDFs/southeast/2026se_sfregs_general_freshwater_saltwater.pdf', '2026-09-02'),
-  ('akse-pelagic-rockfish', 'Pelagic rockfish (black, dark, deacon, dusky, widow, yellowtail)', '["black_rockfish","widow_rockfish","yellowtail_rockfish"]', 'https://www.adfg.alaska.gov/static/regulations/fishregulations/PDFs/southeast/2026se_sfregs_general_freshwater_saltwater.pdf', '2026-09-02'),
-  ('akse-slope-rockfish', 'Slope rockfish (nonpelagic; incl. blue, bocaccio, vermilion, …)', '["blue_rockfish","bocaccio","vermilion_rockfish"]', 'https://www.adfg.alaska.gov/static/regulations/fishregulations/PDFs/southeast/2026se_sfregs_general_freshwater_saltwater.pdf', '2026-09-02'),
-  ('akse-dsr', 'Demersal shelf rockfish (canary, China, copper, quillback, rosethorn, tiger, yelloweye)', '["canary_rockfish","copper_rockfish","quillback_rockfish","yelloweye_rockfish"]', 'https://www.adfg.alaska.gov/static/regulations/fishregulations/PDFs/southeast/2026se_sfregs_general_freshwater_saltwater.pdf', '2026-09-02')
+  ('akse-4salmon', 'Chum, coho, pink & sockeye salmon (16 inches or longer)', '{chum_salmon,coho_salmon,pink_salmon,sockeye_salmon}', 'https://www.adfg.alaska.gov/static/regulations/fishregulations/PDFs/southeast/2026se_sfregs_general_freshwater_saltwater.pdf', '2026-09-02'),
+  ('akse-pelagic-rockfish', 'Pelagic rockfish (black, dark, deacon, dusky, widow, yellowtail)', '{black_rockfish,widow_rockfish,yellowtail_rockfish}', 'https://www.adfg.alaska.gov/static/regulations/fishregulations/PDFs/southeast/2026se_sfregs_general_freshwater_saltwater.pdf', '2026-09-02'),
+  ('akse-slope-rockfish', 'Slope rockfish (nonpelagic; incl. blue, bocaccio, vermilion, …)', '{blue_rockfish,bocaccio,vermilion_rockfish}', 'https://www.adfg.alaska.gov/static/regulations/fishregulations/PDFs/southeast/2026se_sfregs_general_freshwater_saltwater.pdf', '2026-09-02'),
+  ('akse-dsr', 'Demersal shelf rockfish (canary, China, copper, quillback, rosethorn, tiger, yelloweye)', '{canary_rockfish,copper_rockfish,quillback_rockfish,yelloweye_rockfish}', 'https://www.adfg.alaska.gov/static/regulations/fishregulations/PDFs/southeast/2026se_sfregs_general_freshwater_saltwater.pdf', '2026-09-02')
 on conflict (id) do nothing;
 
 insert into public.reg_rule
@@ -87,8 +87,8 @@ insert into public.reg_area (id, authority, kind, name, parent_id, boundary_geoj
 on conflict (id) do nothing;
 
 insert into public.reg_group (id, name, member_species_ids, source_url, verified_at) values
-  ('hi-deep7', 'Deep 7 bottomfish (onaga, ''ehu, gindai, kalekale, lehi, ''opakapaka, hapu''u)', '["onaga","opakapaka","ehu","hapuu"]', 'https://dlnr.hawaii.gov/dar/fishing/fishing-regulations/marine-fishes-and-vertebrates/', '2026-09-02'),
-  ('hi-uhu-large', 'Regulated large uhu (14-inch minimum) species', '["uhu"]', 'https://dlnr.hawaii.gov/dar/fishing/fishing-regulations/marine-fishes-and-vertebrates/', '2026-09-02')
+  ('hi-deep7', 'Deep 7 bottomfish (onaga, ''ehu, gindai, kalekale, lehi, ''opakapaka, hapu''u)', '{onaga,opakapaka,ehu,hapuu}', 'https://dlnr.hawaii.gov/dar/fishing/fishing-regulations/marine-fishes-and-vertebrates/', '2026-09-02'),
+  ('hi-uhu-large', 'Regulated large uhu (14-inch minimum) species', '{uhu}', 'https://dlnr.hawaii.gov/dar/fishing/fishing-regulations/marine-fishes-and-vertebrates/', '2026-09-02')
 on conflict (id) do nothing;
 
 insert into public.reg_rule

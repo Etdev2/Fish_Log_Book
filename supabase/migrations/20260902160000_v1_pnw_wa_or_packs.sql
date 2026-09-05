@@ -27,8 +27,8 @@ insert into public.reg_area (id, authority, kind, name, parent_id, boundary_geoj
 on conflict (id) do nothing;
 
 insert into public.reg_group (id, name, member_species_ids, source_url, verified_at) values
-  ('or-general-marine', 'General marine species (rockfish, cabezon, greenling, skates, etc.)', '["rockfish","black_rockfish","blue_rockfish","canary_rockfish","copper_rockfish","quillback_rockfish","vermilion_rockfish","yelloweye_rockfish","bocaccio","widow_rockfish","yellowtail_rockfish","cabezon","kelp_greenling"]', 'https://myodfw.com/sport-bottomfish-seasons', '2026-09-02'),
-  ('or-longleader', 'Offshore long-leader bag (10 named rockfish species)', '["yellowtail_rockfish","widow_rockfish","canary_rockfish","blue_rockfish","bocaccio"]', 'https://myodfw.com/sport-bottomfish-seasons', '2026-09-02')
+  ('or-general-marine', 'General marine species (rockfish, cabezon, greenling, skates, etc.)', '{rockfish,black_rockfish,blue_rockfish,canary_rockfish,copper_rockfish,quillback_rockfish,vermilion_rockfish,yelloweye_rockfish,bocaccio,widow_rockfish,yellowtail_rockfish,cabezon,kelp_greenling}', 'https://myodfw.com/sport-bottomfish-seasons', '2026-09-02'),
+  ('or-longleader', 'Offshore long-leader bag (10 named rockfish species)', '{yellowtail_rockfish,widow_rockfish,canary_rockfish,blue_rockfish,bocaccio}', 'https://myodfw.com/sport-bottomfish-seasons', '2026-09-02')
 on conflict (id) do nothing;
 
 insert into public.reg_rule
@@ -82,9 +82,9 @@ insert into public.reg_area (id, authority, kind, name, parent_id, boundary_geoj
 on conflict (id) do nothing;
 
 insert into public.reg_group (id, name, member_species_ids, source_url, verified_at) values
-  ('wa-bottomfish', 'Bottomfish daily aggregate (9 across the family''s species)', '["rockfish","black_rockfish","blue_rockfish","canary_rockfish","copper_rockfish","quillback_rockfish","vermilion_rockfish","yelloweye_rockfish","bocaccio","widow_rockfish","yellowtail_rockfish","cabezon","kelp_greenling","lingcod","sablefish","pacific_cod"]', 'https://wdfw.wa.gov/newsroom/news-release/coastal-recreational-bottomfish-fishery-season-opens-march-14-1', '2026-09-02'),
-  ('wa-rockfish', 'Rockfish sub-limit (7) within the bottomfish aggregate', '["rockfish","black_rockfish","blue_rockfish","canary_rockfish","copper_rockfish","quillback_rockfish","vermilion_rockfish","yelloweye_rockfish","bocaccio","widow_rockfish","yellowtail_rockfish"]', 'https://wdfw.wa.gov/newsroom/news-release/coastal-recreational-bottomfish-fishery-season-opens-march-14-1', '2026-09-02'),
-  ('wa-ma4-east-rockfish', 'Retainable rockfish in Marine Area 4 east (black, blue/deacon, yellowtail, widow)', '["black_rockfish","blue_rockfish","yellowtail_rockfish","widow_rockfish"]', 'https://wdfw.wa.gov/newsroom/news-release/coastal-recreational-bottomfish-fishery-season-opens-march-14-1', '2026-09-02')
+  ('wa-bottomfish', 'Bottomfish daily aggregate (9 across the family''s species)', '{rockfish,black_rockfish,blue_rockfish,canary_rockfish,copper_rockfish,quillback_rockfish,vermilion_rockfish,yelloweye_rockfish,bocaccio,widow_rockfish,yellowtail_rockfish,cabezon,kelp_greenling,lingcod,sablefish,pacific_cod}', 'https://wdfw.wa.gov/newsroom/news-release/coastal-recreational-bottomfish-fishery-season-opens-march-14-1', '2026-09-02'),
+  ('wa-rockfish', 'Rockfish sub-limit (7) within the bottomfish aggregate', '{rockfish,black_rockfish,blue_rockfish,canary_rockfish,copper_rockfish,quillback_rockfish,vermilion_rockfish,yelloweye_rockfish,bocaccio,widow_rockfish,yellowtail_rockfish}', 'https://wdfw.wa.gov/newsroom/news-release/coastal-recreational-bottomfish-fishery-season-opens-march-14-1', '2026-09-02'),
+  ('wa-ma4-east-rockfish', 'Retainable rockfish in Marine Area 4 east (black, blue/deacon, yellowtail, widow)', '{black_rockfish,blue_rockfish,yellowtail_rockfish,widow_rockfish}', 'https://wdfw.wa.gov/newsroom/news-release/coastal-recreational-bottomfish-fishery-season-opens-march-14-1', '2026-09-02')
 on conflict (id) do nothing;
 
 insert into public.reg_rule

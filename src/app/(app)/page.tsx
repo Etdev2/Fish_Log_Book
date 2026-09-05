@@ -2,6 +2,9 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 import { MonthCalendar } from "@/features/calendar/components/month-calendar";
+import { PassportHomeCard } from "@/features/passport/components/passport-home-card";
+import { PASSPORT_V1 } from "@/features/passport/flag";
+import { SetupChecklist } from "@/features/setup/components/setup-checklist";
 
 export const metadata: Metadata = { title: "Calendar | Fish Log Book" };
 
@@ -18,6 +21,13 @@ export const metadata: Metadata = { title: "Calendar | Fish Log Book" };
 export default function CalendarPage() {
   return (
     <div className="flex flex-col gap-4">
+      {/*
+        Above the calendar, and the only thing that outranks it, because it is the one
+        card that stops mattering. A new angler meets the order of operations on the first
+        screen they see; the moment all five are done it collapses to a single line and
+        never expands again (founder ruling, spec §6.2).
+      */}
+      <SetupChecklist />
       <MonthCalendar />
       <Link
         href="/tides"
@@ -25,6 +35,12 @@ export default function CalendarPage() {
       >
         Open tide chart
       </Link>
+      {/*
+        Below the calendar and the tide link on purpose: the calendar is the home surface
+        (D23) and the passport is the thing you read after the fishing, not before it.
+        This is also the honest test of whether it earns a nav slot later (spec §8.1).
+      */}
+      {PASSPORT_V1 ? <PassportHomeCard /> : null}
     </div>
   );
 }

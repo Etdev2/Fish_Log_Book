@@ -1,6 +1,9 @@
 "use client";
 
+import { boundaryViewFor, hasBoundaryData } from "../boundary-coverage";
 import Link from "next/link";
+import { LegalNotice } from "@/components/legal-notice";
+import { LegalAcknowledgement } from "@/features/legal/components/legal-acknowledgement";
 import { JurisdictionChip } from "./jurisdiction-chip";
 import { useMemo, useState } from "react";
 
@@ -100,6 +103,8 @@ export function RegulationsHome() {
 
   return (
     <div className="flex flex-col gap-4">
+      <LegalAcknowledgement />
+
       <section className="rounded-lg border border-hairline bg-surface p-4">
         <div className="flex items-center gap-2">
           <h1 className="text-h1">Fish Legal</h1>
@@ -109,19 +114,28 @@ export function RegulationsHome() {
           Verified rules for where you fish, dated like logbook entries. Legal text one
           tap away; every card says who said it and when we checked.
         </p>
+        <div className="mt-3">
+          <LegalNotice kind="regulations" />
+        </div>
       </section>
 
       <section className="rounded-lg border border-hairline bg-surface p-4" aria-label="My current regulations">
         <h2 className="text-h3">My current regulations</h2>
         <dl className="mt-3 flex flex-col gap-2 text-body">
+          {/*
+            The active jurisdiction in the app's accent colour (founder, spec §4). Every
+            answer in this section is only true for this region, so it is the one thing on
+            the page that must never be skimmed past. "Change" is a real tap target rather
+            than a word inside a sentence.
+          */}
           <Row label="Region">
-            {regionLabel}
-            <span className="text-caption text-text-muted">
-              {" "}· change it in{" "}
-              <Link href="/settings" className="text-text-link underline decoration-dotted underline-offset-2">
-                Settings
-              </Link>
-            </span>
+            <span className="text-label text-signal-orange">{regionLabel}</span>
+            <Link
+              href="/settings"
+              className="ml-2 inline-flex min-h-touch-floor items-center rounded-md border border-signal-orange px-3 text-label text-signal-orange transition-colors hover:bg-surface-raised focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-3 focus-visible:outline-focus-ring active:scale-95 motion-reduce:transition-none"
+            >
+              Change
+            </Link>
           </Row>
           <Row label="Rule set">
             {bundle
@@ -197,7 +211,21 @@ export function RegulationsHome() {
         <HomeCard href="/fish-legal/species" title="Species & limits" body="Pick a fish; get the 2-second answer." />
         <HomeCard href="/fish-legal/limits" title="Today's limits" body="What you're carrying vs. what the day allows." />
         <HomeCard href="/fish-legal/rockfish" title="Rockfish ID" body="Six questions; likely species with confidence, not verdicts." />
-        <HomeCard href="/fish-legal/boundaries" title="Depth & boundary rules" body="Lines that change the answer as you move." />
+        <HomeCard href="/fish-id" title="Fish ID" body="Salmon, sand bass and rockfish — the ones that are genuinely hard to call." />
+        <HomeCard href="/fin-id" title="Whale & dolphin ID" body="What surfaced next to the boat, and how far back to stay." />
+        {/*
+          Only offered where we hold published coordinates. This card used to be shown
+          everywhere and drew a map of southwest Florida for every non-California region
+          (spec §5.3) — offering it and then admitting we have nothing is still better
+          than that, but not offering it is better again.
+        */}
+        {hasBoundaryData(region) ? (
+          <HomeCard
+            href="/fish-legal/boundaries"
+            title={`${boundaryViewFor(region)?.label ?? ""} depth & boundaries`}
+            body="Lines that change the answer as you move."
+          />
+        ) : null}
         <HomeCard href="/fish-legal/offline" title="Offline & sources" body="What's on this device, when verified, where the law lives." />
         <HomeCard href="/fish-legal/alerts" title="Fish Legal alerts" body="Boundary transitions & limit warnings, logged on-device." />
       </nav>

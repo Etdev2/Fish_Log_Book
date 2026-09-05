@@ -22,3 +22,8 @@ export const regionPreference = createLocalPreference<RegionId>({
 export function useRegionPreference() {
   return regionPreference.use();
 }
+
+/** Whether the angler has chosen a region, rather than living with the default. */
+export function useRegionChosen(): boolean {
+  return regionPreference.useIsSet();
+}

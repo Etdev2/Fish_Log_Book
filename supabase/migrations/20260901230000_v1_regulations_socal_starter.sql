@@ -72,7 +72,9 @@ create table public.reg_rule (
   bag_shares_with_group boolean not null default false,
   min_size_in           numeric(5,2),
   max_size_in           numeric(5,2),
-  size_measure          text check (size_measure in ('total_length','fork_length','alternate_total_length')),
+  -- `carapace_width` is how crab and lobster are measured, and the TypeScript SizeMeasure
+  -- has always included it; only this check was left behind. Nine rows need it.
+  size_measure          text check (size_measure in ('total_length','fork_length','alternate_total_length','carapace_width')),
   platform_scope        text check (platform_scope in ('boat','shore','diver')),
   depth_note            text,
   verbatim              text not null,
@@ -84,14 +86,33 @@ create table public.reg_rule (
   stale_after_days      integer not null default 60,
   pack_version          integer not null,
   deleted_at            timestamptz,
-  created_at            timestamptz not null default now(),
-  constraint reg_rule_subject check (
-    (species_id is not null) or (reg_group_id is not null)
-  )
+  created_at            timestamptz not null default now()
+
+  /*
+    No constraint on the subject columns, and that is a decision rather than an omission.
+
+    The original `species_id is not null or reg_group_id is not null` was written
+    2026-09-01 and never executed. Counted against the packs actually written since:
+
+        697  a species
+        113  neither — the rule is about the whole area ("all vessels fishing for reef
+             fish must carry a venting tool"; a management-area closure)
+         44  a group
+          3  both
+
+    Every shape occurs, so no version of that check is true of the data. What is actually
+    guaranteed is `reg_area_id not null` plus the two foreign keys: a rule always names an
+    area, and any species or group it names exists. That is the real invariant and it is
+    already enforced.
+
+    The 3 rows naming both a species and a group may be data-entry slips rather than
+    intent; they are flagged for audit rather than silently normalised here, because
+    guessing at regulation data is how a bag limit ends up wrong.
+  */
 );
 
 comment on table public.reg_rule is
-  'One enforceable statement about one species-or-group in one agency area. verbatim is '
+  'One enforceable statement about one species, group, or whole area. verbatim is '
   'the agency''s own words; typed fields are our translation of it, and the words win '
   '(architecture §2). Absence of a row is displayed as "No verified data", never paraphrased.';
 

@@ -66,12 +66,25 @@ export function formatWindSpeed(mps: number | null): string | null {
   return `${Math.round(mpsToKnots(mps))} kt`;
 }
 
+/**
+ * A clock time in a given zone.
+ *
+ * The zone falls back to the device's when it is not a real IANA name. That guard is not
+ * theoretical: a caller passed the literal string `"local"`, `Intl` threw a RangeError,
+ * and because this runs inside a render it took the whole catch record down to a blank
+ * page — visible only on catches that HAD a GPS fix, because only those carry the sun
+ * times that reached this call. A time label is never worth losing the record over.
+ */
 export function formatClock(isoInstant: string, zone: string): string {
-  return new Intl.DateTimeFormat(undefined, {
-    hour: "numeric",
-    minute: "2-digit",
-    timeZone: zone,
-  }).format(new Date(isoInstant));
+  const options: Intl.DateTimeFormatOptions = { hour: "numeric", minute: "2-digit" };
+  const at = new Date(isoInstant);
+
+  try {
+    return new Intl.DateTimeFormat(undefined, { ...options, timeZone: zone }).format(at);
+  } catch {
+    // Unknown zone: the device's own is a better answer than no page.
+    return new Intl.DateTimeFormat(undefined, options).format(at);
+  }
 }
 
 /** "Thursday, 20 August" — a heading, so the year only when it is not this one. */

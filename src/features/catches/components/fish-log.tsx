@@ -28,6 +28,7 @@ import {
 import { formatClock, formatDayHeading, type UnitSystem } from "../format";
 import {
   currentZone,
+  gearFor,
   logActions,
   openTripOf,
   searchable,
@@ -95,6 +96,51 @@ export function FishLog({ unitSystem }: { unitSystem: UnitSystem }) {
   // never awaited (see `startPositionRequest`). A fix that arrives after the save is
   // patched on afterwards. A ref, not state: it must not cause a render.
   const positionRequest = useRef<PositionRequest | null>(null);
+
+  /*
+   * Calendar → day → an unresolved mark lands here with `?resolve=<id>`.
+   *
+   * It used to link to a bare `/log`, which dropped the angler on the whole list and made
+   * them find the mark they had just tapped — the tap did nothing they could see, which
+   * reads as broken. This opens the same sheet the in-list "Finish it" button opens.
+   *
+   * Derived during render rather than set from an effect: setState inside an effect
+   * cascades an extra render, and the lint rule that catches it is right. Once the angler
+   * closes the sheet, `dismissedResolve` keeps it closed — reopening what someone
+   * deliberately dismissed would be worse than never opening it.
+   *
+   * No fresh position is requested here, unlike the in-list button: a mark already carries
+   * the fix it was made with, and the fish was where the mark was, not where the phone is
+   * by the time someone gets round to naming it.
+   */
+  const resolveParam = searchParams.get("resolve");
+  const [dismissedResolve, setDismissedResolve] = useState(false);
+
+  const autoResolve = useMemo((): LogRequest | null => {
+    if (dismissedResolve || resolveParam === null || !state.hydrated) return null;
+
+    const record = state.catches.find(
+      (candidate) => candidate.id === resolveParam && candidate.deleted_at === null,
+    );
+    // Already resolved, or not on this device: leave the list alone rather than guess.
+    if (record === undefined || record.resolution_state !== "unresolved") return null;
+
+    return {
+      key: `resolve-${record.id}`,
+      resolveId: record.id,
+      seed: {
+        ...EMPTY_DRAFT,
+        gear: draftGearFrom(gearFor(state, record.id)),
+        rodSetupId: record.rig_id,
+        locationId: record.location_condition_id,
+      },
+      note: `Saved at ${formatClock(record.caught_at, record.caught_tz)}. That time, and anything else already captured, is kept.`,
+      title: "What was it?",
+    };
+  }, [dismissedResolve, resolveParam, state]);
+
+  /** What the sheet actually shows: an explicit request wins over the URL's. */
+  const activeRequest = logRequest ?? autoResolve;
 
   const filterKey = JSON.stringify(filters);
   const visible = paging.key === filterKey ? paging.count : PAGE_SIZE;
@@ -170,8 +216,8 @@ export function FishLog({ unitSystem }: { unitSystem: UnitSystem }) {
 
   const save = async (draft: CatchDraft, andAnother: boolean) => {
     const request = positionRequest.current;
-    const resolving = logRequest?.resolveId;
-    const editing = logRequest?.editId;
+    const resolving = activeRequest?.resolveId;
+    const editing = activeRequest?.editId;
 
     if (editing) {
       const existing = state.catches.find((c) => c.id === editing);
@@ -313,12 +359,15 @@ export function FishLog({ unitSystem }: { unitSystem: UnitSystem }) {
       )}
 
       <QuickLogSheet
-        request={logRequest}
+        request={activeRequest}
         recentSpeciesIds={recentSpeciesIds}
         rods={rods}
         locations={locations}
         unitSystem={unitSystem}
-        onClose={() => setLogRequest(null)}
+        onClose={() => {
+          setLogRequest(null);
+          setDismissedResolve(true);
+        }}
         onSave={save}
       />
 

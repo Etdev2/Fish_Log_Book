@@ -6,10 +6,10 @@ import type { RegArea, RegPack, RegRule } from "./types";
 
 export const NORTH_CAROLINA_PACK: RegPack = {
   id: "north-carolina-2026-09-03",
-  version: 1,
-  publishedAt: "2026-09-03T22:00:00Z",
+  version: 2,
+  publishedAt: "2026-09-03T23:45:00Z",
   notes:
-    "NC DMF rec table (effective 2026-09-02): red drum 18–27\" @1; flounder open Sep 1–14 then closed; speckled trout 14–20\" / 3/day; weakfish 12\" @1; sheepshead 14\" @5; CSMA/internal stripers unlawful, Atlantic Ocean 28–31\" @1.",
+    "NC DMF rec table (effective 2026-09-02) v2: drums/flounder/specks as v1; king 24\" FL @3; Spanish 12\" FL @15; dolphin @10; wahoo @2; cobia 36\" FL @1; BSB 13\" @15 N of Hatteras May 1–Dec 31 (7 S of Hatteras); scup 9\" @30 N of Hatteras; red snapper prohibited in coastal/joint waters.",
 };
 
 const NC = {
@@ -18,7 +18,7 @@ const NC = {
   updated: "2026-09-02",
 } as const;
 const VERIFIED = "2026-09-03";
-const pv = 1;
+const pv = 2;
 
 export const NC_AREAS: readonly RegArea[] = [
   {
@@ -116,6 +116,72 @@ export const NC_RULES: readonly RegRule[] = [
     seasonStart: null, seasonEnd: null, bagDaily: 0, possessionLimit: 0, bagSharesWithGroup: false,
     minSizeIn: null, maxSizeIn: null, sizeMeasure: null, platformScope: null, depthNote: null,
     checkInseason: false, staleAfterDays: 120,
+  }),
+  rule({
+    id: "nc-king-mackerel", speciesId: "king_mackerel", regAreaId: "nc-coastal", kind: "bag_limit",
+    verbatim: "King Mackerel: 24\" FL. 3/Day.",
+    sourceUrl: NC.url, sourceTitle: NC.title, sourceUpdatedAt: NC.updated, verifiedAt: VERIFIED,
+    seasonStart: null, seasonEnd: null, bagDaily: 3, possessionLimit: 3, bagSharesWithGroup: false,
+    minSizeIn: 24, maxSizeIn: null, sizeMeasure: "fork_length", platformScope: null, depthNote: null,
+    checkInseason: true, staleAfterDays: 30,
+  }),
+  rule({
+    id: "nc-spanish-mackerel", speciesId: "spanish_mackerel", regAreaId: "nc-coastal", kind: "bag_limit",
+    verbatim: "Spanish Mackerel: 12\" FL. 15/Day.",
+    sourceUrl: NC.url, sourceTitle: NC.title, sourceUpdatedAt: NC.updated, verifiedAt: VERIFIED,
+    seasonStart: null, seasonEnd: null, bagDaily: 15, possessionLimit: 15, bagSharesWithGroup: false,
+    minSizeIn: 12, maxSizeIn: null, sizeMeasure: "fork_length", platformScope: null, depthNote: null,
+    checkInseason: true, staleAfterDays: 30,
+  }),
+  rule({
+    id: "nc-dolphin", speciesId: "dorado", regAreaId: "nc-coastal", kind: "bag_limit",
+    verbatim: "Dolphin: 10/Day.",
+    sourceUrl: NC.url, sourceTitle: NC.title, sourceUpdatedAt: NC.updated, verifiedAt: VERIFIED,
+    seasonStart: null, seasonEnd: null, bagDaily: 10, possessionLimit: 10, bagSharesWithGroup: false,
+    minSizeIn: null, maxSizeIn: null, sizeMeasure: null, platformScope: null, depthNote: null,
+    checkInseason: true, staleAfterDays: 30,
+  }),
+  rule({
+    id: "nc-wahoo", speciesId: "wahoo", regAreaId: "nc-coastal", kind: "bag_limit",
+    verbatim: "Wahoo: 2/Day.",
+    sourceUrl: NC.url, sourceTitle: NC.title, sourceUpdatedAt: NC.updated, verifiedAt: VERIFIED,
+    seasonStart: null, seasonEnd: null, bagDaily: 2, possessionLimit: 2, bagSharesWithGroup: false,
+    minSizeIn: null, maxSizeIn: null, sizeMeasure: null, platformScope: null, depthNote: null,
+    checkInseason: true, staleAfterDays: 30,
+  }),
+  rule({
+    id: "nc-cobia", speciesId: "cobia", regAreaId: "nc-coastal", kind: "bag_limit",
+    verbatim: "Cobia: 36\" FL. 1/Day. Recreational cobia is proclamation-managed; confirm the current proclamation before keeping a fish.",
+    sourceUrl: NC.url, sourceTitle: NC.title, sourceUpdatedAt: NC.updated, verifiedAt: VERIFIED,
+    seasonStart: null, seasonEnd: null, bagDaily: 1, possessionLimit: 1, bagSharesWithGroup: false,
+    minSizeIn: 36, maxSizeIn: null, sizeMeasure: "fork_length", platformScope: null, depthNote: "Confirm proclamation.",
+    checkInseason: true, staleAfterDays: 14,
+  }),
+  rule({
+    id: "nc-bsb-north", speciesId: "black_sea_bass", regAreaId: "nc-coastal", kind: "bag_limit",
+    verbatim: "Black Sea Bass north of Cape Hatteras: 13\" TL. 15/Day. Season May 1–December 31. South of Cape Hatteras: 13\" TL, 7/Day.",
+    sourceUrl: NC.url, sourceTitle: NC.title, sourceUpdatedAt: NC.updated, verifiedAt: VERIFIED,
+    seasonStart: "05-01", seasonEnd: "12-31", bagDaily: 15, possessionLimit: 15, bagSharesWithGroup: false,
+    minSizeIn: 13, maxSizeIn: null, sizeMeasure: "total_length", platformScope: null,
+    depthNote: "North of Cape Hatteras. South of Hatteras is 7/day year-round on the same table.",
+    checkInseason: true, staleAfterDays: 14,
+  }),
+  rule({
+    id: "nc-scup", speciesId: "scup", regAreaId: "nc-coastal", kind: "bag_limit",
+    verbatim: "Scup north of Cape Hatteras: 9\" TL. 30/Day.",
+    sourceUrl: NC.url, sourceTitle: NC.title, sourceUpdatedAt: NC.updated, verifiedAt: VERIFIED,
+    seasonStart: null, seasonEnd: null, bagDaily: 30, possessionLimit: 30, bagSharesWithGroup: false,
+    minSizeIn: 9, maxSizeIn: null, sizeMeasure: "total_length", platformScope: null,
+    depthNote: "North of Cape Hatteras.",
+    checkInseason: true, staleAfterDays: 30,
+  }),
+  rule({
+    id: "nc-red-snapper", speciesId: "red_snapper", regAreaId: "nc-coastal", kind: "prohibited",
+    verbatim: "Red snapper: prohibited in coastal and joint waters. Snapper-grouper species are managed by proclamation. It is unlawful to take both the state and federal bag limit of the same species on the same trip.",
+    sourceUrl: NC.url, sourceTitle: NC.title, sourceUpdatedAt: NC.updated, verifiedAt: VERIFIED,
+    seasonStart: null, seasonEnd: null, bagDaily: 0, possessionLimit: 0, bagSharesWithGroup: false,
+    minSizeIn: null, maxSizeIn: null, sizeMeasure: null, platformScope: null, depthNote: null,
+    checkInseason: true, staleAfterDays: 14,
   }),
 ];
 

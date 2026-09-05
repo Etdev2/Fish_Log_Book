@@ -1,5 +1,6 @@
 "use client";
 
+import { LegalNotice } from "@/components/legal-notice";
 import Link from "next/link";
 import { useMemo, useState } from "react";
 
@@ -14,6 +15,7 @@ import {
   hasVerifiedRules,
   ID_QUESTIONS,
   identifyRockfish,
+  identifyRockfishFully,
   restrictedIn,
   type IdCandidate,
   type RockfishProfile,
@@ -41,7 +43,14 @@ export function RockfishWizard() {
   const candidates = useMemo(() => identifyRockfish(chosen), [chosen]);
   const restricted = useMemo(() => restrictedIn(candidates), [candidates]);
   const top = candidates[0];
-  const confidentEnough = top && top.confidencePct >= 40;
+  /*
+   * The engine's own §4.5 judgement, not a second opinion invented here. It refuses to
+   * name a winner off one answer, or when the top two are within ten points — a 31/29
+   * split is a coin toss wearing a rosette, and this screen exists to stop someone
+   * keeping the wrong fish on one.
+   */
+  const reading = useMemo(() => identifyRockfishFully(chosen), [chosen]);
+  const confidentEnough = reading.ranked && top && top.confidencePct >= 40;
 
   return (
     <div className="flex flex-col gap-4">
@@ -52,6 +61,9 @@ export function RockfishWizard() {
           doesn&rsquo;t eliminate anything. Match percentages narrow the field; they never
           certify it.
         </p>
+        <div className="mt-3">
+          <LegalNotice kind="identification" />
+        </div>
       </section>
 
       {restricted.length > 0 ? (
@@ -107,8 +119,8 @@ export function RockfishWizard() {
         </ul>
         {chosen.length > 0 && !confidentEnough ? (
           <p className="mt-3 text-caption text-text-muted">
-            No clear read yet. If the fish could be a restricted species, release wins —
-            a fish returned is never a ticket.
+            {reading.reason ?? "No clear read yet."} If the fish could be a restricted
+            species, release wins — a fish returned is never a ticket.
           </p>
         ) : null}
         <Link href="/fish-legal/boundaries" className="mt-4 inline-flex min-h-touch-floor items-center text-label text-text-link underline decoration-dotted underline-offset-4">
@@ -147,6 +159,17 @@ function CandidateRow({ candidate }: { candidate: IdCandidate }) {
               <li key={f}>• {f}</li>
             ))}
           </ul>
+          {/* §4.7: a ranking an angler cannot check against the fish is worse than none. */}
+          {candidate.supporting.length > 0 || candidate.against.length > 0 ? (
+            <p className="text-caption text-text-muted">
+              {candidate.supporting.length > 0
+                ? `Matches what you said: ${candidate.supporting.join(", ")}.`
+                : ""}
+              {candidate.against.length > 0
+                ? ` Counts against: ${candidate.against.join(", ")}.`
+                : ""}
+            </p>
+          ) : null}
           <p className="text-caption text-text-muted">
             Easily confused with: {profile.similarTo.map(speciesDisplayName).join(", ")} —
             compare them before you keep.
