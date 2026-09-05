@@ -37,4 +37,19 @@ export function installFlushListeners(): void {
   document.addEventListener("visibilitychange", () => {
     if (document.visibilityState === "visible") scheduleFlush();
   });
+
+  /*
+    Sign-in is a flush trigger, and it was the missing one. `online` does not fire when
+    you were already online, and `visibilitychange` does not fire on a tab that just
+    loaded — so a magic link opened after a day offshore left the whole day's catches
+    queued behind a badge that said "Saved on this device". The queue drained only if
+    the angler happened to switch apps and come back.
+
+    Binding first means local rows written from here on carry the real auth.uid()
+    rather than the placeholder; the sender stamps the wire payload either way.
+  */
+  void import("./session-angler").then(async (session) => {
+    session.onAnglerSession(() => scheduleFlush());
+    if (await session.bindSessionAngler()) scheduleFlush();
+  });
 }
