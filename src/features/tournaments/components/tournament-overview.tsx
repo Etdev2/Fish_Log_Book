@@ -15,6 +15,7 @@ const NAV_ITEMS = [
   ["Register", "register"],
   ["Catches", "catches"],
   ["Leaderboard", "leaderboard"],
+  ["Operations", "operations"],
   ["Rules", "rules"],
 ] as const;
 
@@ -98,7 +99,7 @@ export function TournamentOverview({ tournamentId }: { tournamentId: string }) {
         <article className={`${TOURNAMENT_CARD} flex flex-col gap-space-1`}><span className="text-caption text-text-muted">Ends</span><span className="text-body-strong text-text-primary">{formatDate(tournament.ends_at)}</span></article>
       </section>
 
-      <section className={`${TOURNAMENT_CARD} flex flex-col gap-space-3`}><h2 className="text-h3 text-text-primary">Next actions</h2><p className="text-body text-text-muted">Registration, live catch logging, judging, operations and finance screens are being added in the next UI lanes without changing this tournament contract.</p></section>
+      <section className={`${TOURNAMENT_CARD} flex flex-col gap-space-3`}><h2 className="text-h3 text-text-primary">Operations ready</h2><p className="text-body text-text-muted">Registration, live catches, public standings, judging, organizer controls, and finance approval surfaces are now represented without collapsing role boundaries.</p><Link href={`/tournaments/${tournament.id}/operations`} className={TOURNAMENT_SECONDARY_BUTTON}>Open operations</Link></section>
     </div>
   );
 }
