@@ -44,3 +44,17 @@ export function latchSteps(newly: readonly SetupStepId[]): void {
   const merged = new Set([...latch.read(), ...newly]);
   latch.set([...merged]);
 }
+
+/**
+ * Forget everything the guide remembers, so it can be walked again.
+ *
+ * The founder asked for this directly: setup should not be a door that locks behind you.
+ * What it clears is the *memory* — the record that a step was once completed. It does not
+ * un-choose a region or delete a rod, because a "start over" that quietly undid real
+ * settings would be a much worse surprise than the one it was meant to fix. So a step
+ * whose thing is still true today comes straight back green, and the guide's copy says so
+ * before you tap it.
+ */
+export function resetSetupLatch(): void {
+  latch.set([]);
+}

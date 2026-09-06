@@ -1,5 +1,6 @@
 "use client";
 
+import { BackLink } from "@/components/back-link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 
@@ -360,6 +361,9 @@ function Frame({
 }) {
   return (
     <div className="mx-auto flex max-w-reading flex-col gap-space-6 px-space-4 py-space-5">
+      {/* Step 1 had no way out except the browser's own back button, which on an iPhone
+          in a case, on a boat, is not a button anybody is finding. */}
+      <BackLink href="/games" label="Boat Games" />
       <header className="flex flex-col gap-space-1">
         <p className="text-caption text-text-muted">
           Step {step} of 3{subtitle ? ` · ${subtitle}` : ""}

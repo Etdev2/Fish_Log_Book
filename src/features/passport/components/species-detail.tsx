@@ -1,5 +1,6 @@
 "use client";
 
+import { BackLink } from "@/components/back-link";
 import Link from "next/link";
 import { useMemo } from "react";
 
@@ -87,14 +88,7 @@ export function SpeciesDetail({
 
   return (
     <div className="flex flex-col gap-4">
-      <nav>
-        <Link
-          href="/passport/species"
-          className="inline-flex min-h-touch-floor items-center text-label text-text-link focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-3 focus-visible:outline-focus-ring"
-        >
-          ← My Species
-        </Link>
-      </nav>
+      <BackLink href="/passport/species" label="My Species" />
 
       <section className={`${CARD_CLASS} p-4`}>
         {photo !== null ? (

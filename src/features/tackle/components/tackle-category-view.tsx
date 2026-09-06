@@ -1,10 +1,10 @@
 "use client";
 
-import Link from "next/link";
+import { BackLink } from "@/components/back-link";
 
 import { deleteTackleItem, saveTackleItem, useTackleSession } from "../session-store";
 import { categoryFor, countByCategory, countLow, type CategoryId } from "../types";
-import { FOCUS_RING, PRIMARY_BUTTON } from "../ui-classes";
+import { PRIMARY_BUTTON } from "../ui-classes";
 import { useTackleEditor } from "../use-tackle-editor";
 import { CategoryIcon } from "./category-icon";
 import { TackleEditorSheet } from "./tackle-editor-sheet";
@@ -25,24 +25,7 @@ export function TackleCategoryView({ category }: { category: CategoryId }) {
   return (
     <section className="flex flex-col gap-8 pb-8">
       <header className="rounded-lg border border-hairline bg-surface p-4">
-        <Link
-          href="/tackle"
-          className={`inline-flex min-h-touch-floor items-center gap-2 rounded-md text-label text-text-link ${FOCUS_RING}`}
-        >
-          <svg
-            viewBox="0 0 24 24"
-            aria-hidden="true"
-            className="h-5 w-5 shrink-0"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth={2}
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            <path d="m15 6-6 6 6 6" />
-          </svg>
-          Tackle Box
-        </Link>
+        <BackLink href="/tackle" label="Tackle Box" />
         <div className="mt-2 flex flex-col items-start gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex min-w-0 items-center gap-3">
             <CategoryIcon id={category} className="h-8 w-8 shrink-0 text-text-muted" />

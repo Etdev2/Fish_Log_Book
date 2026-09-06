@@ -1,15 +1,23 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { Suspense } from "react";
 
-import { StationPicker } from "@/features/conditions/components/station-picker";
 import { PASSPORT_V1 } from "@/features/passport/flag";
 import { BackendDiagnostics } from "@/features/settings/components/backend-diagnostics";
 import { QuickMarkToggle } from "@/features/settings/components/quick-mark-toggle";
 import { RegionSelect } from "@/features/settings/components/region-select";
+import { TideStationSetting } from "@/features/settings/components/tide-station-setting";
 import { UnitsToggle } from "@/features/settings/components/units-toggle";
 
 export const metadata: Metadata = { title: "Settings | Fish Log Book" };
 
+/**
+ * Two of these controls — the tide station and the fishing region — are steps 1 and 2 of
+ * guided setup, and both now walk the angler back to the checklist when setup is what
+ * sent them. Reading that errand means reading the query string, so each sits behind its
+ * own `Suspense` boundary: the rest of this page still prerenders, which is the whole
+ * point of ADR 005 §5. The fallback is the select's own height, so nothing jumps.
+ */
 export default function SettingsPage() {
   return (
     <div className="flex flex-col gap-6">
@@ -20,7 +28,7 @@ export default function SettingsPage() {
         </p>
       </section>
 
-      <section className="rounded-lg border border-hairline bg-surface p-4">
+      <section id="tide-station" className="scroll-mt-space-16 rounded-lg border border-hairline bg-surface p-4">
         <h2 className="text-h3">Tide station</h2>
         <p className="mt-2 text-body text-text-muted">
           Which NOAA station the tide chart reads. Predictions are fetched when you have
@@ -28,7 +36,9 @@ export default function SettingsPage() {
         </p>
         <label className="mt-3 flex flex-col gap-1">
           <span className="sr-only">Tide station</span>
-          <StationPicker />
+          <Suspense fallback={<div className="min-h-touch-floor" />}>
+            <TideStationSetting />
+          </Suspense>
         </label>
       </section>
 
@@ -87,13 +97,15 @@ export default function SettingsPage() {
         Fishing region: which species the picker's "Common" row leads with (founder
         requirements §4). Suggestions only — the full vocabulary is always searchable.
       */}
-      <section className="rounded-lg border border-hairline bg-surface p-4">
+      <section id="fishing-region" className="scroll-mt-space-16 rounded-lg border border-hairline bg-surface p-4">
         <h2 className="text-h3">Fishing region</h2>
         <p className="mt-2 mb-4 text-body text-text-muted">
           Sets the species suggested first when you log a catch. Every species stays
           searchable wherever you fish — this only changes what is one tap away.
         </p>
-        <RegionSelect />
+        <Suspense fallback={<div className="min-h-touch-floor" />}>
+          <RegionSelect />
+        </Suspense>
       </section>
 
       <section className="rounded-lg border border-hairline bg-surface p-4">
@@ -102,6 +114,25 @@ export default function SettingsPage() {
           Choose how tide heights and rates are shown. This does not change how anything is stored.
         </p>
         <UnitsToggle />
+      </section>
+
+      {/*
+        The way back into guided setup. It is here because Settings is where somebody goes
+        when they want to redo a thing they did once — and because the old checklist, which
+        lived on the calendar and deleted itself when finished, had no way back in at all.
+      */}
+      <section className="rounded-lg border border-hairline bg-surface p-4">
+        <h2 className="text-h3">Setup guide</h2>
+        <p className="mt-2 text-body text-text-muted">
+          The six one-time steps that point the app at your water and your gear. Open it any
+          time to check what is done, change an answer, or walk the whole thing again.
+        </p>
+        <Link
+          href="/onboarding"
+          className="mt-4 inline-flex min-h-touch-floor items-center justify-center rounded-md border border-border-interactive px-4 text-label text-text-link transition-colors hover:bg-surface-raised focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-3 focus-visible:outline-focus-ring active:scale-95 motion-reduce:transition-none"
+        >
+          Open setup guide
+        </Link>
       </section>
 
       {/*

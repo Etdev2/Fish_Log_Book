@@ -12,8 +12,14 @@ import { stationsByRegion } from "../stations";
  *
  * Changing this refetches, and the chart's badge says whether what you are looking at came
  * from NOAA just now, from this device's memory, or from the bundled sample.
+ *
+ * `onChosen` fires after a real choice, and exists so a caller can react to the act
+ * without this control having to know why anybody cares. Guided setup uses it to walk the
+ * angler back to the checklist; the tide screen passes nothing and behaves as before. The
+ * callback stays here rather than the knowledge of setup, because a station picker that
+ * imported the onboarding flow would be a picker you could no longer reuse.
  */
-export function StationPicker({ id }: { id?: string }) {
+export function StationPicker({ id, onChosen }: { id?: string; onChosen?: () => void }) {
   const [stationId, setStationId] = useTideStationPreference();
 
   return (
@@ -23,6 +29,7 @@ export function StationPicker({ id }: { id?: string }) {
       onChange={(event) => {
         setStationId(event.target.value);
         setTideStationPreference(event.target.value);
+        onChosen?.();
       }}
       className="min-h-touch-floor w-full rounded-md border border-border-interactive bg-background px-3 text-body text-text-primary focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-3 focus-visible:outline-focus-ring"
     >

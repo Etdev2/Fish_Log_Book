@@ -1,7 +1,7 @@
 "use client";
 
 import { LegalNotice } from "@/components/legal-notice";
-import Link from "next/link";
+import { BackLink } from "@/components/back-link";
 import { useMemo, useState } from "react";
 
 import { TraitFigure, type TraitFigureKey } from "@/components/trait-figure";
@@ -124,12 +124,12 @@ export function FinId() {
         yourself.
       </p>
 
-      <Link
-        href="/fish-legal"
-        className={`inline-flex min-h-touch-floor items-center text-label text-text-link ${FOCUS}`}
-      >
-        ← Back to Legal
-      </Link>
+      {/*
+        Fish Legal is where this screen is reached from, so it is where "back" goes. It
+        stays at the foot of the page as well as in the bottom bar: an angler who has just
+        read a long identification is at the bottom, not the top.
+      */}
+      <BackLink href="/fish-legal" label="Fish Legal" />
     </div>
   );
 }

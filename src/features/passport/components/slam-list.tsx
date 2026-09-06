@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import { BackLink } from "@/components/back-link";
 
 import { speciesById } from "@/core/ontology/species";
 import type { SlamCategory } from "@/core/rules/slams/types";
@@ -24,14 +24,7 @@ export function SlamList() {
 
   return (
     <div className="flex flex-col gap-4">
-      <nav>
-        <Link
-          href="/passport"
-          className="inline-flex min-h-touch-floor items-center text-label text-text-link focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-3 focus-visible:outline-focus-ring"
-        >
-          ← Passport
-        </Link>
-      </nav>
+      <BackLink href="/passport" label="Passport" />
 
       <section className={`${CARD_CLASS} p-4`}>
         <h1 className="text-h1">Slams</h1>

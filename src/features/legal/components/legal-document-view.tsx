@@ -1,5 +1,7 @@
 import Link from "next/link";
 
+import { BackLink } from "@/components/back-link";
+
 import { LEGAL_CONTACT, type LegalDocument } from "@/core/legal/documents";
 
 /**
@@ -10,6 +12,9 @@ import { LEGAL_CONTACT, type LegalDocument } from "@/core/legal/documents";
 export function LegalDocumentView({ document }: { document: LegalDocument }) {
   return (
     <article className="flex flex-col gap-6">
+      {/* The footer already links back to the notices index; this is the same link where a
+          reader looks for it first, which is before they have read three pages of terms. */}
+      <BackLink href="/legal" label="Notices" />
       <header className="rounded-lg border border-hairline bg-surface p-4">
         <h1 className="text-h1">{document.title}</h1>
         <p className="mt-2 text-body text-text-muted">{document.summary}</p>

@@ -1,5 +1,5 @@
+import { BackLink } from "@/components/back-link";
 import type { Metadata } from "next";
-import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { SpeciesGrid } from "@/features/passport/components/species-grid";
@@ -12,14 +12,7 @@ export default function MySpeciesPage() {
 
   return (
     <div className="flex flex-col gap-4">
-      <nav>
-        <Link
-          href="/passport"
-          className="inline-flex min-h-touch-floor items-center text-label text-text-link focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-3 focus-visible:outline-focus-ring"
-        >
-          ← Passport
-        </Link>
-      </nav>
+      <BackLink href="/passport" label="Passport" />
       <h1 className="text-h1">My Species</h1>
       <SpeciesGrid />
     </div>

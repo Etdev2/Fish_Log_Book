@@ -92,6 +92,18 @@ export function destinationGroups(): readonly DestinationGroup[] {
       heading: "The app",
       items: [
         { href: "/settings", label: "Settings", blurb: "Units, region, shortcuts, and your account" },
+        /*
+          Guided setup is a destination now, not a card that deletes itself. It used to
+          live on the calendar and disappear the moment the last step ticked, which meant
+          an angler who wanted a second pass had nowhere to go. It is listed here rather
+          than under "Your gear" because coming back to it is an app-housekeeping act —
+          the same shelf as Settings, which is where people go looking for "do that again".
+        */
+        {
+          href: "/onboarding",
+          label: "Setup guide",
+          blurb: "The first-time steps, any time you want them again",
+        },
         { href: "/legal", label: "Notices", blurb: "Privacy, terms, and how your data is handled" },
       ],
     },

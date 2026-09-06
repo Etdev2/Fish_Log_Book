@@ -8,6 +8,7 @@ import { useMemo } from "react";
 import { useNow } from "@/lib/time/use-now";
 import { useLocalTimeZone } from "@/features/conditions/use-local-time-zone";
 import { useRegionPreference } from "@/features/settings/region";
+import { BackLink } from "@/components/back-link";
 import { REGIONS } from "@/core/ontology/regions";
 import { regulationCard, platformFor } from "../reg-engine";
 import { packForRegion } from "../packs";
@@ -57,14 +58,7 @@ export function SpeciesRulesPage({ speciesId }: { speciesId: string }) {
 
   return (
     <div className="flex flex-col gap-4">
-      <nav>
-        <Link
-          href="/fish-legal/species"
-          className="inline-flex min-h-touch-floor items-center text-label text-text-link focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-3 focus-visible:outline-focus-ring"
-        >
-          ‹ Species &amp; limits
-        </Link>
-      </nav>
+      <BackLink href="/fish-legal/species" label="Species & limits" />
 
       <header className="rounded-lg border border-hairline bg-surface p-4">
         {photo ? (
