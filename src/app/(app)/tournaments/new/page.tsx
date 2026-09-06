@@ -14,7 +14,7 @@ export default function NewTournamentPage() {
         </Link>
         <h1 className="text-h1 text-text-primary">Create a tournament</h1>
         <p className="text-body text-text-muted">
-          Three questions. The rest waits until you need it.
+          Four questions. The rest waits until you need it.
         </p>
       </header>
       <CreateTournamentForm />

@@ -3,9 +3,16 @@
 import { useRouter } from "next/navigation";
 import { useId, useState } from "react";
 
+import {
+  defaultFormat,
+  FORMAT_PRESETS,
+  validateFormat,
+  type TournamentFormat,
+} from "@/core/tournaments/formats";
 import { createClient } from "@/lib/supabase/client";
 import { createDemoTournament, hasSupabaseBrowserConfig } from "../demo-store";
 import { formatSchedule, visibilityPresentation } from "../format";
+import { saveFormat } from "../use-format";
 import {
   BIG_ACTION,
   CARD_PADDED,
@@ -14,6 +21,7 @@ import {
   SECONDARY_BUTTON,
   TERTIARY_BUTTON,
 } from "../ui-classes";
+import { FormatEditor, FormatSummary } from "./format-editor";
 import { CheckRow, DemoNote } from "./tournament-chrome";
 
 /**
@@ -38,7 +46,7 @@ const VISIBILITIES = ["PRIVATE", "INVITE_ONLY", "UNLISTED", "PUBLIC"] as const;
 
 type Visibility = (typeof VISIBILITIES)[number];
 
-const STEPS = ["The basics", "Who can see it", "Check it over"] as const;
+const STEPS = ["The basics", "Who can see it", "How it is won", "Check it over"] as const;
 
 function toIsoOrNull(value: string) {
   return value ? new Date(value).toISOString() : null;
@@ -53,6 +61,8 @@ export function CreateTournamentForm() {
   const [visibility, setVisibility] = useState<Visibility>("PRIVATE");
   const [startsAt, setStartsAt] = useState("");
   const [endsAt, setEndsAt] = useState("");
+  const [presetId, setPresetId] = useState<string | null>(null);
+  const [format, setFormat] = useState<TournamentFormat>(defaultFormat);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -68,7 +78,14 @@ export function CreateTournamentForm() {
       ? "The finish has to be after the start."
       : null;
 
-  const stepReady = step === 0 ? name.trim().length > 0 && !scheduleProblem : true;
+  const formatProblems = validateFormat(format);
+
+  const stepReady =
+    step === 0
+      ? name.trim().length > 0 && !scheduleProblem
+      : step === 2
+        ? presetId !== null && formatProblems.length === 0
+        : true;
 
   async function create() {
     setSubmitting(true);
@@ -81,6 +98,7 @@ export function CreateTournamentForm() {
         starts_at: toIsoOrNull(startsAt),
         ends_at: toIsoOrNull(endsAt),
       });
+      await saveFormat(tournament.id, format);
       router.push(`/tournaments/${tournament.id}/overview`);
       router.refresh();
       return;
@@ -118,6 +136,20 @@ export function CreateTournamentForm() {
 
       if (insertError) {
         setError(insertError.message);
+        return;
+      }
+
+      /*
+        The tournament and its format are two writes, not one. If the second fails the
+        first still stands — a draft with no format is a real, recoverable state that the
+        overview's readiness checklist already knows how to show — so the failure is
+        reported against the tournament that exists rather than rolled back into nothing.
+      */
+      const saved = await saveFormat(data.id, format);
+      if (!saved.ok) {
+        setError(
+          `The tournament was created, but its scoring could not be saved: ${saved.message} You can set it from the tournament's own screen.`,
+        );
         return;
       }
 
@@ -242,7 +274,57 @@ export function CreateTournamentForm() {
         </fieldset>
       ) : null}
 
+      {/*
+        The format step, shaped like the Boat Games mode picker: four cards that each build
+        a complete, valid tournament, and only then the parts worth changing. A host who
+        taps "Heaviest fish wins" and then Next has made every decision the scorer needs.
+      */}
       {step === 2 ? (
+        <div className="flex flex-col gap-space-4">
+          {presetId === null ? (
+            <ul className="flex flex-col gap-space-3">
+              {FORMAT_PRESETS.map((preset) => (
+                <li key={preset.id}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setPresetId(preset.id);
+                      setFormat(preset.build());
+                    }}
+                    className={`${CARD_PADDED} ${FOCUS_RING} flex w-full flex-col gap-space-2 text-left transition-colors hover:border-border-interactive active:scale-[0.995] motion-reduce:transition-none`}
+                  >
+                    <span className="text-h3 text-text-primary">{preset.name}</span>
+                    <span className="text-body text-text-muted">{preset.tagline}</span>
+                    <ul className="flex list-disc flex-col gap-space-1 pl-space-4 text-caption text-text-muted">
+                      {preset.how.map((line) => (
+                        <li key={line}>{line}</li>
+                      ))}
+                    </ul>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <>
+              <div className="flex flex-wrap items-baseline justify-between gap-space-2">
+                <h2 className="text-h3 text-text-primary">
+                  {FORMAT_PRESETS.find((preset) => preset.id === presetId)?.name}
+                </h2>
+                <button
+                  type="button"
+                  onClick={() => setPresetId(null)}
+                  className={`${FOCUS_RING} min-h-touch-floor text-caption text-text-link`}
+                >
+                  Pick a different one
+                </button>
+              </div>
+              <FormatEditor format={format} onChange={setFormat} />
+            </>
+          )}
+        </div>
+      ) : null}
+
+      {step === 3 ? (
         <section className={`${CARD_PADDED} flex flex-col gap-space-4`}>
           <div className="flex flex-col gap-space-2">
             <h2 className="text-h3 text-text-primary">{name.trim() || "Untitled tournament"}</h2>
@@ -250,6 +332,11 @@ export function CreateTournamentForm() {
             <p className="text-caption text-text-muted">
               {visibilityPresentation(visibility).label} · {visibilityPresentation(visibility).blurb}
             </p>
+          </div>
+
+          <div className="flex flex-col gap-space-3 border-t border-hairline pt-space-4">
+            <p className="text-label text-text-primary">How it is won</p>
+            <FormatSummary format={format} />
           </div>
 
           <div className="flex flex-col gap-space-3 border-t border-hairline pt-space-4">
@@ -261,9 +348,14 @@ export function CreateTournamentForm() {
                 detail="Nobody can enter until you open registration, so nothing is public by accident."
               />
               <CheckRow
+                state="done"
+                label="Scoring is set"
+                detail="You can change it while the tournament is still a draft. Once it starts, it is fixed — that is what makes the result defensible."
+              />
+              <CheckRow
                 state="pending"
-                label="Four things get locked before it can go live"
-                detail="Rules, how it is scored, what counts as proof of a catch, and where you can fish. The overview walks you through them."
+                label="Three things still get locked before it can go live"
+                detail="The rules, what counts as proof of a catch, and where you can fish. The overview walks you through them."
               />
               <CheckRow
                 state="pending"
@@ -300,9 +392,15 @@ export function CreateTournamentForm() {
           </button>
         )}
 
-        {step === 0 && !stepReady ? (
+        {!stepReady ? (
           <p id={`${fieldId}-next-hint`} className="text-caption text-text-muted">
-            {scheduleProblem ? "Fix the times to carry on." : "Give it a name to carry on."}
+            {step === 2
+              ? presetId === null
+                ? "Pick how it is won to carry on."
+                : "Fix the notes above to carry on."
+              : scheduleProblem
+                ? "Fix the times to carry on."
+                : "Give it a name to carry on."}
           </p>
         ) : null}
 

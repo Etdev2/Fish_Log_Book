@@ -343,36 +343,61 @@ export interface EntryStep {
   readonly hint: string;
 }
 
+/**
+ * The four tables below are the exact `check` constraints on `public.tournament_entry`
+ * (`20260905190000_tournament_registration.sql`), and `entry-states.test.ts` fails if they
+ * ever drift apart.
+ *
+ * They did drift, immediately: the first version of this file invented `DRAFT`,
+ * `SUBMITTED`, `PAYMENT_REQUIRED`, `ACTION_REQUIRED` and `MISSED` from the UX contract's
+ * prose, and missed `REJECTED`, `WITHDRAWN`, `CHECKED_OUT`, `PENDING_REVIEW`, `PAUSED` and
+ * `FINISHED`, which are real states the database can hand us. Nothing broke loudly — the
+ * fallback title-cases whatever it does not know — but "Withdrawn" would have reached an
+ * angler as neutral grey with no explanation, which is precisely the failure this file was
+ * written to prevent.
+ *
+ * Note what is *not* here: a payment state. Money lives in its own domain
+ * (`payment`, `payment_allocation`, `tournament_order`), deliberately, so that paying
+ * cannot silently confirm a place and a confirmed place cannot imply anyone has paid.
+ */
 const REGISTRATION: Readonly<Record<string, Omit<EntryStep, "label">>> = {
-  DRAFT: { value: "Not finished", tone: "attention", hint: "Your entry has not been submitted yet." },
   PENDING: { value: "Submitted", tone: "neutral", hint: "Waiting on the organizer to confirm your place." },
-  SUBMITTED: { value: "Submitted", tone: "neutral", hint: "Waiting on the organizer to confirm your place." },
-  PAYMENT_REQUIRED: { value: "Payment needed", tone: "attention", hint: "Your place is held until the entry fee is paid." },
   CONFIRMED: { value: "Confirmed", tone: "open", hint: "You are in." },
-  WAITLISTED: { value: "Waitlisted", tone: "attention", hint: "You are next in line if a place opens." },
-  CANCELLED: { value: "Cancelled", tone: "stopped", hint: "This entry has been withdrawn." },
+  WAITLISTED: { value: "Waitlisted", tone: "attention", hint: "You are next in line if a place opens up." },
+  REJECTED: { value: "Not accepted", tone: "stopped", hint: "The organizer did not take this entry. They can tell you why." },
+  WITHDRAWN: { value: "Withdrawn", tone: "stopped", hint: "This entry was pulled out of the tournament." },
+  CANCELLED: { value: "Cancelled", tone: "stopped", hint: "This entry no longer stands." },
 };
 
 const ELIGIBILITY: Readonly<Record<string, Omit<EntryStep, "label">>> = {
-  UNKNOWN: { value: "Not checked yet", tone: "neutral", hint: "The organizer has not run eligibility on this entry." },
-  PENDING: { value: "Being checked", tone: "neutral", hint: "The organizer is reviewing your details." },
+  UNKNOWN: { value: "Not checked yet", tone: "neutral", hint: "The organizer has not looked at eligibility for this entry." },
+  PENDING_REVIEW: { value: "Being checked", tone: "neutral", hint: "The organizer is going through your details." },
   ELIGIBLE: { value: "Eligible", tone: "open", hint: "You meet the rules for this event." },
-  ACTION_REQUIRED: { value: "Needs something from you", tone: "attention", hint: "The organizer has asked for more information." },
   INELIGIBLE: { value: "Not eligible", tone: "stopped", hint: "Ask the organizer what would change this." },
 };
 
 const CHECK_IN: Readonly<Record<string, Omit<EntryStep, "label">>> = {
-  NOT_CHECKED_IN: { value: "Not checked in", tone: "neutral", hint: "Check in at the ramp before lines in." },
+  NOT_CHECKED_IN: { value: "Not checked in", tone: "neutral", hint: "Check in with the organizer before lines in." },
   CHECKED_IN: { value: "Checked in", tone: "open", hint: "The organizer has you on the water." },
-  MISSED: { value: "Missed check-in", tone: "attention", hint: "Talk to the organizer before you fish." },
+  CHECKED_OUT: { value: "Checked out", tone: "neutral", hint: "You are back in and off the water." },
 };
 
 const COMPETITION: Readonly<Record<string, Omit<EntryStep, "label">>> = {
   NOT_STARTED: { value: "Not started", tone: "neutral", hint: "Nothing counts until the tournament goes live." },
   ACTIVE: { value: "Fishing", tone: "live", hint: "Your catches are counting." },
+  PAUSED: { value: "Paused", tone: "attention", hint: "Fishing is stopped for now. Anything logged while paused needs a judge." },
+  FINISHED: { value: "Finished", tone: "done", hint: "Your fishing is done. Scoring may still be running." },
   WITHDRAWN: { value: "Withdrawn", tone: "stopped", hint: "You are no longer being scored." },
   DISQUALIFIED: { value: "Disqualified", tone: "stopped", hint: "A judge has recorded a reason for this." },
 };
+
+/** Exported so the drift test can walk them against the migration's check constraints. */
+export const ENTRY_STATE_TABLES = {
+  registration_status: REGISTRATION,
+  eligibility_status: ELIGIBILITY,
+  check_in_status: CHECK_IN,
+  competition_status: COMPETITION,
+} as const;
 
 function step(
   label: string,

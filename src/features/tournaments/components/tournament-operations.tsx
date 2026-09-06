@@ -9,9 +9,10 @@ import {
   validateTournamentTransition,
   type TournamentStatus,
 } from "@/core/tournaments/lifecycle";
-import { getDemoStandings, type DemoStanding } from "../demo-store";
+import { fieldSummary, rankField, type FieldSummary } from "../field";
 import { isTournamentStatus, tournamentPhase, type Phase } from "../format";
 import { getDemoTournamentCatches, type DemoTournamentCatch } from "../live-catch-demo";
+import { useField } from "../use-field";
 import { useDemoMode, useTournament } from "../use-tournament";
 import {
   CARD,
@@ -78,23 +79,25 @@ export function TournamentOperations({
   initialPanel?: Lane;
 }) {
   const load = useTournament(tournamentId);
+  const fieldLoad = useField(tournamentId);
   const demoMode = useDemoMode();
   const [lane, setLane] = useState<Lane>(initialPanel);
   const [catches, setCatches] = useState<readonly DemoTournamentCatch[]>([]);
-  const [standings, setStandings] = useState<readonly DemoStanding[]>([]);
 
   useEffect(() => {
     let cancelled = false;
     void (async () => {
       await Promise.resolve();
-      if (cancelled) return;
-      setCatches(getDemoTournamentCatches(tournamentId));
-      setStandings(demoMode ? getDemoStandings(tournamentId) : []);
+      if (!cancelled) setCatches(getDemoTournamentCatches(tournamentId));
     })();
     return () => {
       cancelled = true;
     };
-  }, [demoMode, tournamentId]);
+  }, [tournamentId]);
+
+  const field = fieldLoad.state === "ready" ? fieldLoad.field : [];
+  const summary = fieldSummary(field);
+  const onTheBoard = rankField(field).length;
 
   const flagged = useMemo(() => catches.filter((item) => item.fair_play_messages.length > 0), [catches]);
 
@@ -136,7 +139,13 @@ export function TournamentOperations({
       </nav>
 
       {lane === "organizer" ? (
-        <OrganizerLane tournament={tournament} phase={phase} catches={catches.length} flagged={flagged.length} standings={standings.length} />
+        <OrganizerLane
+          tournament={tournament}
+          phase={phase}
+          flagged={flagged.length}
+          summary={summary}
+          onTheBoard={onTheBoard}
+        />
       ) : null}
       {lane === "judge" ? <JudgeLane flagged={flagged} /> : null}
       {lane === "finance" ? <FinanceLane /> : null}
@@ -181,9 +190,9 @@ const HIGH_RISK: ReadonlySet<TournamentStatus> = new Set(["LIVE", "FINAL", "CANC
 function OrganizerLane({
   tournament,
   phase,
-  catches,
   flagged,
-  standings,
+  summary,
+  onTheBoard,
 }: {
   tournament: {
     readonly status: string;
@@ -194,9 +203,9 @@ function OrganizerLane({
     readonly active_boundary_version_id: string | null;
   };
   phase: Phase;
-  catches: number;
   flagged: number;
-  standings: number;
+  summary: FieldSummary;
+  onTheBoard: number;
 }) {
   const versions = {
     ruleSetVersionId: tournament.active_rule_set_version_id,
@@ -220,14 +229,23 @@ function OrganizerLane({
   return (
     <div className="flex flex-col gap-space-5">
       {/*
-        Two across on a phone rather than one. Three full-width cards each holding a single
-        digit is a lot of scrolling to learn three numbers.
+        Two across on a phone rather than one. Four full-width cards each holding a single
+        digit is a lot of scrolling to learn four numbers. They are counts of the same field
+        the roster lists, computed in `field.ts`, so this panel cannot say a number the
+        roster contradicts.
       */}
-      <section className="grid grid-cols-2 gap-space-3 sm:grid-cols-3" aria-label="Event at a glance">
-        <StatTile label="Catches logged" value={String(catches)} />
+      <section className="grid grid-cols-2 gap-space-3 sm:grid-cols-4" aria-label="Event at a glance">
+        <StatTile label="Entered" value={String(summary.entered)} />
+        <StatTile label="Checked in" value={`${summary.checkedIn}/${summary.entered}`} />
         <StatTile label="For a judge" value={String(flagged)} tone={flagged > 0 ? "attention" : "neutral"} />
-        <StatTile label="On the board" value={String(standings)} />
+        <StatTile label="On the board" value={String(onTheBoard)} />
       </section>
+
+      {summary.needsAttention > 0 ? (
+        <Link href={`/tournaments/${tournament.id}/participants`} className={SECONDARY_BUTTON}>
+          {summary.needsAttention} {summary.needsAttention === 1 ? "entry needs" : "entries need"} a look
+        </Link>
+      ) : null}
 
       {phase === "before" ? (
         <section className={`${CARD_PADDED} flex flex-col gap-space-3`}>

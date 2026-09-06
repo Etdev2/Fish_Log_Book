@@ -1,6 +1,9 @@
 "use client";
 
+import { describeFormat } from "@/core/tournaments/formats";
+import { useFormat } from "../use-format";
 import { useDemoMode, useTournament } from "../use-tournament";
+import { FormatSummary } from "./format-editor";
 import { CARD_PADDED, INSET, PAGE } from "../ui-classes";
 import { CheckRow, DemoNote, ErrorScreen, LoadingScreen, SectionHeading, TournamentHero, TournamentTabs, BackLink } from "./tournament-chrome";
 
@@ -48,11 +51,17 @@ const INPUTS = [
 export function TournamentRules({ tournamentId }: { tournamentId: string }) {
   const load = useTournament(tournamentId);
   const demoMode = useDemoMode();
+  const formatLoad = useFormat(
+    load.state === "ready"
+      ? load.tournament
+      : { id: tournamentId, active_scoring_version_id: null },
+  );
 
   if (load.state === "loading") return <LoadingScreen label="Loading rules" />;
   if (load.state === "error") return <ErrorScreen message={load.message} />;
 
   const tournament = load.tournament;
+  const format = formatLoad.state === "ready" ? formatLoad.format : null;
 
   return (
     <div className={PAGE}>
@@ -64,6 +73,24 @@ export function TournamentRules({ tournamentId }: { tournamentId: string }) {
       />
 
       <TournamentTabs tournamentId={tournament.id} />
+
+      {/*
+        The one part of "the rules" this app can state exactly: what the host chose, read
+        back from the scoring version the tournament is actually pointed at. Everything
+        below it is still the shape of the agreement rather than its text.
+      */}
+      {format ? (
+        <section className={`${CARD_PADDED} flex flex-col gap-space-3`} aria-labelledby="format-heading">
+          <SectionHeading aside={format.categories.length > 1 ? `${format.categories.length} categories` : undefined}>
+            <span id="format-heading">How it is won</span>
+          </SectionHeading>
+          <FormatSummary format={format} />
+          <p className="text-caption text-text-muted">
+            {describeFormat(format).length} way{describeFormat(format).length === 1 ? "" : "s"} to win.
+            A boat can be in more than one.
+          </p>
+        </section>
+      ) : null}
 
       <section className={`${CARD_PADDED} flex flex-col gap-space-4`} aria-labelledby="agreement-heading">
         <SectionHeading>

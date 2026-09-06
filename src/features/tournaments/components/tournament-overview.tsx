@@ -3,9 +3,11 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
-import { getDemoEntry, getDemoStandings, type DemoEntry, type DemoStanding } from "../demo-store";
+import { getDemoEntry, type DemoEntry } from "../demo-store";
+import { boardName, fieldSummary, rankField } from "../field";
 import { entrySteps, formatDateTime, tournamentPhase, visibilityPresentation } from "../format";
 import { getDemoTournamentCatches } from "../live-catch-demo";
+import { useField } from "../use-field";
 import { useDemoMode, useTournament } from "../use-tournament";
 import { BIG_ACTION, CARD, CARD_PADDED, FOCUS_RING, PAGE, SECONDARY_BUTTON, TABULAR } from "../ui-classes";
 import { ChevronIcon, LockIcon, TrophyIcon } from "./icons";
@@ -19,6 +21,7 @@ import {
   TournamentHero,
   TournamentTabs,
 } from "./tournament-chrome";
+import { TournamentInvite } from "./tournament-invite";
 
 /**
  * /tournaments/[id]/overview — the tournament's home.
@@ -62,9 +65,9 @@ const READINESS = [
 
 export function TournamentOverview({ tournamentId }: { tournamentId: string }) {
   const load = useTournament(tournamentId);
+  const fieldLoad = useField(tournamentId);
   const demoMode = useDemoMode();
   const [entry, setEntry] = useState<DemoEntry | null>(null);
-  const [standings, setStandings] = useState<readonly DemoStanding[]>([]);
   const [deviceCatches, setDeviceCatches] = useState(0);
 
   useEffect(() => {
@@ -75,7 +78,6 @@ export function TournamentOverview({ tournamentId }: { tournamentId: string }) {
       await Promise.resolve();
       if (cancelled) return;
       setEntry(demoMode ? getDemoEntry(tournamentId) : null);
-      setStandings(demoMode ? getDemoStandings(tournamentId) : []);
       setDeviceCatches(getDemoTournamentCatches(tournamentId).length);
     })();
     return () => {
@@ -88,6 +90,11 @@ export function TournamentOverview({ tournamentId }: { tournamentId: string }) {
 
   const tournament = load.tournament;
   const phase = tournamentPhase(tournament.status);
+  // The board and the field come from one place, so the overview's summary can never
+  // disagree with the roster it links to.
+  const field = fieldLoad.state === "ready" ? fieldLoad.field : [];
+  const summary = fieldSummary(field);
+  const standings = rankField(field);
   const locked = READINESS.filter((item) => tournament[item.key] !== null);
   const ready = locked.length === READINESS.length;
   const visibility = visibilityPresentation(tournament.visibility);
@@ -168,13 +175,16 @@ export function TournamentOverview({ tournamentId }: { tournamentId: string }) {
           </SectionHeading>
           <ol className="flex flex-col gap-space-2">
             {standings.slice(0, 3).map((row) => (
-              <li key={row.rank} className="flex items-center gap-space-3">
+              <li key={row.entryId} className="flex items-center gap-space-3">
                 <span className={`text-h3 ${TABULAR} ${row.rank === 1 ? "text-signal-orange" : "text-text-muted"}`}>
-                  {row.rank}
+                  {row.tied ? `T${row.rank}` : row.rank}
                 </span>
-                <span className="flex-1 text-body text-text-primary">{row.display_name}</span>
+                <span className="flex-1 text-body text-text-primary">
+                  {boardName(row)}
+                  {row.isYou ? " · you" : ""}
+                </span>
                 <span className={`text-body-strong ${TABULAR} text-text-primary`}>
-                  {row.weight_lb.toFixed(1)} lb
+                  {(row.bestWeightLb ?? 0).toFixed(1)} lb
                 </span>
               </li>
             ))}
@@ -189,6 +199,32 @@ export function TournamentOverview({ tournamentId }: { tournamentId: string }) {
         </section>
       ) : null}
 
+      {/*
+        The field, as a link rather than a number in a box. "14 entered, 11 checked in" is
+        the sentence a director says out loud, and it is one tap from the list it counts.
+      */}
+      {summary.entered > 0 ? (
+        <Link
+          href={`/tournaments/${tournament.id}/participants`}
+          className={`${CARD} ${FOCUS_RING} flex items-center gap-space-3 p-space-4 transition-colors hover:border-border-interactive`}
+        >
+          <span className="flex flex-1 flex-col gap-space-1">
+            <span className="text-body-strong text-text-primary">
+              {summary.entered} {summary.entered === 1 ? "entry" : "entries"}
+              {phase === "before" || phase === "during"
+                ? ` · ${summary.checkedIn} checked in`
+                : ""}
+            </span>
+            <span className="text-caption text-text-muted">
+              {summary.needsAttention > 0
+                ? `${summary.needsAttention} need a look before lines in.`
+                : "Who is fishing, their boats, and who has checked in."}
+            </span>
+          </span>
+          <ChevronIcon className="text-text-muted" />
+        </Link>
+      ) : null}
+
       <section className="grid gap-space-3 sm:grid-cols-2" aria-label="Tournament details">
         <DetailCard label="Lines in" value={formatDateTime(tournament.starts_at) ?? "Not set yet"} />
         <DetailCard label="Lines out" value={formatDateTime(tournament.ends_at) ?? "Not set yet"} />
@@ -199,6 +235,14 @@ export function TournamentOverview({ tournamentId }: { tournamentId: string }) {
           hint="Recorded here, whether or not they have reached the scorer yet."
         />
       </section>
+
+      {/*
+        Sharing sits before the event and disappears once it is being fished — nobody
+        invites a boat at 2pm on tournament day.
+      */}
+      {phase === "before" ? (
+        <TournamentInvite tournamentId={tournament.id} visibility={tournament.visibility} />
+      ) : null}
 
       {/*
         Organizer tools, as one card rather than a sixth tab. An angler fishing this
