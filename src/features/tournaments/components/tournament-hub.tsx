@@ -7,19 +7,17 @@ import { createClient } from "@/lib/supabase/client";
 import { getDemoTournaments, hasSupabaseBrowserConfig, type DemoTournament } from "../demo-store";
 import { countdown, formatSchedule, tournamentPhase, visibilityLabel } from "../format";
 import { useNow } from "../use-now";
-import { BIG_ACTION, CARD, FOCUS_RING, PAGE, PRIMARY_BUTTON, TABULAR } from "../ui-classes";
+import {
+  BIG_ACTION,
+  CARD,
+  CARD_PADDED,
+  FOCUS_RING,
+  PAGE,
+  PRIMARY_BUTTON,
+  TABULAR,
+} from "../ui-classes";
 import { DemoNote, EmptyState, ErrorScreen, LoadingScreen, SectionHeading, StatusPill } from "./tournament-chrome";
 import { ChevronIcon, ClockIcon, PlusIcon } from "./icons";
-
-/**
- * /tournaments — the way in.
- *
- * The old version was two flat lists titled "My tournaments" and "Public tournaments",
- * sorted by creation date, with a tournament being fished *right now* sitting below one
- * created yesterday that starts in March. The fix is to sort by what a person is about to
- * do rather than by when a row was written: what is happening now, then what is yours,
- * then what you could enter.
- */
 
 type TournamentCard = Pick<
   DemoTournament,
@@ -44,8 +42,6 @@ export function TournamentHub() {
     let cancelled = false;
 
     void (async () => {
-      // Yield before the first `setState` so nothing is set synchronously inside the
-      // effect body — see `use-tournament.ts` for the full reason.
       await Promise.resolve();
       if (cancelled) return;
       setLoad({ state: "loading" });
@@ -119,23 +115,26 @@ export function TournamentHub() {
     <div className={PAGE}>
       <header className="flex flex-col gap-space-4">
         <div className="flex flex-col gap-space-2">
-          <h1 className="text-h1 text-text-primary">Tournaments</h1>
+          <span className="text-label text-signal-orange">Tournament center</span>
+          <h1 className="text-h1 text-text-primary">Know what is happening. Know what to do next.</h1>
           <p className="text-body text-text-muted">
-            A Saturday bet with three friends, or a hundred boats and a payout. Same engine, and you
-            only meet the parts you need.
+            Enter events, compete, follow results, or run your own tournament from one place.
           </p>
         </div>
         <Link href="/tournaments/new" className={BIG_ACTION}>
           <PlusIcon />
-          Create a tournament
+          Host a tournament
         </Link>
       </header>
 
+      <TournamentFlowIntro />
+
       {live.length > 0 ? (
         <section className="flex flex-col gap-space-3" aria-labelledby="live-heading">
-          <SectionHeading aside={live.length > 1 ? `${live.length} running` : undefined}>
-            <span id="live-heading">Happening now</span>
+          <SectionHeading aside={live.length > 1 ? `${live.length} live events` : "Live now"}>
+            <span id="live-heading">Compete now</span>
           </SectionHeading>
+          <p className="text-body text-text-muted">These events are on the water right now.</p>
           <ul className="flex flex-col gap-space-3">
             {live.map((item) => (
               <li key={item.id}>
@@ -148,15 +147,16 @@ export function TournamentHub() {
 
       <section className="flex flex-col gap-space-3" aria-labelledby="yours-heading">
         <SectionHeading>
-          <span id="yours-heading">Your tournaments</span>
+          <span id="yours-heading">Your events</span>
         </SectionHeading>
+        <p className="text-body text-text-muted">Tournaments you created or are already responsible for.</p>
         {yours.length === 0 ? (
           <EmptyState
-            title="You have not run one yet"
-            body="Name it, pick a day, decide who can see it. That is the whole setup — the rest can wait until you need it."
+            title="You have not hosted a tournament yet"
+            body="Start with the event basics. Rules, scoring, verification, registration, and payouts can be configured as the tournament takes shape."
             action={
               <Link href="/tournaments/new" className={PRIMARY_BUTTON}>
-                Create a tournament
+                Host a tournament
               </Link>
             }
           />
@@ -173,9 +173,10 @@ export function TournamentHub() {
 
       {toEnter.length > 0 ? (
         <section className="flex flex-col gap-space-3" aria-labelledby="open-heading">
-          <SectionHeading>
-            <span id="open-heading">Open to enter</span>
+          <SectionHeading aside={`${toEnter.length} available`}>
+            <span id="open-heading">Find a tournament</span>
           </SectionHeading>
+          <p className="text-body text-text-muted">Open events you can review and enter.</p>
           <ul className="flex flex-col gap-space-3">
             {toEnter.map((item) => (
               <li key={item.id}>
@@ -191,11 +192,39 @@ export function TournamentHub() {
   );
 }
 
-/**
- * Sorting a mixed list of dates so it reads the way a person expects: the next thing
- * first, then the rest of the future, then anything undated, then the past most-recent
- * first. Creation order — what the old list used — is the one order nobody is looking for.
- */
+function TournamentFlowIntro() {
+  const steps = [
+    ["1", "Choose", "Find an event or create one."],
+    ["2", "Enter", "Registration, eligibility, waivers, and payment live here."],
+    ["3", "Compete", "Check in, submit catches, and follow event status."],
+    ["4", "Results", "See standings, judging outcomes, and final winners."],
+  ] as const;
+
+  return (
+    <section className={`${CARD_PADDED} flex flex-col gap-space-4`} aria-labelledby="flow-heading">
+      <div className="flex flex-col gap-space-1">
+        <SectionHeading>
+          <span id="flow-heading">The tournament flow</span>
+        </SectionHeading>
+        <p className="text-body text-text-muted">Every tournament follows the same simple path, even when the rules are different.</p>
+      </div>
+      <ol className="grid gap-space-3 sm:grid-cols-2">
+        {steps.map(([number, title, detail]) => (
+          <li key={number} className="flex items-start gap-space-3">
+            <span className="flex h-space-8 w-space-8 shrink-0 items-center justify-center rounded-full border border-border-interactive text-label text-signal-orange">
+              {number}
+            </span>
+            <span className="flex flex-col gap-space-1">
+              <span className="text-body-strong text-text-primary">{title}</span>
+              <span className="text-caption text-text-muted">{detail}</span>
+            </span>
+          </li>
+        ))}
+      </ol>
+    </section>
+  );
+}
+
 function sortForReading(items: readonly TournamentCard[]): TournamentCard[] {
   const now = Date.now();
   const key = (item: TournamentCard) => {
@@ -212,13 +241,6 @@ function sortForReading(items: readonly TournamentCard[]): TournamentCard[] {
   });
 }
 
-/**
- * One tournament, as a whole-card link.
- *
- * The card is the target, not a word inside it — design 04 allows a card to be tappable as
- * a unit as long as it takes the button's pressed and focus behaviour, which it does here.
- * On a phone that is the difference between a 300px target and a 90px one.
- */
 function TournamentRow({ tournament, emphasis = false }: { tournament: TournamentCard; emphasis?: boolean }) {
   const now = useNow();
   const clock =
@@ -237,18 +259,14 @@ function TournamentRow({ tournament, emphasis = false }: { tournament: Tournamen
         emphasis ? "border-signal-orange/50 bg-linear-to-b from-surface-raised to-surface" : ""
       }`}
     >
-      {/*
-        Name on its own line, everything else under it. Putting the pill inline with the
-        name meant a short name kept it on the same row and a long one pushed it onto the
-        next, so a list of three tournaments had three different shapes.
-      */}
       <span className="flex min-w-0 flex-1 flex-col gap-space-2">
         <span className="text-body-strong text-text-primary">{tournament.name}</span>
         <span className="flex flex-wrap items-center gap-space-2">
           <StatusPill status={tournament.status} />
+          <span className="text-caption text-text-muted">{visibilityLabel(tournament.visibility)}</span>
         </span>
         <span className="text-caption text-text-muted">
-          {formatSchedule(tournament.starts_at, tournament.ends_at)} · {visibilityLabel(tournament.visibility)}
+          {formatSchedule(tournament.starts_at, tournament.ends_at)}
         </span>
         {clock ? (
           <span
@@ -259,7 +277,10 @@ function TournamentRow({ tournament, emphasis = false }: { tournament: Tournamen
           </span>
         ) : null}
       </span>
-      <ChevronIcon size="h-space-5 w-space-5" className="text-text-muted" />
+      <span className="flex shrink-0 items-center gap-space-1 text-label text-text-link">
+        Open
+        <ChevronIcon size="h-space-5 w-space-5" />
+      </span>
     </Link>
   );
 }
