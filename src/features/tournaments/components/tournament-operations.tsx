@@ -38,37 +38,30 @@ import {
   TonePill,
 } from "./tournament-chrome";
 
-/**
- * /tournaments/[id]/operations — running the event.
- *
- * Three lanes, because the domain model keeps them apart and the UI must not be the place
- * that quietly rejoins them: the person who runs the event, the person who judges a catch,
- * and the person who is allowed to move money are three different authorities even when
- * they happen to be the same human on a Saturday.
- *
- * What changed from the first version, beyond the styling: the lifecycle controls are no
- * longer two hardcoded disabled buttons labelled "Close registration" and "Start
- * tournament". They are computed from `core/tournaments/lifecycle.ts` — the same transition
- * table the server enforces — so this screen shows the moves that are actually legal from
- * where the tournament is, and, when LIVE is refused, says which of the four frozen inputs
- * is missing. The judge queue is built from real catches carrying real Fair Play flags
- * rather than one invented "Yellowtail · evidence review" card, and the finance panel no
- * longer displays $1,250 of money nobody took.
- */
-
 type Lane = "organizer" | "judge" | "finance";
 
 const LANES: Array<{ value: Lane; label: string }> = [
-  { value: "organizer", label: "Organizer" },
+  { value: "organizer", label: "Event" },
   { value: "judge", label: "Judging" },
   { value: "finance", label: "Money" },
 ];
 
 const PHASE_HEADING: Readonly<Record<Phase, string>> = {
-  before: "Before the event",
-  during: "While it is being fished",
-  after: "After lines out",
+  before: "Set the event up and get the field ready.",
+  during: "Keep the event moving while anglers are on the water.",
+  after: "Settle judging, publish the result, and close out the event.",
 };
+
+const HOST_FLOW: ReadonlyArray<{
+  phase: Phase;
+  number: string;
+  title: string;
+  detail: string;
+}> = [
+  { phase: "before", number: "1", title: "Set up", detail: "Entries, rules, scoring, proof, and boundaries." },
+  { phase: "during", number: "2", title: "Run", detail: "Live event status, catches, pauses, and judging." },
+  { phase: "after", number: "3", title: "Settle", detail: "Reviews, final standings, and payouts." },
+];
 
 export function TournamentOperations({
   tournamentId,
@@ -107,19 +100,22 @@ export function TournamentOperations({
   return (
     <div className={PAGE}>
       <header className="flex flex-col gap-space-3">
-        <BackLink href={`/tournaments/${tournament.id}/overview`}>{tournament.name}</BackLink>
-        <div className="flex flex-wrap items-end justify-between gap-space-3">
-          <h1 className="text-h1 text-text-primary">Run the event</h1>
-          <StatusPill status={tournament.status} />
+        <BackLink href={`/tournaments/${tournament.id}/overview`}>Tournament home</BackLink>
+        <div className="flex flex-col gap-space-1">
+          <span className="text-label text-signal-orange">Host controls</span>
+          <div className="flex flex-wrap items-end justify-between gap-space-3">
+            <h1 className="text-h1 text-text-primary">Run the tournament</h1>
+            <StatusPill status={tournament.status} />
+          </div>
         </div>
-        <p className="text-body text-text-muted">
-          {PHASE_HEADING[phase]}. Judging, the public board, and anything to do with money each sit
-          behind their own permission — nobody gets all three by accident.
-        </p>
+        <p className="text-body text-text-muted">{PHASE_HEADING[phase]}</p>
       </header>
 
-      <nav aria-label="Organizer tools" className="-mx-4 overflow-x-auto px-4">
-        <ul className="flex min-w-max gap-space-2 pb-1">
+      <HostLifecycle activePhase={phase} />
+
+      <nav aria-label="Host work areas" className="flex flex-col gap-space-2">
+        <span className="text-label text-text-primary">Host work areas</span>
+        <ul className="flex flex-wrap gap-space-2">
           {LANES.map((item) => (
             <li key={item.value}>
               <button
@@ -133,6 +129,9 @@ export function TournamentOperations({
             </li>
           ))}
         </ul>
+        <p className="text-caption text-text-muted">
+          Event operations, judging decisions, and money stay separate so one permission never silently grants another.
+        </p>
       </nav>
 
       {lane === "organizer" ? (
@@ -146,9 +145,47 @@ export function TournamentOperations({
   );
 }
 
-/* -------------------------------------------------------------------------- */
-/* Organizer                                                                   */
-/* -------------------------------------------------------------------------- */
+function HostLifecycle({ activePhase }: { activePhase: Phase }) {
+  const activeIndex = HOST_FLOW.findIndex((item) => item.phase === activePhase);
+
+  return (
+    <section className={`${CARD_PADDED} flex flex-col gap-space-3`} aria-labelledby="host-flow-heading">
+      <SectionHeading>
+        <span id="host-flow-heading">Host flow</span>
+      </SectionHeading>
+      <ol className="grid gap-space-3 sm:grid-cols-3">
+        {HOST_FLOW.map((item, index) => {
+          const active = item.phase === activePhase;
+          const complete = index < activeIndex;
+          return (
+            <li
+              key={item.phase}
+              className={`flex items-start gap-space-3 rounded-lg border p-space-3 ${
+                active ? "border-signal-orange bg-signal-orange/10" : "border-hairline bg-surface"
+              }`}
+            >
+              <span
+                className={`flex h-space-7 w-space-7 shrink-0 items-center justify-center rounded-full border text-caption ${
+                  active
+                    ? "border-signal-orange text-signal-orange"
+                    : complete
+                      ? "border-success-green text-success-green"
+                      : "border-border-interactive text-text-muted"
+                }`}
+              >
+                {item.number}
+              </span>
+              <span className="flex flex-col gap-space-1">
+                <span className={`text-body-strong ${active ? "text-signal-orange" : "text-text-primary"}`}>{item.title}</span>
+                <span className="text-caption text-text-muted">{item.detail}</span>
+              </span>
+            </li>
+          );
+        })}
+      </ol>
+    </section>
+  );
+}
 
 const READINESS = [
   ["active_rule_set_version_id", "Rules"],
@@ -157,7 +194,6 @@ const READINESS = [
   ["active_boundary_version_id", "Where you can fish"],
 ] as const;
 
-/** What a director would call each transition, rather than the enum it moves to. */
 const TRANSITION_LABEL: Readonly<Record<TournamentStatus, string>> = {
   DRAFT: "Back to draft",
   REGISTRATION_OPEN: "Open entries",
@@ -171,11 +207,6 @@ const TRANSITION_LABEL: Readonly<Record<TournamentStatus, string>> = {
   CANCELLED: "Cancel the tournament",
 };
 
-/**
- * High-risk moves, per UX-001 §6 — the ones that need a confirmation and an explanation of
- * consequences before they fire. They are marked here so that whoever wires these controls
- * to the server cannot miss which three they are.
- */
 const HIGH_RISK: ReadonlySet<TournamentStatus> = new Set(["LIVE", "FINAL", "CANCELLED"]);
 
 function OrganizerLane({
@@ -207,9 +238,6 @@ function OrganizerLane({
 
   const from = isTournamentStatus(tournament.status) ? tournament.status : null;
 
-  // Every state the transition table allows from here, each carrying the server's own
-  // reason when it would be refused. Computing it from `core/` rather than hardcoding a
-  // pair of buttons means this screen cannot drift from the rules the server enforces.
   const moves = from
     ? TOURNAMENT_STATUSES.filter((to) => canTransitionTournament(from, to)).map((to) => ({
         to,
@@ -219,10 +247,6 @@ function OrganizerLane({
 
   return (
     <div className="flex flex-col gap-space-5">
-      {/*
-        Two across on a phone rather than one. Three full-width cards each holding a single
-        digit is a lot of scrolling to learn three numbers.
-      */}
       <section className="grid grid-cols-2 gap-space-3 sm:grid-cols-3" aria-label="Event at a glance">
         <StatTile label="Catches logged" value={String(catches)} />
         <StatTile label="For a judge" value={String(flagged)} tone={flagged > 0 ? "attention" : "neutral"} />
@@ -232,7 +256,7 @@ function OrganizerLane({
       {phase === "before" ? (
         <section className={`${CARD_PADDED} flex flex-col gap-space-3`}>
           <SectionHeading aside={`${READINESS.filter(([key]) => tournament[key] !== null).length} of 4`}>
-            Locked before fishing starts
+            Ready for lines in
           </SectionHeading>
           <ul className="flex flex-col gap-space-3">
             {READINESS.map(([key, label]) => (
@@ -248,11 +272,9 @@ function OrganizerLane({
       ) : null}
 
       <section className={`${CARD_PADDED} flex flex-col gap-space-3`}>
-        <SectionHeading>What you can do next</SectionHeading>
+        <SectionHeading>What happens next</SectionHeading>
         {moves.length === 0 ? (
-          <p className="text-body text-text-muted">
-            This tournament is finished. Nothing moves from here.
-          </p>
+          <p className="text-body text-text-muted">This tournament is finished. Nothing moves from here.</p>
         ) : (
           <ul className="flex flex-col gap-space-3">
             {moves.map(({ to, result }) => (
@@ -279,21 +301,16 @@ function OrganizerLane({
         <p className="inline-flex items-start gap-space-2 border-t border-hairline pt-space-3 text-caption text-text-muted">
           <LockIcon size="h-space-4 w-space-4" />
           These controls are shown, and disabled, on purpose. Moving a tournament between states is
-          the server&apos;s decision, not the phone&apos;s, and that half is not switched on in this
-          build yet.
+          the server&apos;s decision, not the phone&apos;s, and that half is not switched on in this build yet.
         </p>
       </section>
 
       <Link href={`/tournaments/${tournament.id}/leaderboard`} className={SECONDARY_BUTTON}>
-        Open the public board
+        Open public Results
       </Link>
     </div>
   );
 }
-
-/* -------------------------------------------------------------------------- */
-/* Judging                                                                     */
-/* -------------------------------------------------------------------------- */
 
 function JudgeLane({ flagged }: { flagged: readonly DemoTournamentCatch[] }) {
   return (
@@ -352,31 +369,16 @@ function JudgeLane({ flagged }: { flagged: readonly DemoTournamentCatch[] }) {
   );
 }
 
-/* -------------------------------------------------------------------------- */
-/* Money                                                                       */
-/* -------------------------------------------------------------------------- */
-
-/**
- * The finance lane shows no numbers.
- *
- * The first version displayed "$1,250" of entry receipts and a "$1,000" prize pool on every
- * tournament, which were invented. Money is the one place in this product where a
- * placeholder is not a harmless mock — an organizer who reads a payout figure off a screen
- * and repeats it at a weigh-in has been misled by us. Until there is a real ledger to read,
- * this lane explains the guarantee it enforces and offers nothing to press.
- */
 function FinanceLane() {
   return (
     <div className="flex flex-col gap-space-4">
       <section className={`${CARD_PADDED} flex flex-col gap-space-3`}>
         <SectionHeading>Entry money and payouts</SectionHeading>
         <p className="text-body text-text-primary">
-          Nothing has been taken and nothing is owed. Payments are not switched on for this
-          tournament.
+          Nothing has been taken and nothing is owed. Payments are not switched on for this tournament.
         </p>
         <p className="text-caption text-text-muted">
-          When they are, this is where entry receipts and the prize pool are read from the ledger —
-          never estimated on the phone.
+          When they are, this is where entry receipts and the prize pool are read from the ledger — never estimated on the phone.
         </p>
       </section>
 
