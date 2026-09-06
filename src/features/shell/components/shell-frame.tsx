@@ -1,7 +1,9 @@
 "use client";
 
 import { usePathname } from "next/navigation";
+import { Suspense } from "react";
 
+import { SetupErrandBar } from "@/features/setup/components/setup-errand-bar";
 import { useQuickMarkEnabled } from "@/features/settings/shortcuts";
 import { BackupBadge } from "./backup-badge";
 import { NavDrawer } from "./nav-drawer";
@@ -65,6 +67,21 @@ export function ShellFrame({ children }: { children: React.ReactNode }) {
         <NavDrawer />
         <BackupBadge />
       </header>
+
+      {/*
+        Guided setup's thread back to itself. It renders nothing at all unless the URL says
+        the angler is mid-errand, which is every visit to every screen except the handful
+        that setup itself sent them to.
+
+        The Suspense boundary is not decoration: the bar reads the query string, and
+        `use-search-params.md` is explicit that a prerendered route client-renders the tree
+        up to the nearest boundary. Without one here, every page in the group would bail
+        out of prerendering and ADR 005 §5 — the static shell that paints on a boat with no
+        signal — would quietly stop being true.
+      */}
+      <Suspense fallback={null}>
+        <SetupErrandBar />
+      </Suspense>
 
       {/*
         `pb-24` reserves room so the last card in a list can be scrolled clear of the

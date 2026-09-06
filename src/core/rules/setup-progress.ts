@@ -38,6 +38,13 @@ export interface SetupStep {
   readonly done: boolean;
 }
 
+/**
+ * Each step's destination includes the fragment of the control that completes it.
+ *
+ * "/settings" was technically correct and practically useless: Settings is nine sections
+ * long, so being sent there to choose a region meant landing at the top and hunting for
+ * it. A step should put the thing you were asked to do on the screen you arrive at.
+ */
 const COPY: Record<SetupStepId, { label: string; hint: string; href: string }> = {
   /*
     Region and tide station are both one-time Settings choices, so they sit together:
@@ -48,12 +55,12 @@ const COPY: Record<SetupStepId, { label: string; hint: string; href: string }> =
   region: {
     label: "Choose your fishing region",
     hint: "Which state's rules and species the app shows you.",
-    href: "/settings",
+    href: "/settings#fishing-region",
   },
   station: {
     label: "Pick your tide station",
     hint: "The nearest NOAA station, so the tides match your water.",
-    href: "/settings",
+    href: "/settings#tide-station",
   },
   tackle: {
     label: "Add gear to your Tackle Box",
@@ -63,7 +70,7 @@ const COPY: Record<SetupStepId, { label: string; hint: string; href: string }> =
   rod: {
     label: "Build a rod setup",
     hint: "Pair your gear into a rod you can fish with.",
-    href: "/setup",
+    href: "/setup#todays-rods",
   },
   /*
     One step, not two. The founder's original list separated "set a location" from "add
@@ -74,7 +81,7 @@ const COPY: Record<SetupStepId, { label: string; hint: string; href: string }> =
   location: {
     label: "Set your location and conditions",
     hint: "Where you're fishing, and what the water is doing.",
-    href: "/setup",
+    href: "/setup#location-and-conditions",
   },
   catch: {
     label: "Log your first fish",

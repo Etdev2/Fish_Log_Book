@@ -1,5 +1,6 @@
 "use client";
 
+import { BackLink } from "@/components/back-link";
 import Link from "next/link";
 import { useMemo } from "react";
 
@@ -38,12 +39,7 @@ export function DayView({ dateKey }: { dateKey: string }) {
 
   return (
     <div className="flex flex-col gap-4">
-      <Link
-        href="/"
-        className="inline-flex min-h-touch-floor items-center gap-2 self-start rounded-md text-label text-text-link focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-3 focus-visible:outline-focus-ring"
-      >
-        ‹ Calendar
-      </Link>
+      <BackLink href="/" label="Calendar" />
 
       <section className="rounded-lg border border-hairline bg-surface p-4">
         <h1 className="text-h1">{heading}</h1>

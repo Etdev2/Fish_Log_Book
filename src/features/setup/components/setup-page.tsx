@@ -78,7 +78,7 @@ export function SetupPage() {
         </p>
       </section>
 
-      <section className="flex flex-col gap-3">
+      <section id="todays-rods" className="flex scroll-mt-space-16 flex-col gap-3">
         <div className="flex items-baseline justify-between gap-3">
           <h2 className="text-h3">Today&rsquo;s rods</h2>
           <p className="text-caption text-text-muted">
@@ -139,7 +139,7 @@ export function SetupPage() {
           and where it comes back to (design 12 §2.1). */}
       <QuiverSection rigs={state.rigs} tripId={trip?.id ?? ""} onEnsureTrip={ensureTrip} />
 
-      <section className="flex flex-col gap-3">
+      <section id="location-and-conditions" className="flex scroll-mt-space-16 flex-col gap-3">
         <div className="flex items-baseline justify-between gap-3">
           <h2 className="text-h3">Location &amp; Conditions</h2>
           <p className="text-caption text-text-muted">

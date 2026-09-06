@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import { BackLink } from "@/components/back-link";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 
@@ -92,12 +92,7 @@ export function CatchRecordView({
   return (
     <div className="flex flex-col gap-4">
       <nav className="flex items-center justify-between gap-3">
-        <Link
-          href={`/day/${record.local_date}`}
-          className="inline-flex min-h-touch-floor items-center gap-2 rounded-md text-label text-text-link focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-3 focus-visible:outline-focus-ring"
-        >
-          ‹ {dateHeading || record.local_date}
-        </Link>
+        <BackLink href={`/day/${record.local_date}`} label={dateHeading || record.local_date} />
         <span className="text-caption text-text-muted">
           {record.capture_mode === "backfill" ? "Backfilled record" : "Logged live"}
         </span>

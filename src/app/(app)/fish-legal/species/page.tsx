@@ -2,6 +2,7 @@
 
 import { useMemo } from "react";
 
+import { BackLink } from "@/components/back-link";
 import { useNow } from "@/lib/time/use-now";
 import { useLocalTimeZone } from "@/features/conditions/use-local-time-zone";
 import { SpeciesBrowser } from "@/features/fish-legal/components/species-browser";
@@ -20,6 +21,7 @@ export default function Page() {
 
   return (
     <div className="flex flex-col gap-4">
+      <BackLink href="/fish-legal" label="Fish Legal" />
       <header className="rounded-lg border border-hairline bg-surface p-4">
         <h1 className="text-h1">Species &amp; limits</h1>
         <p className="mt-1 text-caption text-text-muted">

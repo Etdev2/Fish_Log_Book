@@ -4,7 +4,7 @@ import Link from "next/link";
 import { MonthCalendar } from "@/features/calendar/components/month-calendar";
 import { PassportHomeCard } from "@/features/passport/components/passport-home-card";
 import { PASSPORT_V1 } from "@/features/passport/flag";
-import { SetupChecklist } from "@/features/setup/components/setup-checklist";
+import { SetupBanner } from "@/features/setup/components/setup-banner";
 
 export const metadata: Metadata = { title: "Calendar | Fish Log Book" };
 
@@ -22,12 +22,12 @@ export default function CalendarPage() {
   return (
     <div className="flex flex-col gap-4">
       {/*
-        Above the calendar, and the only thing that outranks it, because it is the one
-        card that stops mattering. A new angler meets the order of operations on the first
-        screen they see; the moment all five are done it collapses to a single line and
-        never expands again (founder ruling, spec §6.2).
+        An invitation to setup, not setup itself. The six-step guide used to render here in
+        full; it now lives at /onboarding, because the home surface is the calendar (D23)
+        and a tutorial that pushes the month grid down the page is not a calendar. This
+        banner disappears entirely once setup is finished — see `setup-banner.tsx`.
       */}
-      <SetupChecklist />
+      <SetupBanner />
       <MonthCalendar />
       <Link
         href="/tides"

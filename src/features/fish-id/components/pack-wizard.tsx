@@ -1,6 +1,7 @@
 "use client";
 
 import { LegalNotice } from "@/components/legal-notice";
+import { BackLink } from "@/components/back-link";
 import Link from "next/link";
 import { useMemo, useState } from "react";
 
@@ -38,11 +39,7 @@ export function PackWizard({ pack }: { pack: TraitPack }) {
 
   return (
     <div className="flex flex-col gap-4">
-      <nav>
-        <Link href="/fish-id" className={`inline-flex min-h-touch-floor items-center text-label text-text-link ${FOCUS}`}>
-          ← Fish ID
-        </Link>
-      </nav>
+      <BackLink href="/fish-id" label="Fish ID" />
 
       <section className="rounded-lg border border-hairline bg-surface p-4">
         <h1 className="text-h1">{pack.name}</h1>
