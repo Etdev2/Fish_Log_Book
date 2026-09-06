@@ -22,17 +22,40 @@ const CHECK_IN_KEY = "fish-log-book:demo-tournament-check-in";
  * the roster's search box earns its place, which is the honest test of the screen.
  */
 const HARBOR_SHOOTOUT: readonly FieldEntry[] = [
-  row("hs-1", "12", "M. Rivera", "Reel Deal", "Miss Ellie", { weight: 28.6, species: "Yellowtail", checkedIn: true }),
-  row("hs-2", "7", "J. Park", null, "Second Wind", { weight: 24.2, species: "Yellowtail", checkedIn: true }),
-  row("hs-3", "22", "A. Lewis", "Bluewater", "Bluewater", { weight: 21.9, species: "White seabass", checkedIn: true, awaitingReview: true }),
-  row("hs-4", "3", "D. Okafor", null, "Salt Habit", { weight: 19.4, species: "Yellowtail", checkedIn: true }),
+  row("hs-1", "12", "M. Rivera", "Reel Deal", "Miss Ellie", {
+    weight: 28.6,
+    species: "yellowtail",
+    checkedIn: true,
+    also: [
+      { species: "bluefin_tuna", weight: 22.4 },
+      { species: "dorado", weight: 11.2 },
+    ],
+  }),
+  row("hs-2", "7", "J. Park", null, "Second Wind", {
+    weight: 24.2,
+    species: "yellowtail",
+    checkedIn: true,
+    also: [{ species: "dorado", weight: 14.8 }],
+  }),
+  row("hs-3", "22", "A. Lewis", "Bluewater", "Bluewater", {
+    weight: 21.9,
+    species: "white_seabass",
+    checkedIn: true,
+    awaitingReview: true,
+  }),
+  row("hs-4", "3", "D. Okafor", null, "Salt Habit", {
+    weight: 19.4,
+    species: "yellowtail",
+    checkedIn: true,
+    also: [{ species: "bluefin_tuna", weight: 31.7 }],
+  }),
   row("hs-5", "18", "You", null, "Nauti Buoy", { weight: null, species: null, checkedIn: true, isYou: true }),
-  row("hs-6", "9", "T. Nguyen", null, "Calico Kid", { weight: 8.1, species: "Calico bass", checkedIn: true }),
-  row("hs-7", "14", "R. Delgado", "Tuna Tango", "Tuna Tango", { weight: 17.8, species: "Yellowtail", checkedIn: true }),
+  row("hs-6", "9", "T. Nguyen", null, "Calico Kid", { weight: 8.1, species: "kelp_bass", checkedIn: true }),
+  row("hs-7", "14", "R. Delgado", "Tuna Tango", "Tuna Tango", { weight: 17.8, species: "yellowtail", checkedIn: true }),
   row("hs-8", "5", "K. Mbeki", null, "Grey Ghost", { weight: null, species: null, checkedIn: true }),
-  row("hs-9", "27", "S. Whitfield", "Knot Working", "Knot Working", { weight: 11.3, species: "Bonito", checkedIn: true }),
+  row("hs-9", "27", "S. Whitfield", "Knot Working", "Knot Working", { weight: 11.3, species: "pacific_bonito", checkedIn: true }),
   row("hs-10", "31", "P. Andersen", null, "Fintastic", { weight: null, species: null, checkedIn: true }),
-  row("hs-11", "8", "L. Moreau", null, "Wave Dancer", { weight: 6.9, species: "Barracuda", checkedIn: true }),
+  row("hs-11", "8", "L. Moreau", null, "Wave Dancer", { weight: 6.9, species: "pacific_barracuda", checkedIn: true }),
   row("hs-12", "40", "C. Ferreira", "Hook, Line", "Sinker", { weight: null, species: null, checkedIn: false, registration: "PENDING", eligibility: "PENDING_REVIEW" }),
   row("hs-13", "—", "B. Osei", null, "Late Entry", { weight: null, species: null, checkedIn: false, registration: "WAITLISTED" }),
   row("hs-14", "16", "H. Tanaka", null, "Kuroshio", { weight: null, species: null, checkedIn: false, registration: "WITHDRAWN" }),
@@ -49,10 +72,10 @@ const YELLOWTAIL_OPEN: readonly FieldEntry[] = [
 
 /** A finished family event. Everything settled, everybody scored. */
 const CREW_CUP: readonly FieldEntry[] = [
-  row("cc-1", "1", "Sam", null, null, { weight: 17.2, species: "Lingcod", checkedIn: true, competition: "FINISHED" }),
-  row("cc-2", "2", "Dad", null, null, { weight: 15.8, species: "Lingcod", checkedIn: true, competition: "FINISHED" }),
-  row("cc-3", "3", "Ellie", null, null, { weight: 6.4, species: "Rockfish", checkedIn: true, competition: "FINISHED" }),
-  row("cc-4", "4", "You", null, null, { weight: 12.1, species: "Cabezon", checkedIn: true, competition: "FINISHED", isYou: true }),
+  row("cc-1", "1", "Sam", null, null, { weight: 17.2, species: "lingcod", checkedIn: true, competition: "FINISHED" }),
+  row("cc-2", "2", "Dad", null, null, { weight: 15.8, species: "lingcod", checkedIn: true, competition: "FINISHED" }),
+  row("cc-3", "3", "Ellie", null, null, { weight: 6.4, species: "rockfish", checkedIn: true, competition: "FINISHED" }),
+  row("cc-4", "4", "You", null, null, { weight: 12.1, species: "cabezon", checkedIn: true, competition: "FINISHED", isYou: true }),
 ];
 
 const FIELDS: Readonly<Record<string, readonly FieldEntry[]>> = {
@@ -76,6 +99,8 @@ function row(
     registration?: string;
     eligibility?: string;
     competition?: string;
+    /** Everything else this boat landed, beyond its best fish. */
+    also?: ReadonlyArray<{ species: string; weight: number }>;
   },
 ): FieldEntry {
   return {
@@ -92,6 +117,19 @@ function row(
     bestWeightLb: options.weight,
     species: options.species,
     awaitingReview: options.awaitingReview ?? false,
+    // The best fish is a catch like any other; `bestWeightLb` is a summary of this list,
+    // not a separate fact, so a category board and a roster row cannot disagree.
+    catches: [
+      ...(options.weight !== null
+        ? [{ id: `${entryId}-best`, speciesId: options.species, weightLb: options.weight, lengthIn: null }]
+        : []),
+      ...(options.also ?? []).map((item, index) => ({
+        id: `${entryId}-${index}`,
+        speciesId: item.species,
+        weightLb: item.weight,
+        lengthIn: null,
+      })),
+    ],
   };
 }
 
@@ -157,6 +195,7 @@ function withYourEntry(tournamentId: string, base: readonly FieldEntry[]): reado
       bestWeightLb: null,
       species: null,
       awaitingReview: false,
+      catches: [],
     },
   ];
 }

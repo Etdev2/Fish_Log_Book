@@ -3,7 +3,15 @@
 import { useEffect, useId, useMemo, useState } from "react";
 
 import { setDemoCheckIn } from "../demo-field";
-import { boardName, boardSubtitle, fieldSummary, isInTheField, searchField, type FieldEntry } from "../field";
+import {
+  boardName,
+  boardSubtitle,
+  fieldSummary,
+  isInTheField,
+  searchField,
+  speciesName,
+  type FieldEntry,
+} from "../field";
 import { entrySteps } from "../format";
 import { useField } from "../use-field";
 import { useDemoMode, useTournament } from "../use-tournament";
@@ -306,7 +314,7 @@ function ParticipantRow({
           ) : null}
           {entry.bestWeightLb !== null ? (
             <span className={`text-caption ${TABULAR} text-text-muted`}>
-              Best so far: {entry.bestWeightLb.toFixed(1)} lb {entry.species ? `· ${entry.species}` : ""}
+              Best so far: {entry.bestWeightLb.toFixed(1)} lb {entry.species ? `· ${speciesName(entry.species)}` : ""}
               {entry.awaitingReview ? " · waiting on a review" : ""}
             </span>
           ) : null}

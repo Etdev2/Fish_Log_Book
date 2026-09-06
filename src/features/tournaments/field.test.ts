@@ -1,6 +1,17 @@
 import { describe, expect, it } from "vitest";
 
-import { boardName, boardSubtitle, fieldSummary, rankField, searchField, type FieldEntry } from "./field";
+import { emptyCategory } from "@/core/tournaments/formats";
+import {
+  boardName,
+  boardSubtitle,
+  fieldSummary,
+  rankField,
+  scoreboardFor,
+  scoreLabel,
+  searchField,
+  speciesName,
+  type FieldEntry,
+} from "./field";
 
 function entry(overrides: Partial<FieldEntry> & Pick<FieldEntry, "entryId" | "displayName">): FieldEntry {
   return {
@@ -15,6 +26,7 @@ function entry(overrides: Partial<FieldEntry> & Pick<FieldEntry, "entryId" | "di
     bestWeightLb: null,
     species: null,
     awaitingReview: false,
+    catches: [],
     ...overrides,
   };
 }
@@ -135,5 +147,82 @@ describe("board naming", () => {
     );
     expect(boardSubtitle(entry({ entryId: "1", displayName: "M. Rivera", boatName: "Miss Ellie" }))).toBe("M. Rivera");
     expect(boardSubtitle(entry({ entryId: "1", displayName: "M. Rivera" }))).toBeNull();
+  });
+});
+
+describe("scoreboardFor", () => {
+  const marlin = {
+    ...emptyCategory("marlin", "Biggest marlin"),
+    species: ["blue_marlin"],
+  };
+  const tuna = {
+    ...emptyCategory("tuna", "Biggest tuna"),
+    species: ["bluefin_tuna"],
+  };
+
+  const field = [
+    entry({
+      entryId: "e1",
+      displayName: "Reel Deal",
+      catches: [
+        { id: "a", speciesId: "blue_marlin", weightLb: 220, lengthIn: null },
+        { id: "b", speciesId: "bluefin_tuna", weightLb: 40, lengthIn: null },
+      ],
+    }),
+    entry({
+      entryId: "e2",
+      displayName: "Second Wind",
+      catches: [{ id: "c", speciesId: "bluefin_tuna", weightLb: 96, lengthIn: null }],
+    }),
+  ];
+
+  it("gives each category its own board out of the same field", () => {
+    expect(scoreboardFor(field, marlin).map((row) => row.displayName)).toEqual(["Reel Deal"]);
+    expect(scoreboardFor(field, tuna).map((row) => row.displayName)).toEqual([
+      "Second Wind",
+      "Reel Deal",
+    ]);
+  });
+
+  it("returns the score in pounds, not the grams the scorer works in", () => {
+    const [top] = scoreboardFor(field, tuna);
+    expect(top.score).toBeCloseTo(96, 1);
+  });
+
+  it("scores a points category on the host's table rather than on weight", () => {
+    const points = {
+      ...emptyCategory("points", "Points"),
+      family: "SPECIES_POINTS" as const,
+      speciesPoints: { blue_marlin: 10, bluefin_tuna: 3 },
+    };
+    const board = scoreboardFor(field, points);
+    expect(board.map((row) => [row.displayName, row.score])).toEqual([
+      ["Reel Deal", 13],
+      ["Second Wind", 3],
+    ]);
+  });
+
+  it("leaves a boat with nothing eligible off the category's board", () => {
+    const dorado = { ...emptyCategory("dorado", "Biggest dorado"), species: ["dorado"] };
+    expect(scoreboardFor(field, dorado)).toEqual([]);
+  });
+});
+
+describe("scoreLabel", () => {
+  it("uses the unit the category is actually scored in", () => {
+    expect(scoreLabel(emptyCategory("a", "A"), 28.64)).toBe("28.6 lb");
+    expect(
+      scoreLabel({ ...emptyCategory("a", "A"), family: "SPECIES_POINTS" }, 13),
+    ).toBe("13 pts");
+    expect(
+      scoreLabel({ ...emptyCategory("a", "A"), family: "BIGGEST_LENGTH" }, 34.5),
+    ).toBe("34.5 in");
+  });
+});
+
+describe("speciesName", () => {
+  it("prints the name an angler uses, not the id the database stores", () => {
+    expect(speciesName("bluefin_tuna")).toBe("Bluefin tuna");
+    expect(speciesName(null)).toBeNull();
   });
 });

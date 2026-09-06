@@ -2,12 +2,22 @@
 
 import { useEffect, useState } from "react";
 
-import { boardName, boardSubtitle, rankField, type RankedEntry } from "../field";
+import { formatMoney, payoutBreakdown, poolFor, type FormatCategory } from "@/core/tournaments/formats";
+import {
+  boardName,
+  boardSubtitle,
+  fieldSummary,
+  scoreboardFor,
+  scoreLabel,
+  speciesName,
+  type CategoryStanding,
+} from "../field";
 import { tournamentPhase } from "../format";
 import { getDemoTournamentCatches, type DemoTournamentCatch } from "../live-catch-demo";
 import { useField } from "../use-field";
+import { useFormat } from "../use-format";
 import { useDemoMode, useTournament } from "../use-tournament";
-import { CARD, CARD_PADDED, INSET, PAGE, SECONDARY_BUTTON, TABULAR } from "../ui-classes";
+import { CARD, CARD_PADDED, CHIP, CHIP_OFF, CHIP_ON, INSET, PAGE, SECONDARY_BUTTON, TABULAR } from "../ui-classes";
 import { TrophyIcon } from "./icons";
 import {
   BackLink,
@@ -19,6 +29,26 @@ import {
   TonePill,
   TournamentTabs,
 } from "./tournament-chrome";
+
+/**
+ * The board a tournament has before its host has chosen a format: heaviest fish, anything
+ * counts, no pot. Every event has at least this one, so the screen has one code path.
+ */
+const IMPLIED_CATEGORY: FormatCategory = {
+  id: "overall",
+  name: "Heaviest fish",
+  family: "BIGGEST_FISH",
+  species: [],
+  speciesPoints: {},
+  bestN: null,
+  payout: { model: "NONE", split: [] },
+  entryFeeMinor: null,
+};
+
+function ordinal(rank: number): string {
+  const suffix = rank === 1 ? "st" : rank === 2 ? "nd" : rank === 3 ? "rd" : "th";
+  return `${rank}${suffix}`;
+}
 
 /**
  * /tournaments/[id]/leaderboard — the board.
@@ -40,9 +70,13 @@ import {
 export function TournamentLeaderboard({ tournamentId }: { tournamentId: string }) {
   const load = useTournament(tournamentId);
   const fieldLoad = useField(tournamentId);
+  const formatLoad = useFormat(
+    load.state === "ready" ? load.tournament : { id: tournamentId, active_scoring_version_id: null },
+  );
   const demoMode = useDemoMode();
   const [mine, setMine] = useState<readonly DemoTournamentCatch[]>([]);
   const [bigScreen, setBigScreen] = useState(false);
+  const [categoryId, setCategoryId] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -62,10 +96,34 @@ export function TournamentLeaderboard({ tournamentId }: { tournamentId: string }
   const tournament = load.tournament;
   const official = tournament.status === "FINAL";
   const finished = tournamentPhase(tournament.status) === "after";
-  const ranked = fieldLoad.state === "ready" ? rankField(fieldLoad.field) : [];
+  const field = fieldLoad.state === "ready" ? fieldLoad.field : [];
+
+  /*
+    Every board on this screen is one category's board. A tournament with no format saved
+    yet still has one — the implied "heaviest fish, anything counts" — so the screen never
+    has to carry a second, formatless code path.
+  */
+  const format = formatLoad.state === "ready" ? formatLoad.format : null;
+  const categories: readonly FormatCategory[] = format?.categories ?? [IMPLIED_CATEGORY];
+  const category = categories.find((item) => item.id === categoryId) ?? categories[0];
+  const currency = format?.currency ?? "USD";
+
+  const ranked = scoreboardFor(field, category);
+  // Entries still in the tournament, not every row ever created: a withdrawn boat does not
+  // pay into the pot, and a pot that counts one is money the organizer does not have.
+  const pool = poolFor(category, fieldSummary(field).entered);
+  const payouts = payoutBreakdown({ poolMinor: pool, payout: category.payout, placesFilled: ranked.length });
 
   if (bigScreen) {
-    return <BigScreenBoard ranked={ranked} name={tournament.name} official={official} onExit={() => setBigScreen(false)} />;
+    return (
+      <BigScreenBoard
+        ranked={ranked}
+        category={category}
+        name={tournament.name}
+        official={official}
+        onExit={() => setBigScreen(false)}
+      />
+    );
   }
 
   const leader = ranked[0] ?? null;
@@ -90,6 +148,42 @@ export function TournamentLeaderboard({ tournamentId }: { tournamentId: string }
 
       <TournamentTabs tournamentId={tournament.id} />
 
+      {/*
+        One row of chips per category. A Bisbee's-shaped event has three or four boards and
+        they are genuinely different competitions — the marlin board and the tuna board
+        share nothing but the entry list.
+      */}
+      {categories.length > 1 ? (
+        <nav aria-label="Categories">
+          <ul className="flex flex-wrap gap-space-2">
+            {categories.map((item) => (
+              <li key={item.id}>
+                <button
+                  type="button"
+                  aria-pressed={item.id === category.id}
+                  onClick={() => setCategoryId(item.id)}
+                  className={`${CHIP} ${item.id === category.id ? CHIP_ON : CHIP_OFF}`}
+                >
+                  {item.name}
+                </button>
+              </li>
+            ))}
+          </ul>
+        </nav>
+      ) : null}
+
+      {payouts.length > 0 ? (
+        <p className={`${INSET} text-caption text-text-muted`}>
+          <span className="text-text-primary">
+            {formatMoney(pool, currency)} in {category.name.toLowerCase()}
+          </span>{" "}
+          if every entry pays — {payouts
+            .map((slice) => `${ordinal(slice.rank)} ${formatMoney(slice.amountMinor, currency)}`)
+            .join(", ")}
+          . Nothing has been collected: the app is not taking payments yet.
+        </p>
+      ) : null}
+
       {ranked.length === 0 ? (
         <EmptyState
           title="Nothing has been scored yet"
@@ -109,7 +203,7 @@ export function TournamentLeaderboard({ tournamentId }: { tournamentId: string }
                   <span className="text-caption text-text-muted">
                     {official ? "Winner" : "Leading"}
                     {leader.tied ? " · tied" : ""}
-                    {leader.species ? ` · ${leader.species}` : ""}
+                    {categories.length > 1 ? ` · ${category.name}` : ""}
                   </span>
                   <span className="text-h2 text-text-primary">{boardName(leader)}</span>
                   {boardSubtitle(leader) ? (
@@ -118,9 +212,11 @@ export function TournamentLeaderboard({ tournamentId }: { tournamentId: string }
                 </span>
                 <span className="flex flex-col items-end">
                   <span className={`text-h1 ${TABULAR} text-signal-orange`}>
-                    {(leader.bestWeightLb ?? 0).toFixed(1)}
+                    {scoreLabel(category, leader.score).split(" ")[0]}
                   </span>
-                  <span className="text-caption text-text-muted">lb</span>
+                  <span className="text-caption text-text-muted">
+                    {scoreLabel(category, leader.score).split(" ")[1]}
+                  </span>
                 </span>
               </article>
             ) : null}
@@ -142,13 +238,13 @@ export function TournamentLeaderboard({ tournamentId }: { tournamentId: string }
                       {row.isYou ? " · you" : ""}
                     </span>
                     <span className="text-caption text-text-muted">
-                      {[row.species, row.awaitingReview ? "waiting on a review" : null]
+                      {[speciesName(row.species), row.awaitingReview ? "waiting on a review" : null]
                         .filter(Boolean)
                         .join(" · ")}
                     </span>
                   </span>
                   <span className={`text-body-strong ${TABULAR} text-text-primary`}>
-                    {(row.bestWeightLb ?? 0).toFixed(1)} lb
+                    {scoreLabel(category, row.score)}
                   </span>
                 </li>
               ))}
@@ -207,11 +303,13 @@ export function TournamentLeaderboard({ tournamentId }: { tournamentId: string }
  */
 function BigScreenBoard({
   ranked,
+  category,
   name,
   official,
   onExit,
 }: {
-  ranked: readonly RankedEntry[];
+  ranked: readonly CategoryStanding[];
+  category: FormatCategory;
   name: string;
   official: boolean;
   onExit: () => void;
@@ -221,7 +319,7 @@ function BigScreenBoard({
       <div className="flex flex-wrap items-center justify-between gap-space-3">
         <div className="flex min-w-0 flex-col">
           <span className="text-caption tracking-station text-text-muted uppercase">
-            {official ? "Final result" : "Live standings"}
+            {official ? "Final result" : "Live standings"} · {category.name}
           </span>
           <h1 className="text-h1 text-text-primary sm:text-display">{name}</h1>
         </div>
@@ -255,8 +353,11 @@ function BigScreenBoard({
               ) : null}
             </span>
             <span className={`shrink-0 whitespace-nowrap text-h2 sm:text-display ${TABULAR} text-text-primary`}>
-              {(row.bestWeightLb ?? 0).toFixed(1)}
-              <span className="text-caption text-text-muted sm:text-h3"> lb</span>
+              {scoreLabel(category, row.score).split(" ")[0]}
+              <span className="text-caption text-text-muted sm:text-h3">
+                {" "}
+                {scoreLabel(category, row.score).split(" ")[1]}
+              </span>
             </span>
           </li>
         ))}

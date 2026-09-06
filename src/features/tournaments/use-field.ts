@@ -73,6 +73,7 @@ function toFieldEntry(row: EntryRow, viewerId: string | null): FieldEntry {
     bestWeightLb: null,
     species: null,
     awaitingReview: false,
+    catches: [],
   };
 }
 
