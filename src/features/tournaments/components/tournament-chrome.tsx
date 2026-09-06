@@ -162,26 +162,25 @@ export function TournamentHero({
   );
 }
 
-/**
- * Navigation follows the competitor's mental model rather than the underlying feature names:
- * understand the event, finish the entry, compete, see results, reference the rules.
- */
 const TABS = [
-  ["Home", "overview"],
-  ["My entry", "register"],
-  ["Compete", "catches"],
-  ["Results", "leaderboard"],
-  ["Rules", "rules"],
+  { label: "Home", route: "overview", step: null },
+  { label: "Entry", route: "register", step: "1" },
+  { label: "Compete", route: "catches", step: "2" },
+  { label: "Results", route: "leaderboard", step: "3" },
+  { label: "Rules", route: "rules", step: null },
 ] as const;
 
 export function TournamentTabs({ tournamentId }: { tournamentId: string }) {
   const pathname = usePathname();
 
   return (
-    <nav aria-label="Tournament menu" className="flex flex-col gap-space-2">
-      <span className="text-caption text-text-muted">Tournament menu</span>
+    <nav aria-label="Tournament flow" className="flex flex-col gap-space-2">
+      <div className="flex flex-wrap items-end justify-between gap-space-2">
+        <span className="text-label text-text-primary">Tournament flow</span>
+        <span className="text-caption text-text-muted">Entry → Compete → Results</span>
+      </div>
       <ul className="grid grid-cols-2 gap-space-2 sm:grid-cols-5">
-        {TABS.map(([label, route]) => {
+        {TABS.map(({ label, route, step }) => {
           const href = `/tournaments/${tournamentId}/${route}`;
           const active = pathname === href;
           return (
@@ -189,13 +188,23 @@ export function TournamentTabs({ tournamentId }: { tournamentId: string }) {
               <Link
                 href={href}
                 aria-current={active ? "page" : undefined}
-                className={`flex min-h-touch-floor w-full items-center justify-center rounded-lg border px-space-3 text-center text-label transition-colors ${FOCUS_RING} ${
+                className={`flex min-h-touch-floor w-full items-center justify-center gap-space-2 rounded-lg border px-space-3 text-center text-label transition-colors ${FOCUS_RING} ${
                   active
                     ? "border-signal-orange bg-signal-orange text-ink-on-orange"
                     : "border-border-interactive bg-surface text-text-link hover:border-text-link"
                 }`}
               >
-                {label}
+                {step ? (
+                  <span
+                    aria-hidden="true"
+                    className={`flex h-space-5 w-space-5 items-center justify-center rounded-full border text-caption ${
+                      active ? "border-ink-on-orange/50" : "border-border-interactive text-text-muted"
+                    }`}
+                  >
+                    {step}
+                  </span>
+                ) : null}
+                <span>{label}</span>
               </Link>
             </li>
           );
