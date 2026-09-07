@@ -8,6 +8,21 @@ export type PaymentStatus =
   | "PARTIALLY_REFUNDED"
   | "REFUNDED";
 
+/**
+ * The metadata key that carries our order id on a provider's payment object.
+ *
+ * Exported and shared because the two ends of this contract are written months apart and
+ * in different languages: `StripePaymentProvider` sets it when a payment is created, and
+ * the webhook route reads it back to decide which order was paid. When they were written
+ * separately they disagreed — the provider sent `order_id` and the webhook looked for
+ * `tournament_order_id` — which is not a bug any type or test would have caught, and would
+ * have meant every real payment arriving unattributable.
+ *
+ * `tournament_order_id` rather than `order_id`: a Stripe account may carry orders from more
+ * than one system, and a dashboard reader deserves to know whose this is.
+ */
+export const ORDER_METADATA_KEY = "tournament_order_id";
+
 export interface PaymentRequest {
   orderId: string;
   amountMinor: number;

@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
+import { ORDER_METADATA_KEY } from "./payments";
 
 import {
   StripePaymentProvider,
@@ -40,7 +41,9 @@ describe("StripePaymentProvider", () => {
       amount: 5000,
       currency: "usd",
       idempotencyKey: "idem-1",
-      metadata: expect.objectContaining({ order_id: "o1" }),
+      // The key the webhook reads back. Pinned to the shared constant so the two ends
+      // of the contract cannot drift apart again — they already did once.
+      metadata: expect.objectContaining({ [ORDER_METADATA_KEY]: "o1" }),
     }));
   });
 

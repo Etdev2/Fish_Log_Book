@@ -1,4 +1,4 @@
-import type { PaymentProvider, PaymentRequest, PaymentResult, RefundRequest, RefundResult } from "./payments";
+import { ORDER_METADATA_KEY, type PaymentProvider, type PaymentRequest, type PaymentResult, type RefundRequest, type RefundResult } from "./payments";
 
 export interface StripePaymentIntentLike {
   id: string;
@@ -68,7 +68,7 @@ export class StripePaymentProvider implements PaymentProvider {
       amount: request.amountMinor,
       currency: request.currency.toLowerCase(),
       idempotencyKey: request.idempotencyKey,
-      metadata: { order_id: request.orderId, ...(request.metadata ?? {}) },
+      metadata: { [ORDER_METADATA_KEY]: request.orderId, ...(request.metadata ?? {}) },
       connectedAccountId: this.options.connectedAccountId,
       applicationFeeAmount: this.options.applicationFeeAmount?.(request),
     });

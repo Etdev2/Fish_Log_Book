@@ -139,6 +139,24 @@ begin
     if target.status <> 'REGISTRATION_OPEN' then
       raise exception 'registration is not open for %', target.name using errcode = 'check_violation';
     end if;
+
+    /*
+      Only an event that is offering itself publicly may be self-registered into.
+
+      Without this, holding a tournament's id was enough to enter a PRIVATE or INVITE_ONLY
+      event — the id is not a secret in any useful sense (it is in a URL somebody was sent,
+      in a former entrant's history, in a screenshot), and "invite only" would have meant
+      nothing. Row-level security does not cover it either: this is a `security definer`
+      function, so it runs with the owner's rights and RLS never gets a say. The check has
+      to be here, explicitly.
+
+      Private and invite-only events are still filled — by the organiser, through the
+      admin path that `tournament_entry`'s OWNER/ADMIN/STAFF policy already guards.
+    */
+    if target.visibility not in ('PUBLIC', 'UNLISTED') then
+      raise exception 'this event is not open to self-registration'
+        using errcode = '42501';
+    end if;
     -- The deadline is enforced by the clock, not by whoever last set the status column.
     if target.registration_closes_at is not null and target.registration_closes_at <= now() then
       raise exception 'entries have closed for %', target.name using errcode = 'check_violation';
