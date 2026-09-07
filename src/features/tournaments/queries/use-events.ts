@@ -8,9 +8,15 @@ import {
   getDemoEntries,
   getDemoTournaments,
   hasSupabaseBrowserConfig,
-  type DemoTournament,
 } from "../demo-store";
 import type { TournamentEvent } from "../event-card";
+import {
+  PUBLIC_TOURNAMENT_COLUMNS,
+  TOURNAMENT_COLUMNS,
+  toTournamentRecord,
+  type TournamentRecord,
+} from "../types";
+import { fetchTournamentFacts } from "./tournament-facts";
 
 /**
  * One load of "every event I can see", for every screen that shows events.
@@ -31,15 +37,7 @@ export type EventsLoad =
   | { readonly state: "error"; readonly message: string }
   | { readonly state: "ready"; readonly events: readonly TournamentEvent[]; readonly demo: boolean };
 
-/*
-  One literal, deliberately not assembled from pieces: supabase-js parses this string at
-  the type level to shape the row it returns, and a concatenated expression is just
-  `string` to it, which collapses the result type into an error type.
-*/
-const LIST_COLUMNS =
-  "id,name,status,visibility,starts_at,ends_at,location_name,registration_closes_at,entry_fee_minor,currency,created_at";
-
-function fromDemo(row: DemoTournament, enteredIds: ReadonlySet<string>): TournamentEvent {
+function fromDemo(row: TournamentRecord, enteredIds: ReadonlySet<string>): TournamentEvent {
   return {
     id: row.id,
     name: row.name,
@@ -52,24 +50,11 @@ function fromDemo(row: DemoTournament, enteredIds: ReadonlySet<string>): Tournam
     entry_fee_minor: row.entry_fee_minor,
     prize_pool_minor: row.prize_pool_minor,
     currency: row.currency,
+    refund_policy: row.refund_policy,
     entrant_count: row.entrant_count,
     entered: enteredIds.has(row.id),
     hosting: row.hosting,
   };
-}
-
-/** A Supabase row plus the two joins the card needs, flattened. */
-interface RemoteRow {
-  id: string;
-  name: string;
-  status: string;
-  visibility: string;
-  starts_at: string | null;
-  ends_at: string | null;
-  location_name: string | null;
-  registration_closes_at: string | null;
-  entry_fee_minor: number | null;
-  currency: string | null;
 }
 
 export function useEvents(): { readonly load: EventsLoad; readonly retry: () => void } {
@@ -99,18 +84,14 @@ export function useEvents(): { readonly load: EventsLoad; readonly retry: () => 
 
       try {
         const supabase = createClient();
-        const [ownedResult, publicResult, poolResult, entryResult] = await Promise.all([
-          supabase.from("tournament").select(LIST_COLUMNS).is("deleted_at", null),
+        const [ownedResult, publicResult] = await Promise.all([
+          supabase.from("tournament").select(TOURNAMENT_COLUMNS).is("deleted_at", null),
           supabase
             .from("public_tournament")
-            .select(LIST_COLUMNS)
+            .select(PUBLIC_TOURNAMENT_COLUMNS)
             .eq("visibility", "PUBLIC")
             .order("starts_at", { ascending: true })
             .limit(200),
-          // The pot, summed per event. `funded_amount_minor` counts money actually taken,
-          // which is the only number honest enough to print beside the word "prize pool".
-          supabase.from("prize_pool").select("tournament_id,funded_amount_minor"),
-          supabase.from("tournament_entry").select("tournament_id").is("deleted_at", null),
         ]);
 
         if (cancelled) return;
@@ -120,23 +101,27 @@ export function useEvents(): { readonly load: EventsLoad; readonly retry: () => 
           return;
         }
 
-        const owned = (ownedResult.data ?? []) as RemoteRow[];
+        /*
+          Rows you can read from `tournament` itself are your organisation's, which is what
+          hosting means here; `public_tournament` is everything else on offer. An event in
+          both is yours, so the public copy is dropped rather than listed twice.
+        */
+        const owned = ((ownedResult.data ?? []) as unknown[]).map((row) =>
+          toTournamentRecord(row, { hosting: true }),
+        );
         const ownedIds = new Set(owned.map((row) => row.id));
-        const open = ((publicResult.data ?? []) as RemoteRow[]).filter((row) => !ownedIds.has(row.id));
+        const open = ((publicResult.data ?? []) as unknown[])
+          .map((row) => toTournamentRecord(row))
+          .filter((row) => !ownedIds.has(row.id));
 
-        // A pool query the viewer cannot read is a missing number, never a broken page:
-        // RLS hides other organisations' finances by design.
-        const pools = new Map<string, number>();
-        for (const row of (poolResult.data ?? []) as { tournament_id: string; funded_amount_minor: number }[]) {
-          pools.set(row.tournament_id, (pools.get(row.tournament_id) ?? 0) + Number(row.funded_amount_minor ?? 0));
-        }
+        const rows = [...owned, ...open];
+        const facts = await fetchTournamentFacts(
+          supabase,
+          rows.map((row) => row.id),
+        );
+        if (cancelled) return;
 
-        const counts = new Map<string, number>();
-        for (const row of (entryResult.data ?? []) as { tournament_id: string }[]) {
-          counts.set(row.tournament_id, (counts.get(row.tournament_id) ?? 0) + 1);
-        }
-
-        const events: TournamentEvent[] = [...owned, ...open].map((row) => ({
+        const events: TournamentEvent[] = rows.map((row) => ({
           id: row.id,
           name: row.name,
           status: row.status,
@@ -146,14 +131,13 @@ export function useEvents(): { readonly load: EventsLoad; readonly retry: () => 
           location_name: row.location_name,
           registration_closes_at: row.registration_closes_at,
           entry_fee_minor: row.entry_fee_minor,
-          prize_pool_minor: pools.get(row.id) ?? null,
-          currency: row.currency ?? "USD",
-          entrant_count: counts.get(row.id) ?? null,
-          // Entered and hosting both need the signed-in angler, which arrives with the
-          // registration work. Until then the honest answer is "not known here" rather
-          // than a guess that would put somebody else's event in your My Tournaments.
-          entered: false,
-          hosting: ownedIds.has(row.id),
+          // Absent means the pot is not readable from here — "—", never "$0".
+          prize_pool_minor: facts.pools.has(row.id) ? (facts.pools.get(row.id) ?? null) : null,
+          currency: row.currency,
+          refund_policy: row.refund_policy,
+          entrant_count: facts.entrantCounts.get(row.id) ?? 0,
+          entered: facts.enteredIds.has(row.id),
+          hosting: row.hosting,
         }));
 
         setLoad({ state: "ready", events, demo: false });

@@ -1,6 +1,8 @@
 "use client";
 
 import Link from "next/link";
+
+import { BackLink } from "@/components/back-link";
 import { usePathname } from "next/navigation";
 
 import {
@@ -11,9 +13,10 @@ import {
   visibilityLabel,
   type StatusTone,
 } from "../format";
+import { entryFeeLabel, formatMoney } from "../event-card";
+import type { TournamentRecord } from "../types";
 import { useNow, useOnline } from "../use-now";
 import {
-  BACK_LINK,
   CARD,
   CARD_PADDED,
   FOCUS_RING,
@@ -21,20 +24,20 @@ import {
   SECONDARY_BUTTON,
   TABULAR,
 } from "../ui-classes";
-import { AlertIcon, BackIcon, CheckIcon, ClockIcon, PendingIcon } from "./icons";
+import { AlertIcon, CheckIcon, ClockIcon, PendingIcon } from "./icons";
 
 export function TournamentPage({ children }: { children: React.ReactNode }) {
   return <div className={PAGE}>{children}</div>;
 }
 
-export function BackLink({ href, children }: { href: string; children: React.ReactNode }) {
-  return (
-    <Link href={href} className={BACK_LINK}>
-      <BackIcon />
-      {children}
-    </Link>
-  );
-}
+/*
+  The section's own `BackLink` used to live here — a second component with the same name and
+  a different type scale (`text-caption`) from the app-wide one in `@/components/back-link`
+  (`text-label`). That is the "five spellings of back" problem the shell round removed from
+  the rest of the app, quietly re-grown inside this feature. There is one now, and it is the
+  shared one; a component that knows no domain noun belongs in `src/components/` by
+  ADR 005 §3 anyway.
+*/
 
 export function StatusPill({ status, className = "" }: { status: string; className?: string }) {
   const { label, tone } = statusPresentation(status);
@@ -97,14 +100,7 @@ export function TournamentHero({
   eyebrow,
   children,
 }: {
-  tournament: {
-    readonly id: string;
-    readonly name: string;
-    readonly status: string;
-    readonly visibility: string;
-    readonly starts_at: string | null;
-    readonly ends_at: string | null;
-  };
+  tournament: TournamentRecord;
   eyebrow?: React.ReactNode;
   children?: React.ReactNode;
 }) {
@@ -121,7 +117,7 @@ export function TournamentHero({
 
   return (
     <header className="flex flex-col gap-space-4">
-      {eyebrow ?? <BackLink href="/tournaments">All tournaments</BackLink>}
+      {eyebrow ?? <BackLink href="/tournaments" label="All tournaments" />}
 
       <div className="overflow-hidden rounded-lg border border-hairline bg-linear-to-b from-surface-raised to-surface">
         <div className="flex flex-col gap-space-4 p-space-5">
@@ -133,18 +129,46 @@ export function TournamentHero({
             <h1 className="text-h1 text-text-primary">{tournament.name}</h1>
           </div>
 
-          <div className="grid gap-space-3 sm:grid-cols-2">
+          {/*
+            The same facts the event card carries, in the same words. A card on the calendar
+            that shows where an event is and what the pot is at, linking to a page that shows
+            neither, reads as the page having lost them — so the detail screen is never
+            poorer than the list that pointed at it.
+          */}
+          <dl className="grid gap-space-3 sm:grid-cols-2">
             <div className="flex flex-col gap-space-1">
-              <span className="text-caption text-text-muted">When</span>
-              <span className="text-body-strong text-text-primary">
+              <dt className="text-caption text-text-muted">When</dt>
+              <dd className="text-body-strong text-text-primary">
                 {formatSchedule(tournament.starts_at, tournament.ends_at)}
-              </span>
+              </dd>
             </div>
             <div className="flex flex-col gap-space-1">
-              <span className="text-caption text-text-muted">Right now</span>
-              <span className="text-body text-text-primary">{blurb}</span>
+              <dt className="text-caption text-text-muted">Where</dt>
+              <dd className="text-body-strong text-text-primary">
+                {tournament.location_name ?? "Not announced"}
+              </dd>
             </div>
-          </div>
+            <div className="flex flex-col gap-space-1">
+              <dt className="text-caption text-text-muted">Prize pool</dt>
+              {/* "—" for a pot we cannot read, never "$0" — the difference is money. */}
+              <dd className={`text-body-strong text-text-primary ${TABULAR}`}>
+                {formatMoney(tournament.prize_pool_minor, tournament.currency) ?? "—"}
+              </dd>
+            </div>
+            <div className="flex flex-col gap-space-1">
+              <dt className="text-caption text-text-muted">Entry</dt>
+              <dd className={`text-body-strong text-text-primary ${TABULAR}`}>
+                {entryFeeLabel({
+                  entry_fee_minor: tournament.entry_fee_minor,
+                  currency: tournament.currency,
+                }) ?? "Not priced"}
+              </dd>
+            </div>
+            <div className="flex flex-col gap-space-1 sm:col-span-2">
+              <dt className="text-caption text-text-muted">Right now</dt>
+              <dd className="text-body text-text-primary">{blurb}</dd>
+            </div>
+          </dl>
 
           {clock ? (
             <p

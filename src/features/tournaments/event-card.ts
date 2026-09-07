@@ -30,6 +30,8 @@ export interface TournamentEvent {
   /** What the pot holds right now, in minor units — paid entries only. */
   readonly prize_pool_minor: number | null;
   readonly currency: string;
+  /** The host's own words on withdrawals. Null means none published — the checkout says so. */
+  readonly refund_policy: string | null;
   readonly entrant_count: number | null;
   /** Whether the viewer is entered in this one. Drives "My tournaments" and the badges. */
   readonly entered: boolean;
@@ -87,11 +89,21 @@ export function formatMoney(minor: number | null, currency: string): string | nu
   }
 }
 
-/** "Free" is a real and attractive answer, and it is not the same as "not priced yet". */
-export function entryFeeLabel(event: TournamentEvent): string | null {
-  if (event.entry_fee_minor === null) return null;
-  if (event.entry_fee_minor === 0) return "Free to enter";
-  return formatMoney(event.entry_fee_minor, event.currency);
+/**
+ * "Free" is a real and attractive answer, and it is not the same as "not priced yet".
+ *
+ * Takes the two fields it reads rather than a whole event, so the tournament hero — which
+ * holds a `TournamentRecord`, not a `TournamentEvent` — can price an entry with the same
+ * words the card uses. Two screens describing one fee differently is how a $0 event and an
+ * unpriced one end up looking identical.
+ */
+export function entryFeeLabel(priced: {
+  readonly entry_fee_minor: number | null;
+  readonly currency: string;
+}): string | null {
+  if (priced.entry_fee_minor === null) return null;
+  if (priced.entry_fee_minor === 0) return "Free to enter";
+  return formatMoney(priced.entry_fee_minor, priced.currency);
 }
 
 /**

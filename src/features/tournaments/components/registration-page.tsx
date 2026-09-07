@@ -13,8 +13,9 @@ import {
   type EventOption,
 } from "@/core/tournaments/registration";
 
-import { getDemoDivisions, getDemoRefundPolicy, registerDemoEntry } from "../demo-store";
-import { registrationState, type TournamentEvent } from "../event-card";
+import { registerDemoEntry } from "../demo-store";
+import { registrationState } from "../event-card";
+import { useDivisions } from "../queries/use-divisions";
 import { useEvents } from "../queries/use-events";
 import { useNow } from "../use-now";
 import { CARD_PADDED, INSET, PAGE } from "../ui-classes";
@@ -55,31 +56,51 @@ export function RegistrationPage({ tournamentId }: { tournamentId: string }) {
 
   /* Only events still taking entries can be added. Offering a closed one and refusing it at
      checkout would waste the one decision the screen is asking for. */
-  const options: EventOption[] = useMemo(() => {
+  const enterable = useMemo(() => {
     if (load.state !== "ready") return [];
-    const enterable = load.events.filter((event) => {
+    return load.events.filter((event) => {
       const kind = registrationState(event, nowMs).kind;
       return event.id === tournamentId || kind === "open" || kind === "open-no-deadline";
     });
-    return enterable.map(toOption);
   }, [load, nowMs, tournamentId]);
+
+  /*
+    Jackpots come from a loader now rather than straight out of the demo seed. Read from the
+    seed, they were invisible against a real database — no error, no empty state, just no
+    jackpot section on any event, which is the founder's headline feature quietly absent.
+  */
+  const divisions = useDivisions(useMemo(() => enterable.map((event) => event.id), [enterable]));
+
+  const options: EventOption[] = useMemo(
+    () =>
+      enterable.map((event) => ({
+        id: event.id,
+        name: event.name,
+        entryFeeMinor: event.entry_fee_minor,
+        currency: event.currency,
+        divisions:
+          divisions.state === "ready" ? (divisions.byTournament.get(event.id) ?? []) : [],
+      })),
+    [enterable, divisions],
+  );
 
   const selection = useMemo(() => ({ eventIds, divisionIds }), [eventIds, divisionIds]);
   const build = useMemo(() => buildOrder(options, selection), [options, selection]);
   const problems = useMemo(() => crewProblems(crew), [crew]);
 
   const arrivedFrom = options.find((option) => option.id === tournamentId);
-  /* One policy per event on the order — see the note in `checkout-panel.tsx`. */
+  /* One policy per event on the order — see the note in `checkout-panel.tsx`. It comes off
+     the event itself now, so a host who writes one actually has it shown. */
   const refundPolicies = useMemo(
     () =>
-      options
-        .filter((option) => eventIds.includes(option.id))
-        .map((option) => ({
-          eventId: option.id,
-          eventName: option.name,
-          policy: getDemoRefundPolicy(option.id),
+      enterable
+        .filter((event) => eventIds.includes(event.id))
+        .map((event) => ({
+          eventId: event.id,
+          eventName: event.name,
+          policy: event.refund_policy,
         })),
-    [options, eventIds],
+    [enterable, eventIds],
   );
 
   if (load.state === "loading") return <LoadingScreen label="Loading registration" />;
@@ -187,22 +208,4 @@ function blockedReason(input: { problems: number; policyAcknowledged: boolean })
   if (input.problems > 0) return "Finish the crew details above before paying.";
   if (!input.policyAcknowledged) return "Tick the box above to confirm you have read the policy.";
   return null;
-}
-
-function toOption(event: TournamentEvent): EventOption {
-  return {
-    id: event.id,
-    name: event.name,
-    entryFeeMinor: event.entry_fee_minor,
-    currency: event.currency,
-    divisions: getDemoDivisions(event.id).map((division) => ({
-      id: division.id,
-      name: division.name,
-      description: division.description,
-      kind: division.kind,
-      entryFeeMinor: division.entry_fee_minor,
-      poolMinor: division.pool_minor,
-      participantCount: division.participant_count,
-    })),
-  };
 }

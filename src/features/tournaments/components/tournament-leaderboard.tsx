@@ -1,5 +1,6 @@
 "use client";
 
+import { BackLink } from "@/components/back-link";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
@@ -10,7 +11,6 @@ import { useDemoMode, useTournament } from "../use-tournament";
 import { CARD, CARD_PADDED, INSET, PAGE, SECONDARY_BUTTON, TABULAR } from "../ui-classes";
 import { TrophyIcon } from "./icons";
 import {
-  BackLink,
   DemoNote,
   EmptyState,
   ErrorScreen,
@@ -52,7 +52,7 @@ export function TournamentLeaderboard({ tournamentId }: { tournamentId: string }
   return (
     <div className={PAGE}>
       <header className="flex flex-col gap-space-3">
-        <BackLink href={`/tournaments/${tournament.id}/overview`}>Tournament home</BackLink>
+        <BackLink href={`/tournaments/${tournament.id}/overview`} label="Tournament home" />
         <div className="flex flex-col gap-space-1">
           <span className="text-label text-signal-orange">Step 3 of 3</span>
           <div className="flex flex-wrap items-end justify-between gap-space-3">

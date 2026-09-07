@@ -4,14 +4,17 @@ import { useRouter } from "next/navigation";
 import { useId, useState } from "react";
 
 import { createClient } from "@/lib/supabase/client";
+import { parseMoneyToMinor } from "@/core/tournaments/money";
 import { createDemoTournament, hasSupabaseBrowserConfig } from "../demo-store";
-import { formatSchedule, visibilityPresentation } from "../format";
+import { formatMoney } from "../event-card";
+import { formatDateTime, formatSchedule, visibilityPresentation } from "../format";
 import {
   BIG_ACTION,
   CARD_PADDED,
   FOCUS_RING,
   INPUT,
   SECONDARY_BUTTON,
+  TABULAR,
   TERTIARY_BUTTON,
 } from "../ui-classes";
 import { CheckRow, DemoNote } from "./tournament-chrome";
@@ -38,7 +41,17 @@ const VISIBILITIES = ["PRIVATE", "INVITE_ONLY", "UNLISTED", "PUBLIC"] as const;
 
 type Visibility = (typeof VISIBILITIES)[number];
 
-const STEPS = ["The basics", "Who can see it", "Check it over"] as const;
+/*
+  A fourth step, added when the event calendar shipped. The calendar's whole job is to
+  answer three questions about an event — where it is, what it costs, and how long you have
+  to enter — and this form collected none of them, so every event a host actually created
+  appeared on it as "Not announced", no fee and no deadline. A create form that cannot fill
+  in the screen it feeds is the flow being broken in the middle.
+
+  Its own step rather than more fields on "The basics", which already carries a name and two
+  datetimes; six inputs in one column is the wall this wizard was built to avoid.
+*/
+const STEPS = ["The basics", "Where and what it costs", "Who can see it", "Check it over"] as const;
 
 function toIsoOrNull(value: string) {
   return value ? new Date(value).toISOString() : null;
@@ -53,6 +66,10 @@ export function CreateTournamentForm() {
   const [visibility, setVisibility] = useState<Visibility>("PRIVATE");
   const [startsAt, setStartsAt] = useState("");
   const [endsAt, setEndsAt] = useState("");
+  const [locationName, setLocationName] = useState("");
+  const [entryFee, setEntryFee] = useState("");
+  const [registrationClosesAt, setRegistrationClosesAt] = useState("");
+  const [refundPolicy, setRefundPolicy] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -68,7 +85,25 @@ export function CreateTournamentForm() {
       ? "The finish has to be after the start."
       : null;
 
-  const stepReady = step === 0 ? name.trim().length > 0 && !scheduleProblem : true;
+  /*
+    An empty fee is "not priced yet", which is a legitimate state to create a draft in. A fee
+    that was typed and cannot be read is not — that is somebody meaning to charge $40 and
+    getting no fee at all, which they would discover from an angler who entered for free.
+  */
+  const feeParse = entryFee.trim() === "" ? null : parseMoneyToMinor(entryFee);
+  const feeProblem =
+    feeParse && !feeParse.ok
+      ? feeParse.reason === "negative"
+        ? "An entry fee cannot be negative."
+        : feeParse.reason === "too-precise"
+          ? "Entry fees go to the cent — two decimal places."
+          : feeParse.reason === "too-large"
+            ? "That is larger than any entry fee. Check the number."
+            : "Write the entry fee as a number, like 250 or 250.00."
+      : null;
+
+  const stepReady =
+    step === 0 ? name.trim().length > 0 && !scheduleProblem : step === 1 ? !feeProblem : true;
 
   async function create() {
     setSubmitting(true);
@@ -80,6 +115,10 @@ export function CreateTournamentForm() {
         visibility,
         starts_at: toIsoOrNull(startsAt),
         ends_at: toIsoOrNull(endsAt),
+        location_name: locationName.trim() || null,
+        registration_closes_at: toIsoOrNull(registrationClosesAt),
+        entry_fee_minor: feeParse && feeParse.ok ? feeParse.minor : null,
+        refund_policy: refundPolicy.trim() || null,
       });
       router.push(`/tournaments/${tournament.id}/overview`);
       router.refresh();
@@ -111,6 +150,10 @@ export function CreateTournamentForm() {
           status: "DRAFT",
           starts_at: toIsoOrNull(startsAt),
           ends_at: toIsoOrNull(endsAt),
+          location_name: locationName.trim() || null,
+          registration_closes_at: toIsoOrNull(registrationClosesAt),
+          entry_fee_minor: feeParse && feeParse.ok ? feeParse.minor : null,
+          refund_policy: refundPolicy.trim() || null,
           created_by: authData.user.id,
         })
         .select("id")
@@ -209,6 +252,98 @@ export function CreateTournamentForm() {
       ) : null}
 
       {step === 1 ? (
+        <section className={`${CARD_PADDED} flex flex-col gap-space-5`}>
+          <div className="flex flex-col gap-space-2">
+            <label htmlFor={`${fieldId}-location`} className="text-label text-text-primary">
+              Where is it fished?
+            </label>
+            <input
+              id={`${fieldId}-location`}
+              maxLength={160}
+              value={locationName}
+              onChange={(event) => setLocationName(event.target.value)}
+              className={INPUT}
+              placeholder="Dana Point Harbor"
+            />
+            {/* Free text on purpose: an event is announced as "the Rockpile" long before
+                anybody plots it, and demanding a coordinate would block publishing. */}
+            <p className="text-caption text-text-muted">
+              However you would say it out loud. This is what people see on the calendar.
+            </p>
+          </div>
+
+          <div className="flex flex-col gap-space-2">
+            <label htmlFor={`${fieldId}-fee`} className="text-label text-text-primary">
+              What does it cost to enter?
+            </label>
+            <input
+              id={`${fieldId}-fee`}
+              inputMode="decimal"
+              value={entryFee}
+              onChange={(event) => setEntryFee(event.target.value)}
+              className={INPUT}
+              placeholder="250"
+              aria-invalid={feeProblem ? true : undefined}
+              aria-describedby={feeProblem ? `${fieldId}-fee-error` : undefined}
+            />
+            {feeProblem ? (
+              <p id={`${fieldId}-fee-error`} role="alert" className="text-body text-error-red">
+                {feeProblem}
+              </p>
+            ) : (
+              <p className="text-caption text-text-muted">
+                Leave it empty if you have not decided. Put 0 if it is free — that is a
+                different thing, and the calendar says so.
+              </p>
+            )}
+          </div>
+
+          <div className="flex flex-col gap-space-2">
+            <label htmlFor={`${fieldId}-closes`} className="text-label text-text-primary">
+              When do entries close?
+            </label>
+            <input
+              id={`${fieldId}-closes`}
+              type="datetime-local"
+              value={registrationClosesAt}
+              onChange={(event) => setRegistrationClosesAt(event.target.value)}
+              className={INPUT}
+            />
+            {/* Deliberately allowed to fall after the start: dock registration on the
+                morning of is normal, and the schema permits it for the same reason. */}
+            <p className="text-caption text-text-muted">
+              The calendar counts down to this. It is fine for it to be on the morning of,
+              if you take entries at the dock.
+            </p>
+          </div>
+
+          {/*
+            Shown to every angler directly above the pay button (ADR 010 §4). It is the
+            host's promise about the host's money, so the app collects it and repeats it
+            rather than writing one — an event with none says so, which is also information.
+          */}
+          <div className="flex flex-col gap-space-2">
+            <label htmlFor={`${fieldId}-refunds`} className="text-label text-text-primary">
+              What happens if somebody withdraws, or you cancel?
+            </label>
+            <textarea
+              id={`${fieldId}-refunds`}
+              rows={4}
+              maxLength={1000}
+              value={refundPolicy}
+              onChange={(event) => setRefundPolicy(event.target.value)}
+              className={`${INPUT} h-auto`}
+              placeholder="Full refund up to 48 hours before the start. If we cancel for weather, everything is refunded."
+            />
+            <p className="text-caption text-text-muted">
+              Anglers read this before they pay. Leave it empty and the app will say you have
+              not published one — it will not invent terms for you.
+            </p>
+          </div>
+        </section>
+      ) : null}
+
+      {step === 2 ? (
         <fieldset className={`${CARD_PADDED} flex flex-col gap-space-3`}>
           <legend className="text-label text-text-primary">Who can see it?</legend>
           <p className="text-caption text-text-muted">
@@ -242,7 +377,7 @@ export function CreateTournamentForm() {
         </fieldset>
       ) : null}
 
-      {step === 2 ? (
+      {step === 3 ? (
         <section className={`${CARD_PADDED} flex flex-col gap-space-4`}>
           <div className="flex flex-col gap-space-2">
             <h2 className="text-h3 text-text-primary">{name.trim() || "Untitled tournament"}</h2>
@@ -251,6 +386,42 @@ export function CreateTournamentForm() {
               {visibilityPresentation(visibility).label} · {visibilityPresentation(visibility).blurb}
             </p>
           </div>
+
+          {/*
+            The event card, as an angler will read it. Reviewing the name and the dates but
+            not the three facts the calendar leads with would let somebody confirm an event
+            without ever seeing that it has no location and no price.
+          */}
+          <dl className="flex flex-wrap gap-x-space-6 gap-y-space-3 border-t border-hairline pt-space-4">
+            <div className="min-w-0">
+              <dt className="text-caption text-text-muted">Where</dt>
+              <dd className="text-body text-text-primary">
+                {locationName.trim() || "Not announced"}
+              </dd>
+            </div>
+            <div>
+              <dt className="text-caption text-text-muted">Entry</dt>
+              <dd className={`text-body text-text-primary ${TABULAR}`}>
+                {feeParse && feeParse.ok
+                  ? feeParse.minor === 0
+                    ? "Free to enter"
+                    : (formatMoney(feeParse.minor, "USD") ?? "—")
+                  : "Not priced"}
+              </dd>
+            </div>
+            <div>
+              <dt className="text-caption text-text-muted">Entries close</dt>
+              <dd className="text-body text-text-primary">
+                {formatDateTime(toIsoOrNull(registrationClosesAt)) ?? "No deadline set"}
+              </dd>
+            </div>
+            <div className="w-full">
+              <dt className="text-caption text-text-muted">Refunds</dt>
+              <dd className="text-body text-text-primary">
+                {refundPolicy.trim() || "No policy published — the checkout will say so."}
+              </dd>
+            </div>
+          </dl>
 
           <div className="flex flex-col gap-space-3 border-t border-hairline pt-space-4">
             <p className="text-label text-text-primary">What happens next</p>
@@ -300,9 +471,13 @@ export function CreateTournamentForm() {
           </button>
         )}
 
-        {step === 0 && !stepReady ? (
+        {!stepReady ? (
           <p id={`${fieldId}-next-hint`} className="text-caption text-text-muted">
-            {scheduleProblem ? "Fix the times to carry on." : "Give it a name to carry on."}
+            {step === 1
+              ? "Fix the entry fee to carry on."
+              : scheduleProblem
+                ? "Fix the times to carry on."
+                : "Give it a name to carry on."}
           </p>
         ) : null}
 

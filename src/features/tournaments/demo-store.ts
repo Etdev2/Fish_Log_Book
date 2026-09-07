@@ -1,30 +1,6 @@
-export type DemoTournament = {
-  id: string;
-  name: string;
-  status: string;
-  visibility: string;
-  starts_at: string | null;
-  ends_at: string | null;
-  /*
-    The three facts the event calendar is built to answer before you open anything: where
-    it is, what the pot is at, and how long you have to enter. They mirror the columns
-    added to `public.tournament` in 20260905184500_tournament_core.sql, so the demo path
-    and the Supabase path render from the same shape.
-  */
-  location_name: string | null;
-  registration_closes_at: string | null;
-  entry_fee_minor: number | null;
-  prize_pool_minor: number | null;
-  currency: string;
-  entrant_count: number;
-  /** Whether the demo angler hosts this one — the door to the host tools. */
-  hosting: boolean;
-  organization_id: string;
-  active_rule_set_version_id: string | null;
-  active_scoring_version_id: string | null;
-  active_verification_policy_version_id: string | null;
-  active_boundary_version_id: string | null;
-};
+import type { TournamentRecord } from "./types";
+
+export type { TournamentRecord };
 
 export type DemoEntry = {
   id: string;
@@ -76,7 +52,7 @@ function minutesFromNow(minutes: number): string {
  * without the founder having to create one: an event taking entries with its setup
  * half-finished, an event being fished right now, and one that is over and official.
  */
-function seedTournaments(): DemoTournament[] {
+function seedTournaments(): TournamentRecord[] {
   return [
     {
       id: "demo-harbor-shootout",
@@ -90,6 +66,8 @@ function seedTournaments(): DemoTournament[] {
       entry_fee_minor: 15000,
       prize_pool_minor: 372000,
       currency: "USD",
+      refund_policy:
+        "Entries closed. Withdrawals are between you and the host from here.",
       entrant_count: 31,
       hosting: false,
       organization_id: "demo-personal-organization",
@@ -110,6 +88,8 @@ function seedTournaments(): DemoTournament[] {
       entry_fee_minor: 25000,
       prize_pool_minor: 480000,
       currency: "USD",
+      refund_policy:
+        "Entries are transferable to another boat until registration closes. No refunds after that, except a full refund if the event is cancelled.",
       entrant_count: 19,
       hosting: false,
       organization_id: "demo-personal-organization",
@@ -134,6 +114,8 @@ function seedTournaments(): DemoTournament[] {
       entry_fee_minor: 40000,
       prize_pool_minor: 1265000,
       currency: "USD",
+      refund_policy:
+        "Full refund if you withdraw more than 48 hours before the start. Inside 48 hours, entry fees are non-refundable but jackpot buy-ins are returned. If the host cancels for weather, everything is refunded in full within 5 working days.",
       entrant_count: 44,
       hosting: false,
       organization_id: "demo-personal-organization",
@@ -158,6 +140,8 @@ function seedTournaments(): DemoTournament[] {
       entry_fee_minor: 0,
       prize_pool_minor: null,
       currency: "USD",
+      refund_policy:
+        "Free event — withdraw any time, no money involved.",
       entrant_count: 7,
       hosting: false,
       organization_id: "demo-personal-organization",
@@ -182,6 +166,8 @@ function seedTournaments(): DemoTournament[] {
       entry_fee_minor: 5000,
       prize_pool_minor: 40000,
       currency: "USD",
+      refund_policy:
+        "Crew event. Talk to the host; there is no formal policy and no fee held by the app.",
       entrant_count: 8,
       hosting: true,
       organization_id: "demo-personal-organization",
@@ -229,13 +215,13 @@ function writeJson(key: string, value: unknown) {
   window.localStorage.setItem(key, JSON.stringify(value));
 }
 
-export function getDemoTournaments(): DemoTournament[] {
-  const stored = readJson<DemoTournament[]>(TOURNAMENTS_KEY, []);
+export function getDemoTournaments(): TournamentRecord[] {
+  const stored = readJson<TournamentRecord[]>(TOURNAMENTS_KEY, []);
   const seed = seedTournaments();
   return [...stored, ...seed.filter((item) => !stored.some((own) => own.id === item.id))];
 }
 
-export function getDemoTournament(id: string): DemoTournament | null {
+export function getDemoTournament(id: string): TournamentRecord | null {
   return getDemoTournaments().find((item) => item.id === id) ?? null;
 }
 
@@ -247,8 +233,9 @@ export function createDemoTournament(input: {
   location_name?: string | null;
   registration_closes_at?: string | null;
   entry_fee_minor?: number | null;
-}): DemoTournament {
-  const item: DemoTournament = {
+  refund_policy?: string | null;
+}): TournamentRecord {
+  const item: TournamentRecord = {
     id: `demo-${Date.now()}`,
     name: input.name,
     status: "DRAFT",
@@ -258,6 +245,7 @@ export function createDemoTournament(input: {
     location_name: input.location_name ?? null,
     registration_closes_at: input.registration_closes_at ?? null,
     entry_fee_minor: input.entry_fee_minor ?? null,
+    refund_policy: input.refund_policy ?? null,
     // A brand-new event's pot is empty, not unknown. Nobody has paid yet.
     prize_pool_minor: 0,
     currency: "USD",
@@ -270,7 +258,7 @@ export function createDemoTournament(input: {
     active_verification_policy_version_id: null,
     active_boundary_version_id: null,
   };
-  const stored = readJson<DemoTournament[]>(TOURNAMENTS_KEY, []);
+  const stored = readJson<TournamentRecord[]>(TOURNAMENTS_KEY, []);
   writeJson(TOURNAMENTS_KEY, [item, ...stored]);
   return item;
 }
@@ -398,23 +386,3 @@ export function getDemoDivisions(tournamentId: string): readonly DemoDivision[] 
   return SEED_DIVISIONS.filter((division) => division.tournament_id === tournamentId);
 }
 
-/**
- * The host's refund policy, per event.
- *
- * Deliberately not one platform-wide sentence. It is the host's money and the host's
- * decision, and inventing a policy on their behalf would be the app making a promise it
- * cannot keep (ADR 010 §4). An event with none says so, which is itself information.
- */
-const SEED_REFUND_POLICIES: Readonly<Record<string, string>> = {
-  "demo-tuna-jackpot":
-    "Full refund if you withdraw more than 48 hours before the start. Inside 48 hours, entry fees are non-refundable but jackpot buy-ins are returned. If the host cancels for weather, everything is refunded in full within 5 working days.",
-  "demo-yellowtail-open":
-    "Entries are transferable to another boat until registration closes. No refunds after that, except a full refund if the event is cancelled.",
-  "demo-club-fun-day": "Free event — withdraw any time, no money involved.",
-  "demo-crew-cup":
-    "Crew event. Talk to the host; there is no formal policy and no fee held by the app.",
-};
-
-export function getDemoRefundPolicy(tournamentId: string): string | null {
-  return SEED_REFUND_POLICIES[tournamentId] ?? null;
-}

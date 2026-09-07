@@ -1,5 +1,6 @@
 "use client";
 
+import { BackLink } from "@/components/back-link";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 
@@ -26,7 +27,6 @@ import {
 } from "../ui-classes";
 import { AlertIcon, LockIcon } from "./icons";
 import {
-  BackLink,
   CheckRow,
   DemoNote,
   EmptyState,
@@ -100,7 +100,7 @@ export function TournamentOperations({
   return (
     <div className={PAGE}>
       <header className="flex flex-col gap-space-3">
-        <BackLink href={`/tournaments/${tournament.id}/overview`}>Tournament home</BackLink>
+        <BackLink href={`/tournaments/${tournament.id}/overview`} label="Tournament home" />
         <div className="flex flex-col gap-space-1">
           <span className="text-label text-signal-orange">Host controls</span>
           <div className="flex flex-wrap items-end justify-between gap-space-3">

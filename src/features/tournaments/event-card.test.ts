@@ -28,6 +28,7 @@ function event(overrides: Partial<TournamentEvent> = {}): TournamentEvent {
     entry_fee_minor: 25000,
     prize_pool_minor: 480000,
     currency: "USD",
+    refund_policy: "Full refund up to 48 hours before the start.",
     entrant_count: 19,
     entered: false,
     hosting: false,
