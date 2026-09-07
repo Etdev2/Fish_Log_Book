@@ -41,12 +41,12 @@ create or replace view public.public_tournament_catch as
 select
   c.id,
   c.tournament_id,
-  c.tournament_entry_id,
+  c.entry_id as tournament_entry_id,
   c.species_id,
   c.weight_g,
   c.length_mm,
-  c.captured_at_device,
-  c.state,
+  c.caught_at_device as captured_at_device,
+  c.status as state,
   e.storage_path as public_photo_path
 from public.tournament_catch c
 join public.tournament t on t.id = c.tournament_id
@@ -60,7 +60,7 @@ left join lateral (
 ) e on true
 where t.deleted_at is null
   and t.visibility in ('PUBLIC','UNLISTED')
-  and c.state in ('APPROVED','FINAL');
+  and c.status in ('APPROVED','FINAL');
 
 create or replace view public.public_leaderboard as
 select
