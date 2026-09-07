@@ -33,6 +33,8 @@ export interface TournamentEvent {
   /** The host's own words on withdrawals. Null means none published — the checkout says so. */
   readonly refund_policy: string | null;
   readonly entrant_count: number | null;
+  /** Who runs it. Two hosts cannot share one payment — see `registration-page.tsx`. */
+  readonly organization_id: string;
   /** Whether the viewer is entered in this one. Drives "My tournaments" and the badges. */
   readonly entered: boolean;
   /** Whether the viewer hosts it. Drives the host-admin door. */

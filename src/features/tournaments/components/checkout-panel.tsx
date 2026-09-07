@@ -6,7 +6,12 @@ import type { OrderDraft } from "@/core/tournaments/registration";
 import { WalletFailure, connectWallet } from "@/lib/wallet/browser-wallet";
 
 import { TEST_CARDS } from "../checkout/test-gateways";
-import { useCheckout, type CheckoutState, type PaymentMethod } from "../checkout/use-checkout";
+import {
+  useCheckout,
+  type CheckoutOrder,
+  type CheckoutState,
+  type PaymentMethod,
+} from "../checkout/use-checkout";
 import { formatMoney } from "../event-card";
 import {
   BIG_ACTION,
@@ -40,25 +45,29 @@ export interface EventRefundPolicy {
 }
 
 export function CheckoutPanel({
-  orderId,
+  createOrder,
   draft,
   refundPolicies,
   ready,
   blockedReason,
+  serverBacked,
   onPaid,
 }: {
-  orderId: string;
+  /** Creates the real order the moment the angler commits. See `use-checkout.ts`. */
+  createOrder: CheckoutOrder["createOrder"];
   draft: OrderDraft;
   /** One per event being paid for — see the note where these render. */
   refundPolicies: readonly EventRefundPolicy[];
   ready: boolean;
   blockedReason: string | null;
+  /** True when a tournament server took the registration, false in on-device demo mode. */
+  serverBacked: boolean;
   onPaid: (reference: string) => void;
 }) {
   const checkout = useCheckout({
-    orderId,
     totalMinor: draft.totalMinor,
     currency: draft.currency,
+    createOrder,
   });
   const [method, setMethod] = useState<PaymentMethod>("card");
   const [card, setCard] = useState<string>(TEST_CARDS.success);
@@ -75,11 +84,23 @@ export function CheckoutPanel({
       <section className={`${CARD_PADDED} flex flex-col gap-space-3`} aria-live="polite">
         <h2 className="flex items-center gap-space-2 text-h3 text-success-green">
           <CheckIcon />
-          Paid — you are entered
+          {serverBacked ? "Paid — waiting on confirmation" : "Paid — you are entered"}
         </h2>
         <p className="text-body text-text-primary">
           {total} for {draft.lines.length} {draft.lines.length === 1 ? "item" : "items"}.
         </p>
+        {/*
+          On a real tournament server an entry becomes CONFIRMED only when the payment
+          provider tells the server so, which no browser may do — see
+          `confirm_tournament_order`. Saying "you are entered" here would be the single
+          worst lie this app could tell somebody standing on a dock at 5am.
+        */}
+        {serverBacked ? (
+          <p className="text-body text-text-muted">
+            Your boat and your crew are registered and the host can see you. The entry shows
+            as pending until the payment is confirmed by the host&rsquo;s payment provider.
+          </p>
+        ) : null}
         <p className={`text-caption text-text-muted ${TABULAR}`}>Reference {state.reference}</p>
         <button type="button" onClick={() => onPaid(state.reference)} className={BIG_ACTION}>
           See my tournaments
@@ -201,7 +222,7 @@ export function CheckoutPanel({
               return, and the provider's real observation logic — chain, asset, recipient,
               amount, confirmations — runs against it exactly as it would on a live chain.
             */
-            const hash = `0x${orderId.replace(/\W/g, "").padEnd(64, "0").slice(0, 64)}`;
+            const hash = `0x${state.quote.quoteId.replace(/\W/g, "").padEnd(64, "0").slice(0, 64)}`;
             void checkout.submitWalletTransaction(hash, state.quote);
           }}
         >

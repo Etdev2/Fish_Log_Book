@@ -39,9 +39,16 @@ export type CheckoutState =
   | { readonly kind: "failed"; readonly message: string };
 
 export interface CheckoutOrder {
-  readonly orderId: string;
   readonly totalMinor: number;
   readonly currency: string;
+  /**
+   * Creates the order on the server and returns its id, or explains why it could not.
+   *
+   * Called at the moment the angler commits to paying, not on mount: an order created when
+   * a form loads is a PENDING row for everybody who ever opened the screen. Idempotent, so
+   * a second tap returns the first order rather than a second one.
+   */
+  readonly createOrder: () => Promise<{ ok: true; orderId: string } | { ok: false; message: string }>;
 }
 
 /* Module-level so their identity is stable across renders; `useSyncExternalStore`
@@ -110,12 +117,19 @@ export function useCheckout(order: CheckoutOrder) {
     async (cardNumber: string) => {
       setState({ kind: "working" });
       try {
+        /* The order exists before the money moves. See `use-registration-order.ts`: a
+           payment that succeeds against nothing leaves somebody charged and not entered. */
+        const order_ = await order.createOrder();
+        if (!order_.ok) {
+          if (alive.current) setState({ kind: "failed", message: order_.message });
+          return;
+        }
         const provider = new StripePaymentProvider(new TestStripeClient(cardNumber));
         const created = await provider.createPayment({
-          orderId: order.orderId,
+          orderId: order_.orderId,
           amountMinor: order.totalMinor,
           currency: order.currency,
-          idempotencyKey: order.orderId,
+          idempotencyKey: order_.orderId,
         });
         if (created.status === "REQUIRES_ACTION") {
           if (alive.current) setState({ kind: "action-required" });
@@ -128,23 +142,28 @@ export function useCheckout(order: CheckoutOrder) {
         setState({ kind: "failed", message: messageOf(cause) });
       }
     },
-    [order.orderId, order.totalMinor, order.currency, settle],
+    [order, settle],
   );
 
   /** Wallet, step one: get a quote and show what to send, where, and by when. */
   const startWalletPayment = useCallback(async () => {
     setState({ kind: "working" });
     try {
+      const order_ = await order.createOrder();
+      if (!order_.ok) {
+        if (alive.current) setState({ kind: "failed", message: order_.message });
+        return;
+      }
       const gateway = new TestCryptoGateway();
       const provider = new CryptoPaymentProvider(gateway);
       cryptoGateway.current = gateway;
       cryptoProvider.current = provider;
 
       const created = await provider.createPayment({
-        orderId: order.orderId,
+        orderId: order_.orderId,
         amountMinor: order.totalMinor,
         currency: order.currency,
-        idempotencyKey: order.orderId,
+        idempotencyKey: order_.orderId,
       });
       paymentId.current = created.providerPaymentId;
       const quote = await gateway.getQuote(created.providerPaymentId.replace(/^crypto:/, ""));
@@ -153,7 +172,7 @@ export function useCheckout(order: CheckoutOrder) {
       if (!alive.current) return;
       setState({ kind: "failed", message: messageOf(cause) });
     }
-  }, [order.orderId, order.totalMinor, order.currency]);
+  }, [order]);
 
   /**
    * Wallet, step two: record the transaction and watch the chain.

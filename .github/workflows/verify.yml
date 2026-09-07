@@ -49,3 +49,19 @@ jobs:
       # builds the branches it is wired to. Running it here means a red build is caught
       # on the PR by the same check as everything else.
       - run: npm run build
+
+      # Applies every migration to a real Postgres, then runs the database behaviour
+      # checks. Nothing else in this workflow can tell whether the SQL runs: when this
+      # step was added, the tournament migrations had never been applied anywhere and the
+      # first run found four separate reasons they could not be — including a foreign key
+      # Postgres refuses to create, and a view that selected three columns its table does
+      # not have. Every one of those would have surfaced as a failed production deploy.
+      #
+      # Installed explicitly rather than relying on the runner image, because the script
+      # exits 2 when it finds no server binaries and a skip that looks like a pass is
+      # exactly the failure this step exists to prevent.
+      - name: Install PostgreSQL
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends postgresql-16
+
+      - name: Migrations apply to a real database
+        run: scripts/check-migrations-apply.sh

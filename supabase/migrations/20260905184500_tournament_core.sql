@@ -172,7 +172,14 @@ create table if not exists public.tournament_division (
   entry_fee_minor bigint check (entry_fee_minor is null or entry_fee_minor >= 0),
   /* Whether an entrant chooses this, or is placed in it by the rules. */
   is_optional boolean not null default true,
-  target_species_id uuid references public.species(id) on delete set null,
+  /*
+    `text`, not `uuid`: species ids in this schema are slugs ("yellowtail"), not generated
+    keys — `public.species.id` is a text primary key from the 28 August core schema. Typed
+    as uuid this foreign key does not merely mismatch at runtime, it refuses to be created,
+    and every migration after it fails with it. Caught by applying the set to a real
+    Postgres rather than by reading it.
+  */
+  target_species_id text references public.species(id) on delete set null,
   sort_order integer not null default 0,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),

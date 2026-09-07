@@ -132,3 +132,44 @@ architect's call to make silently.
 - `tournament_division` and `tournament_award_category` are referenced by
   `20260905194000_tournament_scoring.sql` and never created; jackpots are divisions, so
   that gap is closed by the registration work rather than left.
+
+---
+
+## Amendment, 2026-09-07 — two corrections the database made
+
+Both of these were found by applying the migration set to a real Postgres and running the
+registration functions against it. Neither was visible by reading the SQL.
+
+### An order covers one host, not one basket
+
+§1 says "one order, many items" and did not say whose. `tournament_order` holds a single
+`organization_id`, and that is correct rather than a limitation to design around: one card
+charge settles into one account, and a refund drawn from a basket spanning two hosts would
+have no single party to come from.
+
+So an order covers **one organisation's events**. A basket spanning hosts is two
+registrations, and both the server (`register_crew_for_tournaments` raises) and the
+registration form (which warns while you are still ticking boxes) say so. Everything else in
+§1 stands: within one host, several events and several jackpots are one order, one payment,
+all-or-nothing.
+
+### A crew is a team of entries, not one entry with a crew on it
+
+`tournament_entry_one_identity` is a unique index: an entry holds exactly **one** person.
+The first implementation put the whole crew on one entry and the database refused it.
+
+The correct shape — and, on reflection, the better one — is a `tournament_team` per boat per
+event, holding one `tournament_entry` per angler, with the captain flagged on
+`tournament_team_member.role`. It is more rows, and it is the only shape in which a crew
+member can be scored, disqualified, or claim their own catches independently of the skipper.
+
+**The money does not multiply with the crew.** One boat pays one entry fee per event — a
+`TEAM_ENTRY` line, not a line per angler — and buys into a jackpot once. That is what the
+schema's distinct `TEAM_ENTRY` item type is for.
+
+### And one rule that got sharper
+
+Activation is server-side only. `confirm_tournament_order` is granted to nobody: an angler
+who could call it would never need to pay. Until a payment webhook exists, an entry stays
+PENDING after a test-mode payment, and the checkout screen says exactly that rather than
+claiming an entry the server has not confirmed.
