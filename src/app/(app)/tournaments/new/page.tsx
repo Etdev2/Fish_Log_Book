@@ -12,7 +12,8 @@ export default function NewTournamentPage() {
         <BackLink href="/tournaments" label="Tournaments" />
         <h1 className="text-h1 text-text-primary">Create a tournament</h1>
         <p className="text-body text-text-muted">
-          Three questions. The rest waits until you need it.
+          The name, where it is and what it costs, and who can see it. The rest waits
+          until you need it.
         </p>
       </header>
       <CreateTournamentForm />

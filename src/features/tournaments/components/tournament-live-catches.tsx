@@ -1,5 +1,6 @@
 "use client";
 
+import { BackLink } from "@/components/back-link";
 import { useCallback, useEffect, useId, useState } from "react";
 
 import { countdown, qrPresentation, syncPresentation, tournamentPhase, TONE_CLASSES } from "../format";
@@ -28,7 +29,6 @@ import {
 } from "../ui-classes";
 import { AlertIcon, CheckIcon, ClockIcon, PendingIcon } from "./icons";
 import {
-  BackLink,
   ConnectionPill,
   DemoNote,
   EmptyState,
@@ -151,7 +151,7 @@ export function TournamentLiveCatches({ tournamentId }: { tournamentId: string }
   return (
     <div className={PAGE}>
       <header className="flex flex-col gap-space-3">
-        <BackLink href={`/tournaments/${tournament.id}/overview`}>{tournament.name}</BackLink>
+        <BackLink href={`/tournaments/${tournament.id}/overview`} label={tournament.name} />
         <div className="flex flex-wrap items-end justify-between gap-space-3">
           <h1 className="text-h1 text-text-primary">Log a catch</h1>
           <div className="flex flex-wrap items-center gap-space-2">

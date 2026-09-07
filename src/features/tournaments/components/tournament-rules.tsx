@@ -1,8 +1,9 @@
 "use client";
 
+import { BackLink } from "@/components/back-link";
 import { useDemoMode, useTournament } from "../use-tournament";
 import { CARD_PADDED, INSET, PAGE } from "../ui-classes";
-import { CheckRow, DemoNote, ErrorScreen, LoadingScreen, SectionHeading, TournamentHero, TournamentTabs, BackLink } from "./tournament-chrome";
+import { CheckRow, DemoNote, ErrorScreen, LoadingScreen, SectionHeading, TournamentHero, TournamentTabs } from "./tournament-chrome";
 
 /**
  * /tournaments/[id]/rules — what you are fishing under.
@@ -60,7 +61,7 @@ export function TournamentRules({ tournamentId }: { tournamentId: string }) {
         tournament={tournament}
         // The hero repeats the tournament name directly below, so the eyebrow names the
         // destination instead of saying the same words twice.
-        eyebrow={<BackLink href={`/tournaments/${tournament.id}/overview`}>Overview</BackLink>}
+        eyebrow={<BackLink href={`/tournaments/${tournament.id}/overview`} label="Overview" />}
       />
 
       <TournamentTabs tournamentId={tournament.id} />

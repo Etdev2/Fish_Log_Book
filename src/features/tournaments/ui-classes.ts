@@ -65,8 +65,11 @@ export const CHIP = `inline-flex min-h-touch-floor items-center justify-center r
 export const CHIP_ON = "border-signal-orange bg-signal-orange text-ink-on-orange";
 export const CHIP_OFF = "border-border-interactive bg-surface text-text-link hover:border-text-link";
 
-/** The "← Tournaments" line at the top of a detail screen. 48px of tap area, not 20. */
-export const BACK_LINK = `inline-flex min-h-touch-floor items-center gap-space-2 self-start rounded-md text-caption text-text-link transition-colors hover:text-text-primary ${FOCUS_RING}`;
+/*
+  The back link's own classes used to live here, beside a second `BackLink` component in
+  `tournament-chrome.tsx`. Both are gone: going back is `@/components/back-link`, once, for
+  the whole app.
+*/
 
 /** Numbers that line up in a column: weights, ranks, counts, clocks. */
 export const TABULAR = "font-mono tabular-nums";

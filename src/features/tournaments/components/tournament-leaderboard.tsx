@@ -1,16 +1,16 @@
 "use client";
 
+import { BackLink } from "@/components/back-link";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
-import { getDemoStandings, type DemoStanding } from "../demo-store";
 import { tournamentPhase } from "../format";
 import { getDemoTournamentCatches, type DemoTournamentCatch } from "../live-catch-demo";
+import { useStandings } from "../queries/use-standings";
 import { useDemoMode, useTournament } from "../use-tournament";
 import { CARD, CARD_PADDED, INSET, PAGE, SECONDARY_BUTTON, TABULAR } from "../ui-classes";
 import { TrophyIcon } from "./icons";
 import {
-  BackLink,
   DemoNote,
   EmptyState,
   ErrorScreen,
@@ -23,7 +23,7 @@ import {
 export function TournamentLeaderboard({ tournamentId }: { tournamentId: string }) {
   const load = useTournament(tournamentId);
   const demoMode = useDemoMode();
-  const [standings, setStandings] = useState<readonly DemoStanding[]>([]);
+  const standingsLoad = useStandings(tournamentId);
   const [mine, setMine] = useState<readonly DemoTournamentCatch[]>([]);
 
   useEffect(() => {
@@ -31,13 +31,12 @@ export function TournamentLeaderboard({ tournamentId }: { tournamentId: string }
     void (async () => {
       await Promise.resolve();
       if (cancelled) return;
-      setStandings(demoMode ? getDemoStandings(tournamentId) : []);
       setMine(getDemoTournamentCatches(tournamentId));
     })();
     return () => {
       cancelled = true;
     };
-  }, [demoMode, tournamentId]);
+  }, [tournamentId]);
 
   if (load.state === "loading") return <LoadingScreen label="Loading standings" />;
   if (load.state === "error") return <ErrorScreen message={load.message} />;
@@ -46,13 +45,14 @@ export function TournamentLeaderboard({ tournamentId }: { tournamentId: string }
   const phase = tournamentPhase(tournament.status);
   const official = tournament.status === "FINAL";
   const finished = phase === "after";
+  const standings = standingsLoad.state === "ready" ? standingsLoad.rows : [];
   const leader = standings.find((row) => row.rank === 1) ?? null;
   const rest = standings.filter((row) => row !== leader);
 
   return (
     <div className={PAGE}>
       <header className="flex flex-col gap-space-3">
-        <BackLink href={`/tournaments/${tournament.id}/overview`}>Tournament home</BackLink>
+        <BackLink href={`/tournaments/${tournament.id}/overview`} label="Tournament home" />
         <div className="flex flex-col gap-space-1">
           <span className="text-label text-signal-orange">Step 3 of 3</span>
           <div className="flex flex-wrap items-end justify-between gap-space-3">
@@ -73,7 +73,20 @@ export function TournamentLeaderboard({ tournamentId }: { tournamentId: string }
 
       <ResultsHandoff tournamentId={tournament.id} phase={phase} />
 
-      {standings.length === 0 ? (
+      {/*
+        Three states, not two. "Nothing has been scored yet" used to render whenever the
+        list was empty — including when the standings had never been asked for, which was
+        every load against a real database. A reassuring sentence over a missing query is
+        worse than an error, because nobody reports it.
+      */}
+      {standingsLoad.state === "loading" ? (
+        <p className="text-body text-text-muted">Loading standings…</p>
+      ) : standingsLoad.state === "error" ? (
+        <EmptyState
+          title="The standings did not load"
+          body={`${standingsLoad.message} Your own catches below are on this phone and are unaffected.`}
+        />
+      ) : standings.length === 0 ? (
         <EmptyState
           title="Nothing has been scored yet"
           body="Approved catches will appear here. A catch saved on a phone is not automatically a score."
@@ -96,13 +109,18 @@ export function TournamentLeaderboard({ tournamentId }: { tournamentId: string }
               </span>
               <span className="flex flex-1 flex-col gap-space-1">
                 <span className="text-caption text-text-muted">
-                  {official ? "Winner" : "Leading"} · {leader.species}
+                  {official ? "Winner" : "Leading"}
+                  {leader.detail ? ` · ${leader.detail}` : ""}
                 </span>
-                <span className="text-h2 text-text-primary">{leader.display_name}</span>
+                <span className="text-h2 text-text-primary">{leader.displayName}</span>
               </span>
               <span className="flex flex-col items-end">
-                <span className={`text-h1 ${TABULAR} text-signal-orange`}>{leader.weight_lb.toFixed(1)}</span>
-                <span className="text-caption text-text-muted">lb</span>
+                <span className={`text-h1 ${TABULAR} text-signal-orange`}>{leader.score.toFixed(1)}</span>
+                {/* A standing is a total, and only the demo seed knows it is pounds. An
+                    unlabelled number beats a wrong unit. */}
+                {leader.scoreUnit ? (
+                  <span className="text-caption text-text-muted">{leader.scoreUnit}</span>
+                ) : null}
               </span>
             </article>
           ) : null}
@@ -110,19 +128,20 @@ export function TournamentLeaderboard({ tournamentId }: { tournamentId: string }
           <ol className="flex flex-col gap-space-2">
             {rest.map((row) => (
               <li
-                key={`${row.rank}-${row.display_name}`}
+                key={`${row.rank}-${row.displayName}`}
                 className={`${CARD} grid grid-cols-[auto_1fr_auto] items-center gap-space-3 p-space-4`}
               >
                 <span className={`w-space-6 text-h3 ${TABULAR} text-text-muted`}>{row.rank}</span>
                 <span className="flex flex-col">
-                  <span className="text-body-strong text-text-primary">{row.display_name}</span>
+                  <span className="text-body-strong text-text-primary">{row.displayName}</span>
                   <span className="text-caption text-text-muted">
-                    {row.species}
-                    {row.official ? "" : " · waiting on a review"}
+                    {row.detail ?? (row.official ? "Scored" : "")}
+                    {row.official ? "" : `${row.detail ? " · " : ""}waiting on a review`}
                   </span>
                 </span>
                 <span className={`text-body-strong ${TABULAR} text-text-primary`}>
-                  {row.weight_lb.toFixed(1)} lb
+                  {row.score.toFixed(1)}
+                  {row.scoreUnit ? ` ${row.scoreUnit}` : ""}
                 </span>
               </li>
             ))}

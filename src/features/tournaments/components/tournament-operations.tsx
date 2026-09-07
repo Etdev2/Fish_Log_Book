@@ -1,5 +1,6 @@
 "use client";
 
+import { BackLink } from "@/components/back-link";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 
@@ -9,9 +10,9 @@ import {
   validateTournamentTransition,
   type TournamentStatus,
 } from "@/core/tournaments/lifecycle";
-import { getDemoStandings, type DemoStanding } from "../demo-store";
 import { isTournamentStatus, tournamentPhase, type Phase } from "../format";
 import { getDemoTournamentCatches, type DemoTournamentCatch } from "../live-catch-demo";
+import { useStandings } from "../queries/use-standings";
 import { useDemoMode, useTournament } from "../use-tournament";
 import {
   CARD,
@@ -26,7 +27,6 @@ import {
 } from "../ui-classes";
 import { AlertIcon, LockIcon } from "./icons";
 import {
-  BackLink,
   CheckRow,
   DemoNote,
   EmptyState,
@@ -72,9 +72,10 @@ export function TournamentOperations({
 }) {
   const load = useTournament(tournamentId);
   const demoMode = useDemoMode();
+  const standingsLoad = useStandings(tournamentId);
+  const standings = standingsLoad.state === "ready" ? standingsLoad.rows : [];
   const [lane, setLane] = useState<Lane>(initialPanel);
   const [catches, setCatches] = useState<readonly DemoTournamentCatch[]>([]);
-  const [standings, setStandings] = useState<readonly DemoStanding[]>([]);
 
   useEffect(() => {
     let cancelled = false;
@@ -82,7 +83,6 @@ export function TournamentOperations({
       await Promise.resolve();
       if (cancelled) return;
       setCatches(getDemoTournamentCatches(tournamentId));
-      setStandings(demoMode ? getDemoStandings(tournamentId) : []);
     })();
     return () => {
       cancelled = true;
@@ -100,7 +100,7 @@ export function TournamentOperations({
   return (
     <div className={PAGE}>
       <header className="flex flex-col gap-space-3">
-        <BackLink href={`/tournaments/${tournament.id}/overview`}>Tournament home</BackLink>
+        <BackLink href={`/tournaments/${tournament.id}/overview`} label="Tournament home" />
         <div className="flex flex-col gap-space-1">
           <span className="text-label text-signal-orange">Host controls</span>
           <div className="flex flex-wrap items-end justify-between gap-space-3">
