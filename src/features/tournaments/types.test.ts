@@ -125,7 +125,9 @@ describe("the public view actually carries what the code asks it for", () => {
     let latest: string | null = null;
     for (const file of files) {
       const sql = readFileSync(`${dir}${file}`, "utf8");
-      const match = /create or replace view public\.public_tournament as([\s\S]*?);/i.exec(sql);
+      // Matches both `create view` and `create or replace view`: the later migrations drop
+      // and recreate, because replace cannot insert a column into the middle of a view.
+      const match = /create (?:or replace )?view public\.public_tournament as([\s\S]*?);/i.exec(sql);
       // Later migrations replace earlier ones, so the last definition wins — same as the
       // database would resolve it.
       if (match) latest = match[1];

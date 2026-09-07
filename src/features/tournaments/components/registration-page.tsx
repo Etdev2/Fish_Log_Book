@@ -13,9 +13,10 @@ import {
   type EventOption,
 } from "@/core/tournaments/registration";
 
-import { registerDemoEntry } from "../demo-store";
 import { registrationState } from "../event-card";
+import { hasSupabaseBrowserConfig } from "../demo-store";
 import { useDivisions } from "../queries/use-divisions";
+import { useRegistrationOrder } from "../queries/use-registration-order";
 import { useEvents } from "../queries/use-events";
 import { useNow } from "../use-now";
 import { CARD_PADDED, INSET, PAGE } from "../ui-classes";
@@ -53,6 +54,12 @@ export function RegistrationPage({ tournamentId }: { tournamentId: string }) {
   const [eventIds, setEventIds] = useState<readonly string[]>([tournamentId]);
   const [divisionIds, setDivisionIds] = useState<readonly string[]>([]);
   const [policyAcknowledged, setPolicyAcknowledged] = useState(false);
+  const createRegistrationOrder = useRegistrationOrder();
+  /*
+    One key per visit to this screen, not per render and not per tap. Two taps on Pay must
+    reach the same order; opening the form again tomorrow must not.
+  */
+  const [idempotencyKey] = useState(() => `reg-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`);
 
   /* Only events still taking entries can be added. Offering a closed one and refusing it at
      checkout would waste the one decision the screen is asking for. */
@@ -128,7 +135,20 @@ export function RegistrationPage({ tournamentId }: { tournamentId: string }) {
       divisionIds.includes(id) ? divisionIds.filter((each) => each !== id) : [...divisionIds, id],
     );
 
-  const ready = canCheckOut({ crew, build, refundPolicyAcknowledged: policyAcknowledged });
+  /*
+    One payment cannot pay two hosts. `tournament_order` holds a single `organization_id`,
+    and that is right rather than a limitation: a card charge settles to one account, and a
+    refund from a shared basket would have no single party to come from. The server refuses
+    it; saying so here means an angler finds out while ticking boxes rather than after
+    filling in a crew and reaching for a card.
+  */
+  const selectedHosts = new Set(
+    enterable.filter((event) => eventIds.includes(event.id)).map((event) => event.organization_id),
+  );
+  const multipleHosts = selectedHosts.size > 1;
+
+  const ready =
+    !multipleHosts && canCheckOut({ crew, build, refundPolicyAcknowledged: policyAcknowledged });
 
   return (
     <div className={PAGE}>
@@ -157,6 +177,13 @@ export function RegistrationPage({ tournamentId }: { tournamentId: string }) {
         disabled={false}
       />
 
+      {multipleHosts ? (
+        <p className={`${INSET} text-body text-amber-flag`} role="alert">
+          These events are run by different hosts, so they cannot be paid for together.
+          Register with one host, then come back for the other.
+        </p>
+      ) : null}
+
       {build.problem === "mixed-currency" ? (
         <p className={`${INSET} text-body text-amber-flag`} role="alert">
           These events are priced in different currencies, so they cannot be paid for
@@ -178,21 +205,34 @@ export function RegistrationPage({ tournamentId }: { tournamentId: string }) {
 
       {build.draft ? (
         <CheckoutPanel
-          orderId={`order-${tournamentId}-${eventIds.length}-${divisionIds.length}`}
           draft={build.draft}
           refundPolicies={refundPolicies}
           ready={ready}
-          blockedReason={blockedReason({ problems: problems.length, policyAcknowledged })}
-          onPaid={() => {
-            // Demo mode has no server to write to, so the entry is recorded on the device.
-            // The real write lands with the tournament backend; the rule that only a
-            // confirmed payment gets here is already enforced above.
-            const captain = crew.find((member) => member.isCaptain);
-            for (const id of eventIds) {
-              registerDemoEntry(id, captain?.displayName.trim() || "My boat");
-            }
-            router.push("/tournaments/mine");
+          serverBacked={hasSupabaseBrowserConfig()}
+          blockedReason={blockedReason({
+            problems: problems.length,
+            policyAcknowledged,
+            multipleHosts,
+          })}
+          createOrder={async () => {
+            /*
+              Runs at the moment the angler commits to paying — the registration is written
+              to the server BEFORE any money moves, so a successful payment can never land
+              against nothing. See `use-registration-order.ts`.
+            */
+            const result = await createRegistrationOrder({
+              crew,
+              selection,
+              divisionsByEvent: new Map(
+                options.map((option) => [option.id, option.divisions.map((d) => d.id)]),
+              ),
+              idempotencyKey,
+            });
+            return result.ok
+              ? { ok: true as const, orderId: result.orderId }
+              : { ok: false as const, message: result.message };
           }}
+          onPaid={() => router.push("/tournaments/mine")}
         />
       ) : (
         <p className="text-body text-text-muted">Tick at least one event to see the total.</p>
@@ -204,7 +244,12 @@ export function RegistrationPage({ tournamentId }: { tournamentId: string }) {
 }
 
 /** Says what is still missing, so a disabled pay button is never a mystery. */
-function blockedReason(input: { problems: number; policyAcknowledged: boolean }): string | null {
+function blockedReason(input: {
+  problems: number;
+  policyAcknowledged: boolean;
+  multipleHosts: boolean;
+}): string | null {
+  if (input.multipleHosts) return "Pick events from one host to pay for them together.";
   if (input.problems > 0) return "Finish the crew details above before paying.";
   if (!input.policyAcknowledged) return "Tick the box above to confirm you have read the policy.";
   return null;

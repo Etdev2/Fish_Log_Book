@@ -21,7 +21,16 @@ alter table public.tournament
 comment on column public.tournament.refund_policy is
   'The host''s own words on withdrawals and cancellations. Shown above the pay button. Null means none published, which the checkout states rather than inventing terms.';
 
-create or replace view public.public_tournament as
+/*
+  Dropped and recreated rather than `create or replace view`. Replace can only APPEND
+  columns: inserting one into the middle of the select list fails with "cannot change name
+  of view column", because Postgres matches the new definition to the old one positionally.
+  Keeping the columns in a readable order is worth the drop, and nothing depends on this
+  view but the client.
+*/
+drop function if exists public.get_public_tournament(text);
+drop view if exists public.public_tournament;
+create view public.public_tournament as
 select
   t.id,
   t.slug,
@@ -45,3 +54,18 @@ where t.deleted_at is null
 
 comment on view public.public_tournament is
   'What an angler outside the organisation may read about an event: the flyer, not the books.';
+
+/*
+  `get_public_tournament` returns `setof public.public_tournament`, so it holds a reference
+  to the view's row type and has to be dropped with it and put back afterwards. Restored
+  verbatim from 20260905195500, grants included — a function that silently loses its grant
+  is a route that stops working for anonymous readers.
+*/
+create or replace function public.get_public_tournament(target_slug text)
+returns setof public.public_tournament
+language sql stable security definer set search_path = public as $$
+  select * from public.public_tournament where slug = target_slug limit 1;
+$$;
+
+revoke all on function public.get_public_tournament(text) from public;
+grant execute on function public.get_public_tournament(text) to anon, authenticated;

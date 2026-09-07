@@ -52,6 +52,7 @@ function fromDemo(row: TournamentRecord, enteredIds: ReadonlySet<string>): Tourn
     currency: row.currency,
     refund_policy: row.refund_policy,
     entrant_count: row.entrant_count,
+    organization_id: row.organization_id,
     entered: enteredIds.has(row.id),
     hosting: row.hosting,
   };
@@ -136,6 +137,7 @@ export function useEvents(): { readonly load: EventsLoad; readonly retry: () => 
           currency: row.currency,
           refund_policy: row.refund_policy,
           entrant_count: facts.entrantCounts.get(row.id) ?? 0,
+          organization_id: row.organization_id,
           entered: facts.enteredIds.has(row.id),
           hosting: row.hosting,
         }));
