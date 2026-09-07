@@ -50,7 +50,14 @@ values
    '22222222-2222-2222-2222-222222222222'),
   ('88888888-8888-8888-8888-888888888888', '44444444-4444-4444-4444-444444444444',
    'Another Host Event', 'PUBLIC', 'REGISTRATION_OPEN', 'USD', 5000, now() + interval '3 days',
-   '22222222-2222-2222-2222-222222222222');
+   '22222222-2222-2222-2222-222222222222'),
+  -- Open for entries, but not to the public. Holding its id must not be enough.
+  ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', '33333333-3333-3333-3333-333333333333',
+   'Invite Only Shootout', 'INVITE_ONLY', 'REGISTRATION_OPEN', 'USD', 20000,
+   now() + interval '4 days', '22222222-2222-2222-2222-222222222222'),
+  ('cccccccc-cccc-cccc-cccc-cccccccccccc', '33333333-3333-3333-3333-333333333333',
+   'Private Crew Day', 'PRIVATE', 'REGISTRATION_OPEN', 'USD', 20000,
+   now() + interval '4 days', '22222222-2222-2222-2222-222222222222');
 
 insert into public.prize_pool (id, organization_id, tournament_id, name, currency, pool_type)
 values ('99999999-9999-9999-9999-999999999999', '33333333-3333-3333-3333-333333333333',
@@ -139,7 +146,20 @@ begin
   perform pg_temp.check('and creates no further entries', n = 4);
 
   -- ------------------------------------------------------------ confirming
-  perform public.confirm_tournament_order(oid_, 'stripe', 'pi_test_1', 75000);
+  /*
+    75000 minor units is $750, and also a good deal less in several other currencies. A
+    payment made in a cheaper one satisfies the amount check numerically, so the currency is
+    compared first.
+  */
+  declare wrong_currency boolean := false;
+  begin
+    begin
+      perform public.confirm_tournament_order(oid_, 'stripe', 'pi_wrong_ccy', 75000, 'JPY');
+    exception when others then wrong_currency := true; end;
+    perform pg_temp.check('a payment in another currency does not buy a dollar entry', wrong_currency);
+  end;
+
+  perform public.confirm_tournament_order(oid_, 'stripe', 'pi_test_1', 75000, 'USD');
 
   perform pg_temp.check('paying confirms the whole crew, not just the captain',
     (select count(*) from public.tournament_entry where registration_status = 'CONFIRMED') = 4);
@@ -160,7 +180,7 @@ begin
       where prize_pool_id = '99999999-9999-9999-9999-999999999999') = 1);
 
   -- A provider will deliver the same webhook twice. It must not double the pot.
-  perform public.confirm_tournament_order(oid_, 'stripe', 'pi_test_1', 75000);
+  perform public.confirm_tournament_order(oid_, 'stripe', 'pi_test_1', 75000, 'usd');
   perform pg_temp.check('a replayed webhook does not double the pot',
     (select funded_amount_minor from public.prize_pool
       where id = '99999999-9999-9999-9999-999999999999') = 10000);
@@ -214,6 +234,34 @@ begin
       '[{"display_name":"A","phone":"9495550113","is_captain":true}]'::jsonb, 'k5');
   exception when others then failed := true; end;
   perform pg_temp.check('entering the same event twice is refused', failed);
+
+  /*
+    An invite-only or private event is not something a stranger may walk into by knowing
+    its id — and an id is not a secret in any useful sense: it is in a URL somebody was
+    sent, in a former entrant's history, in a screenshot. Row-level security cannot help
+    here, because a `security definer` function runs with the owner's rights and RLS never
+    gets a say, so the check has to be explicit in the function.
+  */
+  failed := false;
+  begin
+    perform public.register_crew_for_tournaments(
+      '[{"tournament_id":"bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb","division_ids":[]}]'::jsonb,
+      '[{"display_name":"A","phone":"9495550113","is_captain":true}]'::jsonb, 'k7');
+  exception when others then failed := true; end;
+  perform pg_temp.check('an invite-only event cannot be self-registered into', failed);
+
+  failed := false;
+  begin
+    perform public.register_crew_for_tournaments(
+      '[{"tournament_id":"cccccccc-cccc-cccc-cccc-cccccccccccc","division_ids":[]}]'::jsonb,
+      '[{"display_name":"A","phone":"9495550113","is_captain":true}]'::jsonb, 'k8');
+  exception when others then failed := true; end;
+  perform pg_temp.check('a private event cannot be self-registered into', failed);
+
+  perform pg_temp.check('and neither created an entry',
+    not exists (select 1 from public.tournament_entry
+                 where tournament_id in ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb',
+                                         'cccccccc-cccc-cccc-cccc-cccccccccccc')));
 end $$;
 
 -- ---------------------------------------------------------------- underpayment
@@ -228,7 +276,7 @@ begin
     '[{"tournament_id":"66666666-6666-6666-6666-666666666666","division_ids":[]}]'::jsonb,
     '[{"display_name":"Host","phone":"9495550199","is_captain":true}]'::jsonb, 'key-underpay');
   begin
-    perform public.confirm_tournament_order(oid_, 'stripe', 'pi_short', 100);
+    perform public.confirm_tournament_order(oid_, 'stripe', 'pi_short', 100, 'USD');
   exception when others then failed := true; end;
   perform pg_temp.check('a payment smaller than the bill does not let anybody in', failed);
 

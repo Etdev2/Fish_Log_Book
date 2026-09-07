@@ -21,7 +21,8 @@ create or replace function public.confirm_tournament_order(
   target_order_id uuid,
   provider_name text,
   provider_reference text,
-  paid_amount_minor bigint
+  paid_amount_minor bigint,
+  paid_currency text
 )
 returns uuid
 language plpgsql
@@ -57,6 +58,18 @@ begin
   end if;
 
   /*
+    The currency, before the amount — because comparing amounts across currencies is
+    meaningless and dangerous. 75000 minor units is $750, and it is also about £590, ¥490 and
+    a great deal less in several other currencies. Without this check a payment made in a
+    cheaper currency satisfies `paid_amount_minor >= total_minor` numerically and buys a
+    $750 entry for a fraction of it.
+  */
+  if upper(coalesce(paid_currency, '')) <> upper(target.currency) then
+    raise exception 'payment currency % does not match the order currency %',
+      paid_currency, target.currency using errcode = 'check_violation';
+  end if;
+
+  /*
     Refuse to activate an order for less than it costs. A provider that reports a smaller
     amount than the bill is either a partial payment or a mismatched reference, and both are
     reasons to stop rather than to let somebody into a $400 tournament for $4.
@@ -71,7 +84,7 @@ begin
     currency, amount_minor, status, confirmed_at
   ) values (
     target.organization_id, target.id, provider_name, provider_reference,
-    target.currency, paid_amount_minor, 'CONFIRMED', now()
+    upper(paid_currency), paid_amount_minor, 'CONFIRMED', now()
   ) returning id into new_payment_id;
 
   update public.tournament_order
@@ -148,9 +161,9 @@ $$;
   can call it without one; spelling out the revoke keeps the intent visible to the next
   person to read this file.
 */
-revoke all on function public.confirm_tournament_order(uuid, text, text, bigint) from public;
-revoke all on function public.confirm_tournament_order(uuid, text, text, bigint) from anon;
-revoke all on function public.confirm_tournament_order(uuid, text, text, bigint) from authenticated;
+revoke all on function public.confirm_tournament_order(uuid, text, text, bigint, text) from public;
+revoke all on function public.confirm_tournament_order(uuid, text, text, bigint, text) from anon;
+revoke all on function public.confirm_tournament_order(uuid, text, text, bigint, text) from authenticated;
 
-comment on function public.confirm_tournament_order(uuid, text, text, bigint) is
+comment on function public.confirm_tournament_order(uuid, text, text, bigint, text) is
   'Activates the entries on a paid order. Service role only — an angler who could call this would never need to pay.';
