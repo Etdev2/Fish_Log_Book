@@ -63,7 +63,11 @@ export function destinationGroups(): readonly DestinationGroup[] {
       items: [
         { href: "/tides", label: "Tide", blurb: "Today's tide, and the days ahead" },
         { href: "/fish-legal", label: "Fish Legal", blurb: "Size and bag limits where you are" },
-        { href: "/tournaments", label: "Tournaments", blurb: "Create, join, and follow fishing tournaments" },
+        {
+          href: "/tournaments",
+          label: "Tournaments",
+          blurb: "Upcoming events, entry deadlines, and the ones you are in",
+        },
         ...(BOAT_GAMES_V1
           ? [
               {

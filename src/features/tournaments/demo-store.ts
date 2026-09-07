@@ -5,6 +5,20 @@ export type DemoTournament = {
   visibility: string;
   starts_at: string | null;
   ends_at: string | null;
+  /*
+    The three facts the event calendar is built to answer before you open anything: where
+    it is, what the pot is at, and how long you have to enter. They mirror the columns
+    added to `public.tournament` in 20260905184500_tournament_core.sql, so the demo path
+    and the Supabase path render from the same shape.
+  */
+  location_name: string | null;
+  registration_closes_at: string | null;
+  entry_fee_minor: number | null;
+  prize_pool_minor: number | null;
+  currency: string;
+  entrant_count: number;
+  /** Whether the demo angler hosts this one — the door to the host tools. */
+  hosting: boolean;
   organization_id: string;
   active_rule_set_version_id: string | null;
   active_scoring_version_id: string | null;
@@ -71,6 +85,13 @@ function seedTournaments(): DemoTournament[] {
       visibility: "PUBLIC",
       starts_at: minutesFromNow(-185),
       ends_at: minutesFromNow(268),
+      location_name: "Dana Point Harbor",
+      registration_closes_at: minutesFromNow(-240),
+      entry_fee_minor: 15000,
+      prize_pool_minor: 372000,
+      currency: "USD",
+      entrant_count: 31,
+      hosting: false,
       organization_id: "demo-personal-organization",
       active_rule_set_version_id: "demo-rules-v3",
       active_scoring_version_id: "demo-scoring-v2",
@@ -84,12 +105,71 @@ function seedTournaments(): DemoTournament[] {
       visibility: "PUBLIC",
       starts_at: at(6, 7),
       ends_at: at(6, 16),
+      location_name: "Oceanside Harbor",
+      registration_closes_at: at(4, 18),
+      entry_fee_minor: 25000,
+      prize_pool_minor: 480000,
+      currency: "USD",
+      entrant_count: 19,
+      hosting: false,
       organization_id: "demo-personal-organization",
       active_rule_set_version_id: "demo-rules-v1",
       active_scoring_version_id: "demo-scoring-v1",
       active_verification_policy_version_id: null,
       active_boundary_version_id: null,
     },
+    /*
+      The one closing tonight. Every list needs a row that is genuinely urgent, or the
+      "closes in 6 hours" state is a thing nobody sees until it happens to them.
+    */
+    {
+      id: "demo-tuna-jackpot",
+      name: "Offshore Tuna Jackpot",
+      status: "REGISTRATION_OPEN",
+      visibility: "PUBLIC",
+      starts_at: at(1, 5),
+      ends_at: at(1, 19),
+      location_name: "San Diego — Point Loma",
+      registration_closes_at: minutesFromNow(6 * 60),
+      entry_fee_minor: 40000,
+      prize_pool_minor: 1265000,
+      currency: "USD",
+      entrant_count: 44,
+      hosting: false,
+      organization_id: "demo-personal-organization",
+      active_rule_set_version_id: "demo-rules-v1",
+      active_scoring_version_id: "demo-scoring-v1",
+      active_verification_policy_version_id: null,
+      active_boundary_version_id: null,
+    },
+    /*
+      A free, unpriced club event. It proves two states the paid events cannot: "Free to
+      enter" as a real answer, and a pot that has not been seeded at all.
+    */
+    {
+      id: "demo-club-fun-day",
+      name: "Club Fun Day",
+      status: "REGISTRATION_OPEN",
+      visibility: "PUBLIC",
+      starts_at: at(20, 8),
+      ends_at: at(20, 14),
+      location_name: "Newport Bay",
+      registration_closes_at: at(18, 20),
+      entry_fee_minor: 0,
+      prize_pool_minor: null,
+      currency: "USD",
+      entrant_count: 7,
+      hosting: false,
+      organization_id: "demo-personal-organization",
+      active_rule_set_version_id: null,
+      active_scoring_version_id: null,
+      active_verification_policy_version_id: null,
+      active_boundary_version_id: null,
+    },
+    /*
+      The one the demo angler runs. Without it the host tools have nothing to open, and
+      "you host none of these" would be the only state anyone ever saw.
+    */
     {
       id: "demo-crew-cup",
       name: "Crew Cup",
@@ -97,6 +177,13 @@ function seedTournaments(): DemoTournament[] {
       visibility: "PRIVATE",
       starts_at: at(-9, 6),
       ends_at: at(-9, 15),
+      location_name: "Catalina — the front side",
+      registration_closes_at: at(-10, 20),
+      entry_fee_minor: 5000,
+      prize_pool_minor: 40000,
+      currency: "USD",
+      entrant_count: 8,
+      hosting: true,
       organization_id: "demo-personal-organization",
       active_rule_set_version_id: "demo-rules-v1",
       active_scoring_version_id: "demo-scoring-v1",
@@ -157,6 +244,9 @@ export function createDemoTournament(input: {
   visibility: string;
   starts_at: string | null;
   ends_at: string | null;
+  location_name?: string | null;
+  registration_closes_at?: string | null;
+  entry_fee_minor?: number | null;
 }): DemoTournament {
   const item: DemoTournament = {
     id: `demo-${Date.now()}`,
@@ -165,6 +255,15 @@ export function createDemoTournament(input: {
     visibility: input.visibility,
     starts_at: input.starts_at,
     ends_at: input.ends_at,
+    location_name: input.location_name ?? null,
+    registration_closes_at: input.registration_closes_at ?? null,
+    entry_fee_minor: input.entry_fee_minor ?? null,
+    // A brand-new event's pot is empty, not unknown. Nobody has paid yet.
+    prize_pool_minor: 0,
+    currency: "USD",
+    entrant_count: 0,
+    // You host what you create.
+    hosting: true,
     organization_id: "demo-personal-organization",
     active_rule_set_version_id: null,
     active_scoring_version_id: null,
@@ -205,4 +304,9 @@ export function registerDemoEntry(tournamentId: string, displayName: string): De
  */
 export function getDemoStandings(tournamentId: string): readonly DemoStanding[] {
   return SEED_STANDINGS[tournamentId] ?? [];
+}
+
+/** Every entry this device has made, for the screens that ask "which am I in?". */
+export function getDemoEntries(): readonly DemoEntry[] {
+  return readJson<DemoEntry[]>(ENTRIES_KEY, []);
 }

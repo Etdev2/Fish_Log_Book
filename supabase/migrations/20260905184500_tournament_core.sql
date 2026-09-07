@@ -80,6 +80,65 @@ alter table public.tournament
   add column if not exists active_verification_policy_version_id uuid references public.tournament_verification_policy_version(id),
   add column if not exists active_boundary_version_id uuid references public.tournament_boundary_version(id);
 
+/*
+  The event's public face: what an angler needs in order to decide whether to enter, before
+  they have entered.
+
+  Three of these are not new ideas — `public_tournament` in
+  20260905195500_tournament_public_projections.sql already selects `description`,
+  `registration_opens_at` and `registration_closes_at`, and the table has never had them.
+  That migration therefore cannot apply to an empty database, and neither can anything
+  after it, which is why no environment has ever run this set. Adding the columns HERE
+  rather than in a later repair migration is deliberate: a repair sorts after the view that
+  needs it, so a fresh `db reset` would still fail on the same line. Editing a migration
+  that has been applied somewhere would be wrong; this one demonstrably cannot have been.
+
+  `location_name` is free text, not a place id. A tournament is announced as "Dana Point
+  Harbor" or "the Rockpile" long before anyone plots it, and forcing a coordinate at
+  creation time would make an event impossible to publish until somebody surveyed it.
+  Coordinates can arrive later beside it; the name is what a person reads.
+
+  Money is stored in minor units as an integer (cents, never dollars-as-float) to match
+  `tournament_order` and every other money column in this schema. `entry_fee_minor` is the
+  base cost of one entry; optional side pots and jackpots are priced per division and are
+  not part of this number.
+*/
+alter table public.tournament
+  add column if not exists description text,
+  add column if not exists location_name text,
+  add column if not exists registration_opens_at timestamptz,
+  add column if not exists registration_closes_at timestamptz,
+  add column if not exists entry_fee_minor bigint,
+  add column if not exists currency text not null default 'USD';
+
+alter table public.tournament
+  drop constraint if exists tournament_entry_fee_non_negative;
+alter table public.tournament
+  add constraint tournament_entry_fee_non_negative
+  check (entry_fee_minor is null or entry_fee_minor >= 0);
+
+/*
+  Registration must open before it closes. It is deliberately NOT required to close before
+  the event starts: plenty of small events take entries at the dock on the morning of, and
+  a constraint that forbade that would be the schema overruling the host.
+*/
+alter table public.tournament
+  drop constraint if exists tournament_registration_window_order;
+alter table public.tournament
+  add constraint tournament_registration_window_order
+  check (
+    registration_closes_at is null
+    or registration_opens_at is null
+    or registration_closes_at >= registration_opens_at
+  );
+
+comment on column public.tournament.location_name is
+  'Where the event is fished, as a person would say it. Free text on purpose — an event is announced before it is plotted.';
+comment on column public.tournament.entry_fee_minor is
+  'Base cost of one entry, in minor currency units. Optional side pots and jackpots are priced separately.';
+comment on column public.tournament.registration_closes_at is
+  'When entries stop being accepted. May legitimately fall after starts_at — dock registration is normal.';
+
 create table if not exists public.tournament_lifecycle_event (
   id uuid primary key default gen_random_uuid(),
   tournament_id uuid not null references public.tournament(id) on delete cascade,
