@@ -261,4 +261,98 @@ begin
   perform pg_temp.check('signed out, you cannot register anybody', failed);
 end $$;
 
+
+-- ---------------------------------------------------------------- host roles
+/*
+  Who can see the money, proved by row-level security rather than by reading the policy
+  text. These run as the `authenticated` role — every check above calls a SECURITY DEFINER
+  function, which bypasses RLS entirely, so none of them would have noticed if a policy
+  were wrong.
+
+  FINANCE was in `organization_member.role`'s check constraint from the first tournament
+  migration and named by no policy anywhere, so a club treasurer could read no order, no
+  payment and no prize pool. The first two checks are that hole, closed.
+*/
+insert into auth.users (id, email) values
+  ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'treasurer@example.test'),
+  ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', 'dockhand@example.test'),
+  ('cccccccc-cccc-cccc-cccc-cccccccccccc', 'stranger@example.test');
+
+insert into public.organization_member (organization_id, angler_id, role, status) values
+  ('33333333-3333-3333-3333-333333333333', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'FINANCE', 'ACTIVE'),
+  ('33333333-3333-3333-3333-333333333333', 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', 'STAFF', 'ACTIVE');
+
+insert into public.tournament_order (id, organization_id, tournament_id, purchaser_angler_id,
+                                     currency, subtotal_minor, total_minor, status, idempotency_key)
+values ('dddddddd-dddd-dddd-dddd-dddddddddddd', '33333333-3333-3333-3333-333333333333',
+        '55555555-5555-5555-5555-555555555555', '11111111-1111-1111-1111-111111111111',
+        'USD', 40000, 40000, 'PENDING_PAYMENT', 'host-role-fixture');
+
+grant select on public.tournament_order to authenticated;
+
+do $$
+declare n integer;
+begin
+  set local role authenticated;
+
+  set local request.jwt.claim.sub = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa';
+  -- Scoped to the fixture row: the registration checks above created several real orders
+  -- in this same club, and a bare count would pass for the wrong reason.
+  select count(*) into n from public.tournament_order
+   where id = 'dddddddd-dddd-dddd-dddd-dddddddddddd';
+  perform pg_temp.check('a treasurer can read an order for their club', n = 1);
+
+  -- And every other order the club has taken, which is the point of the role.
+  select count(*) into n from public.tournament_order
+   where organization_id = '33333333-3333-3333-3333-333333333333';
+  perform pg_temp.check('and every other order the club has taken', n > 1);
+
+  perform pg_temp.check('and knows they are the treasurer',
+    public.my_tournament_host_role('55555555-5555-5555-5555-555555555555') = 'FINANCE');
+
+  -- Event staff run the dock. Whether a boat has paid is the entry's registration status,
+  -- not the ledger, and this release takes them off it deliberately.
+  set local request.jwt.claim.sub = 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb';
+  select count(*) into n from public.tournament_order;
+  perform pg_temp.check('event staff cannot read the ledger at all', n = 0);
+
+  perform pg_temp.check('but staff still know they are staff',
+    public.my_tournament_host_role('55555555-5555-5555-5555-555555555555') = 'STAFF');
+
+  -- The purchaser keeps their own receipt. Tightening the host side must never take an
+  -- angler's own order away from them.
+  set local request.jwt.claim.sub = '11111111-1111-1111-1111-111111111111';
+  select count(*) into n from public.tournament_order
+   where id = 'dddddddd-dddd-dddd-dddd-dddddddddddd';
+  perform pg_temp.check('an angler can still read the order they paid for', n = 1);
+
+  perform pg_temp.check('and an entrant is not a host',
+    public.my_tournament_host_role('55555555-5555-5555-5555-555555555555') is null);
+
+  set local request.jwt.claim.sub = 'cccccccc-cccc-cccc-cccc-cccccccccccc';
+  select count(*) into n from public.tournament_order;
+  perform pg_temp.check('a stranger reads no orders at all', n = 0);
+
+  /*
+    Told a tournament id they have no business with, a stranger learns nothing. The
+    function returns null whether the tournament exists or not, so it cannot be used to
+    discover which ids are real.
+  */
+  perform pg_temp.check('a stranger gets null, not an error',
+    public.my_tournament_host_role('55555555-5555-5555-5555-555555555555') is null);
+  perform pg_temp.check('and null for an id that does not exist either',
+    public.my_tournament_host_role('00000000-0000-0000-0000-000000000000') is null);
+
+  reset role;
+
+  -- Signed out. The screen calls this before it knows whether anybody is signed in, and a
+  -- permission failure here would put a red error in front of a visitor who has simply
+  -- followed a link to a host page.
+  set local role anon;
+  set local request.jwt.claim.sub = '';
+  perform pg_temp.check('signed out, the host role is null rather than an error',
+    public.my_tournament_host_role('55555555-5555-5555-5555-555555555555') is null);
+  reset role;
+end $$;
+
 rollback;
