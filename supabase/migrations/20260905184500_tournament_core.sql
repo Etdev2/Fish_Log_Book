@@ -80,6 +80,150 @@ alter table public.tournament
   add column if not exists active_verification_policy_version_id uuid references public.tournament_verification_policy_version(id),
   add column if not exists active_boundary_version_id uuid references public.tournament_boundary_version(id);
 
+/*
+  The event's public face: what an angler needs in order to decide whether to enter, before
+  they have entered.
+
+  Three of these are not new ideas — `public_tournament` in
+  20260905195500_tournament_public_projections.sql already selects `description`,
+  `registration_opens_at` and `registration_closes_at`, and the table has never had them.
+  That migration therefore cannot apply to an empty database, and neither can anything
+  after it, which is why no environment has ever run this set. Adding the columns HERE
+  rather than in a later repair migration is deliberate: a repair sorts after the view that
+  needs it, so a fresh `db reset` would still fail on the same line. Editing a migration
+  that has been applied somewhere would be wrong; this one demonstrably cannot have been.
+
+  `location_name` is free text, not a place id. A tournament is announced as "Dana Point
+  Harbor" or "the Rockpile" long before anyone plots it, and forcing a coordinate at
+  creation time would make an event impossible to publish until somebody surveyed it.
+  Coordinates can arrive later beside it; the name is what a person reads.
+
+  Money is stored in minor units as an integer (cents, never dollars-as-float) to match
+  `tournament_order` and every other money column in this schema. `entry_fee_minor` is the
+  base cost of one entry; optional side pots and jackpots are priced per division and are
+  not part of this number.
+*/
+alter table public.tournament
+  add column if not exists description text,
+  add column if not exists location_name text,
+  add column if not exists registration_opens_at timestamptz,
+  add column if not exists registration_closes_at timestamptz,
+  add column if not exists entry_fee_minor bigint,
+  add column if not exists currency text not null default 'USD';
+
+alter table public.tournament
+  drop constraint if exists tournament_entry_fee_non_negative;
+alter table public.tournament
+  add constraint tournament_entry_fee_non_negative
+  check (entry_fee_minor is null or entry_fee_minor >= 0);
+
+/*
+  Registration must open before it closes. It is deliberately NOT required to close before
+  the event starts: plenty of small events take entries at the dock on the morning of, and
+  a constraint that forbade that would be the schema overruling the host.
+*/
+alter table public.tournament
+  drop constraint if exists tournament_registration_window_order;
+alter table public.tournament
+  add constraint tournament_registration_window_order
+  check (
+    registration_closes_at is null
+    or registration_opens_at is null
+    or registration_closes_at >= registration_opens_at
+  );
+
+comment on column public.tournament.location_name is
+  'Where the event is fished, as a person would say it. Free text on purpose — an event is announced before it is plotted.';
+comment on column public.tournament.entry_fee_minor is
+  'Base cost of one entry, in minor currency units. Optional side pots and jackpots are priced separately.';
+comment on column public.tournament.registration_closes_at is
+  'When entries stop being accepted. May legitimately fall after starts_at — dock registration is normal.';
+
+/*
+  Divisions: the things you can enter inside an event.
+
+  Referenced by 20260905194000_tournament_scoring.sql (`tournament_score.division_id`) and
+  never created, which is one of the reasons that migration set has never been applicable to
+  an empty database. Created here, where the tournament it belongs to is created, because a
+  repair migration would sort after the migration that needs it.
+
+  One table covers two things the founder describes separately, because they are the same
+  shape and differ only in whether money is attached:
+
+  - a DIVISION segments the field for scoring — "Junior", "Kayak", "Women's" — and is
+    normally free to be in;
+  - a JACKPOT or SIDE_POT is an optional pot you buy into — "Biggest Tuna", "Largest
+    Marlin" — and carries its own fee.
+
+  Modelling them apart would mean two tables with the same columns and two code paths that
+  have to agree about scoring. `kind` plus a nullable `entry_fee_minor` says it once.
+
+  `target_species_id` is what makes "Biggest Tuna Jackpot" mean something to the scorer
+  rather than only to the reader. Null means the division is not species-specific.
+*/
+create table if not exists public.tournament_division (
+  id uuid primary key default gen_random_uuid(),
+  tournament_id uuid not null references public.tournament(id) on delete cascade,
+  organization_id uuid not null references public.organization(id) on delete cascade,
+  name text not null,
+  description text,
+  kind text not null default 'DIVISION' check (kind in ('DIVISION','JACKPOT','SIDE_POT')),
+  /* Null fee means "included in the entry", which is not the same as free-standing $0. */
+  entry_fee_minor bigint check (entry_fee_minor is null or entry_fee_minor >= 0),
+  /* Whether an entrant chooses this, or is placed in it by the rules. */
+  is_optional boolean not null default true,
+  target_species_id uuid references public.species(id) on delete set null,
+  sort_order integer not null default 0,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  deleted_at timestamptz,
+  unique (tournament_id, name),
+  constraint tournament_division_name_not_blank check (length(btrim(name)) > 0),
+  /* A pot you buy into must be optional, or it is just part of the entry fee. */
+  constraint tournament_division_paid_pots_are_optional check (
+    kind = 'DIVISION' or entry_fee_minor is null or is_optional
+  )
+);
+
+create index if not exists tournament_division_by_tournament
+  on public.tournament_division (tournament_id, sort_order);
+
+comment on table public.tournament_division is
+  'Something you can be in inside one event: a scoring division, or an optional jackpot / side pot with its own fee.';
+comment on column public.tournament_division.entry_fee_minor is
+  'Cost to buy into this division, in minor units. Null means included in the base entry fee.';
+
+/*
+  Award categories: the things that get won. Referenced by
+  20260905194000_tournament_scoring.sql (`final_result_award`) and likewise never created.
+
+  Separate from divisions on purpose: one division can award several places ("Biggest Tuna"
+  paying first, second and third), and an award can span the whole field rather than any
+  division ("First fish of the day"). Collapsing them would make a three-way payout
+  impossible to express.
+*/
+create table if not exists public.tournament_award_category (
+  id uuid primary key default gen_random_uuid(),
+  tournament_id uuid not null references public.tournament(id) on delete cascade,
+  organization_id uuid not null references public.organization(id) on delete cascade,
+  tournament_division_id uuid references public.tournament_division(id) on delete cascade,
+  name text not null,
+  description text,
+  /* 1 for first place, 2 for second, and so on. Null for an award that is not a placing. */
+  place integer check (place is null or place > 0),
+  sort_order integer not null default 0,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  deleted_at timestamptz,
+  constraint tournament_award_category_name_not_blank check (length(btrim(name)) > 0)
+);
+
+create index if not exists tournament_award_category_by_tournament
+  on public.tournament_award_category (tournament_id, sort_order);
+
+comment on table public.tournament_award_category is
+  'Something that gets won. Optionally scoped to a division, so one jackpot can pay several places.';
+
 create table if not exists public.tournament_lifecycle_event (
   id uuid primary key default gen_random_uuid(),
   tournament_id uuid not null references public.tournament(id) on delete cascade,
@@ -220,6 +364,8 @@ alter table public.tournament_scoring_version enable row level security;
 alter table public.tournament_verification_policy_version enable row level security;
 alter table public.tournament_boundary_version enable row level security;
 alter table public.tournament_lifecycle_event enable row level security;
+alter table public.tournament_division enable row level security;
+alter table public.tournament_award_category enable row level security;
 
 revoke all on public.tournament from anon;
 revoke all on public.tournament_rule_set_version from anon;
@@ -243,6 +389,38 @@ create policy tournament_insert_admin
   with check (created_by = auth.uid() and public.is_organization_member(organization_id, array['OWNER','ADMIN']));
 create policy tournament_update_admin
   on public.tournament for update to authenticated
+  using (public.is_organization_member(organization_id, array['OWNER','ADMIN','STAFF']))
+  with check (public.is_organization_member(organization_id, array['OWNER','ADMIN','STAFF']));
+
+/*
+  Divisions and award categories carry no personal data, but they do carry prices, and a
+  table without RLS is reachable through PostgREST with the anon key that ships in every
+  browser. Same shape as the version tables above: members of the owning organisation read,
+  staff and above write, and the tournament row is what ties a division to an organisation.
+
+  Public visibility for anglers who are not organisation members rides on the
+  `public_tournament` projection, exactly as the rest of the section does — not on a
+  loosened policy here.
+*/
+create policy tournament_division_member
+  on public.tournament_division for select to authenticated
+  using (public.is_organization_member(organization_id));
+create policy tournament_division_admin
+  on public.tournament_division for insert to authenticated
+  with check (public.is_organization_member(organization_id, array['OWNER','ADMIN','STAFF']));
+create policy tournament_division_update_admin
+  on public.tournament_division for update to authenticated
+  using (public.is_organization_member(organization_id, array['OWNER','ADMIN','STAFF']))
+  with check (public.is_organization_member(organization_id, array['OWNER','ADMIN','STAFF']));
+
+create policy tournament_award_category_member
+  on public.tournament_award_category for select to authenticated
+  using (public.is_organization_member(organization_id));
+create policy tournament_award_category_admin
+  on public.tournament_award_category for insert to authenticated
+  with check (public.is_organization_member(organization_id, array['OWNER','ADMIN','STAFF']));
+create policy tournament_award_category_update_admin
+  on public.tournament_award_category for update to authenticated
   using (public.is_organization_member(organization_id, array['OWNER','ADMIN','STAFF']))
   with check (public.is_organization_member(organization_id, array['OWNER','ADMIN','STAFF']));
 
