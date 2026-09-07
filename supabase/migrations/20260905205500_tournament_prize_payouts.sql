@@ -139,3 +139,16 @@ for each row execute function public.tg_set_updated_at();
 comment on table public.prize_pool is 'Competition prize funding kept separate from organizer revenue and payment provider state.';
 comment on table public.payout_instruction is 'Draft payout derived from an exact FinalResultSet. Human approval is required before submission.';
 comment on table public.payout is 'Provider execution record. Crypto payout is a separately gated provider capability and is not implied by crypto collection.';
+
+/*
+  Ties a paid division to the pot it funds, so "Biggest Tuna — $4,200, 34 in" can be read
+  off one row at the moment somebody is deciding whether to buy in (ADR 010 §4).
+
+  Added here rather than on `tournament_division` itself because that table is created in
+  20260905184500, before `prize_pool` exists, and a forward reference will not resolve.
+*/
+alter table public.tournament_division
+  add column if not exists prize_pool_id uuid references public.prize_pool(id) on delete set null;
+
+comment on column public.tournament_division.prize_pool_id is
+  'The pot this division pays out of. Null for a division that segments scoring without holding money.';
