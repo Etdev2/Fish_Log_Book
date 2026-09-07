@@ -10,9 +10,9 @@ import {
   validateTournamentTransition,
   type TournamentStatus,
 } from "@/core/tournaments/lifecycle";
-import { getDemoStandings, type DemoStanding } from "../demo-store";
 import { isTournamentStatus, tournamentPhase, type Phase } from "../format";
 import { getDemoTournamentCatches, type DemoTournamentCatch } from "../live-catch-demo";
+import { useStandings } from "../queries/use-standings";
 import { useDemoMode, useTournament } from "../use-tournament";
 import {
   CARD,
@@ -72,9 +72,10 @@ export function TournamentOperations({
 }) {
   const load = useTournament(tournamentId);
   const demoMode = useDemoMode();
+  const standingsLoad = useStandings(tournamentId);
+  const standings = standingsLoad.state === "ready" ? standingsLoad.rows : [];
   const [lane, setLane] = useState<Lane>(initialPanel);
   const [catches, setCatches] = useState<readonly DemoTournamentCatch[]>([]);
-  const [standings, setStandings] = useState<readonly DemoStanding[]>([]);
 
   useEffect(() => {
     let cancelled = false;
@@ -82,7 +83,6 @@ export function TournamentOperations({
       await Promise.resolve();
       if (cancelled) return;
       setCatches(getDemoTournamentCatches(tournamentId));
-      setStandings(demoMode ? getDemoStandings(tournamentId) : []);
     })();
     return () => {
       cancelled = true;

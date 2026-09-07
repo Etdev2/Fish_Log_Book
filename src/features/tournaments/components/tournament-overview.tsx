@@ -3,9 +3,10 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
-import { getDemoEntry, getDemoStandings, type DemoEntry, type DemoStanding } from "../demo-store";
+import { getDemoEntry, type DemoEntry } from "../demo-store";
 import { entrySteps, formatDateTime, tournamentPhase, visibilityPresentation } from "../format";
 import { getDemoTournamentCatches } from "../live-catch-demo";
+import { useStandings } from "../queries/use-standings";
 import { useDemoMode, useTournament } from "../use-tournament";
 import {
   BIG_ACTION,
@@ -56,8 +57,11 @@ type TournamentPhase = "before" | "during" | "after";
 export function TournamentOverview({ tournamentId }: { tournamentId: string }) {
   const load = useTournament(tournamentId);
   const demoMode = useDemoMode();
+  /* Read from the same loader as the leaderboard, so the top three here and the board there
+     can never disagree — they used to come from two different expressions. */
+  const standingsLoad = useStandings(tournamentId);
+  const standings = standingsLoad.state === "ready" ? standingsLoad.rows : [];
   const [entry, setEntry] = useState<DemoEntry | null>(null);
-  const [standings, setStandings] = useState<readonly DemoStanding[]>([]);
   const [deviceCatches, setDeviceCatches] = useState(0);
 
   useEffect(() => {
@@ -66,7 +70,6 @@ export function TournamentOverview({ tournamentId }: { tournamentId: string }) {
       await Promise.resolve();
       if (cancelled) return;
       setEntry(demoMode ? getDemoEntry(tournamentId) : null);
-      setStandings(demoMode ? getDemoStandings(tournamentId) : []);
       setDeviceCatches(getDemoTournamentCatches(tournamentId).length);
     })();
     return () => {
@@ -183,9 +186,10 @@ export function TournamentOverview({ tournamentId }: { tournamentId: string }) {
                 >
                   {row.rank}
                 </span>
-                <span className="flex-1 text-body text-text-primary">{row.display_name}</span>
+                <span className="flex-1 text-body text-text-primary">{row.displayName}</span>
                 <span className={`text-body-strong ${TABULAR} text-text-primary`}>
-                  {row.weight_lb.toFixed(1)} lb
+                  {row.score.toFixed(1)}
+                  {row.scoreUnit ? ` ${row.scoreUnit}` : ""}
                 </span>
               </li>
             ))}

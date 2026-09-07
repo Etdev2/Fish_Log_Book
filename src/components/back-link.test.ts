@@ -24,7 +24,11 @@ const repoRoot = fileURLToPath(new URL("../../", import.meta.url));
 function sourceFiles(): readonly string[] {
   return execSync("git ls-files 'src/**/*.tsx' 'src/**/*.ts'", { cwd: repoRoot, encoding: "utf8" })
     .split("\n")
-    .filter(Boolean);
+    .filter(Boolean)
+    // Test files are excluded because this one contains the very pattern it searches for,
+    // written out in its own assertion. It failed on itself the moment it was committed —
+    // which is at least proof the search works.
+    .filter((file) => !/\.test\.tsx?$/.test(file));
 }
 
 describe("one back link", () => {
