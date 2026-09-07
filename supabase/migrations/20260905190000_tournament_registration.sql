@@ -101,6 +101,20 @@ create index if not exists tournament_entry_identity_claimed_idx
   on public.tournament_entry_identity (claimed_angler_id)
   where claimed_angler_id is not null;
 
+/*
+  A phone number for the person on the boat that day.
+
+  ADR 010 §4: when weather cancels at 4am the host has to reach every boat, and there was
+  nowhere to hold a number. It sits on the entry identity rather than on `angler` because
+  the captain on the day is not always the account holder, and the number that matters is
+  the one that will be answered on the water.
+*/
+alter table public.tournament_entry_identity
+  add column if not exists phone text;
+
+comment on column public.tournament_entry_identity.phone is
+  'Day-of contact for this person on this entry. Entry data, not profile data — the captain on the day is often not the account holder.';
+
 create table if not exists public.tournament_team_member (
   id uuid primary key default gen_random_uuid(),
   tournament_team_id uuid not null references public.tournament_team(id) on delete cascade,

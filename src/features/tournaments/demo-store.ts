@@ -310,3 +310,111 @@ export function getDemoStandings(tournamentId: string): readonly DemoStanding[] 
 export function getDemoEntries(): readonly DemoEntry[] {
   return readJson<DemoEntry[]>(ENTRIES_KEY, []);
 }
+
+/**
+ * The jackpots and side pots each demo event offers, and what their pots hold.
+ *
+ * Seeded rather than derived so the registration form has something real to choose from
+ * before a tournament server exists. The numbers matter as much as the names: ADR 010 §4
+ * rules that each pot shows its own total and its own count at the point of choice, and a
+ * form where every jackpot reads "$0, 0 in" would demonstrate the layout and none of the
+ * decision it is meant to support.
+ */
+export type DemoDivision = {
+  id: string;
+  tournament_id: string;
+  name: string;
+  description: string | null;
+  kind: "DIVISION" | "JACKPOT" | "SIDE_POT";
+  entry_fee_minor: number | null;
+  pool_minor: number | null;
+  participant_count: number | null;
+};
+
+const SEED_DIVISIONS: readonly DemoDivision[] = [
+  {
+    id: "div-tuna-big",
+    tournament_id: "demo-tuna-jackpot",
+    name: "Biggest Tuna",
+    description: "Heaviest single tuna, any species. Winner takes the pot.",
+    kind: "JACKPOT",
+    entry_fee_minor: 10000,
+    pool_minor: 420000,
+    participant_count: 34,
+  },
+  {
+    id: "div-tuna-marlin",
+    tournament_id: "demo-tuna-jackpot",
+    name: "Largest Marlin",
+    description: "Released marlin count on length. Photo and measure required.",
+    kind: "JACKPOT",
+    entry_fee_minor: 15000,
+    pool_minor: 300000,
+    participant_count: 20,
+  },
+  {
+    id: "div-tuna-first",
+    tournament_id: "demo-tuna-jackpot",
+    name: "First fish of the day",
+    description: "Side pot. First scored fish across the whole fleet.",
+    kind: "SIDE_POT",
+    entry_fee_minor: 2500,
+    pool_minor: 47500,
+    participant_count: 19,
+  },
+  {
+    id: "div-tuna-junior",
+    tournament_id: "demo-tuna-jackpot",
+    name: "Junior angler",
+    description: "Under 16 on the day. No extra charge.",
+    kind: "DIVISION",
+    entry_fee_minor: null,
+    pool_minor: null,
+    participant_count: 6,
+  },
+  {
+    id: "div-yellow-big",
+    tournament_id: "demo-yellowtail-open",
+    name: "Biggest Yellowtail",
+    description: "Heaviest yellowtail. Winner takes the pot.",
+    kind: "JACKPOT",
+    entry_fee_minor: 5000,
+    pool_minor: 95000,
+    participant_count: 19,
+  },
+  {
+    id: "div-club-kids",
+    tournament_id: "demo-club-fun-day",
+    name: "Kids' division",
+    description: "Under 12. Scored separately, no charge.",
+    kind: "DIVISION",
+    entry_fee_minor: null,
+    pool_minor: null,
+    participant_count: 4,
+  },
+];
+
+export function getDemoDivisions(tournamentId: string): readonly DemoDivision[] {
+  return SEED_DIVISIONS.filter((division) => division.tournament_id === tournamentId);
+}
+
+/**
+ * The host's refund policy, per event.
+ *
+ * Deliberately not one platform-wide sentence. It is the host's money and the host's
+ * decision, and inventing a policy on their behalf would be the app making a promise it
+ * cannot keep (ADR 010 §4). An event with none says so, which is itself information.
+ */
+const SEED_REFUND_POLICIES: Readonly<Record<string, string>> = {
+  "demo-tuna-jackpot":
+    "Full refund if you withdraw more than 48 hours before the start. Inside 48 hours, entry fees are non-refundable but jackpot buy-ins are returned. If the host cancels for weather, everything is refunded in full within 5 working days.",
+  "demo-yellowtail-open":
+    "Entries are transferable to another boat until registration closes. No refunds after that, except a full refund if the event is cancelled.",
+  "demo-club-fun-day": "Free event — withdraw any time, no money involved.",
+  "demo-crew-cup":
+    "Crew event. Talk to the host; there is no formal policy and no fee held by the app.",
+};
+
+export function getDemoRefundPolicy(tournamentId: string): string | null {
+  return SEED_REFUND_POLICIES[tournamentId] ?? null;
+}
