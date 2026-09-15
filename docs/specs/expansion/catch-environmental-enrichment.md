@@ -400,9 +400,9 @@ Endpoints: none public. `/api/enrichment/requeue` is service-role, for operation
 
 - `data-architecture-expansion.md` §7.1 (provider and observation tables).
 - `privacy-consent-and-data-governance.md` §9 (cell rounding, service actor, audit).
-- Sync must be live for the personal log — currently deferred by founder ruling
-  (audit §5). **This is the gating dependency, and it is a product decision, not an
-  engineering one.**
+- ~~Sync must be live for the personal log.~~ **Lifted 2026-09-15 (`SPEC.md` D29).** The
+  outbox has never run against a real Supabase project at volume, so the first season of
+  sync should be watched rather than assumed.
 - `counsel`: provider licence review before each provider is added.
 - `cfo`: per-catch cost ceiling and the cache hit-rate target.
 - `biostat`: distance thresholds per field, and which kinds may enter a correlation.

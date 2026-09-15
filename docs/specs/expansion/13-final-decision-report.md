@@ -202,13 +202,17 @@ vision.**
 | 10 | **`/settings/privacy`** with the honest empty state, per-catch override, coordinates-off-by-default export, and the deletion job that reaches media and embeddings | `privacy-consent-...` §7 | The angler-facing half of ticket 2; also the first thing any agency or reviewer asks to see | M |
 
 **Not in the top ten, deliberately:** the community map (no data yet), the agency dashboard
-(no agency yet), AI Fish ID (no media ruling, and §10's experiment comes first), biometrics
+(no agency yet), AI Fish ID (§10's four-week experiment comes first), biometrics
 (§11's tag experiment comes first), the 3-D view (not on this data resolution), licence
 integration (vendor-gated).
 
-**Two non-engineering items that outrank all ten:** the founder's ruling on server media,
-and ten agency conversations. Neither costs engineering time and both change what the list
-should be.
+**Two non-engineering items that outranked all ten.** The first — the founder's ruling on
+server media — was **granted on 2026-09-15** (`SPEC.md` D28), alongside lifting the
+personal-log sync deferral (D29). That opens tickets 3 and 8 and puts AI ID and biometrics
+back on the board, gated now on expert-verified image collection rather than on permission.
+The second still stands: **ten agency conversations**, costing phone calls rather than
+engineering time, and still the cheapest way to find out whether §5's most dangerous
+assumption is true.
 
 ---
 

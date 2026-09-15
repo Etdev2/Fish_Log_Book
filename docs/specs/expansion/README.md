@@ -38,9 +38,9 @@ criteria · dependencies · risks and unanswered questions · recommended phase.
 1. **`public.tournament_catch` has no foreign key to `public.catch`.** The brief's own
    prohibition — do not create a second, competing catch-record system — was violated three
    months ago. Fixing it is ticket 1.
-2. **Two founder decisions block roughly a third of the brief.** Server media was killed on
-   cost (2026-09-03); server sync for the personal log is deferred (2026-09-04). Neither is
-   an engineering problem.
+2. ~~Two founder decisions block roughly a third of the brief.~~ **Both opened 2026-09-15**
+   — server media restored (`SPEC.md` D28) and personal-log sync lifted (D29). Phase 3 is
+   now gated on expert-verified image collection, which is a season of work regardless.
 3. **The UI scores in file 7 are measured for rounds 1–2 and projected for rounds 3–5.**
    They are labelled as such and must be re-measured after implementation. A projected 8.0
    is not a shipped 8.0.

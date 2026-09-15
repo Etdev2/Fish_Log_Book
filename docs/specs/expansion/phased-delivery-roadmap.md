@@ -55,12 +55,18 @@ This file sequences it against two constraints the audit established:
   └────────────────────────────────────────────────┘
 ```
 
-**Two hard gates, neither of them technical:**
+**Both gates are now OPEN (founder, 2026-09-15):**
 
-- **Gate A — server sync for the personal log.** Deferred by founder ruling 2026-09-04.
-  Blocks enrichment, aggregation, exports and every agency feature.
-- **Gate B — server media.** Killed on cost 2026-09-03. Blocks AI ID, biometrics, and
-  photo evidence for tournaments.
+- **Gate A — server sync for the personal log.** ~~Deferred 2026-09-04.~~ **Lifted —
+  `SPEC.md` D29.** Enrichment, aggregation, exports and agency features are unblocked.
+- **Gate B — server media.** ~~Killed on cost 2026-09-03.~~ **Reversed — `SPEC.md` D28.**
+  AI ID, biometrics and tournament photo evidence are unblocked, with EXIF stripping on
+  ingest as part of the reversal.
+
+What this does *not* change: Phase 3 is still dominated by data collection, not
+engineering. 500 verified images across 60 species is months of expert time whether or
+not storage exists. And the cost that motivated the original photo ruling is unchanged —
+`cfo` prices storage and egress before bulk upload ships.
 
 ---
 
@@ -77,7 +83,7 @@ This file sequences it against two constraints the audit established:
 | Species-sensitivity policy shape | `biostat`, `counsel` | `species_location_policy` |
 | Environmental provider + observation schema | `architect` | migration |
 | Taxonomy schema | `architect`, `biostat` | migration |
-| **Founder decisions: Gate A and Gate B** | founder | written ruling |
+| ~~Founder decisions: Gate A and Gate B~~ **DONE 2026-09-15** | founder | `SPEC.md` D28, D29 |
 | **10 agency discovery conversations** | `ceo` | notes, no code |
 
 **Dependencies:** none. This is why it goes first.
@@ -97,7 +103,8 @@ grant → read → audit → revoke.
 **Exit criteria:**
 1. `tournament_catch.catch_id` exists with its trigger and a backfill decision recorded.
 2. `core/privacy/` is pure, vector-tested, and the only coarsening authority.
-3. Gate A and Gate B have written founder rulings, whichever way they go.
+3. ~~Gate A and Gate B have written founder rulings.~~ **Met 2026-09-15:** both opened,
+   recorded as `SPEC.md` D28 and D29, with `ROADMAP.md` A2 reversed in place.
 4. 10 discovery conversations held and written up.
 
 ---
@@ -120,7 +127,7 @@ grant → read → audit → revoke.
 | Shell fixes: bottom bar, bottom padding, drawer names | `ui-ux-critic-loop.md` R1-C, R1-H | |
 | Measurement tests in CI | `ui-ux-critic-loop.md` §11 | Prevents regression of every R1 finding |
 
-**Dependencies:** P0. Gate A for enrichment only — everything else ships without it.
+**Dependencies:** P0. Gate A is open, so enrichment is in scope for this phase.
 
 **Risks:** the tournament rebuild touches the most complex feature in the app; the catalog
 needs `counsel` before seeding; the bottom-bar decision is contested.
@@ -190,7 +197,8 @@ export is usable; p95 latency budgets.
 
 **Complexity:** Very high, and mostly not software.
 **Duration:** 6–12 months, dominated by data collection.
-**Gate:** B (server media). **Without it, Phase 3 does not start.**
+**Gate:** ~~B (server media).~~ **Open since 2026-09-15.** The binding constraint is now
+expert-verified image collection, which takes a season regardless of engineering speed.
 
 | Work | Spec |
 |---|---|
@@ -308,8 +316,10 @@ and a named owner. No jurisdiction ships without all three.
 
 ## 10. Cross-phase risks
 
-1. **Gate A and Gate B are founder decisions that block a third of the brief.** Naming them
-   is more useful than designing around them.
+1. ~~Gate A and Gate B are founder decisions that block a third of the brief.~~ **Both
+   opened 2026-09-15 (`SPEC.md` D28, D29).** The replacement risk is subtler: with nothing
+   left to wait for, the temptation is to start Phase 3 before the Phase 0 reconciliation
+   and privacy work is done. The dependency spine in §2 is what prevents that.
 2. **`counsel` is on the critical path of four phases** and is a HIGH-tier, scarce resource.
    Sequence their work explicitly or it becomes the bottleneck nobody scheduled.
 3. **The tournament section has never run against real data.** Every estimate about it is

@@ -1,6 +1,6 @@
 # Fish biometric re-identification
 
-**Status:** Proposed — **research programme, not a product feature.** Blocked on server media and on a validation study.
+**Status:** Proposed — **research programme, not a product feature.** Server media granted 2026-09-15 (`SPEC.md` D28); still gated on a validation study and a tagging partner.
 **Date:** 2026-09-15
 **Governs:** individual fish re-identification, recapture records, the incentive design
 **Extends:** `ai-fish-identification.md`, `privacy-consent-and-data-governance.md`
@@ -385,7 +385,7 @@ again, it is forbidden. That is the test, and it is the whole of §12.
 
 ## 17. Dependencies
 
-- **Server media** (audit §5). Blocking.
+- ~~Server media.~~ **Granted 2026-09-15 (`SPEC.md` D28).**
 - `ai-fish-identification.md` for species scoping — re-ID without species ID is unbounded.
 - Vector index.
 - **A tagging programme partner.** Without physical tags there is no ground truth, and

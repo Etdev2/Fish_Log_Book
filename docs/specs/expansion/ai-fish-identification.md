@@ -1,6 +1,6 @@
 # AI fish identification
 
-**Status:** Proposed — **blocked on a founder ruling about server media** (audit §5)
+**Status:** Proposed — **unblocked 2026-09-15** (`SPEC.md` D28 restores server media). Now gated on data collection, not permission.
 **Date:** 2026-09-15
 **Governs:** photo-based species suggestion, its evaluation, its safety messaging, and its boundaries
 **Extends:** `docs/specs/fishing-passport-wildlife-boat-games.md` §15–§17, `src/features/fish-id/`
@@ -410,7 +410,8 @@ result, with explicit consent per upload.
 
 ## 17. Dependencies
 
-- **Founder ruling on server media** (audit §5). **Blocking.**
+- ~~Founder ruling on server media.~~ **Granted 2026-09-15 (`SPEC.md` D28).** The
+  remaining blocker is the storage build itself plus expert-verified image collection.
 - Object storage with EXIF stripping (privacy §11).
 - `species_taxon` with external identifiers.
 - Training image licensing — `counsel`.
@@ -451,7 +452,7 @@ result, with explicit consent per upload.
 
 ## 19. Recommended implementation phase
 
-**Phase 1 (prerequisite, no AI):** decide server media; build storage with EXIF stripping;
+**Phase 1 (prerequisite, no AI):** build storage with EXIF stripping (D28 is granted);
 begin collecting consented, expert-verified images through normal use. Without this, Phase 3
 cannot start — and this collection takes a season regardless of engineering speed.
 

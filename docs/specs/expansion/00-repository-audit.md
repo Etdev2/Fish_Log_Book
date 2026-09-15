@@ -210,10 +210,10 @@ is specified in `data-architecture-expansion.md` §4.
 
 | Prior decision | Where | Collision |
 |---|---|---|
-| **Photo storage: "❌ NOT NOW — 2026-09-03, founder, on cost."** No media table, no server storage, no EXIF stripping, no moderation budget. | `ROADMAP.md` Part 2 A2 | The brief requires photos for AI Fish ID (§10), biometrics (§11) and tournament evidence (§7). **Every one of those is blocked on a reversal of this decision.** Server media is the true gating dependency of Phases 3–4, not model quality. |
+| ~~Photo storage: "❌ NOT NOW — 2026-09-03, founder, on cost."~~ **REVERSED 2026-09-15 — `SPEC.md` D28.** | `ROADMAP.md` Part 2 A2 | Photos are in scope. AI Fish ID (§10), biometrics (§11) and tournament evidence (§7) are unblocked. EXIF stripping on ingest comes with the reversal, not after it. The cost that motivated the original no is unchanged, so `cfo` prices storage and egress before bulk upload. |
 | **"Fish identification from photos — different product, enormous effort, and wrong answers are worse than no feature."** | `ROADMAP.md` Part 3 | Partly reversed already by the passport spec (AI as ranked suggestion, never a verification status or a legal conclusion). The brief agrees with the reversal's terms. Keep the terms. |
 | **Leaderboards and gamified logging corrupt the denominator.** | `ROADMAP.md` Part 3 | The brief's §11 incentive system (conservation points, recapture badges, prizes) is exactly the mechanic that was ruled out because *rewarding logging corrupts the data we are selling.* `fish-biometric-reidentification.md` §12 keeps it, but only in the form the earlier ruling allows: reward **honest confirmation and data quality**, never catching more, never re-catching the same fish. |
-| **The log stays on-device for now; database sync comes later.** | `setup-flow-and-quiver.md` preamble, founder 2026-09-04 | Server-side enrichment, aggregation, agency dashboards and research exports all require the sync path to be live. This is a **sequencing** collision, not a contradiction: Phase 1 turns sync on for the personal log before Phase 2 can aggregate anything. |
+| ~~The log stays on-device for now; database sync comes later.~~ **LIFTED 2026-09-15 — `SPEC.md` D29.** | `setup-flow-and-quiver.md` preamble, founder 2026-09-04 | Sync is on. Enrichment, aggregation, dashboards and exports are unblocked. Offline stays mandatory (D3) and reads still never touch the network (ADR 004 §1) — sync is how rows reach the server afterwards, never a round trip the angler waits on. |
 | **Dark-only by design.** `tokens.json` `$darkOnlyByDesign` states there is no light theme in V1, deliberately, because a light UI is actively harmful in bright sun on open water. | `src/core/design/tokens.json` | The brief asks to validate "dark, light, and night modes". There is one mode. Do not build two more to satisfy a checklist; `ui-ux-critic-loop.md` §9 replaces that item with the test that actually matters here — sunlight legibility and a true red-preserving night mode. |
 
 **None of these are overruled by this audit.** They are surfaced so the founder overrules
@@ -266,7 +266,8 @@ Full scoring and the five critique rounds are in `ui-ux-critic-loop.md`.
    It is cheap now and impossible to retrofit.
 3. **Build the enrichment worker** (G1). It unlocks the brief's headline feature and needs
    no new product surface.
-4. **Get a founder ruling on server media** (G2). Three of the twelve specs are inert
-   without it, and the honest sequence is to say so rather than to specify around it.
+4. ~~Get a founder ruling on server media (G2).~~ **Done, 2026-09-15: reversed in favour
+   of storage (`SPEC.md` D28), and sync lifted (D29).** Both gates are open, so the honest
+   remaining constraint on Phase 3 is data collection time, not permission.
 5. **Fix the tournament information architecture** (§7). It is the highest user-visible
    return in the whole brief and it requires no new backend at all.
