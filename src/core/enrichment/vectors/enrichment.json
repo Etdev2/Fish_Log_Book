@@ -1,0 +1,117 @@
+{
+  "$comment": "Vectors for src/core/enrichment/ (ADR 003 §4). Three groups. `plans` pins which fields are even askable for a catch, which is where freshwater, missing GPS and angler-supplied readings drop out before any money is spent. `distances` pins the trusted/interpolated/too-far verdict per field, because the whole honesty claim rests on a value from 20 km away being labelled differently from one from the harbour mouth. `merges` pins the five-way enrichment_status decision, and the case that matters most is the freshwater one: a lake with nothing planned is COMPLETE, not unavailable, because nothing is missing.",
+
+  "plans": [
+    {
+      "name": "a saltwater catch with a fix asks for everything",
+      "input": { "waterClass": "salt", "geoCell1km": "3359_-11802", "basis": "observed", "userMeasuredFields": [] },
+      "plannedIncludes": ["tide_height_m", "sst_c", "pressure_hpa", "swell_height_m", "current_speed_ms"],
+      "skipped": []
+    },
+    {
+      "name": "a lake has no tide, swell or sea-surface temperature to be missing",
+      "input": { "waterClass": "fresh", "geoCell1km": "3359_-11802", "basis": "observed", "userMeasuredFields": [] },
+      "plannedIncludes": ["pressure_hpa", "air_temp_c", "wind_speed_ms"],
+      "skippedWithReason": { "tide_height_m": "NOT_APPLICABLE", "sst_c": "NOT_APPLICABLE", "swell_height_m": "NOT_APPLICABLE" }
+    },
+    {
+      "name": "the angler's own water temperature is never fetched over",
+      "input": { "waterClass": "salt", "geoCell1km": "3359_-11802", "basis": "observed", "userMeasuredFields": ["water_temp_c"] },
+      "plannedIncludes": ["sst_c"],
+      "skippedWithReason": { "water_temp_c": "USER_SUPPLIED" }
+    },
+    {
+      "name": "no position means no grid or station product at all",
+      "input": { "waterClass": "salt", "geoCell1km": null, "basis": "observed", "userMeasuredFields": [] },
+      "plannedIncludes": [],
+      "skippedWithReason": { "tide_height_m": "NO_POSITION", "pressure_hpa": "NO_POSITION" }
+    },
+    {
+      "name": "a backfilled catch still plans every backfillable field",
+      "input": { "waterClass": "salt", "geoCell1km": "3359_-11802", "basis": "historical_reconstruction", "userMeasuredFields": [] },
+      "plannedIncludes": ["tide_height_m", "pressure_hpa", "sst_c"],
+      "skipped": []
+    }
+  ],
+
+  "distances": [
+    { "name": "a tide gauge in the harbour is trusted", "field": "tide_height_m", "distanceM": 4000, "verdict": "TRUSTED" },
+    { "name": "a tide gauge round the headland is kept but downgraded", "field": "tide_height_m", "distanceM": 20000, "verdict": "INTERPOLATED" },
+    { "name": "a tide gauge 80 km away is not data", "field": "tide_height_m", "distanceM": 80000, "verdict": "TOO_FAR" },
+    { "name": "pressure travels: 80 km is still informative", "field": "pressure_hpa", "distanceM": 80000, "verdict": "INTERPOLATED" },
+    { "name": "wind at the coast is local", "field": "wind_speed_ms", "distanceM": 50000, "verdict": "TOO_FAR" },
+    { "name": "HF radar currents are refused beyond their patchy coverage", "field": "current_speed_ms", "distanceM": 20000, "verdict": "TOO_FAR" },
+    { "name": "a grid product with no distance is treated as local", "field": "sst_c", "distanceM": null, "verdict": "TRUSTED" }
+  ],
+
+  "merges": [
+    {
+      "name": "everything planned came back",
+      "planned": ["tide_height_m", "pressure_hpa"],
+      "observed": [
+        { "field": "tide_height_m", "value": 1.2, "distanceToSourceM": 3000 },
+        { "field": "pressure_hpa", "value": 1014.2, "distanceToSourceM": 20000 }
+      ],
+      "refusals": [],
+      "status": "complete", "retryFields": []
+    },
+    {
+      "name": "a lake with nothing planned is complete, not unavailable",
+      "planned": [],
+      "observed": [],
+      "refusals": [],
+      "status": "complete", "retryFields": []
+    },
+    {
+      "name": "nothing came back and nothing is worth asking again — terminal",
+      "planned": ["tide_height_m", "sst_c"],
+      "observed": [],
+      "refusals": [
+        { "field": "tide_height_m", "reason": "NO_COVERAGE" },
+        { "field": "sst_c", "reason": "NO_COVERAGE" }
+      ],
+      "status": "unavailable", "retryFields": []
+    },
+    {
+      "name": "nothing came back but the provider was down — stay in the queue",
+      "planned": ["tide_height_m", "sst_c"],
+      "observed": [],
+      "refusals": [
+        { "field": "tide_height_m", "reason": "TRANSPORT" },
+        { "field": "sst_c", "reason": "TRANSPORT" }
+      ],
+      "status": "pending", "retryFields": ["tide_height_m", "sst_c"]
+    },
+    {
+      "name": "some landed, the rest are permanently absent — partial is the honest end",
+      "planned": ["tide_height_m", "current_speed_ms"],
+      "observed": [{ "field": "tide_height_m", "value": 0.8, "distanceToSourceM": 2000 }],
+      "refusals": [{ "field": "current_speed_ms", "reason": "NO_COVERAGE" }],
+      "status": "partial", "retryFields": []
+    },
+    {
+      "name": "some landed and one is worth another go",
+      "planned": ["tide_height_m", "sst_c"],
+      "observed": [{ "field": "tide_height_m", "value": 0.8, "distanceToSourceM": 2000 }],
+      "refusals": [{ "field": "sst_c", "reason": "TRANSPORT" }],
+      "status": "partial", "retryFields": ["sst_c"]
+    },
+    {
+      "name": "a value from beyond its maximum radius is dropped, not kept",
+      "planned": ["tide_height_m"],
+      "observed": [{ "field": "tide_height_m", "value": 1.2, "distanceToSourceM": 90000 }],
+      "refusals": [],
+      "status": "unavailable", "retryFields": []
+    },
+    {
+      "name": "the closest source wins when two describe the same field",
+      "planned": ["pressure_hpa"],
+      "observed": [
+        { "field": "pressure_hpa", "value": 1014.2, "distanceToSourceM": 45000 },
+        { "field": "pressure_hpa", "value": 1016.9, "distanceToSourceM": 8000 }
+      ],
+      "refusals": [],
+      "status": "complete", "retryFields": [], "expectValue": { "pressure_hpa": 1016.9 }
+    }
+  ]
+}

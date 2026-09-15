@@ -487,4 +487,109 @@ begin
     not exists (select 1 from public.catch where trip_id = trip_ and privacy_override is not null));
 end $$;
 
+-- ---------------------------------------------------------------- provenance
+/*
+  The rules that make an environmental number usable by somebody who was not there.
+
+  condition_snapshot has had the columns for two months and nothing has ever filled them
+  in, so these checks are the first time anything has asserted what a filled-in one has to
+  look like. All three failures below are ones a hurried worker would produce: a number
+  with no dataset version (irreproducible), a row with no value at all (a refusal stored
+  as data), and sea-surface temperature on a lake.
+*/
+do $$
+declare
+  angler_ uuid := '11111111-1111-1111-1111-111111111111';
+  trip_ uuid := '9a000000-0000-0000-0000-0000000000e1';
+  catch_ uuid := '9c000000-0000-0000-0000-0000000000e1';
+  salt_snap uuid;
+  fresh_snap uuid;
+  failed boolean;
+begin
+  insert into public.trip (id, angler_id, water_class, started_at, started_tz, local_date,
+                           client_created_at)
+  values (trip_, angler_, 'salt', now(), 'America/Los_Angeles', current_date, now());
+  insert into public.catch (id, angler_id, trip_id, caught_at, caught_tz, local_date,
+                            client_created_at, lat, lng)
+  values (catch_, angler_, trip_, now(), 'America/Los_Angeles', current_date, now(),
+          33.5987, -118.0123);
+
+  insert into public.condition_snapshot (angler_id, trip_id, catch_id, kind, observed_at, water_class)
+  values (angler_, trip_, catch_, 'catch', now(), 'salt')
+  returning id into salt_snap;
+  perform pg_temp.check('a snapshot starts pending, as it always has',
+    (select enrichment_status from public.condition_snapshot where id = salt_snap) = 'pending');
+
+  -- 1. The happy path: a tide prediction, labelled as the model it is.
+  insert into public.environmental_observation
+    (snapshot_id, field_name, value_numeric, unit, provider_id, dataset_id, dataset_version,
+     observation_kind, observed_at, retrieved_at, distance_to_source_m)
+  values (salt_snap, 'tide_height_m', 1.42, 'm', 'noaa-coops', 'coops:predictions:9410580',
+          'coops-2026', 'MODEL_ANALYSIS', now(), now(), 4200);
+  perform pg_temp.check('a tide prediction stores as MODEL_ANALYSIS, not as a sensor reading',
+    (select observation_kind from public.environmental_observation
+      where snapshot_id = salt_snap and field_name = 'tide_height_m') = 'MODEL_ANALYSIS');
+
+  -- 2. No dataset version means the number cannot be reproduced. Refused.
+  failed := false;
+  begin
+    insert into public.environmental_observation
+      (snapshot_id, field_name, value_numeric, unit, provider_id, dataset_id, dataset_version,
+       observation_kind, retrieved_at)
+    values (salt_snap, 'sst_c', 18.4, 'C', 'noaa-coops', 'x', null, 'SATELLITE', now());
+  exception when others then failed := true; end;
+  perform pg_temp.check('a value with no dataset version is refused', failed);
+
+  -- 3. A row with neither a number nor a string is a refusal, not an observation.
+  failed := false;
+  begin
+    insert into public.environmental_observation
+      (snapshot_id, field_name, unit, provider_id, dataset_id, dataset_version,
+       observation_kind, retrieved_at)
+    values (salt_snap, 'sst_c', 'C', 'noaa-coops', 'x', 'v1', 'SATELLITE', now());
+  exception when others then failed := true; end;
+  perform pg_temp.check('an empty observation is refused — missing is a refusal, not a value', failed);
+
+  -- 4. Re-fetching the same dataset version is idempotent, not a duplicate.
+  failed := false;
+  begin
+    insert into public.environmental_observation
+      (snapshot_id, field_name, value_numeric, unit, provider_id, dataset_id, dataset_version,
+       observation_kind, retrieved_at)
+    values (salt_snap, 'tide_height_m', 1.42, 'm', 'noaa-coops', 'coops:predictions:9410580',
+            'coops-2026', 'MODEL_ANALYSIS', now());
+  exception when others then failed := true; end;
+  perform pg_temp.check('the same field from the same dataset version cannot be stored twice', failed);
+
+  -- 5. A new dataset version is a NEW row; the old reading is kept, never rewritten.
+  insert into public.environmental_observation
+    (snapshot_id, field_name, value_numeric, unit, provider_id, dataset_id, dataset_version,
+     observation_kind, retrieved_at)
+  values (salt_snap, 'tide_height_m', 1.39, 'm', 'noaa-coops', 'coops:predictions:9410580',
+          'coops-2027', 'MODEL_ANALYSIS', now());
+  perform pg_temp.check('a new dataset version is a new row, and the old one survives',
+    (select count(*) from public.environmental_observation
+      where snapshot_id = salt_snap and field_name = 'tide_height_m') = 2);
+
+  -- 6. A lake has no sea-surface temperature to be missing.
+  insert into public.condition_snapshot (angler_id, trip_id, kind, observed_at, water_class)
+  values (angler_, trip_, 'manual', now(), 'fresh')
+  returning id into fresh_snap;
+  failed := false;
+  begin
+    update public.condition_snapshot set sst_c = 18.4 where id = fresh_snap;
+  exception when others then failed := true; end;
+  perform pg_temp.check('freshwater cannot acquire a sea-surface temperature', failed);
+
+  failed := false;
+  begin
+    update public.condition_snapshot set tide_station_id = '9410580' where id = fresh_snap;
+  exception when others then failed := true; end;
+  perform pg_temp.check('nor a tide station, which is location-bearing as well as wrong', failed);
+
+  -- 7. The provider registry is reference data, not something an angler can assert.
+  perform pg_temp.check('the one provider we can already talk to is registered',
+    exists (select 1 from public.environmental_provider where id = 'noaa-coops'));
+end $$;
+
 rollback;
