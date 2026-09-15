@@ -69,6 +69,8 @@ export function EventsPage() {
 
   return (
     <div className={PAGE}>
+      {load.demo ? <DemoNote /> : null}
+
       {/*
         Deliberately short. An earlier draft opened with an eyebrow label, a three-line
         subtitle and two stacked buttons, which put roughly 500px of chrome above the first
@@ -157,7 +159,6 @@ export function EventsPage() {
         </ul>
       )}
 
-      {load.demo ? <DemoNote /> : null}
     </div>
   );
 }

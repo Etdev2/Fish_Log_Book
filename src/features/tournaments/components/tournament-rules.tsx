@@ -57,11 +57,13 @@ export function TournamentRules({ tournamentId }: { tournamentId: string }) {
 
   return (
     <div className={PAGE}>
+      {demoMode ? <DemoNote /> : null}
+
       <TournamentHero
         tournament={tournament}
         // The hero repeats the tournament name directly below, so the eyebrow names the
         // destination instead of saying the same words twice.
-        eyebrow={<BackLink href={`/tournaments/${tournament.id}/overview`} label="Overview" />}
+        eyebrow={<BackLink href="/tournaments" label="All tournaments" />}
       />
 
       <TournamentTabs tournamentId={tournament.id} />
@@ -123,7 +125,6 @@ export function TournamentRules({ tournamentId }: { tournamentId: string }) {
         </p>
       </section>
 
-      {demoMode ? <DemoNote /> : null}
     </div>
   );
 }

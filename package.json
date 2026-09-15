@@ -15,7 +15,8 @@
     "migrations:check": "node scripts/check-migration-versions.mjs",
     "db:check": "scripts/check-migrations-apply.sh",
     "test": "vitest run",
-    "verify": "npm run tokens:check && npm run tripwires && npm run migrations:check && npm run lint && tsc --noEmit && npm run test"
+    "verify": "npm run tokens:check && npm run tripwires && npm run migrations:check && npm run lint && tsc --noEmit && npm run test",
+    "layout": "node scripts/check-layout.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.5",
@@ -36,6 +37,7 @@
     "babel-plugin-react-compiler": "1.0.0",
     "eslint": "^9",
     "eslint-config-next": "16.3.3",
+    "playwright": "^1.56.1",
     "tailwindcss": "^4",
     "typescript": "^5",
     "vitest": "^4.1.11"

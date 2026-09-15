@@ -65,6 +65,8 @@ export function MyTournaments() {
 
   return (
     <div className={PAGE}>
+      {load.demo ? <DemoNote /> : null}
+
       <BackLink href="/tournaments" label="Event calendar" />
 
       <header className="flex flex-col gap-space-4">
@@ -112,7 +114,6 @@ export function MyTournaments() {
         </>
       )}
 
-      {load.demo ? <DemoNote /> : null}
     </div>
   );
 }

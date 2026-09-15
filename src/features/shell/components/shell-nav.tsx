@@ -61,7 +61,16 @@ export function ShellNav() {
               <Link
                 href={route.href}
                 aria-current={active ? "page" : undefined}
-                className={`flex min-h-touch-floor items-center justify-center border-t-2 px-1 text-center text-label ${
+                /*
+                  `min-w-touch-floor` alongside the height: `basis-auto` above lets each
+                  item be as wide as its own label so all six fit one row from 384px, which
+                  is the right trade — but it made the shortest label the smallest target.
+                  Measured at 390px, "Log" was 45x48, under the 48px floor that
+                  docs/design/06-accessibility-baseline.md §3 calls absolute. Six items at
+                  their 48px minimum is 288px, comfortably inside 320px, so the floor costs
+                  the single-row layout nothing.
+                */
+                className={`flex min-h-touch-floor min-w-touch-floor items-center justify-center border-t-2 px-1 text-center text-label ${
                   active
                     ? "border-signal-orange text-text-primary"
                     : "border-transparent text-text-link"

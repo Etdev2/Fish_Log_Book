@@ -102,10 +102,18 @@ viewport. On a live tournament screen.
 *Critics: tournament angler, mobile expert. Categories 3, 4, 8.* **Severity: highest.**
 
 **R1-C · The bottom bar takes 97 px and two rows at 320 px** (49 px at 390 px), and `main`
-has a constant 24 px bottom padding, so content lands underneath it. The code comment in
-`destinations.ts` predicted this exactly: *"six labels already wrap to two rows below
-384px."* It was recorded and not fixed.
+has a constant 24 px bottom padding, so content lands underneath it.
 *Critics: mobile expert, accessibility. Categories 5, 8.*
+
+> **Correction, 2026-09-15.** This finding originally read "recorded and not fixed",
+> which was wrong and unfair to the work. `shell-nav.tsx` records the measurement *and
+> the alternatives*: six labels want 366 px in one row, equal columns would want 432 px,
+> and shrinking the type is unavailable because the 16 px floor has no escape hatch. Two
+> rows of three at full size is the least-bad option, and the six destinations are a
+> founder decision. It is a deliberate, measured trade-off, not an oversight. The 97 px
+> is still 15 % of a small screen and the composition of the bar is still open (R5-D) —
+> but it is open, not neglected. The height is now asserted in CI so it cannot grow
+> further.
 
 **R1-D · Validation fires before interaction.** `/register` paints "Every angler needs a
 name." in `error-red` under an empty, untouched Name field.
@@ -152,6 +160,31 @@ selected chip, the active region emphasis in Fish Legal, the "Fishing now" statu
 "You host this" badge, and the disabled Pay button at reduced opacity. Six meanings, one
 colour — and the disabled state is the same hue as the enabled one.
 *Critics: mobile expert, adversarial. Categories 7, 10.*
+
+### 3.2b What has since been fixed, and measured again
+
+Rounds 2–5 below score a *proposed* design. These specific findings are no longer
+proposals — they were implemented and re-measured on 2026-09-15, and the numbers are
+pinned in CI by `scripts/check-layout.mjs`.
+
+| Finding | Before | After |
+|---|---|---|
+| R1-A two navigation systems, three counts | 5 numbered chips + 4 numbered cards + "Step 3 of 3" | **One tab bar.** Journey cards deleted, step numbers gone everywhere |
+| R1-B primary action below the fold | **740 px** at 320 px, 712 px at 390 px | **436 px** at 320 px, 414 px at 390 px — clears the fold at both |
+| R1-G demo notice last on the page | last element, muted caption | **first element**, bordered, `role="status"`, and it now says "nothing here is a real event" |
+| R1-H 33 anchors, duplicate destinations | 33 | **29** |
+| R1-I facts repeated | hero + 4 single-fact cards restating Starts/Ends | one card, one definition list, no restatement |
+| 45 × 48 nav target at 390 px | 1 under the floor | **0 under the floor at any width tested** |
+
+Two things were *not* fixed and are named rather than quietly dropped:
+
+- **The < 200 px target in `tournament-experience-redesign.md` §16.3 is not met.** 436 px
+  clears the fold, which was the ticket's goal, but the stricter target needs the
+  phase-aware LIVE layout in that spec's §6.2–§6.3 — a compact hero that renders only
+  name, time remaining and the action during a live event. That is a separate piece of
+  work and the criterion stays open until it ships.
+- **R1-C, R1-F, R1-J, R1-K, R1-L** are untouched. Round 2's scores below assume them
+  fixed and remain projections.
 
 ### 3.3 What Round 1 found that is already right — keep it
 
@@ -358,7 +391,7 @@ The brief lists ten conditions. Eight are adopted as written. Two are changed, w
 | Dark mode | Passing — it is the only mode | |
 | **Light mode** | **Changed to: not applicable.** `tokens.json` states dark-only is a deliberate decision because a light UI loses its contrast headroom to reflected glare on open water | Building a light theme to satisfy a checklist would make the product worse in its primary use case |
 | **Night mode** | **Changed to: a real requirement, and it does not exist.** Dark ≠ night. A pre-dawn boat needs red-preserving output and a dimmer floor than `#0A1014` at full brightness allows | **Gap. Higher value than a light theme and not currently scheduled.** |
-| Touch targets | Measured. 48 px floor holds except one 45×48 nav link at 390 px | One defect |
+| Touch targets | Measured, and now **asserted in CI**. The 45×48 nav link is fixed; zero targets under the floor at 320 or 390 px, with the calendar-grid exception from `03-touch-and-interaction.md` §1 recorded by name in `scripts/check-layout.mjs`. Measured, that exception is 38 px wide, not the "~45 px" the design doc assumes — worth `ux-ui` knowing | Passing, with one named exception that is wider than advertised |
 | Offline states | Partially. The log is offline-first; the tournament queue is not yet surfaced | R4 item |
 | Long species / tournament names | **Not yet tested** at 320 px | R4 item |
 | Large datasets | Untested. A 500-entrant leaderboard and a 10,000-catch log have never been rendered | **Gap — needs seeded fixtures** |
@@ -392,8 +425,13 @@ The brief lists ten conditions. Eight are adopted as written. Two are changed, w
 1. Round 6 is run **after implementation**, by measurement, and its scores replace rounds
    3–5 in this file.
 2. Each numbered finding (R1-A … R5-D) has a ticket or a recorded decision not to fix.
-3. Measurement tests exist for: primary-action offset, bottom-bar height, `main` bottom
-   padding, horizontal overflow, minimum touch size — run in CI, at 320 and 390 px.
+3. ~~Measurement tests exist for: primary-action offset, bottom-bar height, `main` bottom
+   padding, horizontal overflow, minimum touch size — run in CI, at 320 and 390 px.~~
+   **Done 2026-09-15:** `scripts/check-layout.mjs`, wired into `.github/workflows/verify.yml`,
+   covering eight routes at 320 and 390 px. It also asserts one navigation system per
+   tournament screen and the absence of step counters, and it was proved to catch a
+   planted regression rather than assumed to. `main` bottom padding is still a constant
+   24 px and is **not** yet asserted — the dock height is, which is the half that can grow.
 4. A token-usage test enforces §5.1's orange discipline (R5-C).
 5. Seeded fixtures exist for 500 entrants and 10,000 catches, and both render within budget.
 6. 200 % text scale and reduced motion have coverage tests.

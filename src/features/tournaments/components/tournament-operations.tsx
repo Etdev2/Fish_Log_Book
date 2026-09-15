@@ -99,8 +99,10 @@ export function TournamentOperations({
 
   return (
     <div className={PAGE}>
+      {demoMode ? <DemoNote /> : null}
+
       <header className="flex flex-col gap-space-3">
-        <BackLink href={`/tournaments/${tournament.id}/overview`} label="Tournament home" />
+        <BackLink href="/tournaments" label="All tournaments" />
         <div className="flex flex-col gap-space-1">
           <span className="text-label text-signal-orange">Host controls</span>
           <div className="flex flex-wrap items-end justify-between gap-space-3">
@@ -140,7 +142,6 @@ export function TournamentOperations({
       {lane === "judge" ? <JudgeLane flagged={flagged} /> : null}
       {lane === "finance" ? <FinanceLane /> : null}
 
-      {demoMode ? <DemoNote /> : null}
     </div>
   );
 }
