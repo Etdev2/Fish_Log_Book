@@ -1,0 +1,145 @@
+{
+  "$comment": "Vectors for src/core/privacy/ (ADR 003 §4). Three groups. `cells` pins the coarsening arithmetic against the SQL generated columns in 20260828120000 and 20260915130000 — if these drift, a client silently excludes its own rows from every aggregate. `disclosure` pins the intersection rule: the coarsest input always wins, and a missing species policy is treated as protected rather than standard. `kAnonymity` pins the gate, including the differencing case that k alone does not stop. Coordinates here are invented, not anybody's spot.",
+
+  "cells": [
+    {
+      "name": "Southern California, all three cell levels",
+      "lat": 33.5987, "lng": -118.0123,
+      "cell1km": "3359_-11802", "cell10km": "335_-1181", "cell50km": "67_-237"
+    },
+    {
+      "name": "negative longitude floors toward minus infinity, not toward zero",
+      "lat": 33.0, "lng": -118.04,
+      "cell1km": "3300_-11804", "cell10km": "330_-1181", "cell50km": "66_-237"
+    },
+    {
+      "name": "southern hemisphere: latitude floors the same way",
+      "lat": -33.86, "lng": 151.21,
+      "cell1km": "-3386_15121", "cell10km": "-339_1512", "cell50km": "-68_302"
+    },
+    {
+      "name": "exactly on a cell boundary belongs to the cell above it",
+      "lat": 34.0, "lng": -118.0,
+      "cell1km": "3400_-11800", "cell10km": "340_-1180", "cell50km": "68_-236"
+    },
+    {
+      "name": "a hair below the boundary is the cell below",
+      "lat": 33.999, "lng": -118.001,
+      "cell1km": "3399_-11801", "cell10km": "339_-1181", "cell50km": "67_-237"
+    }
+  ],
+
+  "unsafeCells": [
+    { "name": "the antimeridian: a flat grid is wrong here", "lat": 0.0, "lng": 179.9 },
+    { "name": "the other side of it", "lat": 0.0, "lng": -179.8 },
+    { "name": "too far north for a lat/lng cell to mean anything", "lat": 86.0, "lng": 10.0 },
+    { "name": "and too far south", "lat": -87.2, "lng": 10.0 }
+  ],
+
+  "disclosure": [
+    {
+      "name": "a brand new angler shares nothing, whatever the species",
+      "inputs": {},
+      "level": "NONE", "delayDays": 30, "excluded": false, "binding": ["account"]
+    },
+    {
+      "name": "an unclassified species is treated as protected, not as standard",
+      "inputs": { "accountLevel": "EXACT" },
+      "level": "CELL_50KM", "delayDays": 30, "excluded": false, "binding": ["species"]
+    },
+    {
+      "name": "a standard species with a relaxed angler still floors at 10 km",
+      "inputs": { "accountLevel": "EXACT", "speciesPolicy": "standard" },
+      "level": "CELL_10KM", "delayDays": 0, "excluded": false, "binding": ["species"]
+    },
+    {
+      "name": "a programme cannot ask for more than the angler agreed to",
+      "inputs": { "accountLevel": "CELL_50KM", "programLevel": "CELL_1KM", "speciesPolicy": "standard" },
+      "level": "CELL_50KM", "delayDays": 0, "excluded": false, "binding": ["account"]
+    },
+    {
+      "name": "a programme asking for less than the angler offered is honoured",
+      "inputs": { "accountLevel": "CELL_10KM", "programLevel": "ZONE", "speciesPolicy": "standard" },
+      "level": "ZONE", "delayDays": 0, "excluded": false, "binding": ["program"]
+    },
+    {
+      "name": "extra private on one catch beats every other input",
+      "inputs": { "accountLevel": "CELL_10KM", "programLevel": "CELL_10KM", "catchOverride": "NONE", "speciesPolicy": "standard" },
+      "level": "NONE", "delayDays": 0, "excluded": false, "binding": ["catch"]
+    },
+    {
+      "name": "a suppressed species is excluded from shared surfaces entirely",
+      "inputs": { "accountLevel": "EXACT", "speciesPolicy": "suppressed" },
+      "level": "ZONE", "delayDays": 90, "excluded": true, "binding": ["species"]
+    },
+    {
+      "name": "two inputs at the winning level are both named",
+      "inputs": { "accountLevel": "CELL_50KM", "speciesPolicy": "protected" },
+      "level": "CELL_50KM", "delayDays": 30, "excluded": false, "binding": ["account", "species"]
+    },
+    {
+      "name": "the longer of the programme and species delay wins",
+      "inputs": { "accountLevel": "CELL_10KM", "programLevel": "CELL_10KM", "programTemporalDelayDays": 60, "speciesPolicy": "protected" },
+      "level": "CELL_50KM", "delayDays": 60, "excluded": false, "binding": ["species"]
+    }
+  ],
+
+  "kAnonymity": [
+    {
+      "name": "a healthy cell passes",
+      "sample": { "distinctAnglers": 12, "catchCount": 140, "maxSingleAnglerCatches": 30 },
+      "allowed": true, "reasons": []
+    },
+    {
+      "name": "four friends fishing one reef is not anonymous",
+      "sample": { "distinctAnglers": 4, "catchCount": 90, "maxSingleAnglerCatches": 25 },
+      "allowed": false, "reasons": ["TOO_FEW_ANGLERS"]
+    },
+    {
+      "name": "k alone does not save a cell one angler dominates",
+      "sample": { "distinctAnglers": 6, "catchCount": 100, "maxSingleAnglerCatches": 80 },
+      "allowed": false, "reasons": ["SINGLE_ANGLER_DOMINATES"]
+    },
+    {
+      "name": "enough anglers, not enough fish to be a trend",
+      "sample": { "distinctAnglers": 8, "catchCount": 11, "maxSingleAnglerCatches": 2 },
+      "allowed": false, "reasons": ["TOO_FEW_CATCHES"]
+    },
+    {
+      "name": "every failing condition is reported, not just the first",
+      "sample": { "distinctAnglers": 2, "catchCount": 9, "maxSingleAnglerCatches": 8 },
+      "allowed": false, "reasons": ["TOO_FEW_ANGLERS", "TOO_FEW_CATCHES", "SINGLE_ANGLER_DOMINATES"]
+    },
+    {
+      "name": "an empty cell is suppressed, never rendered as a zero",
+      "sample": { "distinctAnglers": 0, "catchCount": 0, "maxSingleAnglerCatches": 0 },
+      "allowed": false, "reasons": ["TOO_FEW_ANGLERS", "TOO_FEW_CATCHES"]
+    },
+    {
+      "name": "exactly at every threshold passes",
+      "sample": { "distinctAnglers": 5, "catchCount": 20, "maxSingleAnglerCatches": 12 },
+      "allowed": true, "reasons": []
+    }
+  ],
+
+  "differencing": [
+    {
+      "name": "two big queries whose difference is one angler's cell",
+      "larger": { "distinctAnglers": 14, "catchCount": 160, "maxSingleAnglerCatches": 40 },
+      "smaller": { "distinctAnglers": 13, "catchCount": 150, "maxSingleAnglerCatches": 40 },
+      "safe": false
+    },
+    {
+      "name": "a difference that is itself a healthy cell is fine",
+      "larger": { "distinctAnglers": 20, "catchCount": 300, "maxSingleAnglerCatches": 40 },
+      "smaller": { "distinctAnglers": 10, "catchCount": 200, "maxSingleAnglerCatches": 30 },
+      "safe": true
+    },
+    {
+      "name": "identical queries have an empty difference, which is not publishable",
+      "larger": { "distinctAnglers": 20, "catchCount": 300, "maxSingleAnglerCatches": 40 },
+      "smaller": { "distinctAnglers": 20, "catchCount": 300, "maxSingleAnglerCatches": 40 },
+      "safe": false
+    }
+  ]
+}

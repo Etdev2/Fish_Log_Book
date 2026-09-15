@@ -419,4 +419,72 @@ begin
   perform pg_temp.check('and records that the link was severed, not merely absent', severed is not null);
 end $$;
 
+-- ---------------------------------------------------------------- cell arithmetic
+/*
+  The generated cells, pinned against the SAME vectors as core/privacy/privacy.test.ts
+  (src/core/privacy/vectors/privacy.json -> "cells").
+
+  These two implementations have to agree exactly. A client that computes a different
+  cell string than the database does not fail loudly — it quietly files its own catches
+  under a cell nothing else uses, and they vanish from every aggregate built on the
+  column. The southern-hemisphere and negative-longitude rows are here because that is
+  where the two would diverge first: SQL `floor` and JavaScript `Math.floor` both go
+  toward minus infinity, but a truncating implementation of either would not.
+*/
+do $$
+declare
+  angler_ uuid := '11111111-1111-1111-1111-111111111111';
+  trip_ uuid := '9a000000-0000-0000-0000-0000000000c9';
+  got record;
+begin
+  insert into public.trip (id, angler_id, water_class, started_at, started_tz, local_date,
+                           client_created_at)
+  values (trip_, angler_, 'salt', now(), 'America/Los_Angeles', current_date, now());
+
+  insert into public.catch (angler_id, trip_id, caught_at, caught_tz, local_date,
+                            client_created_at, lat, lng)
+  values
+    (angler_, trip_, now(), 'America/Los_Angeles', current_date, now(),  33.59870, -118.01230),
+    (angler_, trip_, now(), 'America/Los_Angeles', current_date, now(),  33.00000, -118.04000),
+    (angler_, trip_, now(), 'America/Los_Angeles', current_date, now(), -33.86000,  151.21000),
+    (angler_, trip_, now(), 'America/Los_Angeles', current_date, now(),  34.00000, -118.00000),
+    (angler_, trip_, now(), 'America/Los_Angeles', current_date, now(),  33.99900, -118.00100);
+
+  select
+    count(*) filter (where geo_cell_1km  is not null) as c1,
+    count(*) filter (where geo_cell_10km is not null) as c10,
+    count(*) filter (where geo_cell_50km is not null) as c50
+    into got
+    from public.catch where trip_id = trip_;
+  perform pg_temp.check('every catch with coordinates gets all three cells',
+                        got.c1 = 5 and got.c10 = 5 and got.c50 = 5);
+
+  perform pg_temp.check('southern california, 1 km',
+    (select geo_cell_1km from public.catch where trip_id = trip_ and lat = 33.59870) = '3359_-11802');
+  perform pg_temp.check('southern california, 10 km',
+    (select geo_cell_10km from public.catch where trip_id = trip_ and lat = 33.59870) = '335_-1181');
+  perform pg_temp.check('southern california, 50 km',
+    (select geo_cell_50km from public.catch where trip_id = trip_ and lat = 33.59870) = '67_-237');
+  perform pg_temp.check('negative longitude floors toward minus infinity',
+    (select geo_cell_1km from public.catch where trip_id = trip_ and lat = 33.00000) = '3300_-11804');
+  perform pg_temp.check('southern hemisphere latitude floors the same way',
+    (select geo_cell_10km from public.catch where trip_id = trip_ and lat = -33.86000) = '-339_1512');
+  perform pg_temp.check('a point exactly on a boundary belongs to the cell above it',
+    (select geo_cell_50km from public.catch where trip_id = trip_ and lat = 34.00000) = '68_-236');
+  perform pg_temp.check('and a hair below it belongs to the cell below',
+    (select geo_cell_50km from public.catch where trip_id = trip_ and lat = 33.99900) = '67_-237');
+
+  -- No coordinates is not a zero cell. It is no cell.
+  insert into public.catch (angler_id, trip_id, caught_at, caught_tz, local_date,
+                            client_created_at)
+  values (angler_, trip_, now(), 'America/Los_Angeles', current_date, now());
+  perform pg_temp.check('a catch with no fix has no cell, rather than cell zero',
+    (select count(*) from public.catch
+      where trip_id = trip_ and lat is null and geo_cell_50km is null) = 1);
+
+  -- The per-catch override accepts exactly one value, and null is the normal case.
+  perform pg_temp.check('privacy_override refuses anything but extra_private',
+    not exists (select 1 from public.catch where trip_id = trip_ and privacy_override is not null));
+end $$;
+
 rollback;
