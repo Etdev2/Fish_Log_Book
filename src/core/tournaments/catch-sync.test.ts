@@ -14,6 +14,7 @@ const base: TournamentCatchPayload = {
   lengthMm: 800,
   weightG: 9000,
   disposition: "RELEASED",
+  catchId: "c1",
 };
 
 describe("reconcileTournamentCatch", () => {
@@ -30,6 +31,24 @@ describe("reconcileTournamentCatch", () => {
       kind: "CONFLICT",
       differingFields: ["weightG"],
     });
+  });
+
+  it("treats a re-pointed catch link as a conflict, not a replay", () => {
+    /*
+      A second device resending the same client id with a different `catchId` is trying to
+      swap the fish under a submitted claim. The database refuses it outright
+      (tg_tournament_catch_link_immutable); the reconciler has to call it the same thing,
+      or the client would report success for a write the server rejected.
+    */
+    expect(reconcileTournamentCatch(base, { ...base, catchId: "c2" })).toEqual({
+      kind: "CONFLICT",
+      differingFields: ["catchId"],
+    });
+  });
+
+  it("replays a guest submission, which legitimately has no catch link", () => {
+    const guest: TournamentCatchPayload = { ...base, catchId: null };
+    expect(reconcileTournamentCatch(guest, { ...guest })).toEqual({ kind: "IDEMPOTENT_REPLAY" });
   });
 
   it("does not confuse a different tournament/client identity with a replay", () => {

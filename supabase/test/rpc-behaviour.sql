@@ -309,4 +309,114 @@ begin
   perform pg_temp.check('signed out, you cannot register anybody', failed);
 end $$;
 
+-- ---------------------------------------------------------------- one fish, one record
+/*
+  The link added by 20260915120000. ARCH-001 gave the tournament domain its own catch row
+  with nothing joining it to the angler's log, so the same fish was logged twice and the
+  competitive claim carried none of the conditions or regulation snapshot attached to the
+  personal one. These checks pin the four rules that make the link trustworthy.
+*/
+do $$
+declare
+  trip_a uuid := '9a000000-0000-0000-0000-0000000000a1';
+  catch_a uuid := '9c000000-0000-0000-0000-0000000000c1';
+  trip_b uuid := '9a000000-0000-0000-0000-0000000000b1';
+  catch_b uuid := '9c000000-0000-0000-0000-0000000000d1';
+  captain uuid := '11111111-1111-1111-1111-111111111111';
+  host uuid := '22222222-2222-2222-2222-222222222222';
+  entry_ uuid;
+  org_ uuid;
+  tourn_ uuid;
+  tc uuid;
+  failed boolean;
+  severed timestamptz;
+  linked uuid;
+begin
+  -- The captain's own trip and fish, and the host's, so "you may only link your own"
+  -- has something real to refuse.
+  insert into public.trip (id, angler_id, water_class, started_at, started_tz, local_date,
+                           client_created_at)
+  values (trip_a, captain, 'salt', now(), 'America/Los_Angeles', current_date, now()),
+         (trip_b, host, 'salt', now(), 'America/Los_Angeles', current_date, now());
+
+  insert into public.catch (id, angler_id, trip_id, caught_at, caught_tz, local_date,
+                            client_created_at, outcome, resolution_state)
+  values (catch_a, captain, trip_a, now(), 'America/Los_Angeles', current_date, now(),
+          'landed', 'confirmed'),
+         (catch_b, host, trip_b, now(), 'America/Los_Angeles', current_date, now(),
+          'landed', 'confirmed');
+
+  select e.id, e.organization_id, e.tournament_id into entry_, org_, tourn_
+    from public.tournament_entry e
+    join public.tournament_team t on t.id = e.team_id
+   where t.created_by = captain
+   limit 1;
+  perform pg_temp.check('the captain has an entry to submit against', entry_ is not null);
+
+  -- 1. An account holder must bring their own catch row.
+  failed := false;
+  begin
+    insert into public.tournament_catch
+      (tournament_id, organization_id, entry_id, species_id, species_other,
+       caught_at_device, client_generated_id, created_by)
+    values (tourn_, org_, entry_, null, 'Yellowtail', now(), gen_random_uuid(), captain);
+  exception when others then failed := true; end;
+  perform pg_temp.check('an account holder cannot submit a tournament catch with no linked fish', failed);
+
+  -- 2. You may only link your own fish.
+  failed := false;
+  begin
+    insert into public.tournament_catch
+      (tournament_id, organization_id, entry_id, species_id, species_other,
+       caught_at_device, client_generated_id, created_by, catch_id)
+    values (tourn_, org_, entry_, null, 'Yellowtail', now(), gen_random_uuid(), captain, catch_b);
+  exception when others then failed := true; end;
+  perform pg_temp.check('you cannot staple somebody else''s catch onto your claim', failed);
+
+  -- 3. The happy path.
+  insert into public.tournament_catch
+    (id, tournament_id, organization_id, entry_id, species_id, species_other,
+     caught_at_device, client_generated_id, created_by, catch_id)
+  values (gen_random_uuid(), tourn_, org_, entry_, null, 'Yellowtail', now(),
+          gen_random_uuid(), captain, catch_a)
+  returning id into tc;
+  perform pg_temp.check('a linked submission is accepted', tc is not null);
+
+  -- 4. One fish enters one event once.
+  failed := false;
+  begin
+    insert into public.tournament_catch
+      (tournament_id, organization_id, entry_id, species_id, species_other,
+       caught_at_device, client_generated_id, created_by, catch_id)
+    values (tourn_, org_, entry_, null, 'Yellowtail', now(), gen_random_uuid(), captain, catch_a);
+  exception when others then failed := true; end;
+  perform pg_temp.check('the same fish cannot be entered twice in one tournament', failed);
+
+  -- 5. A guest has no personal catch, and must still be able to compete.
+  insert into public.tournament_catch
+    (tournament_id, organization_id, entry_id, species_id, species_other,
+     caught_at_device, client_generated_id, created_by, catch_id)
+  values (tourn_, org_, entry_, null, 'Calico bass', now(), gen_random_uuid(), null, null);
+  perform pg_temp.check('a guest entrant can still submit without a linked fish', true);
+
+  -- 6. The link cannot be re-pointed at a different fish after submission.
+  failed := false;
+  begin
+    update public.tournament_catch set catch_id = catch_b where id = tc;
+  exception when others then failed := true; end;
+  perform pg_temp.check('a submitted claim cannot be re-pointed at another catch', failed);
+
+  /*
+    7. Deleting the personal fish severs the link and stamps it, rather than cascading the
+    competitive result away or blocking the delete. The claim is immutable and carries its
+    own species, time and measurements, so it survives intact — and severed is a different
+    fact from never-linked, which a dispute may need to tell apart.
+  */
+  delete from public.catch where id = catch_a;
+  select catch_id, catch_link_severed_at into linked, severed
+    from public.tournament_catch where id = tc;
+  perform pg_temp.check('deleting the personal fish leaves the claim standing', linked is null);
+  perform pg_temp.check('and records that the link was severed, not merely absent', severed is not null);
+end $$;
+
 rollback;
