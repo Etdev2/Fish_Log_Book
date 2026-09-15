@@ -14,4 +14,16 @@ $$;
 create or replace function auth.role() returns text language sql stable as $$
   select coalesce(nullif(current_setting('request.jwt.claim.role', true), ''), 'anon');
 $$;
+
+/*
+  Real Supabase lets the client roles call `auth.uid()`; without this they cannot, and an
+  RLS policy that says `purchaser_angler_id = auth.uid()` fails on permissions rather than
+  on the row. Granted here because a test that reads zero rows for the wrong reason is
+  worse than no test — it reports "correctly denied" for a policy that was never evaluated.
+*/
+grant usage on schema auth to anon, authenticated, service_role;
+grant execute on function auth.uid() to anon, authenticated, service_role;
+grant execute on function auth.role() to anon, authenticated, service_role;
+grant select on auth.users to authenticated, service_role;
+
 create extension if not exists pgcrypto;
