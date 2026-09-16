@@ -152,6 +152,8 @@ export function RegistrationPage({ tournamentId }: { tournamentId: string }) {
 
   return (
     <div className={PAGE}>
+      {load.demo ? <DemoNote /> : null}
+
       <BackLink
         href={`/tournaments/${tournamentId}/overview`}
         label={arrivedFrom?.name ?? "Event"}
@@ -238,7 +240,6 @@ export function RegistrationPage({ tournamentId }: { tournamentId: string }) {
         <p className="text-body text-text-muted">Tick at least one event to see the total.</p>
       )}
 
-      {load.demo ? <DemoNote /> : null}
     </div>
   );
 }

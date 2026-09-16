@@ -19,6 +19,7 @@ files rather than silently resolved.
 | [regulations-data-model.md](regulations-data-model.md) | Proposed; SoCal dataset landed | `reg_area` / `reg_group` / `reg_pack` / `reg_rule` field meanings. |
 | [regulations-socal-research.md](regulations-socal-research.md) | Research findings | Sourced Southern California ocean sport fishing rules behind the SoCal pack. |
 | [rockfish-identification.md](rockfish-identification.md) | Draft for implementation | Rockfish reference data and decision tree. Biology only. Absorbed by Fin ID later — see the passport spec §17. |
+| [expansion/](expansion/README.md) | **Proposed** — 14 documents, nothing committed | The fishing-intelligence-platform expansion: government partnership, catch enrichment, fisheries map, tournament redesign, UI critic loop, equipment catalog, AI fish ID, fish biometrics, data architecture, privacy governance, phased roadmap, and a final decision report. **Read `expansion/00-repository-audit.md` first** — six of the twelve asks are already half-built, and one (the second catch-record system) is already built wrong. |
 
 ## Adding a spec
 

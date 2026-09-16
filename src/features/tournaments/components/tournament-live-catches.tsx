@@ -150,6 +150,8 @@ export function TournamentLiveCatches({ tournamentId }: { tournamentId: string }
 
   return (
     <div className={PAGE}>
+      {demoMode ? <DemoNote /> : null}
+
       <header className="flex flex-col gap-space-3">
         <BackLink href={`/tournaments/${tournament.id}/overview`} label={tournament.name} />
         <div className="flex flex-wrap items-end justify-between gap-space-3">
@@ -354,7 +356,6 @@ export function TournamentLiveCatches({ tournamentId }: { tournamentId: string }
         look at. Nothing here changes a score on its own.
       </p>
 
-      {demoMode ? <DemoNote /> : null}
     </div>
   );
 }

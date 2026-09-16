@@ -51,14 +51,20 @@ export function TournamentLeaderboard({ tournamentId }: { tournamentId: string }
 
   return (
     <div className={PAGE}>
+      {demoMode ? <DemoNote /> : null}
+
       <header className="flex flex-col gap-space-3">
-        <BackLink href={`/tournaments/${tournament.id}/overview`} label="Tournament home" />
-        <div className="flex flex-col gap-space-1">
-          <span className="text-label text-signal-orange">Step 3 of 3</span>
-          <div className="flex flex-wrap items-end justify-between gap-space-3">
-            <h1 className="text-h1 text-text-primary">Results</h1>
-            <TonePill tone={official ? "done" : "attention"}>{official ? "Official" : "Provisional"}</TonePill>
-          </div>
+        <BackLink href="/tournaments" label="All tournaments" />
+        {/*
+          "Step 3 of 3" used to sit above this heading, in signal-orange. It was the third
+          disagreeing count of the same journey — the tab bar said five things, the
+          overview's journey cards said four, and this said three. The journey cards are
+          gone, the tab numbers are gone, and so is this. The screen is called Standings
+          everywhere it is referred to, including here.
+        */}
+        <div className="flex flex-wrap items-end justify-between gap-space-3">
+          <h1 className="text-h1 text-text-primary">Standings</h1>
+          <TonePill tone={official ? "done" : "attention"}>{official ? "Official" : "Provisional"}</TonePill>
         </div>
         <p className="text-body text-text-muted">
           {official
@@ -177,7 +183,6 @@ export function TournamentLeaderboard({ tournamentId }: { tournamentId: string }
         Public results show names, fish, measurements, and rank. They never expose fishing positions, private evidence, or judge notes.
       </p>
 
-      {demoMode ? <DemoNote /> : null}
     </div>
   );
 }
