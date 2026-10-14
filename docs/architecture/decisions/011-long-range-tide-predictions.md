@@ -25,5 +25,7 @@ This agrees with `docs/analysis/data-sources.md`.
 
 ## Consequences
 Far-future days show a smoother curve than the near week. Pace percentiles are computed over
-the mix of hourly and turn-only samples. Offline use beyond the cache still falls back to the
+a one-week baseline centred on the read instant (slid inward at the series' ends), never the
+whole two-year series: ranking against ~105k samples on every scrub step would stall the UI.
+The baseline mixes hourly and turn-only samples where the week straddles the near-week edge. Offline use beyond the cache still falls back to the
 fixture, which is labelled.

@@ -50,10 +50,13 @@ head-dev.*
 ➡️ Use the documented limits, not what happens to work today.
 
 **NOAA data engineer:** The CO-OPS API docs (api.tidesandcurrents.noaa.gov/api/prod/) list the
-data-length limits as 6-minute = 1 month, hourly = 1 year, and High/Low = 1 year. A 2-year
-`h` request happened to succeed live (17,520 rows), but that is undocumented behaviour.
-**Decision:** Each request is at most 365 days, so 2 years = chunked requests run one after
-another. *Owner: head-dev.*
+prediction data-length limits as 6-minute = 1 month, hourly = 1 year, and High/Low (`hilo`) =
+10 years. (The "High/Low = 1 year" row in that table is for *observed* water levels, not
+predictions.) A 2-year `h` request happened to succeed live (17,520 rows), but that is
+undocumented behaviour.
+**Decision:** Respect the documented per-interval limits: the 730-day high/low range is one
+`hilo` request, and the near-week hourly request stays well inside its 1-year limit. Chunking
+exists only for ranges past a limit (365 days for `h`, 3,650 days for `hilo`). See ADR 011. *Owner: head-dev.*
 
 ---
 
