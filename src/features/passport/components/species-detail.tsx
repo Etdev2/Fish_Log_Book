@@ -2,12 +2,13 @@
 
 import { BackLink } from "@/components/back-link";
 import Link from "next/link";
-import { useMemo, useSyncExternalStore } from "react";
+import { useMemo } from "react";
 
 import { speciesById } from "@/core/ontology/species";
 import { collectionsForSpecies } from "@/core/rules/passport/collections";
 import { formatLength, formatWeight, type UnitSystem } from "@/features/catches/format";
-import { currentZone, useLog } from "@/features/catches/store";
+import { useLog } from "@/features/catches/store";
+import { useLocalTimeZone } from "@/features/conditions/use-local-time-zone";
 import { speciesPhoto } from "@/features/fish-legal/species-photos";
 
 import { usePassport } from "../data";
@@ -49,9 +50,10 @@ export function SpeciesDetail({
   const photo = useMemo(() => speciesPhoto(speciesId), [speciesId]);
   // UI-1 item 15 (React error 418): this page is prerendered, so reading the zone during render
   // printed the BUILD server's zone (UTC on Vercel) into the HTML and the phone's zone on
-  // hydration — a text mismatch for every angler outside UTC. The server snapshot is null,
-  // so the line renders only once the client knows its own zone.
-  const zone = useSyncExternalStore(noopSubscribe, currentZone, serverZone);
+  // hydration — a text mismatch for every angler outside UTC. `useLocalTimeZone` keeps the
+  // client snapshot null too until its post-mount subscribe runs (a plain getSnapshot that
+  // reads Intl can still be used on the hydration render), so the line renders only after.
+  const zone = useLocalTimeZone();
 
   const catches = useMemo(
     () =>
@@ -252,11 +254,3 @@ function Stat({ label, value }: { label: string; value: string }) {
   );
 }
 
-/** The zone never changes under a running page, so there is nothing to subscribe to. */
-function noopSubscribe(): () => void {
-  return () => {};
-}
-
-function serverZone(): string | null {
-  return null;
-}
