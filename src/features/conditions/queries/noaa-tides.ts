@@ -18,8 +18,10 @@
  * station 9410580, for both `h` and `hilo`, with `access-control-allow-origin: *`.
  *
  * No API key, no account, no quota published for this volume (see docs/finance). The
- * documented per-request data length for hourly and High/Low predictions is 1 year, so
- * long windows are split into `MAX_REQUEST_MS` chunks (ADR 011).
+ * documented per-request data length for `product=predictions` is 10 years for
+ * `interval=hilo` and 1 year for every other interval (verified against the API docs and a
+ * live request on 2026-10-14; the server rejects hilo beyond 3655 days). So the two-year
+ * turn window is ONE request, and only the hourly curve is ever chunked (ADR 011).
  */
 
 import { instant, metres } from "@/core/units";
@@ -36,8 +38,19 @@ export class TideFetchError extends Error {}
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
-/** NOAA's documented data-length limit for `h` and `hilo` predictions is one year. */
+/** NOAA's documented data-length limit for `h` (and every non-hilo) prediction interval: one year. */
 export const MAX_REQUEST_MS = 365 * DAY_MS;
+
+/**
+ * NOAA's documented limit for `interval=hilo` predictions: 10 years. The live service
+ * enforces "3655 days"; 3650 keeps a margin for leap days and inclusive end dates.
+ */
+export const MAX_HILO_REQUEST_MS = 3650 * DAY_MS;
+
+/** Per-request data length for each interval this module requests. */
+export function maxRequestMs(interval: "h" | "hilo"): number {
+  return interval === "hilo" ? MAX_HILO_REQUEST_MS : MAX_REQUEST_MS;
+}
 
 /**
  * Split `[fromMs, toMs]` into consecutive chunks no longer than `maxMs`. The API's dates
@@ -161,7 +174,10 @@ export interface FetchWindow {
   readonly turnsToMs?: number;
 }
 
-/** Sequential, not parallel: a handful of small requests, and kind to a free public API. */
+/**
+ * Sequential, not parallel: kind to a free public API. With the default window this is one
+ * hourly request and one hilo request; chunking only engages for windows past the limit.
+ */
 async function getChunked(
   stationId: string,
   interval: "h" | "hilo",
@@ -169,7 +185,7 @@ async function getChunked(
   signal?: AbortSignal,
 ): Promise<RawPrediction[]> {
   const rows: RawPrediction[] = [];
-  for (const chunk of chunkWindow(window.fromMs, window.toMs)) {
+  for (const chunk of chunkWindow(window.fromMs, window.toMs, maxRequestMs(interval))) {
     rows.push(...(await getPredictions(stationId, interval, chunk.fromMs, chunk.toMs, signal)));
   }
   return rows;

@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import { instant, metres } from "@/core/units";
 import type { TidePredictionSample } from "@/core/rules/tide";
 
-import { chunkWindow, MAX_REQUEST_MS, mergeSamples } from "./noaa-tides";
+import { chunkWindow, MAX_HILO_REQUEST_MS, MAX_REQUEST_MS, maxRequestMs, mergeSamples } from "./noaa-tides";
 import { windowAround } from "./use-tide-series";
 
 /**
@@ -54,7 +54,7 @@ describe("merging the hourly curve with the turning points", () => {
   });
 });
 
-describe("chunking long windows within NOAA's one-year limit (ADR 011)", () => {
+describe("chunking long windows within NOAA's per-interval limits (ADR 011)", () => {
   const DAY = 24 * 60 * 60 * 1000;
   const from = Date.UTC(2026, 9, 11);
 
@@ -70,6 +70,18 @@ describe("chunking long windows within NOAA's one-year limit (ADR 011)", () => {
     expect(chunks[0].fromMs).toBe(from);
     expect(chunks.at(-1)!.toMs).toBe(to);
     for (let i = 1; i < chunks.length; i++) expect(chunks[i].fromMs).toBe(chunks[i - 1].toMs + DAY);
+  });
+
+  it("uses the 10-year hilo limit, so the two-year turn window is a single request", () => {
+    expect(maxRequestMs("hilo")).toBe(MAX_HILO_REQUEST_MS);
+    expect(maxRequestMs("h")).toBe(MAX_REQUEST_MS);
+    const w = windowAround(from);
+    expect(chunkWindow(w.fromMs, w.turnsToMs, maxRequestMs("hilo"))).toHaveLength(1);
+    expect(chunkWindow(w.fromMs, w.toMs, maxRequestMs("h"))).toHaveLength(1);
+  });
+
+  it("stays under NOAA's enforced 3655-day hilo cap", () => {
+    expect(MAX_HILO_REQUEST_MS / DAY).toBeLessThan(3655);
   });
 
   it("returns nothing for an inverted window", () => {
