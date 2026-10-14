@@ -2,7 +2,7 @@
 
 import { BackLink } from "@/components/back-link";
 import Link from "next/link";
-import { useMemo } from "react";
+import { useMemo, useSyncExternalStore } from "react";
 
 import { speciesById } from "@/core/ontology/species";
 import { collectionsForSpecies } from "@/core/rules/passport/collections";
@@ -47,7 +47,11 @@ export function SpeciesDetail({
 
   const summary = summaryOf(speciesId);
   const photo = useMemo(() => speciesPhoto(speciesId), [speciesId]);
-  const zone = currentZone();
+  // UI-1 item 15 (React error 418): this page is prerendered, so reading the zone during render
+  // printed the BUILD server's zone (UTC on Vercel) into the HTML and the phone's zone on
+  // hydration — a text mismatch for every angler outside UTC. The server snapshot is null,
+  // so the line renders only once the client knows its own zone.
+  const zone = useSyncExternalStore(noopSubscribe, currentZone, serverZone);
 
   const catches = useMemo(
     () =>
@@ -234,7 +238,7 @@ export function SpeciesDetail({
         </Link>
       </section>
 
-      <p className="text-caption text-text-muted">Zone: {zone}</p>
+      {zone ? <p className="text-caption text-text-muted">Zone: {zone}</p> : null}
     </div>
   );
 }
@@ -246,4 +250,13 @@ function Stat({ label, value }: { label: string; value: string }) {
       <dd className="text-body-strong text-text-primary">{value}</dd>
     </div>
   );
+}
+
+/** The zone never changes under a running page, so there is nothing to subscribe to. */
+function noopSubscribe(): () => void {
+  return () => {};
+}
+
+function serverZone(): string | null {
+  return null;
 }
