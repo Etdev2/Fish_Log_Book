@@ -1,0 +1,41 @@
+{
+  "schemaVersion": 1,
+  "ticket": "Etdev2/sweet-potato#4",
+  "sourceDigest": "sha256:38bf6f5dc1a7d38382ead38524cde4fa99f7c7d745b31b5fdcb84735fd8218d6",
+  "capturedAt": "2026-10-14T04:02:19Z",
+  "result": "PASS",
+  "verification": {
+    "command": "npm run verify",
+    "fixture": "the feature map in .claude/skills/verify/SKILL.md"
+  },
+  "commands": [
+    {
+      "command": "scripts/check-pinned-scripts.sh",
+      "exitCode": 0
+    },
+    {
+      "command": "scripts/check-secret-files.sh",
+      "exitCode": 0
+    },
+    {
+      "command": "scripts/test-proof-tools.sh",
+      "exitCode": 0
+    },
+    {
+      "command": "npm run verify",
+      "exitCode": 0
+    },
+    {
+      "command": "npm run build",
+      "exitCode": 0
+    }
+  ],
+  "behaviorChanged": true,
+  "evidence": [
+    {
+      "path": "proof/verification.txt",
+      "kind": "terminal",
+      "shows": "The control-room pin check, the proof-tool self-test, npm run verify and npm run build, each with its output and exit code."
+    }
+  ]
+}

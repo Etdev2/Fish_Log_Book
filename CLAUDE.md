@@ -31,6 +31,12 @@ subagent. Repository handoffs share information but do not transfer write owners
 
 ## Agent skills
 
+### Sweet Potato
+
+Before saying a ticket is done, use the `verify` skill in `.claude/skills/verify/` and
+commit the proof bundle it writes. Upstream skills and their pinned commits are in
+`skills/registry.json`; the rules are in the Sweet Potato section of `AGENTS.md`.
+
 ### Issue tracker
 
 Issues live in this repo's GitHub Issues, via the `gh` CLI. See `docs/agents/issue-tracker.md`.

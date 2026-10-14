@@ -15,8 +15,10 @@
     "migrations:check": "node scripts/check-migration-versions.mjs",
     "db:check": "scripts/check-migrations-apply.sh",
     "test": "vitest run",
-    "verify": "npm run tokens:check && npm run tripwires && npm run migrations:check && npm run lint && tsc --noEmit && npm run test",
-    "layout": "node scripts/check-layout.mjs"
+    "verify": "npm run sp:check && npm run tokens:check && npm run tripwires && npm run migrations:check && npm run lint && tsc --noEmit && npm run test",
+    "layout": "node scripts/check-layout.mjs",
+    "sp:check": "bash scripts/check-pinned-scripts.sh && bash scripts/check-secret-files.sh",
+    "prove": "bash scripts/prove.sh"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.5",

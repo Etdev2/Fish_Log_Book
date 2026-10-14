@@ -1,0 +1,183 @@
+$ scripts/check-pinned-scripts.sh
+4 copied scripts match the pinned control-room commit.
+[exit 0]
+
+$ scripts/check-secret-files.sh
+No secret-looking files are committed.
+[exit 0]
+
+$ scripts/test-proof-tools.sh
+ok   a bundle from the copied writer passes
+ok   evidence named by a pattern fails
+ok   evidence naming a directory fails
+ok   an unstaged manifest edit is ignored; the committed ticket is checked
+ok   an uncommitted edit can't turn a committed FAIL into PASS
+ok   the drift check catches a one-byte change to a copied script
+All proof-tool cases behave as specified.
+[exit 0]
+
+$ npm run verify
+
+> fish-log-book@0.1.0 verify
+> npm run sp:check && npm run tokens:check && npm run tripwires && npm run migrations:check && npm run lint && tsc --noEmit && npm run test
+
+
+> fish-log-book@0.1.0 sp:check
+> bash scripts/check-pinned-scripts.sh && bash scripts/check-secret-files.sh
+
+4 copied scripts match the pinned control-room commit.
+No secret-looking files are committed.
+
+> fish-log-book@0.1.0 tokens:check
+> node scripts/tokens.mjs --check
+
+Wrote src/app/tokens.generated.css
+
+> fish-log-book@0.1.0 tripwires
+> node scripts/check-tripwires.mjs
+
+tripwires: clean.
+
+> fish-log-book@0.1.0 migrations:check
+> node scripts/check-migration-versions.mjs
+
+migrations: 61 unique versions.
+
+> fish-log-book@0.1.0 lint
+> eslint
+
+
+/workspace/flb-sp/src/features/fish-legal/components/alerts-page.tsx
+  4:10  warning  'useEffect' is defined but never used   @typescript-eslint/no-unused-vars
+  4:21  warning  'useState' is defined but never used    @typescript-eslint/no-unused-vars
+  8:81  warning  'LegalAlert' is defined but never used  @typescript-eslint/no-unused-vars
+
+/workspace/flb-sp/src/features/fish-legal/components/boundary-leaflet.tsx
+  117:6  warning  React Hook useEffect has missing dependencies: 'areas', 'center', and 'showRca'. Either include them or remove the dependency array  react-hooks/exhaustive-deps
+
+/workspace/flb-sp/src/features/fish-legal/reg-data-parity.test.ts
+  16:10  warning  'MASSACHUSETTS' is defined but never used  @typescript-eslint/no-unused-vars
+  17:10  warning  'RHODE_ISLAND' is defined but never used   @typescript-eslint/no-unused-vars
+  18:10  warning  'NEW_YORK' is defined but never used       @typescript-eslint/no-unused-vars
+  19:10  warning  'NEW_JERSEY' is defined but never used     @typescript-eslint/no-unused-vars
+
+✖ 8 problems (0 errors, 8 warnings)
+
+
+> fish-log-book@0.1.0 test
+> vitest run
+
+
+ RUN  v4.1.11 /workspace/flb-sp
+
+
+ Test Files  97 passed (97)
+      Tests  1077 passed (1077)
+   Start at  21:01:50
+   Duration  4.97s (transform 4.19s, setup 0ms, import 7.27s, tests 2.71s, environment 11ms)
+
+[exit 0]
+
+$ npm run build
+
+> fish-log-book@0.1.0 prebuild
+> npm run tokens
+
+
+> fish-log-book@0.1.0 tokens
+> node scripts/tokens.mjs
+
+Wrote src/app/tokens.generated.css
+
+> fish-log-book@0.1.0 build
+> next build
+
+▲ Next.js 16.3.3 (Turbopack)
+✓ Running next.config.ts took 44ms
+
+  Creating an optimized production build ...
+✓ Compiled successfully in 10.0s
+  Running TypeScript ...
+  Finished TypeScript in 10.2s ...
+  Collecting page data using 7 workers ...
+⚠️  Node.js 20 and below are deprecated and will no longer be supported in future versions of @supabase/supabase-js. Please upgrade to Node.js 22 or later. For more information, visit: https://github.com/orgs/supabase/discussions/45715
+⚠️  Node.js 20 and below are deprecated and will no longer be supported in future versions of @supabase/supabase-js. Please upgrade to Node.js 22 or later. For more information, visit: https://github.com/orgs/supabase/discussions/45715
+  Generating static pages using 7 workers (0/52) ...
+⚠️  Node.js 20 and below are deprecated and will no longer be supported in future versions of @supabase/supabase-js. Please upgrade to Node.js 22 or later. For more information, visit: https://github.com/orgs/supabase/discussions/45715
+⚠️  Node.js 20 and below are deprecated and will no longer be supported in future versions of @supabase/supabase-js. Please upgrade to Node.js 22 or later. For more information, visit: https://github.com/orgs/supabase/discussions/45715
+⚠️  Node.js 20 and below are deprecated and will no longer be supported in future versions of @supabase/supabase-js. Please upgrade to Node.js 22 or later. For more information, visit: https://github.com/orgs/supabase/discussions/45715
+  Generating static pages using 7 workers (13/52) 
+⚠️  Node.js 20 and below are deprecated and will no longer be supported in future versions of @supabase/supabase-js. Please upgrade to Node.js 22 or later. For more information, visit: https://github.com/orgs/supabase/discussions/45715
+  Generating static pages using 7 workers (26/52) 
+  Generating static pages using 7 workers (39/52) 
+✓ Generating static pages using 7 workers (52/52) in 792ms
+  Finalizing page optimization ...
+
+Route (app)
+┌ ○ /
+├ ○ /_not-found
+├ ƒ /api/payments/stripe/webhook
+├ ƒ /callback
+├ ƒ /catch/[id]
+├ ƒ /day/[date]
+├ ○ /fin-id
+├ ○ /fish-id
+├ ƒ /fish-id/[packId]
+├ ○ /fish-legal
+├ ○ /fish-legal/alerts
+├ ○ /fish-legal/boundaries
+├ ○ /fish-legal/limits
+├ ○ /fish-legal/offline
+├ ○ /fish-legal/rockfish
+├ ○ /fish-legal/species
+├ ƒ /fish-legal/species/[id]
+├ ○ /games
+├ ○ /games/new
+├ ○ /games/play
+├ ○ /games/result
+├ ○ /learn
+├ ○ /legal
+├   /legal/[slug]
+│ ├ ● /legal/regulations
+│ ├ ● /legal/terms
+│ └ ● /legal/privacy
+├ ○ /log
+├ ○ /onboarding
+├ ○ /passport
+├ ○ /passport/badges
+├ ○ /passport/collections
+├ ƒ /passport/collections/[collectionId]
+├ ○ /passport/slams
+├ ○ /passport/species
+├ ƒ /passport/species/[speciesId]
+├ ○ /settings
+├ ○ /setup
+├ ○ /sign-in
+├ ○ /spots
+├ ƒ /spots/[id]
+├ ○ /tackle
+├   /tackle/[category]
+│ ├ ● /tackle/hooks
+│ ├ ● /tackle/jigs
+│ ├ ● /tackle/hard-baits
+│ └ ● [+10 more paths]
+├ ○ /tides
+├ ○ /tournaments
+├ ƒ /tournaments/[id]/catches
+├ ƒ /tournaments/[id]/leaderboard
+├ ƒ /tournaments/[id]/operations
+├ ƒ /tournaments/[id]/overview
+├ ƒ /tournaments/[id]/register
+├ ƒ /tournaments/[id]/rules
+├ ○ /tournaments/mine
+├ ○ /tournaments/new
+└ ƒ /trip/[id]
+
+
+ƒ Proxy (Middleware)
+
+○  (Static)   prerendered as static content
+●  (SSG)      prerendered as static HTML (uses generateStaticParams)
+ƒ  (Dynamic)  server-rendered on demand
+
+[exit 0]
