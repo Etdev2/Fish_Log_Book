@@ -46,7 +46,11 @@ describe("the chart's view window", () => {
     expect(view.samples.length).toBeGreaterThan(0);
   });
 
-  it("formats day bounds for a date input", () => {
-    expect(isoDay(BASE)).toBe("2026-10-01");
+  it("formats day bounds for a date input on the station's calendar", () => {
+    expect(isoDay(BASE + 12 * 60 * 60 * 1000, "America/Los_Angeles")).toBe("2026-10-01");
+    // 00:00 UTC Oct 1 is still Sep 30 in Pacific time.
+    expect(isoDay(BASE, "America/Los_Angeles")).toBe("2026-09-30");
+    // 6 p.m. PDT Oct 1 is already Oct 2 in UTC; the station day must not jump ahead.
+    expect(isoDay(BASE + 25 * 60 * 60 * 1000, "America/Los_Angeles")).toBe("2026-10-01");
   });
 });
