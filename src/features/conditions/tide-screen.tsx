@@ -111,10 +111,13 @@ function TideViewWindow({
   const effectiveAnchor = anchor ?? (nowMs !== null && nowMs >= fullStart && nowMs <= fullEnd ? nowMs : null);
 
   const view = useMemo(() => {
-    if (effectiveAnchor === null) return series;
-    const { fromMs, toMs } = viewWindowAround(effectiveAnchor);
+    // Always slice: with no in-range anchor (clock not read yet, or now outside the data)
+    // fall back to the nearest end, never hand the fixed-px/hour chart two whole years.
+    const sliceAt =
+      effectiveAnchor ?? (nowMs !== null && nowMs > fullEnd ? fullEnd : fullStart);
+    const { fromMs, toMs } = viewWindowAround(sliceAt);
     return sliceSeries(series, fromMs, toMs);
-  }, [series, effectiveAnchor]);
+  }, [series, effectiveAnchor, nowMs, fullStart, fullEnd]);
 
   const staleNote =
     tideData.source === "fixture" || tideData.stale ? tideSourceLabel(tideData) : null;
