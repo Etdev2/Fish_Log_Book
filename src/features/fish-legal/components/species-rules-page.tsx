@@ -76,27 +76,32 @@ export function SpeciesRulesPage({ speciesId }: { speciesId: string }) {
             </figcaption>
           </figure>
         ) : null}
-        <div className="flex items-center gap-2">
+        <div className="flex flex-col items-start gap-2 sm:flex-row sm:items-center">
           <h1 className="text-h1">{name}</h1>
           <JurisdictionChip prefix="Species" />
         </div>
         <p className="mt-1 text-caption text-text-muted">
           {bundle ? `${bundle.jurisdictionLabel} · ` : `No pack for ${regionLabel} · `}
-          {dateKey} ·{" "}
-          <span className="inline-flex gap-2">
-            {(["boat", "kayak", "shore", "spearfishing"] as const).map((m) => (
-              <button
-                key={m}
-                type="button"
-                aria-pressed={mode === m}
-                onClick={() => setMode(m)}
-                className={mode === m ? "font-semibold text-text-link underline" : "underline decoration-dotted underline-offset-2"}
-              >
-                {m}
-              </button>
-            ))}
-          </span>
+          {dateKey}
         </p>
+        {/* UI-1 #7: 48 px chips with 12 px gaps, not 22 px underlined words in a caption. */}
+        <div role="group" aria-label="How are you fishing?" className="mt-3 flex flex-wrap gap-3">
+          {(["boat", "kayak", "shore", "spearfishing"] as const).map((m) => (
+            <button
+              key={m}
+              type="button"
+              aria-pressed={mode === m}
+              onClick={() => setMode(m)}
+              className={`inline-flex min-h-touch-floor min-w-touch-floor items-center justify-center rounded-full border px-4 text-label capitalize focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-focus-ring ${
+                mode === m
+                  ? "border-signal-orange bg-surface-raised text-text-primary"
+                  : "border-border-interactive text-text-primary"
+              }`}
+            >
+              {m}
+            </button>
+          ))}
+        </div>
         <div className="mt-3">
           <LegalNotice kind="regulations" />
         </div>
@@ -138,12 +143,15 @@ export function SpeciesRulesPage({ speciesId }: { speciesId: string }) {
             ))}
           </ul>
           <p className="mt-2 text-caption text-text-muted">
-            Mix-ups happen: {profile.similarTo.map(speciesDisplayName).join(", ")}.{" "}
-            <Link href="/fish-legal/rockfish" className="text-text-link underline decoration-dotted underline-offset-4">
-              Run the identifier
-            </Link>{" "}
-            if the one in your hand doesn&rsquo;t match the one in your head.
+            Mix-ups happen: {profile.similarTo.map(speciesDisplayName).join(", ")}. If the one
+            in your hand doesn&rsquo;t match the one in your head:
           </p>
+          <Link
+            href="/fish-legal/rockfish"
+            className="inline-flex min-h-touch-floor items-center text-label text-text-link underline decoration-dotted underline-offset-4"
+          >
+            Run the identifier
+          </Link>
         </section>
       ) : null}
     </div>

@@ -36,15 +36,17 @@ const NOTICE: Record<LegalNoticeKind, { lead: string; body: string }> = {
 export function LegalNotice({ kind }: { kind: LegalNoticeKind }) {
   const { lead, body } = NOTICE[kind];
   return (
-    <p className="text-caption text-text-muted">
-      <strong className="font-semibold text-text-primary">{lead}</strong> {body}{" "}
+    <div className="text-caption text-text-muted">
+      <p>
+        <strong className="font-semibold text-text-primary">{lead}</strong> {body}
+      </p>
+      {/* UI-1 #8: the link is its own 48 px row, not a 39 px wrap inside the sentence. */}
       <Link
         href="/legal/regulations"
-        className="text-text-link underline decoration-dotted underline-offset-2"
+        className="inline-flex min-h-touch-floor items-center text-text-link underline decoration-dotted underline-offset-2"
       >
         Why, and what to check
       </Link>
-      .
-    </p>
+    </div>
   );
 }
