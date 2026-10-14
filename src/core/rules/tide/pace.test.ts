@@ -1,7 +1,21 @@
 import { describe, expect, it } from "vitest";
 import { metresPerHour } from "@/core/units";
-import { paceAt } from "./pace";
-import { fixtureSeries } from "./test-support";
+import { instant, metres } from "@/core/units";
+import { paceAt, PACE_BASELINE_HALF_SPAN } from "./pace";
+import { tideSeries } from "./source";
+import { FIXTURE_STATION, fixtureSeries } from "./test-support";
+
+/** Turns-only semidiurnal series spanning `days`, like ADR 011's two-year hilo range. */
+function longTurnsSeries(days: number) {
+  const start = Date.UTC(2026, 0, 1);
+  const step = 6.21 * 60 * 60_000;
+  const samples = [];
+  for (let i = 0, t = start; t <= start + days * 86_400_000; i++, t += step) {
+    const high = i % 2 === 0;
+    samples.push({ at: instant(t), height: metres(high ? 1.6 : 0.2), turn: high ? ("high" as const) : ("low" as const) });
+  }
+  return tideSeries({ station: FIXTURE_STATION, samples, provider: "fixture" });
+}
 
 describe("paceAt", () => {
   const series = fixtureSeries();
@@ -50,5 +64,20 @@ describe("paceAt", () => {
     expect(baseline.legCount).toBeLessThan(20);
     expect(baseline.sampleCount).toBeGreaterThan(baseline.legCount * 10);
     expect(baseline.sampleInterval).toBe(10 * 60_000);
+  });
+
+  it("bounds the baseline to a one-week window however long the series is", () => {
+    const long = longTurnsSeries(730);
+    const mid = instant(Number(long.samples[0].at) + 365 * 86_400_000);
+    const { baseline } = paceAt(long, mid, metresPerHour(0.1)).value;
+    const weekSamples = (2 * PACE_BASELINE_HALF_SPAN) / baseline.sampleInterval + 1;
+    expect(baseline.sampleCount).toBeLessThanOrEqual(weekSamples);
+    expect(baseline.legCount).toBeLessThan(40);
+  });
+
+  it("keeps a full week of baseline at the series' first instant", () => {
+    const long = longTurnsSeries(730);
+    const { baseline } = paceAt(long, long.samples[0].at, metresPerHour(0.1)).value;
+    expect(baseline.legCount).toBeGreaterThan(20);
   });
 });
