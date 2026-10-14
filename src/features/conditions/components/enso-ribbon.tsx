@@ -7,8 +7,12 @@
  * week would say nothing. The ribbon shows the years-out context instead: observed episodes
  * in solid colour, CPC outlook months faded and labelled with their probability, and months
  * past the outlook left empty as "no forecast".
+ *
+ * Every month is a button: tapping or focusing it shows its exact state in the detail line
+ * under the strip (touch screens have no hover, so a `title` alone would hide it). Until one
+ * is picked, the detail line describes the month the chart's week sits in.
  */
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 
 import { ensoMonths, isCoverageGap, type EnsoMonth } from "../enso/enso";
 import { OUTLOOK_ISSUED, OUTLOOK_SOURCE_URL, ONI_SOURCE_URL } from "../enso/enso-data.generated";
@@ -57,6 +61,12 @@ export function EnsoRibbon({
 }) {
   const months = useMemo(() => ensoMonths(fromMs, toMs), [fromMs, toMs]);
   const spans = useMemo(() => monthSpans(months, fromMs, toMs), [months, fromMs, toMs]);
+  const [picked, setPicked] = useState<string | null>(null);
+  const viewMid = new Date((viewFromMs + viewToMs) / 2);
+  const viewKey = `${viewMid.getUTCFullYear()}-${viewMid.getUTCMonth() + 1}`;
+  const keyOf = (m: EnsoMonth) => `${m.year}-${m.month}`;
+  const selected =
+    months.find((m) => keyOf(m) === picked) ?? months.find((m) => keyOf(m) === viewKey) ?? months[0];
   const span = Math.max(1, toMs - fromMs);
   const left = Math.max(0, Math.min(100, ((viewFromMs - fromMs) / span) * 100));
   const width = Math.max(0.8, Math.min(100 - left, ((viewToMs - viewFromMs) / span) * 100));
@@ -64,30 +74,41 @@ export function EnsoRibbon({
   return (
     <figure className="mx-4 mt-3" aria-label="El Niño and La Niña across the loaded tide range">
       <div className="relative flex h-4 overflow-hidden rounded border border-hairline">
-        {months.map((m, i) => (
-          <span
-            key={`${m.year}-${m.month}`}
-            title={monthTitle(m)}
-            data-phase={m.phase ?? "none"}
-            data-basis={m.basis}
-            className="h-full"
-            style={{
-              flex: `${spans[i]} 1 0`,
-              background: m.phase === null ? "transparent" : FILL[m.phase],
-              opacity: m.basis === "outlook" ? 0.55 : 1,
-              backgroundImage:
-                m.basis === "outlook"
-                  ? "repeating-linear-gradient(45deg, transparent 0 3px, var(--color-background) 3px 5px)"
-                  : undefined,
-            }}
-          />
-        ))}
+        {months.map((m, i) => {
+          const k = keyOf(m);
+          return (
+            <button
+              type="button"
+              key={k}
+              title={monthTitle(m)}
+              aria-label={monthTitle(m)}
+              aria-pressed={selected !== undefined && keyOf(selected) === k}
+              data-phase={m.phase ?? "none"}
+              data-basis={m.basis}
+              onClick={() => setPicked(k)}
+              onFocus={() => setPicked(k)}
+              className="h-full min-w-0 p-0 focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-focus-ring"
+              style={{
+                flex: `${spans[i]} 1 0`,
+                background: m.phase === null ? "transparent" : FILL[m.phase],
+                opacity: m.basis === "outlook" ? 0.55 : 1,
+                backgroundImage:
+                  m.basis === "outlook"
+                    ? "repeating-linear-gradient(45deg, transparent 0 3px, var(--color-background) 3px 5px)"
+                    : undefined,
+              }}
+            />
+          );
+        })}
         <span
           aria-hidden="true"
-          className="absolute inset-y-0 border-2 border-text-primary"
+          className="pointer-events-none absolute inset-y-0 border-2 border-text-primary"
           style={{ left: `${left}%`, width: `${width}%` }}
         />
       </div>
+      <p aria-live="polite" className="mt-1 text-caption text-text-primary">
+        {selected !== undefined ? monthTitle(selected) : null}
+      </p>
       <figcaption className="mt-1 flex flex-wrap gap-x-3 text-caption text-text-muted">
         <span><span aria-hidden="true" style={{ color: "var(--color-signal-orange)" }}>■</span> El Niño</span>
         <span><span aria-hidden="true" style={{ color: "var(--color-tide-cyan)" }}>■</span> La Niña</span>
