@@ -146,17 +146,23 @@ export function stationHour(at: Instant, timeZone: string): number {
 }
 
 /**
- * The instants the hour axis labels: every third hour of the loaded window in `timeZone`,
+ * The instants the hour axis labels: every `everyHours` hours (default 6 — UI-1 #1: at the
+ * 16 px label floor every-third-hour labels crowd a 390 px phone) of the loaded window in `timeZone`,
  * skipping midnight — midnight already has the day-divider tag, and a label under the tag
  * would be the same fact written twice. `stationHour` is read so the selection follows the
  * station's calendar, like every other date division on this chart.
  */
-export function hourLabels(seriesStart: number, seriesEnd: number, timeZone: string): number[] {
+export function hourLabels(
+  seriesStart: number,
+  seriesEnd: number,
+  timeZone: string,
+  everyHours: number = 6,
+): number[] {
   const result: number[] = [];
   const hourMs = 3_600_000;
   for (let t = Math.ceil(seriesStart / hourMs) * hourMs; t <= seriesEnd; t += hourMs) {
     const hour = stationHour(instant(t), timeZone);
-    if (hour !== 0 && hour % 3 === 0) result.push(t);
+    if (hour !== 0 && hour % everyHours === 0) result.push(t);
   }
   return result;
 }

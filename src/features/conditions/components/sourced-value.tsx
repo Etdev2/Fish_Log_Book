@@ -48,15 +48,18 @@ export function SourcedValue<T>({
   value,
   render,
   className,
+  showMarker = true,
 }: {
   value: Sourced<T>;
   render: (value: T) => React.ReactNode;
   className?: string;
+  /** False when a sibling value already shows the same certainty marker. */
+  showMarker?: boolean;
 }) {
   return (
     <span className={className}>
       {render(value.value)}
-      {value.certainty !== "published" && (
+      {showMarker && value.certainty !== "published" && (
         <details className="ml-1 inline-block align-baseline">
           <summary
             className="inline-flex cursor-pointer list-none items-center gap-0.5 text-caption font-semibold text-text-link [&::-webkit-details-marker]:hidden hover:text-text-primary"
