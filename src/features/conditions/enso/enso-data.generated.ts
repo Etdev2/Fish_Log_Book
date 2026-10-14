@@ -13,5 +13,5 @@ export const RETRIEVED = "2026-10-14";
 export const ONI_SOURCE_URL = "https://www.cpc.ncep.noaa.gov/data/indices/oni.ascii.txt";
 export const OUTLOOK_SOURCE_URL = "https://www.cpc.ncep.noaa.gov/products/analysis_monitoring/enso/roni/probabilities/";
 
-/** [season, P(La Niña) %, P(Neutral) %, P(El Niño) %], in order, starting the season after ONI_LAST. */
+/** [season, P(La Niña) %, P(Neutral) %, P(El Niño) %], in order; each is placed on its season's centre month (SON → October), which may leave a gap after ONI_LAST. */
 export const OUTLOOK: readonly (readonly [string, number, number, number])[] = [["SON",0,0,100],["OND",0,0,100],["NDJ",0,0,100],["DJF",0,0,100],["JFM",0,0,100],["FMA",0,2,98],["MAM",0,15,85],["AMJ",1,54,45],["MJJ",13,70,17]];

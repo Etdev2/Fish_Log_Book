@@ -16,4 +16,7 @@ describe("ENSO ribbon labels", () => {
   it("says plainly when there is no forecast", () => {
     expect(monthTitle({ year: 2028, month: 1, phase: null, basis: "none", oni: null, probability: null })).toMatch(/no ENSO forecast/);
   });
+  it("calls the month between the last observation and the outlook a gap, not 'too far out'", () => {
+    expect(monthTitle({ year: 2026, month: 9, phase: null, basis: "none", oni: null, probability: null })).toMatch(/no ENSO value yet/);
+  });
 });

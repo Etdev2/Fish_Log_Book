@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { classify, ensoMonths, ensoSequence } from "./enso";
+import { classify, ensoMonths, ensoSequence, seasonCentreMonth } from "./enso";
 import { ONI_HISTORY, ONI_LAST, OUTLOOK } from "./enso-data.generated";
 
 const at = (y: number, m: number) => Date.UTC(y, m - 1, 15);
@@ -49,6 +49,48 @@ describe("ENSO classification from CPC ONI v5", () => {
     const outlook = months.filter((m) => m.basis === "outlook");
     expect(outlook).toHaveLength(OUTLOOK.length);
     expect(months.at(-1)).toMatchObject({ basis: "none", phase: null });
+  });
+});
+
+describe("placing CPC outlook seasons on their centre month", () => {
+  it("maps every season label to its centre month, matching CPC's table", () => {
+    const expected: Record<string, number> = {
+      DJF: 1, JFM: 2, FMA: 3, MAM: 4, AMJ: 5, MJJ: 6, JJA: 7, JAS: 8, ASO: 9, SON: 10, OND: 11, NDJ: 12,
+    };
+    for (const [season, month] of Object.entries(expected)) expect(seasonCentreMonth(season)).toBe(month);
+    expect(() => seasonCentreMonth("XYZ")).toThrow();
+  });
+
+  it("puts the October 2026 snapshot on Oct 2026 … Jun 2027, leaving September as a gap", () => {
+    expect(ONI_LAST).toEqual({ year: 2026, month: 8 }); // JAS
+    const months = ensoMonths(at(2026, 8), at(2027, 8));
+    const label = (m: { year: number; month: number }) => `${m.year}-${m.month}`;
+    expect(months.find((m) => m.month === 8 && m.year === 2026)!.basis).toBe("observed");
+    expect(months.find((m) => m.month === 9 && m.year === 2026)).toMatchObject({ basis: "none", phase: null });
+    const outlook = months.filter((m) => m.basis === "outlook").map(label);
+    expect(outlook).toEqual([
+      "2026-10", "2026-11", "2026-12", "2027-1", "2027-2", "2027-3", "2027-4", "2027-5", "2027-6",
+    ]);
+    // SON is October (100% El Niño); MJJ is June (70% neutral), not May.
+    expect(months.find((m) => label(m) === "2026-10")).toMatchObject({ phase: "el-nino", probability: 100 });
+    expect(months.find((m) => label(m) === "2027-6")).toMatchObject({ phase: "neutral", probability: 70 });
+    expect(months.find((m) => label(m) === "2027-5")).toMatchObject({ phase: "neutral", probability: 54 });
+    expect(months.find((m) => label(m) === "2027-7")).toMatchObject({ basis: "none" });
+  });
+
+  it("follows the label, not the row position, across a year boundary", () => {
+    const seq = ensoSequence([[2000, 10, 0]], { year: 2000, month: 10 }, [
+      ["NDJ", 0, 100, 0],
+      ["DJF", 0, 100, 0],
+      ["FMA", 0, 100, 0],
+    ]);
+    const outlook = seq.filter((e) => e.basis === "outlook").map((e) => [e.year, e.month]);
+    expect(outlook).toEqual([[2000, 12], [2001, 1], [2001, 3]]);
+  });
+
+  it("an outlook starting right after the last season has no gap", () => {
+    const seq = ensoSequence([[2000, 1, 0]], { year: 2000, month: 1 }, [["JFM", 0, 100, 0]]);
+    expect(seq.at(-1)).toMatchObject({ year: 2000, month: 2, basis: "outlook" });
   });
 
   it("has a sane snapshot", () => {

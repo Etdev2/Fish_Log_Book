@@ -10,7 +10,7 @@
  */
 import { useMemo } from "react";
 
-import { ensoMonths, type EnsoMonth } from "../enso/enso";
+import { ensoMonths, isCoverageGap, type EnsoMonth } from "../enso/enso";
 import { OUTLOOK_ISSUED, OUTLOOK_SOURCE_URL, ONI_SOURCE_URL } from "../enso/enso-data.generated";
 
 const FILL: Record<string, string> = {
@@ -23,6 +23,9 @@ const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "
 
 export function monthTitle(m: EnsoMonth): string {
   const when = `${MONTHS[m.month - 1]} ${m.year}`;
+  if (m.basis === "none" && isCoverageGap(m)) {
+    return `${when}: no ENSO value yet (between the last observed season and CPC's outlook)`;
+  }
   if (m.basis === "none") return `${when}: no ENSO forecast this far out`;
   const name = m.phase === "el-nino" ? "El Niño" : m.phase === "la-nina" ? "La Niña" : "Neutral";
   if (m.basis === "observed") return `${when}: ${name} (ONI ${m.oni! > 0 ? "+" : ""}${m.oni!.toFixed(2)} °C)`;

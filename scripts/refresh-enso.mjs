@@ -55,7 +55,7 @@ export const RETRIEVED = ${JSON.stringify(new Date().toISOString().slice(0, 10))
 export const ONI_SOURCE_URL = ${JSON.stringify(ONI_URL)};
 export const OUTLOOK_SOURCE_URL = ${JSON.stringify(OUTLOOK_URL)};
 
-/** [season, P(La Niña) %, P(Neutral) %, P(El Niño) %], in order, starting the season after ONI_LAST. */
+/** [season, P(La Niña) %, P(Neutral) %, P(El Niño) %], in order; each is placed on its season's centre month (SON → October), which may leave a gap after ONI_LAST. */
 export const OUTLOOK: readonly (readonly [string, number, number, number])[] = ${JSON.stringify(outlook)};
 `,
 );
