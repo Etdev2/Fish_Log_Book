@@ -31,6 +31,7 @@ import { MoonDetailsSheet } from "./components/moon-details-sheet";
 import { StationDetailsSheet } from "./components/station-details-sheet";
 import { TideDetailsSheet } from "./components/tide-details-sheet";
 import { localDayIndex, localMidnights } from "./tide-chart-geometry";
+import { EnsoRibbon } from "./components/enso-ribbon";
 import { isoDay, sliceSeries, viewWindowAround } from "./view-window";
 import type { CatchMarkerInput } from "./catch-markers";
 import {
@@ -152,6 +153,12 @@ function TideViewWindow({
           Predictions loaded to {isoDay(fullEnd, stationZone)}
         </span>
       </label>
+      <EnsoRibbon
+        fromMs={fullStart}
+        toMs={fullEnd}
+        viewFromMs={Number(view.samples[0].at)}
+        viewToMs={Number(view.samples[view.samples.length - 1].at)}
+      />
       <TideChartScreen
         key={anchor ?? "now"}
         tideData={tideData}
