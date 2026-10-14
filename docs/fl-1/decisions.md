@@ -145,6 +145,13 @@ and `fl1/enso-shading` **stacked on** `fl1/tides-2yr`, so that nobody edits anot
 **Coordinator:** Accepted. Never commit to a closed PR's branch.
 **Decision:** As recommended. *Owner: coo.*
 
+> **Recorded exception — HOUSE-RULES §3 branch names.** These three names use an `fl1/`
+> initiative prefix, not the required `<role>/<short-slug>`. They are kept as-is because
+> renaming a branch closes its open PR (#136–#138) and breaks the #138→#137 stack. Owning
+> roles: `fl1/fix-homepage-link` = coo, `fl1/tides-2yr` = head-dev, `fl1/enso-shading` =
+> biostat. Any new FL-1 branch (follow-ups, fix-ups) MUST use the convention, e.g.
+> `head-dev/fl1-tides-followup`. Raised by the Codex review on #136.
+
 ---
 
 ❓ **Q9 - Evidence and the freeze?**
