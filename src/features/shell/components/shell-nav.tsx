@@ -49,6 +49,12 @@ import { FIN_ID } from "@/features/wildlife/flag";
  * min-w-touch-floor, and `flex-1` hands the spare width back as spacing. Same slot, so no
  * other tab moves. If the Fish ID flag is off, Setup keeps the slot rather than leaving
  * a hole.
+ *
+ * UI-1 #12 follow-up (2026-10-14, founder-approved): six tabs only fit by squeezing item
+ * padding to px-0.5 and still wrapped below 384px. The bar is now five equal-width tabs
+ * (a 5-column grid, centered labels, normal px-1 padding) on one row at every width;
+ * Settings moved out of the bar and stays reachable from the Menu ("Settings" under
+ * Your gear). At 390px each tab is 78px wide x 48px tall; at 320px, 64px.
  */
 export const SHELL_ROUTES = [
   { href: "/", label: "Calendar" },
@@ -56,7 +62,6 @@ export const SHELL_ROUTES = [
   { href: "/log", label: "Log" },
   { href: "/tides", label: "Tide" },
   { href: "/fish-legal", label: "Legal" },
-  { href: "/settings", label: "Settings" },
 ] as const;
 
 export function ShellNav() {
@@ -67,25 +72,21 @@ export function ShellNav() {
       aria-label="Primary"
       className="border-t border-hairline bg-surface"
     >
-      <ul className="mx-auto flex max-w-3xl flex-wrap">
+      <ul className="mx-auto grid max-w-3xl grid-cols-5">
         {SHELL_ROUTES.map((route) => {
           const active =
             route.href === "/" ? pathname === "/" : pathname.startsWith(route.href);
           return (
-            <li key={route.href} className="basis-1/3 nav-single-row:flex-1 nav-single-row:basis-auto">
+            <li key={route.href} className="min-w-0">
               <Link
                 href={route.href}
                 aria-current={active ? "page" : undefined}
                 /*
-                  `min-w-touch-floor` alongside the height: `basis-auto` above lets each
-                  item be as wide as its own label so all six fit one row from 384px, which
-                  is the right trade — but it made the shortest label the smallest target.
-                  Measured at 390px, "Log" was 45x48, under the 48px floor that
-                  docs/design/06-accessibility-baseline.md §3 calls absolute. Six items at
-                  their 48px minimum is 288px, comfortably inside 320px, so the floor costs
-                  the single-row layout nothing.
+                  Equal grid columns give every tab the same width; `min-h-touch-floor`
+                  keeps the 48px height floor (docs/design/06-accessibility-baseline.md §3)
+                  and five 48px columns (240px) fit well inside 320px.
                 */
-                className={`flex min-h-touch-floor min-w-touch-floor items-center justify-center border-t-2 px-0.5 text-center text-label ${
+                className={`flex min-h-touch-floor min-w-touch-floor items-center justify-center border-t-2 px-1 text-center text-label ${
                   active
                     ? "border-signal-orange text-text-primary"
                     : "border-transparent text-text-link"
