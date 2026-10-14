@@ -17,6 +17,7 @@ import { ROCKFISH_PROFILES } from "../rockfish-id";
 import { speciesPhoto } from "../species-photos";
 import { useFishingModePreference } from "../prefs";
 import { RegulationCard } from "./regulation-card";
+import { CHIP_OFF, CHIP_ON } from "@/features/catches/ui-classes";
 
 /**
  * One species' Fish Legal profile (spec §5/§19): status word first, then limits,
@@ -93,9 +94,9 @@ export function SpeciesRulesPage({ speciesId }: { speciesId: string }) {
               aria-pressed={mode === m}
               onClick={() => setMode(m)}
               className={`inline-flex min-h-touch-floor min-w-touch-floor items-center justify-center rounded-full border px-4 text-label capitalize focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-focus-ring ${
-                mode === m
-                  ? "border-signal-orange bg-surface-raised text-text-primary"
-                  : "border-border-interactive text-text-primary"
+                /* Filled orange when selected (same treatment as the Fish Legal home chips), so the
+                   active mode reads by fill and text color, not by a border hue alone. */
+                mode === m ? CHIP_ON : CHIP_OFF
               }`}
             >
               {m}
