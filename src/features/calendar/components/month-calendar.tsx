@@ -96,7 +96,7 @@ export function MonthCalendar() {
       </div>
 
       <div role="grid" aria-label={`Days with records, ${monthLabel(cursor)}`}>
-        <div role="row" className="grid grid-cols-7">
+        <div role="row" className="grid grid-cols-7 gap-0.5">
           {WEEKDAY_HEADERS.map((day) => (
             <span
               key={day}
@@ -107,46 +107,55 @@ export function MonthCalendar() {
             </span>
           ))}
         </div>
-        <div className="grid grid-cols-7 gap-1">
-          {cells.map((cell) => {
-            const summary = summaries.get(cell.key);
-            if (!cell.inCurrentMonth) {
+        {/*
+          UI-1 #2: role="grid" needs row → gridcell children, so cells are chunked into week
+          rows. gap-0.5 (not gap-1) keeps each day ≥ 48 px wide on a 390 px phone.
+          UI-1 #10: out-of-month numbers use the full muted token (4.5:1), not muted/40.
+        */}
+        {weeks(cells).map((week) => (
+          <div key={week[0].key} role="row" className="grid grid-cols-7 gap-0.5 pb-0.5">
+            {week.map((cell) => {
+              const summary = summaries.get(cell.key);
+              if (!cell.inCurrentMonth) {
+                return (
+                  <span key={cell.key} role="gridcell" className="flex">
+                    <span
+                      aria-hidden="true"
+                      className="flex min-h-touch-floor flex-1 flex-col items-center justify-center rounded-md text-caption font-normal text-text-muted select-none"
+                    >
+                      {cell.dayOfMonth}
+                    </span>
+                  </span>
+                );
+              }
               return (
-                <span
-                  key={cell.key}
-                  aria-hidden="true"
-                  className="flex min-h-touch-floor flex-col items-center justify-center rounded-md text-caption text-text-muted/40 select-none"
-                >
-                  {cell.dayOfMonth}
+                <span key={cell.key} role="gridcell" className="flex">
+                  <button
+                    type="button"
+                    aria-label={ariaForKey(cell.key, summary)}
+                    aria-current={cell.isToday ? "date" : undefined}
+                    onClick={() => router.push(`/day/${cell.key}`)}
+                    className={`flex min-h-touch-floor min-w-touch-floor flex-1 flex-col items-center justify-center gap-1 rounded-md border text-body font-semibold transition-colors focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-focus-ring active:scale-95 motion-reduce:transition-none ${
+                      cell.isToday
+                        ? "border-signal-orange text-text-primary"
+                        : "border-transparent text-text-primary hover:border-border-interactive"
+                    }`}
+                  >
+                    {cell.dayOfMonth}
+                    <span className="flex h-2 items-center justify-center gap-1.5" aria-hidden="true">
+                      {summary && summary.catches > 0 ? (
+                        <span className="size-2 rounded-full bg-signal-orange" />
+                      ) : null}
+                      {summary && summary.needsDetails > 0 ? (
+                        <span className="size-2 rounded-full bg-amber-flag" />
+                      ) : null}
+                    </span>
+                  </button>
                 </span>
               );
-            }
-            return (
-              <button
-                key={cell.key}
-                type="button"
-                aria-label={ariaForKey(cell.key, summary)}
-                aria-current={cell.isToday ? "date" : undefined}
-                onClick={() => router.push(`/day/${cell.key}`)}
-                className={`flex min-h-touch-floor flex-col items-center justify-center gap-1 rounded-md border text-body font-semibold transition-colors focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-focus-ring active:scale-95 motion-reduce:transition-none ${
-                  cell.isToday
-                    ? "border-signal-orange text-text-primary"
-                    : "border-transparent text-text-primary hover:border-border-interactive"
-                }`}
-              >
-                {cell.dayOfMonth}
-                <span className="flex h-2 items-center justify-center gap-1.5" aria-hidden="true">
-                  {summary && summary.catches > 0 ? (
-                    <span className="size-2 rounded-full bg-signal-orange" />
-                  ) : null}
-                  {summary && summary.needsDetails > 0 ? (
-                    <span className="size-2 rounded-full bg-amber-flag" />
-                  ) : null}
-                </span>
-              </button>
-            );
-          })}
-        </div>
+            })}
+          </div>
+        ))}
       </div>
 
       <p className="text-caption text-text-muted">
@@ -158,4 +167,11 @@ export function MonthCalendar() {
       ) : null}
     </div>
   );
+}
+
+/** Split the month's cells (always whole weeks) into rows of seven. */
+function weeks<T>(cells: readonly T[]): T[][] {
+  const rows: T[][] = [];
+  for (let i = 0; i < cells.length; i += 7) rows.push(cells.slice(i, i + 7));
+  return rows;
 }
