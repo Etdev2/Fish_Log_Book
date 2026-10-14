@@ -93,7 +93,14 @@ export function classify(seq: readonly Entry[] = ensoSequence()): Map<number, En
   let i = 0;
   while (i < seq.length) {
     let j = i;
-    while (j + 1 < seq.length && seq[j + 1].sign === seq[i].sign) j++;
+    // A run only extends into the very next calendar month: a missing season (e.g. the
+    // September gap between the last observation and the outlook) breaks it.
+    while (
+      j + 1 < seq.length &&
+      seq[j + 1].sign === seq[i].sign &&
+      key(seq[j + 1].year, seq[j + 1].month) === key(seq[j].year, seq[j].month) + 1
+    )
+      j++;
     const runLength = j - i + 1;
     for (let n = i; n <= j; n++) {
       const e = seq[n];

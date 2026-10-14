@@ -43,6 +43,21 @@ describe("ENSO classification from CPC ONI v5", () => {
     expect(months.get(2000 * 12 + 3)).toMatchObject({ basis: "outlook", phase: "el-nino", probability: 80 });
   });
 
+  it("does not join a run across a missing season", () => {
+    // Four warm observed seasons, a gap month, then a warm outlook: the gap breaks the run,
+    // so the observed months stay neutral under the five-consecutive-season rule.
+    const history = [
+      [2026, 5, 0.6],
+      [2026, 6, 0.7],
+      [2026, 7, 0.8],
+      [2026, 8, 0.9],
+    ] as const;
+    const outlook = [["SON", 0, 0, 100]] as const;
+    const months = classify(ensoSequence(history, { year: 2026, month: 8 }, outlook));
+    for (let m = 5; m <= 8; m++) expect(months.get(2026 * 12 + m - 1)!.phase).toBe("neutral");
+    expect(months.get(2026 * 12 + 9)).toMatchObject({ basis: "outlook", phase: "el-nino" });
+  });
+
   it("covers the snapshot's outlook and then says 'no forecast'", () => {
     const first = Date.UTC(ONI_LAST.year, ONI_LAST.month, 15); // month after last observed
     const months = ensoMonths(first, first + 2 * 365 * 24 * 3600 * 1000);
