@@ -109,15 +109,17 @@ function TideViewWindow({
   const DAY = 24 * 60 * 60 * 1000;
   const nowMs = now === null ? null : Math.floor(Number(now) / DAY) * DAY;
   const effectiveAnchor = anchor ?? (nowMs !== null && nowMs >= fullStart && nowMs <= fullEnd ? nowMs : null);
+  // Always slice: with no in-range anchor (clock not read yet, or now outside the data)
+  // fall back to the nearest end, never hand the fixed-px/hour chart two whole years. The
+  // slice and the picker's value both come from this one anchor so they cannot disagree.
+  const viewAnchor =
+    effectiveAnchor ?? (nowMs !== null && nowMs > fullEnd ? fullEnd : fullStart);
+  const stationZone = tideData.station?.timeZone ?? STATION_TIME_ZONE;
 
   const view = useMemo(() => {
-    // Always slice: with no in-range anchor (clock not read yet, or now outside the data)
-    // fall back to the nearest end, never hand the fixed-px/hour chart two whole years.
-    const sliceAt =
-      effectiveAnchor ?? (nowMs !== null && nowMs > fullEnd ? fullEnd : fullStart);
-    const { fromMs, toMs } = viewWindowAround(sliceAt);
+    const { fromMs, toMs } = viewWindowAround(viewAnchor);
     return sliceSeries(series, fromMs, toMs);
-  }, [series, effectiveAnchor, nowMs, fullStart, fullEnd]);
+  }, [series, viewAnchor]);
 
   const staleNote =
     tideData.source === "fixture" || tideData.stale ? tideSourceLabel(tideData) : null;
@@ -138,16 +140,16 @@ function TideViewWindow({
         <input
           type="date"
           className="rounded border border-hairline bg-surface px-2 py-1 text-text-primary"
-          min={isoDay(fullStart)}
-          max={isoDay(fullEnd)}
-          value={isoDay(effectiveAnchor ?? fullStart)}
+          min={isoDay(fullStart, stationZone)}
+          max={isoDay(fullEnd, stationZone)}
+          value={isoDay(viewAnchor, stationZone)}
           onChange={(event) => {
             const picked = Date.parse(`${event.target.value}T12:00:00Z`);
             if (!Number.isNaN(picked)) setAnchor(Math.max(fullStart, Math.min(fullEnd, picked)));
           }}
         />
         <span>
-          Predictions loaded to {isoDay(fullEnd)}
+          Predictions loaded to {isoDay(fullEnd, stationZone)}
         </span>
       </label>
       <TideChartScreen

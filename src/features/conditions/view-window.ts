@@ -39,7 +39,17 @@ export function sliceSeries(
   });
 }
 
-/** `YYYY-MM-DD` in UTC, for `<input type="date">` min/max/value. */
-export function isoDay(ms: number): string {
-  return new Date(ms).toISOString().slice(0, 10);
+/**
+ * `YYYY-MM-DD` on the station's calendar, for `<input type="date">` min/max/value. The
+ * chart's date bar divides days in the station's zone, so the picker must too — a UTC day
+ * runs ahead of a Pacific one every evening.
+ */
+export function isoDay(ms: number, timeZone: string): string {
+  // en-CA formats as YYYY-MM-DD.
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date(ms));
 }
