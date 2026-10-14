@@ -6,7 +6,7 @@
  * a poor classifier on its own — bands centred on 1.0 would file most of the day under
  * "slow" and almost nothing under "fast", backwards from what is being asked. So the
  * `PaceClass` is decided by PERCENTILE: where does the current |rate| fall in the
- * distribution of |rate| sampled across the whole loaded series. `ratio` is kept on the
+ * distribution of |rate| sampled across the week around the read instant. `ratio` is kept on the
  * type because it is still a useful, differently-shaped number a UI may want, but it does
  * not drive the classification.
  *
@@ -22,6 +22,12 @@
  *
  * `PACE_BANDS` is exported and public so the percentile cut points are a tunable, vector-
  * testable constant rather than buried inside `classify`.
+ *
+ * The baseline is bounded to `PACE_BASELINE_HALF_SPAN` (3.5 days) either side of `at` — a
+ * one-week window, the same span the chart shows — rather than the whole loaded series. With
+ * a two-year series (ADR 011) the full-range baseline would cost ~105k `rateAt` calls per
+ * read, and the screen reads on every scrub step. A week holds ~14 legs, plenty for a stable
+ * median and percentile, and keeps the cost constant however long the series grows.
  *
  * This normalises against the loaded prediction window only, not the station's long-run
  * climatology — see the `basis` string on the returned `Sourced<TidePace>`. It cannot yet
@@ -73,6 +79,25 @@ export interface TidePace {
 
 const DISTRIBUTION_STEP: Millis = millis(10 * 60_000);
 
+/** Half-width of the baseline window around the read instant (a symmetric one-week span). */
+export const PACE_BASELINE_HALF_SPAN: Millis = millis(3.5 * 24 * 60 * 60_000);
+
+interface Span {
+  readonly from: number;
+  readonly to: number;
+}
+
+function baselineSpan(s: TidePredictionSeries, at: Instant): Span {
+  const first = s.samples[0].at as number;
+  const last = s.samples[s.samples.length - 1].at as number;
+  const full = 2 * PACE_BASELINE_HALF_SPAN;
+  if (last - first <= full) return { from: first, to: last };
+  // Keep a full week even at the series' ends by sliding the window inward.
+  let from = (at as number) - PACE_BASELINE_HALF_SPAN;
+  from = Math.max(first, Math.min(last - full, from));
+  return { from, to: from + full };
+}
+
 function median(nums: readonly number[]): number {
   if (nums.length === 0) return 0;
   const sorted = [...nums].sort((a, b) => a - b);
@@ -81,14 +106,19 @@ function median(nums: readonly number[]): number {
 }
 
 /** Peak |rate| within each flood/ebb leg (the span between two consecutive turns). */
-function legPeakRates(s: TidePredictionSeries, rateWindow: Millis): number[] {
-  const turns = turnsIn(s, s.samples[0].at, s.samples[s.samples.length - 1].at);
+function legPeakRates(s: TidePredictionSeries, span: Span, rateWindow: Millis): number[] {
+  const turns = turnsIn(s, span.from as Instant, span.to as Instant);
+  const samples = s.samples;
   const peaks: number[] = [];
+  // Turns and samples are both time-ordered, so one forward cursor walks each leg's samples.
+  let cursor = 0;
   for (let i = 0; i < turns.length - 1; i++) {
-    const legSamples = s.samples.filter((x) => x.at >= turns[i].at && x.at <= turns[i + 1].at);
+    const start = turns[i].at;
+    const end = turns[i + 1].at;
+    while (cursor < samples.length && samples[cursor].at < start) cursor++;
     let peak = 0;
-    for (const sample of legSamples) {
-      const r = rateAt(s, sample.at, rateWindow);
+    for (let j = cursor; j < samples.length && samples[j].at <= end; j++) {
+      const r = rateAt(s, samples[j].at, rateWindow);
       if (r !== null) peak = Math.max(peak, Math.abs(r.value));
     }
     peaks.push(peak);
@@ -96,12 +126,10 @@ function legPeakRates(s: TidePredictionSeries, rateWindow: Millis): number[] {
   return peaks;
 }
 
-/** |rate| sampled every `DISTRIBUTION_STEP` across the series, for the percentile rank. */
-function rateDistribution(s: TidePredictionSeries, rateWindow: Millis): number[] {
-  const first = s.samples[0].at;
-  const last = s.samples[s.samples.length - 1].at;
+/** |rate| sampled every `DISTRIBUTION_STEP` across the baseline span, for the percentile rank. */
+function rateDistribution(s: TidePredictionSeries, span: Span, rateWindow: Millis): number[] {
   const values: number[] = [];
-  for (let t = first as number; t <= last; t += DISTRIBUTION_STEP) {
+  for (let t = span.from; t <= span.to; t += DISTRIBUTION_STEP) {
     const r = rateAt(s, t as Instant, rateWindow);
     if (r !== null) values.push(Math.abs(r.value));
   }
@@ -128,11 +156,12 @@ export function paceAt(
   options?: { rateWindow?: Millis },
 ): Sourced<TidePace> {
   const rateWindow = options?.rateWindow ?? RATE_WINDOW;
-  const peaks = legPeakRates(s, rateWindow);
+  const span = baselineSpan(s, at);
+  const peaks = legPeakRates(s, span, rateWindow);
   const medianPeak = median(peaks);
   const ratio = medianPeak > 0 ? Math.abs(rate) / medianPeak : 0;
 
-  const distribution = rateDistribution(s, rateWindow);
+  const distribution = rateDistribution(s, span, rateWindow);
   const percentile = percentileRank(distribution, Math.abs(rate));
   const cls = classify(percentile);
 
@@ -151,7 +180,7 @@ export function paceAt(
     },
     "estimated",
     "Estimated by ranking the current rate of height change against the distribution of " +
-      "rates sampled across this loaded prediction window, not the station's long-run " +
+      "rates sampled across the surrounding week of this loaded prediction window, not the station's long-run " +
       "climatology — this cannot yet say a tide is fast \"for September at this station\".",
   );
 }
