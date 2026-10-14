@@ -32,6 +32,18 @@ export function monthTitle(m: EnsoMonth): string {
   return `${when}: ${name} ${m.probability}% (CPC outlook)`;
 }
 
+/**
+ * Each month's share of `[fromMs, toMs]` in milliseconds, so the strip uses the same linear
+ * time scale as the week marker. Partial endpoint months get only the slice they cover.
+ */
+export function monthSpans(months: readonly EnsoMonth[], fromMs: number, toMs: number): number[] {
+  return months.map((m) => {
+    const start = Math.max(fromMs, Date.UTC(m.year, m.month - 1, 1));
+    const end = Math.min(toMs, Date.UTC(m.year, m.month, 1));
+    return Math.max(0, end - start);
+  });
+}
+
 export function EnsoRibbon({
   fromMs,
   toMs,
@@ -44,6 +56,7 @@ export function EnsoRibbon({
   viewToMs: number;
 }) {
   const months = useMemo(() => ensoMonths(fromMs, toMs), [fromMs, toMs]);
+  const spans = useMemo(() => monthSpans(months, fromMs, toMs), [months, fromMs, toMs]);
   const span = Math.max(1, toMs - fromMs);
   const left = Math.max(0, Math.min(100, ((viewFromMs - fromMs) / span) * 100));
   const width = Math.max(0.8, Math.min(100 - left, ((viewToMs - viewFromMs) / span) * 100));
@@ -51,14 +64,15 @@ export function EnsoRibbon({
   return (
     <figure className="mx-4 mt-3" aria-label="El Niño and La Niña across the loaded tide range">
       <div className="relative flex h-4 overflow-hidden rounded border border-hairline">
-        {months.map((m) => (
+        {months.map((m, i) => (
           <span
             key={`${m.year}-${m.month}`}
             title={monthTitle(m)}
             data-phase={m.phase ?? "none"}
             data-basis={m.basis}
-            className="h-full flex-1"
+            className="h-full"
             style={{
+              flex: `${spans[i]} 1 0`,
               background: m.phase === null ? "transparent" : FILL[m.phase],
               opacity: m.basis === "outlook" ? 0.55 : 1,
               backgroundImage:
