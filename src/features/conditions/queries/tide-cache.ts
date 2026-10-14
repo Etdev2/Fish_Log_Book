@@ -15,7 +15,8 @@
 import { instant, metres } from "@/core/units";
 import { tideSeries, type TidePredictionSeries } from "@/core/rules/tide";
 
-const KEY_PREFIX = "flb.tide-cache.v1.";
+/** v2 (FL-1): the series now carries two years of turns; a v1 week-only entry is ignored. */
+const KEY_PREFIX = "flb.tide-cache.v2.";
 
 /** Beyond this a cached series is still shown, but labelled as old. */
 export const CACHE_FRESH_MS = 12 * 60 * 60 * 1000;
