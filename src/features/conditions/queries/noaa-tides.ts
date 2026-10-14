@@ -14,7 +14,12 @@
  * failure that falls back to cache, and never a half-built curve. A wrong tide is worse
  * than no tide — the same stance Fish Legal takes with "no verified data".
  *
- * No API key, no account, no quota published for this volume (see docs/finance).
+ * **Verified 2026-10-13 (FL-1, #135):** the live endpoint answers this exact shape for
+ * station 9410580, for both `h` and `hilo`, with `access-control-allow-origin: *`.
+ *
+ * No API key, no account, no quota published for this volume (see docs/finance). The
+ * documented per-request data length for hourly and High/Low predictions is 1 year, so
+ * long windows are split into `MAX_REQUEST_MS` chunks (ADR 011).
  */
 
 import { instant, metres } from "@/core/units";
@@ -28,6 +33,28 @@ const ENDPOINT = "https://api.tidesandcurrents.noaa.gov/api/prod/datagetter";
 const APPLICATION = "fish-log-book";
 
 export class TideFetchError extends Error {}
+
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+/** NOAA's documented data-length limit for `h` and `hilo` predictions is one year. */
+export const MAX_REQUEST_MS = 365 * DAY_MS;
+
+/**
+ * Split `[fromMs, toMs]` into consecutive chunks no longer than `maxMs`. The API's dates
+ * are whole UTC days and inclusive, so each chunk after the first starts on the day after
+ * the previous chunk ends; overlap at a day edge would only be de-duplicated anyway.
+ */
+export function chunkWindow(fromMs: number, toMs: number, maxMs: number = MAX_REQUEST_MS): FetchWindow[] {
+  if (!(toMs >= fromMs)) return [];
+  const chunks: FetchWindow[] = [];
+  let start = fromMs;
+  while (start <= toMs) {
+    const end = Math.min(toMs, start + maxMs - DAY_MS);
+    chunks.push({ fromMs: start, toMs: end });
+    start = end + DAY_MS;
+  }
+  return chunks;
+}
 
 /** `YYYYMMDD` in UTC, which is what the API's date parameters expect alongside `time_zone=gmt`. */
 function apiDate(atMs: number): string {
@@ -128,7 +155,24 @@ export function mergeSamples(
 
 export interface FetchWindow {
   readonly fromMs: number;
+  /** End of the hourly curve. */
   readonly toMs: number;
+  /** End of the high/low turns, when they should reach further than the hourly curve. */
+  readonly turnsToMs?: number;
+}
+
+/** Sequential, not parallel: a handful of small requests, and kind to a free public API. */
+async function getChunked(
+  stationId: string,
+  interval: "h" | "hilo",
+  window: FetchWindow,
+  signal?: AbortSignal,
+): Promise<RawPrediction[]> {
+  const rows: RawPrediction[] = [];
+  for (const chunk of chunkWindow(window.fromMs, window.toMs)) {
+    rows.push(...(await getPredictions(stationId, interval, chunk.fromMs, chunk.toMs, signal)));
+  }
+  return rows;
 }
 
 /** Fetch one station's predictions for a window and shape them for the chart. */
@@ -137,10 +181,9 @@ export async function fetchTideSeries(
   window: FetchWindow,
   signal?: AbortSignal,
 ): Promise<TidePredictionSeries> {
-  const [hourly, turns] = await Promise.all([
-    getPredictions(station.id, "h", window.fromMs, window.toMs, signal),
-    getPredictions(station.id, "hilo", window.fromMs, window.toMs, signal),
-  ]);
+  const turnWindow = window.turnsToMs === undefined ? window : { fromMs: window.fromMs, toMs: window.turnsToMs };
+  const hourly = await getChunked(station.id, "h", window, signal);
+  const turns = await getChunked(station.id, "hilo", turnWindow, signal);
 
   const samples = mergeSamples(samplesFrom(hourly), samplesFrom(turns));
   if (samples.length === 0) {

@@ -31,6 +31,7 @@ import { MoonDetailsSheet } from "./components/moon-details-sheet";
 import { StationDetailsSheet } from "./components/station-details-sheet";
 import { TideDetailsSheet } from "./components/tide-details-sheet";
 import { localDayIndex, localMidnights } from "./tide-chart-geometry";
+import { isoDay, sliceSeries, viewWindowAround } from "./view-window";
 import type { CatchMarkerInput } from "./catch-markers";
 import {
   clock,
@@ -86,7 +87,74 @@ export function TideScreen() {
   if (tideData.series === null || tideData.series.samples.length === 0) {
     return <TideUnavailable reading={tideData} />;
   }
-  return <TideChartScreen tideData={tideData} series={tideData.series} />;
+  return <TideViewWindow tideData={tideData} series={tideData.series} />;
+}
+
+/**
+ * Holds the full loaded series (up to two years of turns, ADR 011) and hands the chart a
+ * one-week slice. Jumping to a date re-slices and remounts the chart there.
+ */
+function TideViewWindow({
+  tideData,
+  series,
+}: {
+  tideData: TideReading;
+  series: TidePredictionSeries;
+}) {
+  const fullStart = Number(series.samples[0].at);
+  const fullEnd = Number(series.samples[series.samples.length - 1].at);
+  const [anchor, setAnchor] = useState<number | null>(null);
+  const now = useNow();
+  // Rounded to the UTC day so the slice does not shift (and the chart re-scroll) every tick.
+  const DAY = 24 * 60 * 60 * 1000;
+  const nowMs = now === null ? null : Math.floor(Number(now) / DAY) * DAY;
+  const effectiveAnchor = anchor ?? (nowMs !== null && nowMs >= fullStart && nowMs <= fullEnd ? nowMs : null);
+
+  const view = useMemo(() => {
+    if (effectiveAnchor === null) return series;
+    const { fromMs, toMs } = viewWindowAround(effectiveAnchor);
+    return sliceSeries(series, fromMs, toMs);
+  }, [series, effectiveAnchor]);
+
+  const staleNote =
+    tideData.source === "fixture" || tideData.stale ? tideSourceLabel(tideData) : null;
+
+  return (
+    <>
+      {staleNote !== null ? (
+        <p
+          role="status"
+          className="mx-4 mt-4 rounded-md border border-amber-flag p-3 text-caption text-text-primary"
+        >
+          ⚠ {staleNote}. Tide times shown may not be current
+          {tideData.error !== null ? ` (${tideData.error})` : ""}.
+        </p>
+      ) : null}
+      <label className="mx-4 mt-3 flex items-center gap-2 text-caption text-text-muted">
+        Jump to date
+        <input
+          type="date"
+          className="rounded border border-hairline bg-surface px-2 py-1 text-text-primary"
+          min={isoDay(fullStart)}
+          max={isoDay(fullEnd)}
+          value={isoDay(effectiveAnchor ?? fullStart)}
+          onChange={(event) => {
+            const picked = Date.parse(`${event.target.value}T12:00:00Z`);
+            if (!Number.isNaN(picked)) setAnchor(Math.max(fullStart, Math.min(fullEnd, picked)));
+          }}
+        />
+        <span>
+          Predictions loaded to {isoDay(fullEnd)}
+        </span>
+      </label>
+      <TideChartScreen
+        key={anchor ?? "now"}
+        tideData={tideData}
+        series={view}
+        initialAnchor={anchor}
+      />
+    </>
+  );
 }
 
 function TideUnavailable({ reading }: { reading: TideReading }) {
@@ -120,9 +188,12 @@ function TideUnavailable({ reading }: { reading: TideReading }) {
 function TideChartScreen({
   tideData,
   series,
+  initialAnchor,
 }: {
   tideData: TideReading;
   series: TidePredictionSeries;
+  /** A date the angler jumped to; null means "centre on now". */
+  initialAnchor: number | null;
 }) {
   const stationZone = tideData.station?.timeZone ?? STATION_TIME_ZONE;
   const stationLocation = useMemo(
@@ -139,7 +210,9 @@ function TideChartScreen({
   const hasSamples = series.samples.length > 0;
   const seriesStart = hasSamples ? Number(series.samples[0].at) : 0;
   const seriesEnd = hasSamples ? Number(series.samples[series.samples.length - 1].at) : 0;
-  const initialAt = hasSamples ? Math.max(seriesStart, Math.min(seriesEnd, Number(TIDE_SELECTED_AT))) : 0;
+  const initialAt = hasSamples
+    ? Math.max(seriesStart, Math.min(seriesEnd, initialAnchor ?? Number(TIDE_SELECTED_AT)))
+    : 0;
 
   const [unit] = useUnitPreference();
   const now = useNow();
@@ -154,7 +227,8 @@ function TideChartScreen({
   const [selectedAt, setSelectedAt] = useState(initialAt);
   const [sheet, setSheet] = useState<SheetName | null>(null);
   const timelineRef = useRef<TideTimelineHandle>(null);
-  const anchoredToNowRef = useRef(false);
+  // A jumped-to date must not be yanked back to now when the clock arrives.
+  const anchoredToNowRef = useRef(initialAnchor !== null);
 
   const nowMs = now === null ? null : Number(now);
   const nowWithinRange = nowMs !== null && nowMs >= seriesStart && nowMs <= seriesEnd;

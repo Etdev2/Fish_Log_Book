@@ -39,10 +39,16 @@ export interface TideReading {
   readonly error: string | null;
 }
 
-/** A week around now: enough for the chart's window and for planning the next trip. */
-function windowAround(nowMs: number) {
+/** How far ahead the turns reach. Elliott's FL-1 default: two years (ADR 011). */
+export const TURNS_HORIZON_DAYS = 730;
+
+/**
+ * Hourly detail for the near week, high/low turns two years out. Predictions are
+ * astronomical, so a turn in 2028 is as trustworthy as one tomorrow.
+ */
+export function windowAround(nowMs: number) {
   const day = 24 * 60 * 60 * 1000;
-  return { fromMs: nowMs - 2 * day, toMs: nowMs + 5 * day };
+  return { fromMs: nowMs - 2 * day, toMs: nowMs + 7 * day, turnsToMs: nowMs + TURNS_HORIZON_DAYS * day };
 }
 
 function ageOf(series: TidePredictionSeries, nowMs: number): number {

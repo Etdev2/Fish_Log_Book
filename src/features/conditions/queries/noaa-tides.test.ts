@@ -3,7 +3,8 @@ import { describe, expect, it } from "vitest";
 import { instant, metres } from "@/core/units";
 import type { TidePredictionSample } from "@/core/rules/tide";
 
-import { mergeSamples } from "./noaa-tides";
+import { chunkWindow, MAX_REQUEST_MS, mergeSamples } from "./noaa-tides";
+import { windowAround } from "./use-tide-series";
 
 /**
  * The parser and the merge, tested against NOAA's documented response shape and the shape
@@ -50,5 +51,37 @@ describe("merging the hourly curve with the turning points", () => {
 
   it("survives an empty turning-point list", () => {
     expect(mergeSamples([sample(1_000, 1, null)], [])).toHaveLength(1);
+  });
+});
+
+describe("chunking long windows within NOAA's one-year limit (ADR 011)", () => {
+  const DAY = 24 * 60 * 60 * 1000;
+  const from = Date.UTC(2026, 9, 11);
+
+  it("keeps a week as one request", () => {
+    expect(chunkWindow(from, from + 9 * DAY)).toHaveLength(1);
+  });
+
+  it("splits two years into chunks no longer than MAX_REQUEST_MS, covering the whole span", () => {
+    const to = from + 732 * DAY;
+    const chunks = chunkWindow(from, to);
+    expect(chunks.length).toBe(3);
+    for (const c of chunks) expect(c.toMs - c.fromMs).toBeLessThan(MAX_REQUEST_MS);
+    expect(chunks[0].fromMs).toBe(from);
+    expect(chunks.at(-1)!.toMs).toBe(to);
+    for (let i = 1; i < chunks.length; i++) expect(chunks[i].fromMs).toBe(chunks[i - 1].toMs + DAY);
+  });
+
+  it("returns nothing for an inverted window", () => {
+    expect(chunkWindow(from, from - DAY)).toEqual([]);
+  });
+});
+
+describe("the default fetch window", () => {
+  it("reaches two years of turns and a week of hourly detail", () => {
+    const now = Date.UTC(2026, 9, 13);
+    const w = windowAround(now);
+    expect((w.turnsToMs - now) / (24 * 60 * 60 * 1000)).toBe(730);
+    expect((w.toMs - now) / (24 * 60 * 60 * 1000)).toBe(7);
   });
 });
