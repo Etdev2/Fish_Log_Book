@@ -97,6 +97,25 @@ const PARITY: ReadonlyArray<{ policy: string; capability: keyof HostCapabilities
   { policy: "tournament_entry_admin_write", capability: "writeRoster" },
   { policy: "tournament_team_org_write", capability: "writeRoster" },
   { policy: "tournament_boat_org_write", capability: "writeRoster" },
+  // Full settings and financial-policy surface, including pools and crypto.
+  { policy: "tournament_update_admin", capability: "changeEventSettings" },
+  { policy: "tournament_division_admin", capability: "changeEventSettings" },
+  { policy: "tournament_division_update_admin", capability: "changeEventSettings" },
+  { policy: "tournament_award_category_admin", capability: "changeEventSettings" },
+  { policy: "tournament_award_category_update_admin", capability: "changeEventSettings" },
+  { policy: "tournament_rule_version_admin", capability: "changeEventSettings" },
+  { policy: "tournament_rule_version_update_admin", capability: "changeEventSettings" },
+  { policy: "tournament_scoring_version_admin", capability: "changeEventSettings" },
+  { policy: "tournament_scoring_version_update_admin", capability: "changeEventSettings" },
+  { policy: "tournament_verification_version_admin", capability: "changeEventSettings" },
+  { policy: "tournament_verification_version_update_admin", capability: "changeEventSettings" },
+  { policy: "tournament_boundary_version_admin", capability: "changeEventSettings" },
+  { policy: "tournament_boundary_version_update_admin", capability: "changeEventSettings" },
+  { policy: "prize_pool_org_read", capability: "readMoney" },
+  { policy: "prize_pool_entry_read", capability: "readMoney" },
+  { policy: "crypto_quote_read", capability: "readMoney" },
+  { policy: "crypto_payment_read", capability: "readMoney" },
+  { policy: "crypto_observation_read", capability: "readMoney" },
   // The event itself.
   { policy: "organization_member_insert_admin", capability: "manageStaff" },
   { policy: "organization_member_update_admin", capability: "manageStaff" },
@@ -107,6 +126,7 @@ describe("host capabilities match the database policies", () => {
   it.each([
     { name: "can_read_tournament_entry", capability: "readRoster" as const },
     { name: "approve_tournament_payout", capability: "approvePayout" as const },
+    { name: "transition_tournament", capability: "changeEventSettings" as const },
   ])("$name enforces the roles with $capability", ({ name, capability }) => {
     const definitions = allSql.flatMap((sql) => [...sql.matchAll(new RegExp(
       `create or replace function public\\.${name}\\([^$]*\\$\\$([\\s\\S]*?)\\$\\$;`, "gi",

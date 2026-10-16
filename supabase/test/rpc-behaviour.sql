@@ -828,4 +828,115 @@ begin
     not has_function_privilege('anon', 'public.approve_tournament_payout(uuid,text)', 'EXECUTE'));
 end $$;
 
+-- ---------------------------------------------------------------- complete role matrix and net ledger
+-- Synthetic public fixtures only; no provider is called.
+insert into public.payment (id, organization_id, order_id, provider, currency, amount_minor, status)
+values ('ffffffff-ffff-ffff-ffff-fffffffffff1', '33333333-3333-3333-3333-333333333333',
+  'dddddddd-dddd-dddd-dddd-dddddddddddd', 'fixture', 'USD', 40000, 'PARTIALLY_REFUNDED');
+insert into public.payment_refund (payment_id, amount_minor, status) values
+  ('ffffffff-ffff-ffff-ffff-fffffffffff1', 36000, 'CONFIRMED'),
+  ('ffffffff-ffff-ffff-ffff-fffffffffff1', 1000, 'PENDING');
+update public.tournament_order set status = 'PARTIALLY_REFUNDED'
+where id = 'dddddddd-dddd-dddd-dddd-dddddddddddd';
+insert into public.crypto_payment_quote
+  (id, organization_id, order_id, fiat_currency, fiat_amount_minor, crypto_asset, crypto_amount_atomic,
+   chain_namespace, chain_id, rate_source, expires_at)
+values ('ffffffff-ffff-ffff-ffff-fffffffffff2', '33333333-3333-3333-3333-333333333333',
+  'dddddddd-dddd-dddd-dddd-dddddddddddd', 'USD', 40000, 'USDC', 400000000, 'eip155', 'fixture', 'fixture', now() + interval '1 hour');
+insert into public.crypto_payment
+  (id, payment_id, quote_id, payer_wallet_address, recipient_wallet_address, chain_namespace, chain_id,
+   crypto_asset, expected_amount_atomic)
+values ('ffffffff-ffff-ffff-ffff-fffffffffff3', 'ffffffff-ffff-ffff-ffff-fffffffffff1',
+  'ffffffff-ffff-ffff-ffff-fffffffffff2', 'synthetic-payer', 'synthetic-recipient', 'eip155', 'fixture', 'USDC', 400000000);
+insert into public.crypto_chain_observation
+  (crypto_payment_id, tx_hash, observed_chain_id, observed_asset, observed_amount_atomic, recipient_wallet_address, finality_status)
+values ('ffffffff-ffff-ffff-ffff-fffffffffff3', 'synthetic-hash', 'fixture', 'USDC', 400000000, 'synthetic-recipient', 'SEEN');
+
+do $$
+declare n integer; denied boolean; totals record;
+begin
+  set local role authenticated;
+  set local request.jwt.claim.sub = 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb';
+  update public.tournament set name = 'Staff changed settings' where id = '55555555-5555-5555-5555-555555555555';
+  get diagnostics n = row_count;
+  perform pg_temp.check('dock staff cannot directly change event settings', n = 0);
+  update public.tournament_rule_set_version set rules = '{"changed":true}' where tournament_id = '55555555-5555-5555-5555-555555555555';
+  get diagnostics n = row_count;
+  perform pg_temp.check('dock staff cannot directly rewrite rule versions', n = 0);
+  denied := false;
+  begin perform public.transition_tournament('55555555-5555-5555-5555-555555555555', 'CANCELLED', 'Dock staff');
+  exception when insufficient_privilege then denied := true; end;
+  perform pg_temp.check('dock staff cannot cancel through the lifecycle RPC', denied);
+  select count(*) into n from public.prize_pool;
+  perform pg_temp.check('dock staff cannot read prize pools', n = 0);
+  select count(*) into n from public.prize_pool_entry;
+  perform pg_temp.check('dock staff cannot read prize contributions', n = 0);
+  select count(*) into n from public.crypto_payment_quote;
+  perform pg_temp.check('dock staff cannot read crypto quotes', n = 0);
+  denied := false;
+  begin perform * from public.tournament_money_totals('55555555-5555-5555-5555-555555555555');
+  exception when insufficient_privilege then denied := true; end;
+  perform pg_temp.check('dock staff cannot call the ledger aggregate', denied);
+
+  set local request.jwt.claim.sub = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa';
+  select count(*) into n from public.prize_pool;
+  perform pg_temp.check('treasurer can read the prize pools', n > 0);
+  select count(*) into n from public.crypto_payment_quote;
+  perform pg_temp.check('treasurer can read crypto quotes', n = 1);
+  select count(*) into n from public.crypto_payment;
+  perform pg_temp.check('treasurer can read crypto payments', n = 1);
+  select count(*) into n from public.crypto_chain_observation;
+  perform pg_temp.check('treasurer can read crypto observations', n = 1);
+  select * into totals from public.tournament_money_totals('55555555-5555-5555-5555-555555555555');
+  -- The shared registration contributes 50000 to this event, not its full 75000 order; this order retains 4000.
+  perform pg_temp.check('confirmed partial refunds reduce collected money, pending refunds do not', totals.collected_minor = '54000');
+  perform pg_temp.check('a partially refunded order is counted as refunded', totals.refunded_orders = '1');
+  select * into totals from public.tournament_money_totals('66666666-6666-6666-6666-666666666666');
+  perform pg_temp.check('a shared order contributes only its own fees to the second event', totals.collected_minor = '25000');
+  denied := false;
+  begin perform * from public.tournament_money_totals('88888888-8888-8888-8888-888888888888');
+  exception when insufficient_privilege then denied := true; end;
+  perform pg_temp.check('treasurer cannot aggregate another club ledger', denied);
+  reset role;
+
+  -- Refuse a plausible but wrong combined total when currencies differ.
+  denied := false;
+  begin
+    insert into public.tournament_order
+      (organization_id, tournament_id, purchaser_angler_id, currency, subtotal_minor, total_minor, status, idempotency_key)
+    values ('33333333-3333-3333-3333-333333333333', '55555555-5555-5555-5555-555555555555',
+      '11111111-1111-1111-1111-111111111111', 'EUR', 100, 100, 'PAID', 'mixed-currency-fixture');
+    set local role authenticated;
+    perform * from public.tournament_money_totals('55555555-5555-5555-5555-555555555555');
+  exception when invalid_parameter_value then denied := true; end;
+  reset role;
+  perform pg_temp.check('mixed-currency ledgers fail instead of summing unlike units', denied);
+
+  insert into public.tournament_order
+    (organization_id, tournament_id, purchaser_angler_id, currency, subtotal_minor, total_minor, status, idempotency_key)
+  values ('33333333-3333-3333-3333-333333333333', '55555555-5555-5555-5555-555555555555',
+    '11111111-1111-1111-1111-111111111111', 'USD', 9007199254740993, 9007199254740993, 'PAID', 'exact-bigint-fixture');
+  set local role authenticated;
+  select * into totals from public.tournament_money_totals('55555555-5555-5555-5555-555555555555');
+  perform pg_temp.check('database returns large sums as exact text before client range checks', totals.collected_minor = '9007199254794993');
+  reset role;
+
+  denied := false;
+  begin
+    insert into public.payment_refund (payment_id, amount_minor, status)
+    select p.id, 1, 'CONFIRMED' from public.payment p
+    join public.tournament_order o on o.id = p.order_id where o.idempotency_key = 'key-happy-path';
+    get diagnostics n = row_count;
+    perform pg_temp.check('shared-order refund fixture has a real payment', n = 1);
+    update public.tournament_order set status = 'PARTIALLY_REFUNDED' where idempotency_key = 'key-happy-path';
+    set local role authenticated;
+    perform * from public.tournament_money_totals('55555555-5555-5555-5555-555555555555');
+  exception when invalid_parameter_value then denied := true; end;
+  reset role;
+  perform pg_temp.check('unallocated partial refunds across events fail rather than guess', denied);
+
+  perform pg_temp.check('anonymous callers cannot execute ledger totals',
+    not has_function_privilege('anon', 'public.tournament_money_totals(uuid)', 'EXECUTE'));
+end $$;
+
 rollback;

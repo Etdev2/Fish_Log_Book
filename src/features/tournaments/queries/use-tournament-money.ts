@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from "react";
 
+import { parseTournamentMoneyTotals, type TournamentMoney } from "@/core/tournaments/ledger-totals";
+
 import { createClient } from "@/lib/supabase/client";
 
 import { hasSupabaseBrowserConfig } from "../demo-store";
@@ -18,20 +20,7 @@ import { hasSupabaseBrowserConfig } from "../demo-store";
  * is how a ledger ends up eight cents short of the bank.
  */
 
-export interface TournamentMoney {
-  /** ISO currency of the orders. Null when there are none to have one. */
-  readonly currency: string | null;
-  /** Sum of PAID orders, in minor units. */
-  readonly collectedMinor: number;
-  /** Sum of orders that have been started and not paid, in minor units. */
-  readonly outstandingMinor: number;
-  /** Orders that reached PAID. */
-  readonly paidOrders: number;
-  /** Orders started and not yet paid — a checkout somebody abandoned, or a pending webhook. */
-  readonly unpaidOrders: number;
-  /** Refunded or partly refunded orders, which a host will be asked about. */
-  readonly refundedOrders: number;
-}
+export type { TournamentMoney } from "@/core/tournaments/ledger-totals";
 
 export type MoneyLoad =
   | { readonly state: "loading" }
@@ -47,16 +36,6 @@ const NOTHING: TournamentMoney = {
   unpaidOrders: 0,
   refundedOrders: 0,
 };
-
-interface OrderRow {
-  readonly currency: string;
-  readonly total_minor: number | string;
-  readonly status: string;
-}
-
-const PAID = new Set(["PAID", "PARTIALLY_REFUNDED"]);
-const OWED = new Set(["DRAFT", "PENDING_PAYMENT"]);
-const REFUNDED = new Set(["REFUNDED", "PARTIALLY_REFUNDED"]);
 
 export function useTournamentMoney(tournamentId: string, enabled: boolean): MoneyLoad {
   const [load, setLoad] = useState<MoneyLoad>({ state: "loading" });
@@ -87,9 +66,8 @@ export function useTournamentMoney(tournamentId: string, enabled: boolean): Mone
       try {
         const supabase = createClient();
         const { data, error } = await supabase
-          .from("tournament_order")
-          .select("currency,total_minor,status")
-          .eq("tournament_id", tournamentId);
+          .rpc("tournament_money_totals", { target_tournament_id: tournamentId })
+          .single();
 
         if (cancelled) return;
         if (error) {
@@ -97,35 +75,7 @@ export function useTournamentMoney(tournamentId: string, enabled: boolean): Mone
           return;
         }
 
-        let collectedMinor = 0;
-        let outstandingMinor = 0;
-        let paidOrders = 0;
-        let unpaidOrders = 0;
-        let refundedOrders = 0;
-        let currency: string | null = null;
-
-        for (const row of (data ?? []) as OrderRow[]) {
-          // bigint arrives as a string once it passes the safe-integer range. Number() on
-          // the string is right; reading it as a number field is not.
-          const total = Number(row.total_minor);
-          if (!Number.isFinite(total)) continue;
-          currency ??= row.currency;
-
-          if (PAID.has(row.status)) {
-            collectedMinor += total;
-            paidOrders += 1;
-          }
-          if (OWED.has(row.status)) {
-            outstandingMinor += total;
-            unpaidOrders += 1;
-          }
-          if (REFUNDED.has(row.status)) refundedOrders += 1;
-        }
-
-        setLoad({
-          state: "ready",
-          money: { currency, collectedMinor, outstandingMinor, paidOrders, unpaidOrders, refundedOrders },
-        });
+        setLoad({ state: "ready", money: parseTournamentMoneyTotals(data) });
       } catch (cause) {
         if (cancelled) return;
         setLoad({

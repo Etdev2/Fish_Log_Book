@@ -96,3 +96,12 @@ retains access to their own claimed entry and an owner retains their own boat.
   instead of offering a button that would appear to grant an administrator and would not.
 - The event-state controls remain visible and disabled, per ADR 010's line that activation
   is a server-side act. Roles do not change that.
+
+**7. Ledger totals are computed by the database.** `tournament_money_totals(uuid)`
+requires OWNER, ADMIN or FINANCE and runs as the invoker under RLS. Shared orders
+contribute only the entry and jackpot lines attributable to the requested event;
+confirmed refunds reduce retained collections. Partial refunds on shared orders have
+no per-event allocation in the existing schema, so that case reports unavailable
+instead of inventing a split. Mixed currencies and inconsistent records also fail.
+Integer results travel as text; the client refuses out-of-range values and formats
+supported integer minor units without floating-point division.

@@ -76,6 +76,17 @@ describe("registrationState", () => {
 });
 
 describe("money", () => {
+  it("preserves the last cent of a large safe integer", () => {
+    expect(formatMoney(Number.MAX_SAFE_INTEGER, "USD")).toBe("$90,071,992,547,409.91");
+    expect(formatMoney(9007199254740990, "USD")).toBe("$90,071,992,547,409.90");
+    expect(formatMoney(-1, "USD")).toBe("-$0.01");
+  });
+
+  it("refuses already rounded or fractional minor units", () => {
+    expect(formatMoney(Number.MAX_SAFE_INTEGER + 1, "USD")).toBeNull();
+    expect(formatMoney(1.5, "USD")).toBeNull();
+  });
+
   it("drops the cents when there are none", () => {
     expect(formatMoney(25000, "USD")).toBe("$250");
     expect(formatMoney(25050, "USD")).toBe("$250.50");

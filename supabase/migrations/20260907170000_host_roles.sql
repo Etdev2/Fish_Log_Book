@@ -251,3 +251,248 @@ grant execute on function public.my_tournament_host_role(uuid) to anon;
 
 comment on function public.my_tournament_host_role(uuid) is
   'The calling angler''s active organisation role for a tournament, or null. Reveals nothing about anyone else.';
+
+-- Settings writes and lifecycle transitions belong to administrators, not dock staff.
+
+drop policy if exists tournament_update_admin on public.tournament;
+create policy tournament_update_admin
+  on public.tournament for update to authenticated
+  using (public.is_organization_member(organization_id, array['OWNER','ADMIN']))
+  with check (public.is_organization_member(organization_id, array['OWNER','ADMIN']));
+
+drop policy if exists tournament_division_admin on public.tournament_division;
+create policy tournament_division_admin
+  on public.tournament_division for insert to authenticated
+  with check (public.is_organization_member(organization_id, array['OWNER','ADMIN']));
+
+drop policy if exists tournament_division_update_admin on public.tournament_division;
+create policy tournament_division_update_admin
+  on public.tournament_division for update to authenticated
+  using (public.is_organization_member(organization_id, array['OWNER','ADMIN']))
+  with check (public.is_organization_member(organization_id, array['OWNER','ADMIN']));
+
+drop policy if exists tournament_award_category_admin on public.tournament_award_category;
+create policy tournament_award_category_admin
+  on public.tournament_award_category for insert to authenticated
+  with check (public.is_organization_member(organization_id, array['OWNER','ADMIN']));
+
+drop policy if exists tournament_award_category_update_admin on public.tournament_award_category;
+create policy tournament_award_category_update_admin
+  on public.tournament_award_category for update to authenticated
+  using (public.is_organization_member(organization_id, array['OWNER','ADMIN']))
+  with check (public.is_organization_member(organization_id, array['OWNER','ADMIN']));
+
+drop policy if exists tournament_rule_version_admin on public.tournament_rule_set_version;
+create policy tournament_rule_version_admin
+  on public.tournament_rule_set_version for insert to authenticated
+  with check (exists (select 1 from public.tournament t where t.id = tournament_id and public.is_organization_member(t.organization_id, array['OWNER','ADMIN'])));
+
+drop policy if exists tournament_rule_version_update_admin on public.tournament_rule_set_version;
+create policy tournament_rule_version_update_admin
+  on public.tournament_rule_set_version for update to authenticated
+  using (exists (select 1 from public.tournament t where t.id = tournament_id and public.is_organization_member(t.organization_id, array['OWNER','ADMIN'])));
+
+drop policy if exists tournament_scoring_version_admin on public.tournament_scoring_version;
+create policy tournament_scoring_version_admin
+  on public.tournament_scoring_version for insert to authenticated
+  with check (exists (select 1 from public.tournament t where t.id = tournament_id and public.is_organization_member(t.organization_id, array['OWNER','ADMIN'])));
+
+drop policy if exists tournament_scoring_version_update_admin on public.tournament_scoring_version;
+create policy tournament_scoring_version_update_admin
+  on public.tournament_scoring_version for update to authenticated
+  using (exists (select 1 from public.tournament t where t.id = tournament_id and public.is_organization_member(t.organization_id, array['OWNER','ADMIN'])));
+
+drop policy if exists tournament_verification_version_admin on public.tournament_verification_policy_version;
+create policy tournament_verification_version_admin
+  on public.tournament_verification_policy_version for insert to authenticated
+  with check (exists (select 1 from public.tournament t where t.id = tournament_id and public.is_organization_member(t.organization_id, array['OWNER','ADMIN'])));
+
+drop policy if exists tournament_verification_version_update_admin on public.tournament_verification_policy_version;
+create policy tournament_verification_version_update_admin
+  on public.tournament_verification_policy_version for update to authenticated
+  using (exists (select 1 from public.tournament t where t.id = tournament_id and public.is_organization_member(t.organization_id, array['OWNER','ADMIN'])));
+
+drop policy if exists tournament_boundary_version_admin on public.tournament_boundary_version;
+create policy tournament_boundary_version_admin
+  on public.tournament_boundary_version for insert to authenticated
+  with check (exists (select 1 from public.tournament t where t.id = tournament_id and public.is_organization_member(t.organization_id, array['OWNER','ADMIN'])));
+
+drop policy if exists tournament_boundary_version_update_admin on public.tournament_boundary_version;
+create policy tournament_boundary_version_update_admin
+  on public.tournament_boundary_version for update to authenticated
+  using (exists (select 1 from public.tournament t where t.id = tournament_id and public.is_organization_member(t.organization_id, array['OWNER','ADMIN'])));
+
+create or replace function public.transition_tournament(
+  target_tournament_id uuid,
+  next_status text,
+  transition_reason text default null
+)
+returns public.tournament
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  current_row public.tournament;
+begin
+  select * into current_row
+    from public.tournament
+   where id = target_tournament_id
+     and deleted_at is null
+   for update;
+
+  if current_row.id is null then
+    raise exception 'tournament not found' using errcode = 'P0002';
+  end if;
+
+  if not public.is_organization_member(current_row.organization_id, array['OWNER','ADMIN']) then
+    raise exception 'not authorized' using errcode = '42501';
+  end if;
+
+  if not public.tournament_transition_allowed(current_row.status, next_status) then
+    raise exception 'invalid tournament transition: % -> %', current_row.status, next_status
+      using errcode = 'check_violation';
+  end if;
+
+  if next_status = 'LIVE' and (
+    current_row.active_rule_set_version_id is null
+    or current_row.active_scoring_version_id is null
+    or current_row.active_verification_policy_version_id is null
+    or current_row.active_boundary_version_id is null
+  ) then
+    raise exception 'LIVE requires frozen rule, scoring, verification, and boundary versions'
+      using errcode = 'check_violation';
+  end if;
+
+  if next_status = 'LIVE' then
+    update public.tournament_rule_set_version
+       set locked_at = coalesce(locked_at, now())
+     where id = current_row.active_rule_set_version_id;
+    update public.tournament_scoring_version
+       set locked_at = coalesce(locked_at, now())
+     where id = current_row.active_scoring_version_id;
+    update public.tournament_verification_policy_version
+       set locked_at = coalesce(locked_at, now())
+     where id = current_row.active_verification_policy_version_id;
+    update public.tournament_boundary_version
+       set locked_at = coalesce(locked_at, now())
+     where id = current_row.active_boundary_version_id;
+  end if;
+
+  insert into public.tournament_lifecycle_event (
+    tournament_id, organization_id, from_status, to_status, actor_id, reason
+  ) values (
+    current_row.id, current_row.organization_id, current_row.status, next_status, auth.uid(), transition_reason
+  );
+
+  update public.tournament
+     set status = next_status
+   where id = current_row.id
+  returning * into current_row;
+
+  return current_row;
+end;
+$$;
+
+-- The money matrix covers pools, contributions and crypto records as well as orders.
+
+drop policy if exists prize_pool_org_read on public.prize_pool;
+create policy prize_pool_org_read on public.prize_pool
+for select to authenticated using (public.is_organization_member(organization_id, array['OWNER','ADMIN','FINANCE']));
+
+drop policy if exists prize_pool_entry_read on public.prize_pool_entry;
+create policy prize_pool_entry_read on public.prize_pool_entry
+for select to authenticated using (exists (
+  select 1 from public.prize_pool pp where pp.id = prize_pool_id and public.is_organization_member(pp.organization_id, array['OWNER','ADMIN','FINANCE'])
+));
+
+drop policy if exists crypto_quote_read on public.crypto_payment_quote;
+create policy crypto_quote_read on public.crypto_payment_quote
+for select to authenticated using (exists (
+  select 1 from public.tournament_order o where o.id = order_id and (
+    o.purchaser_angler_id = auth.uid() or public.is_organization_member(o.organization_id, array['OWNER','ADMIN','FINANCE'])
+  )
+));
+
+drop policy if exists crypto_payment_read on public.crypto_payment;
+create policy crypto_payment_read on public.crypto_payment
+for select to authenticated using (exists (
+  select 1 from public.payment p join public.tournament_order o on o.id = p.order_id
+  where p.id = payment_id and (o.purchaser_angler_id = auth.uid() or public.is_organization_member(o.organization_id, array['OWNER','ADMIN','FINANCE']))
+));
+
+drop policy if exists crypto_observation_read on public.crypto_chain_observation;
+create policy crypto_observation_read on public.crypto_chain_observation
+for select to authenticated using (exists (
+  select 1 from public.crypto_payment cp
+  join public.payment p on p.id = cp.payment_id
+  join public.tournament_order o on o.id = p.order_id
+  where cp.id = crypto_payment_id and (o.purchaser_angler_id = auth.uid() or public.is_organization_member(o.organization_id, array['OWNER','ADMIN','FINANCE']))
+));
+
+-- One statement snapshot of every order and confirmed refund, with no REST row limit.
+-- SECURITY INVOKER retains the underlying table grants and RLS. Integer results cross
+-- the JSON boundary as text, so the client can reject overflow before any rounding.
+-- Public event pricing is already exposed through the tournament projection; this
+-- read grant lets the invoker map jackpot lines while the member SELECT policy scopes it.
+grant select on public.tournament_division to authenticated;
+create or replace function public.tournament_money_totals(target_tournament_id uuid)
+returns table (
+  currency text, collected_minor text, outstanding_minor text,
+  paid_orders text, unpaid_orders text, refunded_orders text
+)
+language plpgsql stable security invoker set search_path = ''
+as $$
+declare totals record;
+begin
+  if coalesce(public.my_tournament_host_role(target_tournament_id), '') not in ('OWNER','ADMIN','FINANCE') then
+    raise exception 'Not authorized to read the tournament ledger' using errcode = '42501';
+  end if;
+
+  with lines as (
+    select i.order_id, sum(i.total_amount_minor) as line_total,
+      sum(case when (i.item_type in ('TEAM_ENTRY','TOURNAMENT_ENTRY') and t.id = target_tournament_id)
+        or (i.item_type in ('JACKPOT','SIDE_POT') and d.tournament_id = target_tournament_id)
+        then i.total_amount_minor else 0 end) as event_total,
+      bool_or(case when i.item_type in ('TEAM_ENTRY','TOURNAMENT_ENTRY') then t.id is null
+        when i.item_type in ('JACKPOT','SIDE_POT') then d.id is null else true end) as unmapped
+    from public.tournament_order_item i
+    left join public.tournament t on i.item_type in ('TEAM_ENTRY','TOURNAMENT_ENTRY') and t.id = i.reference_id
+    left join public.tournament_division d on i.item_type in ('JACKPOT','SIDE_POT') and d.id = i.reference_id
+    group by i.order_id
+  ), refunds as (
+    select p.order_id, sum(r.amount_minor) as amount
+    from public.payment p join public.payment_refund r on r.payment_id = p.id
+    where r.status = 'CONFIRMED' group by p.order_id
+  ), ledger as (
+    select o.currency, o.total_minor, o.status, coalesce(r.amount, 0) as refunded,
+      case when li.order_id is null then o.total_minor else li.event_total end as event_minor,
+      coalesce(li.unmapped or li.line_total <> o.total_minor, false) as unmapped
+    from public.tournament_order o left join refunds r on r.order_id = o.id
+    left join lines li on li.order_id = o.id
+    where o.tournament_id = target_tournament_id or li.event_total > 0
+  )
+  select min(l.currency) as currency, count(distinct l.currency) as currencies,
+    coalesce(sum(case when l.status in ('PAID','PARTIALLY_REFUNDED','REFUNDED')
+      then case when l.refunded = l.total_minor then 0
+        else l.event_minor - l.refunded end else 0 end), 0)::text as collected_minor,
+    coalesce(sum(case when l.status in ('DRAFT','PENDING_PAYMENT') then l.event_minor else 0 end), 0)::text as outstanding_minor,
+    count(*) filter (where l.status in ('PAID','PARTIALLY_REFUNDED'))::text as paid_orders,
+    count(*) filter (where l.status in ('DRAFT','PENDING_PAYMENT'))::text as unpaid_orders,
+    count(*) filter (where l.refunded > 0 or l.status in ('PARTIALLY_REFUNDED','REFUNDED'))::text as refunded_orders,
+    coalesce(bool_or(l.unmapped or l.refunded > l.total_minor
+      or (l.refunded > 0 and l.refunded < l.total_minor and l.event_minor <> l.total_minor)
+      or (l.status = 'REFUNDED' and l.refunded <> l.total_minor)
+      or (l.status = 'PARTIALLY_REFUNDED' and (l.refunded <= 0 or l.refunded >= l.total_minor))
+      or (l.status not in ('PAID','PARTIALLY_REFUNDED','REFUNDED') and l.refunded > 0)), false) as inconsistent
+  into totals from ledger l;
+
+  if totals.currencies > 1 or totals.inconsistent then
+    raise exception 'Ledger currency, event allocation or confirmed refunds are inconsistent' using errcode = '22023';
+  end if;
+  return query select totals.currency, totals.collected_minor, totals.outstanding_minor,
+    totals.paid_orders, totals.unpaid_orders, totals.refunded_orders;
+end;
+$$;
+revoke all on function public.tournament_money_totals(uuid) from public, anon;
+grant execute on function public.tournament_money_totals(uuid) to authenticated;

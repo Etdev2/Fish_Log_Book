@@ -158,6 +158,12 @@ export function useRoster(tournamentId: string, enabled: boolean): RosterLoad {
 
         if (cancelled) return;
 
+        const detailError = identityResult.error ?? memberResult.error ?? teamResult.error;
+        if (detailError) {
+          setLoad({ state: "error", message: detailError.message });
+          return;
+        }
+
         const names = new Map<string, IdentityRow>();
         for (const row of (identityResult.data ?? []) as IdentityRow[]) {
           names.set(row.tournament_entry_id, row);
