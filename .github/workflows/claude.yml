@@ -4,13 +4,15 @@ name: Claude Code
 # actor mentions @claude. Each run authenticates with the
 # CLAUDE_CODE_OAUTH_TOKEN repository secret (from `claude setup-token`, uses Et's Claude subscription, not API credit), which Et adds; this file creates none.
 # A mention is a wake, not authority: Claude builder still starts product work
-# only on a ready-for-agent ticket that Et named it on (ADR 0006).
+# only on a ready-for-agent ticket that Et named it on (sweet-potato ADR 0006).
 
 on:
   issue_comment:
     types: [created]
   pull_request_review_comment:
     types: [created]
+  pull_request_review:
+    types: [submitted]
   issues:
     types: [opened, assigned]
 
@@ -30,6 +32,7 @@ jobs:
       (github.actor == 'Etdev2' || github.actor == 'sweet-potato-coordinator[bot]') && (
         (github.event_name == 'issue_comment' && contains(github.event.comment.body, '@claude')) ||
         (github.event_name == 'pull_request_review_comment' && contains(github.event.comment.body, '@claude')) ||
+        (github.event_name == 'pull_request_review' && contains(github.event.review.body, '@claude')) ||
         (github.event_name == 'issues' && (contains(github.event.issue.body, '@claude') || contains(github.event.issue.title, '@claude')))
       )
     runs-on: ubuntu-latest
