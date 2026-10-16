@@ -59,7 +59,8 @@ import { FIN_ID } from "@/features/wildlife/flag";
  * Founder, 2026-10-16 ("a five-year-old understands it"): text-only tabs at 18px clipped
  * "Calendar" against the screen edge and gave no picture to recognise. Each tab is now an
  * icon over a 16px caption (the type floor, not below it), and the current tab is an
- * orange pill behind its icon rather than a 2px line. Icons live in TAB_ICONS, keyed by
+ * orange pill behind its icon rather than a 2px line. The stack is sized to the 56px dock
+ * allowance at 390px (scripts/check-layout.mjs): 28px pill + 20px caption + 6px padding. Icons live in TAB_ICONS, keyed by
  * href, so SHELL_ROUTES and its tests keep their exact shape.
  *
  * Same day: the first tab is "Home", not "Calendar". At 320px a 64px column cannot hold
@@ -145,13 +146,13 @@ export function ShellNav() {
                   Equal grid columns give every tab the same width; the icon + caption stack
                   stays above the 48px floor (docs/design/06-accessibility-baseline.md §3).
                 */
-                className={`flex min-h-touch-floor min-w-0 flex-col items-center justify-center gap-0.5 px-0.5 pb-1 pt-1.5 text-center text-caption font-semibold focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-0 focus-visible:outline-focus-ring ${
+                className={`flex min-h-touch-floor min-w-0 flex-col items-center justify-center px-0.5 pb-0.5 pt-1 text-center text-caption font-semibold focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-0 focus-visible:outline-focus-ring ${
                   active ? "text-signal-orange" : "text-text-link"
                 }`}
               >
                 <span
                   aria-hidden
-                  className={`flex h-8 w-14 items-center justify-center rounded-full ${
+                  className={`flex h-7 w-14 items-center justify-center rounded-full ${
                     active ? "bg-surface-raised" : ""
                   }`}
                 >
@@ -159,7 +160,7 @@ export function ShellNav() {
                     {TAB_ICONS[route.href]}
                   </svg>
                 </span>
-                <span className="max-w-full truncate">{route.label}</span>
+                <span className="max-w-full truncate leading-tight">{route.label}</span>
               </Link>
             </li>
           );
