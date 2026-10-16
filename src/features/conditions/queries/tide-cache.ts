@@ -3,8 +3,8 @@
 /**
  * A small on-device cache of fetched tide predictions.
  *
- * localStorage rather than IndexedDB on purpose: a week of predictions for one station is
- * a few kilobytes, it is regenerable from the network, and it is not the durable record
+ * localStorage rather than IndexedDB on purpose: two years of turns plus a week of hourly
+ * points for one station is under 100 KB, it is regenerable from the network, and it is not the durable record
  * the log is — putting it in the offline database would mean a schema version bump to
  * store something we would happily lose.
  *
@@ -15,11 +15,19 @@
 import { instant, metres } from "@/core/units";
 import { tideSeries, type TidePredictionSeries } from "@/core/rules/tide";
 
-/** v2 (FL-1): the series now carries two years of turns; a v1 week-only entry is ignored. */
-const KEY_PREFIX = "flb.tide-cache.v2.";
+/**
+ * v3 (FL-1, ±365 d): the series now carries a year of turns either side of today. A v2
+ * entry (turns forward only) would leave the past half of the chart empty, so it is ignored.
+ */
+const KEY_PREFIX = "flb.tide-cache.v3.";
 
-/** Beyond this a cached series is still shown, but labelled as old. */
-export const CACHE_FRESH_MS = 12 * 60 * 60 * 1000;
+/**
+ * How long a cached series counts as fresh. Predictions are astronomical — NOAA does not
+ * revise them day to day — so a week is safe, and it means a page load does not refetch two
+ * years of turns. `use-tide-series.ts` also refetches early when the cached hourly curve no
+ * longer reaches past now, because that near window moves with the clock.
+ */
+export const CACHE_FRESH_MS = 7 * 24 * 60 * 60 * 1000;
 
 interface CachedShape {
   readonly stationId: string;

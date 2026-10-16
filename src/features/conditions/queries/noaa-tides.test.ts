@@ -72,11 +72,11 @@ describe("chunking long windows within NOAA's per-interval limits (ADR 011)", ()
     for (let i = 1; i < chunks.length; i++) expect(chunks[i].fromMs).toBe(chunks[i - 1].toMs + DAY);
   });
 
-  it("uses the 10-year hilo limit, so the two-year turn window is a single request", () => {
+  it("uses the 10-year hilo limit, so the ±365-day turn window is a single request", () => {
     expect(maxRequestMs("hilo")).toBe(MAX_HILO_REQUEST_MS);
     expect(maxRequestMs("h")).toBe(MAX_REQUEST_MS);
     const w = windowAround(from);
-    expect(chunkWindow(w.fromMs, w.turnsToMs, maxRequestMs("hilo"))).toHaveLength(1);
+    expect(chunkWindow(w.turnsFromMs, w.turnsToMs, maxRequestMs("hilo"))).toHaveLength(1);
     expect(chunkWindow(w.fromMs, w.toMs, maxRequestMs("h"))).toHaveLength(1);
   });
 
@@ -90,10 +90,13 @@ describe("chunking long windows within NOAA's per-interval limits (ADR 011)", ()
 });
 
 describe("the default fetch window", () => {
-  it("reaches two years of turns and a week of hourly detail", () => {
-    const now = Date.UTC(2026, 9, 13);
+  it("reaches a year of turns either side of now and a week of hourly detail", () => {
+    const now = Date.UTC(2026, 9, 16);
     const w = windowAround(now);
-    expect((w.turnsToMs - now) / (24 * 60 * 60 * 1000)).toBe(730);
-    expect((w.toMs - now) / (24 * 60 * 60 * 1000)).toBe(7);
+    const days = (ms: number) => ms / (24 * 60 * 60 * 1000);
+    expect(days(now - w.turnsFromMs)).toBe(365);
+    expect(days(w.turnsToMs - now)).toBe(365);
+    expect(days(now - w.fromMs)).toBe(2);
+    expect(days(w.toMs - now)).toBe(7);
   });
 });

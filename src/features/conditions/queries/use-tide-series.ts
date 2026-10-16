@@ -39,16 +39,44 @@ export interface TideReading {
   readonly error: string | null;
 }
 
-/** How far ahead the turns reach. Elliott's FL-1 default: two years (ADR 011). */
-export const TURNS_HORIZON_DAYS = 730;
+/** How far either side of today the turns reach. Et's FL-1 ask (2026-10-16): ±365 days. */
+export const TURNS_BACK_DAYS = 365;
+export const TURNS_AHEAD_DAYS = 365;
+
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+/** The hourly curve covers this much before and after now. */
+export const HOURLY_BACK_MS = 2 * DAY_MS;
+export const HOURLY_AHEAD_MS = 7 * DAY_MS;
 
 /**
- * Hourly detail for the near week, high/low turns two years out. Predictions are
- * astronomical, so a turn in 2028 is as trustworthy as one tomorrow.
+ * Hourly detail for the near week; high/low turns a year back and a year out, in ONE hilo
+ * request (NOAA's hilo limit is 10 years). Predictions are astronomical, so a turn a year
+ * out is as trustworthy as one tomorrow.
  */
 export function windowAround(nowMs: number) {
-  const day = 24 * 60 * 60 * 1000;
-  return { fromMs: nowMs - 2 * day, toMs: nowMs + 7 * day, turnsToMs: nowMs + TURNS_HORIZON_DAYS * day };
+  return {
+    fromMs: nowMs - HOURLY_BACK_MS,
+    toMs: nowMs + HOURLY_AHEAD_MS,
+    turnsFromMs: nowMs - TURNS_BACK_DAYS * DAY_MS,
+    turnsToMs: nowMs + TURNS_AHEAD_DAYS * DAY_MS,
+  };
+}
+
+/** The cached hourly curve must still reach this far past now to count as fresh. */
+const HOURLY_MARGIN_MS = 2 * DAY_MS;
+
+/**
+ * Fresh means: young enough, AND the hourly curve still reaches past now. The turns
+ * outlast a week easily; the hourly near window does not, because it moves with the clock.
+ */
+export function isCacheFresh(series: TidePredictionSeries, nowMs: number): boolean {
+  if (ageOf(series, nowMs) >= CACHE_FRESH_MS) return false;
+  let lastHourly = Number.NEGATIVE_INFINITY;
+  for (const sample of series.samples) {
+    if (sample.turn === null) lastHourly = Math.max(lastHourly, Number(sample.at));
+  }
+  return lastHourly >= nowMs + HOURLY_MARGIN_MS;
 }
 
 function ageOf(series: TidePredictionSeries, nowMs: number): number {
@@ -70,7 +98,7 @@ async function resolveSeries(
   const now = Date.now();
   const cached = readTideCache(station.id);
 
-  if (cached !== null && ageOf(cached, now) < CACHE_FRESH_MS) {
+  if (cached !== null && isCacheFresh(cached, now)) {
     return { stationId: station.id, series: cached, source: "cache", stale: false, error: null };
   }
 

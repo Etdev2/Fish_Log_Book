@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 
 import Link from "next/link";
 
-import { degrees, instant } from "@/core/units";
+import { degrees, instant, metres } from "@/core/units";
 import {
   heightAt,
   nextSlackAfter,
@@ -31,7 +31,8 @@ import { MoonDetailsSheet } from "./components/moon-details-sheet";
 import { StationDetailsSheet } from "./components/station-details-sheet";
 import { TideDetailsSheet } from "./components/tide-details-sheet";
 import { localDayIndex, localMidnights } from "./tide-chart-geometry";
-import { isoDay, sliceSeries, viewWindowAround } from "./view-window";
+import { dailyRanges, isoDay, sliceSeries, viewWindowAround, ZOOM_LEVELS, type TideZoom } from "./view-window";
+import { TideOverview } from "./components/tide-overview";
 import type { CatchMarkerInput } from "./catch-markers";
 import {
   clock,
@@ -91,8 +92,9 @@ export function TideScreen() {
 }
 
 /**
- * Holds the full loaded series (up to two years of turns, ADR 011) and hands the chart a
- * one-week slice. Jumping to a date re-slices and remounts the chart there.
+ * Holds the full loaded series (today ±365 days of turns, ADR 011) and the zoom. Week zoom
+ * hands the detailed chart a one-week slice; month and year zoom show the daily-range
+ * overview. Jumping to a date re-slices and remounts the chart there.
  */
 function TideViewWindow({
   tideData,
@@ -104,11 +106,14 @@ function TideViewWindow({
   const fullStart = Number(series.samples[0].at);
   const fullEnd = Number(series.samples[series.samples.length - 1].at);
   const [anchor, setAnchor] = useState<number | null>(null);
+  const [zoom, setZoom] = useState<TideZoom>("week");
+  const [unit] = useUnitPreference();
   const now = useNow();
   // Rounded to the UTC day so the slice does not shift (and the chart re-scroll) every tick.
   const DAY = 24 * 60 * 60 * 1000;
   const nowMs = now === null ? null : Math.floor(Number(now) / DAY) * DAY;
-  const effectiveAnchor = anchor ?? (nowMs !== null && nowMs >= fullStart && nowMs <= fullEnd ? nowMs : null);
+  const nowInRange = nowMs !== null && nowMs >= fullStart && nowMs <= fullEnd;
+  const effectiveAnchor = anchor ?? (nowInRange ? nowMs : null);
   // Always slice: with no in-range anchor (clock not read yet, or now outside the data)
   // fall back to the nearest end, never hand the fixed-px/hour chart two whole years. The
   // slice and the picker's value both come from this one anchor so they cannot disagree.
@@ -120,45 +125,76 @@ function TideViewWindow({
     const { fromMs, toMs } = viewWindowAround(viewAnchor);
     return sliceSeries(series, fromMs, toMs);
   }, [series, viewAnchor]);
+  const days = useMemo(() => dailyRanges(series, stationZone), [series, stationZone]);
 
   const staleNote =
     tideData.source === "fixture" || tideData.stale ? tideSourceLabel(tideData) : null;
 
+  // Back to today from anywhere — including a jumped-to date whose week slice no longer
+  // contains now, which is exactly when the chart's own Now control cannot (Codex P2).
+  const returnToNow = anchor !== null && nowInRange ? () => setAnchor(null) : null;
+
   return (
-    <>
+    <div className="tide-frame">
       {staleNote !== null ? (
-        <p
-          role="status"
-          className="mx-4 mt-4 rounded-md border border-amber-flag p-3 text-caption text-text-primary"
-        >
-          ⚠ {staleNote}. Tide times shown may not be current
+        <details role="status" className="tide-stale">
+          <summary>⚠ {staleNote}</summary>
+          Tide times shown may not be current
           {tideData.error !== null ? ` (${tideData.error})` : ""}.
-        </p>
+        </details>
       ) : null}
-      <label className="mx-4 mt-3 flex items-center gap-2 text-caption text-text-muted">
-        Jump to date
-        <input
-          type="date"
-          className="rounded border border-hairline bg-surface px-2 py-1 text-text-primary"
-          min={isoDay(fullStart, stationZone)}
-          max={isoDay(fullEnd, stationZone)}
-          value={isoDay(viewAnchor, stationZone)}
-          onChange={(event) => {
-            const picked = Date.parse(`${event.target.value}T12:00:00Z`);
-            if (!Number.isNaN(picked)) setAnchor(Math.max(fullStart, Math.min(fullEnd, picked)));
+      <div className="tide-toolbar">
+        <div className="tide-zoom" role="group" aria-label="Zoom">
+          {ZOOM_LEVELS.map((level) => (
+            <button key={level} type="button" aria-pressed={zoom === level} onClick={() => setZoom(level)}>
+              {level}
+            </button>
+          ))}
+        </div>
+        <label className="flex shrink-0 items-center gap-1">
+          <span className="sr-only">Jump to date</span>
+          <input
+            type="date"
+            min={isoDay(fullStart, stationZone)}
+            max={isoDay(fullEnd, stationZone)}
+            value={isoDay(viewAnchor, stationZone)}
+            onChange={(event) => {
+              const picked = Date.parse(`${event.target.value}T12:00:00Z`);
+              if (!Number.isNaN(picked)) setAnchor(Math.max(fullStart, Math.min(fullEnd, picked)));
+            }}
+          />
+        </label>
+        {returnToNow !== null ? (
+          <button type="button" className="tide-today-button" onClick={returnToNow}>
+            Today
+          </button>
+        ) : null}
+        <span className="shrink-0">
+          {isoDay(fullStart, stationZone)} → {isoDay(fullEnd, stationZone)}
+        </span>
+      </div>
+      {zoom === "week" ? (
+        <TideChartScreen
+          key={anchor ?? "now"}
+          tideData={tideData}
+          series={view}
+          initialAnchor={anchor}
+          onReturnToNow={returnToNow}
+        />
+      ) : (
+        <TideOverview
+          days={days}
+          zoom={zoom}
+          todayDay={nowInRange && now !== null ? isoDay(Number(now), stationZone) : null}
+          anchorDay={isoDay(viewAnchor, stationZone)}
+          formatHeight={(m) => formatHeight(metres(m), unit)}
+          onPickDay={(picked) => {
+            setAnchor(Math.max(fullStart, Math.min(fullEnd, picked.atMs)));
+            setZoom("week");
           }}
         />
-        <span>
-          Predictions loaded to {isoDay(fullEnd, stationZone)}
-        </span>
-      </label>
-      <TideChartScreen
-        key={anchor ?? "now"}
-        tideData={tideData}
-        series={view}
-        initialAnchor={anchor}
-      />
-    </>
+      )}
+    </div>
   );
 }
 
@@ -194,11 +230,14 @@ function TideChartScreen({
   tideData,
   series,
   initialAnchor,
+  onReturnToNow,
 }: {
   tideData: TideReading;
   series: TidePredictionSeries;
   /** A date the angler jumped to; null means "centre on now". */
   initialAnchor: number | null;
+  /** Leaves a jumped-to date for today when today is outside this slice; null when not needed. */
+  onReturnToNow: (() => void) | null;
 }) {
   const stationZone = tideData.station?.timeZone ?? STATION_TIME_ZONE;
   const stationLocation = useMemo(
@@ -546,7 +585,7 @@ function TideChartScreen({
         catchMarkers={catchMarkers}
         dayBoundaries={dayBoundaries.slice(1)}
         valueText={valueText}
-        nowAction={currentAt !== null && !atNow ? () => goToAt(currentAt) : null}
+        nowAction={currentAt !== null ? (atNow ? null : () => goToAt(currentAt)) : onReturnToNow}
       />
 
       <p className="sr-only" aria-live="polite">

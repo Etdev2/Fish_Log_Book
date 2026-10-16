@@ -824,3 +824,124 @@
   line-height: 1.2;
   letter-spacing: 0;
 }
+
+/* ---------------------------------------------------------------------------------------
+ * FL-1 ±365 d: the view frame, its one-row toolbar, and the month/year overview.
+ *
+ * The frame is a flex column that takes the shell's fixed-height slot. The toolbar never
+ * grows past one row (it scrolls sideways instead of wrapping) and the stale notice is a
+ * one-line <details>, so on a short phone the chart keeps its height instead of being
+ * clipped below the fold (Codex P2 on #137).
+ * ------------------------------------------------------------------------------------- */
+.tide-frame {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+}
+
+.tide-toolbar {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px 0;
+  overflow-x: auto;
+  white-space: nowrap;
+  font-size: 13px;
+  color: var(--color-text-muted);
+}
+
+.tide-zoom {
+  display: inline-flex;
+  flex-shrink: 0;
+  border: 1px solid var(--color-hairline);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.tide-zoom button {
+  min-height: 36px;
+  padding: 0 10px;
+  color: var(--color-text-primary);
+  text-transform: capitalize;
+}
+
+.tide-zoom button[aria-pressed="true"] {
+  background: var(--color-text-link);
+  color: var(--color-background);
+  font-weight: 700;
+}
+
+.tide-toolbar input[type="date"] {
+  flex-shrink: 0;
+  min-height: 36px;
+  border: 1px solid var(--color-hairline);
+  border-radius: 6px;
+  background: transparent;
+  padding: 0 6px;
+  color: var(--color-text-primary);
+}
+
+.tide-today-button {
+  flex-shrink: 0;
+  min-height: 36px;
+  padding: 0 10px;
+  border: 1px solid var(--color-hairline);
+  border-radius: 6px;
+  color: var(--color-text-link);
+  font-weight: 600;
+}
+
+.tide-stale {
+  flex-shrink: 0;
+  margin: 6px 16px 0;
+  border: 1px solid var(--color-amber-flag);
+  border-radius: 6px;
+  padding: 4px 8px;
+  font-size: 13px;
+  color: var(--color-text-primary);
+}
+
+.tide-stale summary {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.tide-overview {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  flex-direction: column;
+  padding: 8px 0 12px;
+}
+
+.tide-overview-caption {
+  margin: 0 16px 6px;
+  font-size: 13px;
+  color: var(--color-text-muted);
+}
+
+.tide-overview-body {
+  display: flex;
+  flex: 1;
+  min-height: 160px;
+  align-items: stretch;
+}
+
+.tide-overview-scroller {
+  flex: 1;
+  min-width: 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
+.tide-overview-step {
+  flex-shrink: 0;
+  width: 32px;
+  font-size: 24px;
+  color: var(--color-text-link);
+}

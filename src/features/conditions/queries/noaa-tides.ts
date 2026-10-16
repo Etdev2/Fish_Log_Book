@@ -170,6 +170,8 @@ export interface FetchWindow {
   readonly fromMs: number;
   /** End of the hourly curve. */
   readonly toMs: number;
+  /** Start of the high/low turns, when they should reach further back than the hourly curve. */
+  readonly turnsFromMs?: number;
   /** End of the high/low turns, when they should reach further than the hourly curve. */
   readonly turnsToMs?: number;
 }
@@ -197,7 +199,13 @@ export async function fetchTideSeries(
   window: FetchWindow,
   signal?: AbortSignal,
 ): Promise<TidePredictionSeries> {
-  const turnWindow = window.turnsToMs === undefined ? window : { fromMs: window.fromMs, toMs: window.turnsToMs };
+  // FL-1 (±365 d): one hilo request spans the whole turn window — well inside NOAA's 10-year
+  // hilo limit — while the hourly curve stays a short near window (1-year limit, and a
+  // year of hourly points would crawl on an old phone).
+  const turnWindow = {
+    fromMs: window.turnsFromMs ?? window.fromMs,
+    toMs: window.turnsToMs ?? window.toMs,
+  };
   const hourly = await getChunked(station.id, "h", window, signal);
   const turns = await getChunked(station.id, "hilo", turnWindow, signal);
 

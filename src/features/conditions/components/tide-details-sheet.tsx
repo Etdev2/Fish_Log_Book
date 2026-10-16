@@ -71,6 +71,10 @@ export function TideDetailsSheet({
     }
     return rows;
   }, [series, dayFrom, dayTo]);
+  // Beyond the near week only the high/low turns are fetched (NOAA's hourly product is
+  // limited to a year per request, and a year of hourly points would crawl on a phone).
+  // Say so instead of putting three or four rows under an "every hour" caption (Codex P2).
+  const turnsOnly = hourly.every((row) => row.turn !== null);
 
   return (
     <ConditionsSheet
@@ -140,9 +144,13 @@ export function TideDetailsSheet({
       </dl>
 
       <details className="tide-sheet-disclosure">
-        <summary>Every hour, in numbers</summary>
+        <summary>{turnsOnly ? "Highs and lows, in numbers" : "Every hour, in numbers"}</summary>
         <table className="tide-sheet-table">
-          <caption>Predicted height above {series.station.datum}, hourly, with the exact highs and lows.</caption>
+          <caption>
+            {turnsOnly
+              ? `Predicted highs and lows above ${series.station.datum}. Hourly heights are loaded for the week around today only.`
+              : `Predicted height above ${series.station.datum}, hourly, with the exact highs and lows.`}
+          </caption>
           <thead>
             <tr>
               <th scope="col">Time</th>

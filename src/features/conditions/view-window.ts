@@ -53,3 +53,61 @@ export function isoDay(ms: number, timeZone: string): string {
     day: "2-digit",
   }).format(new Date(ms));
 }
+
+/**
+ * Zoom (FL-1, ±365 d). `week` is the detailed chart sliced around the anchor; `month` and
+ * `year` are an overview of each station day's tide range, because the detailed chart lays
+ * out at a fixed 560 px a day and a year of it would be 200,000 px of unreadable labels.
+ */
+export type TideZoom = "week" | "month" | "year";
+
+export const ZOOM_LEVELS: readonly TideZoom[] = ["week", "month", "year"];
+
+/** How many station days one screen width shows at each zoom. */
+export const ZOOM_SPAN_DAYS: Record<TideZoom, number> = { week: 7, month: 31, year: 365 };
+
+/** One station-calendar day's highest high and lowest low, from the turns. */
+export interface DayRange {
+  /** `YYYY-MM-DD` on the station's calendar. */
+  readonly day: string;
+  /** The first turn of that day, as an instant to anchor the week view on. */
+  readonly atMs: number;
+  readonly lowM: number;
+  readonly highM: number;
+}
+
+/**
+ * Group the series' turns by station day. Days with no turn (only possible at the very ends
+ * of the window) are left out rather than drawn as zero — a missing bar is honest, a bar at
+ * datum is a wrong tide.
+ */
+export function dailyRanges(series: TidePredictionSeries, timeZone: string): DayRange[] {
+  const format = new Intl.DateTimeFormat("en-CA", {
+    timeZone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  });
+  const out: DayRange[] = [];
+  let current: { day: string; atMs: number; lowM: number; highM: number } | null = null;
+  for (const sample of series.samples) {
+    if (sample.turn === null) continue;
+    const at = Number(sample.at);
+    const height = Number(sample.height);
+    const day = format.format(new Date(at));
+    if (current === null || current.day !== day) {
+      if (current !== null) out.push(current);
+      current = { day, atMs: at, lowM: height, highM: height };
+    } else {
+      current.lowM = Math.min(current.lowM, height);
+      current.highM = Math.max(current.highM, height);
+    }
+  }
+  if (current !== null) out.push(current);
+  return out;
+}
+
+/** Whether the slice handed to the chart carries any hourly points, or only turns. */
+export function hasHourly(series: TidePredictionSeries): boolean {
+  return series.samples.some((s) => s.turn === null);
+}
