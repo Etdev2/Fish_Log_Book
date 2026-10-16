@@ -19,11 +19,6 @@ on:
 # No default token access; the job below asks only for what the action needs.
 permissions: {}
 
-concurrency:
-  # One Claude run per issue or pull request at a time (one active attempt).
-  group: claude-${{ github.event.issue.number || github.event.pull_request.number }}
-  cancel-in-progress: false
-
 jobs:
   claude:
     # Only Et and the coordinator app may wake Claude. The action also refuses
@@ -35,6 +30,12 @@ jobs:
         (github.event_name == 'pull_request_review' && contains(github.event.review.body, '@claude')) ||
         (github.event_name == 'issues' && (contains(github.event.issue.body, '@claude') || contains(github.event.issue.title, '@claude')))
       )
+    concurrency:
+      # One Claude run per issue or pull request at a time (one active attempt).
+      group: claude-${{ github.event.issue.number || github.event.pull_request.number }}
+      cancel-in-progress: false
+      # Retain up to 100 pending requests instead of replacing the previous one.
+      queue: max
     runs-on: ubuntu-latest
     timeout-minutes: 30
     permissions:
