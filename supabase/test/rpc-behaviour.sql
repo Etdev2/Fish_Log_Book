@@ -309,6 +309,288 @@ begin
   perform pg_temp.check('signed out, you cannot register anybody', failed);
 end $$;
 
+-- ---------------------------------------------------------------- one fish, one record
+/*
+  The link added by 20260915120000. ARCH-001 gave the tournament domain its own catch row
+  with nothing joining it to the angler's log, so the same fish was logged twice and the
+  competitive claim carried none of the conditions or regulation snapshot attached to the
+  personal one. These checks pin the four rules that make the link trustworthy.
+*/
+do $$
+declare
+  trip_a uuid := '9a000000-0000-0000-0000-0000000000a1';
+  catch_a uuid := '9c000000-0000-0000-0000-0000000000c1';
+  trip_b uuid := '9a000000-0000-0000-0000-0000000000b1';
+  catch_b uuid := '9c000000-0000-0000-0000-0000000000d1';
+  captain uuid := '11111111-1111-1111-1111-111111111111';
+  host uuid := '22222222-2222-2222-2222-222222222222';
+  entry_ uuid;
+  org_ uuid;
+  tourn_ uuid;
+  tc uuid;
+  failed boolean;
+  severed timestamptz;
+  linked uuid;
+begin
+  -- The captain's own trip and fish, and the host's, so "you may only link your own"
+  -- has something real to refuse.
+  insert into public.trip (id, angler_id, water_class, started_at, started_tz, local_date,
+                           client_created_at)
+  values (trip_a, captain, 'salt', now(), 'America/Los_Angeles', current_date, now()),
+         (trip_b, host, 'salt', now(), 'America/Los_Angeles', current_date, now());
+
+  insert into public.catch (id, angler_id, trip_id, caught_at, caught_tz, local_date,
+                            client_created_at, outcome, resolution_state)
+  values (catch_a, captain, trip_a, now(), 'America/Los_Angeles', current_date, now(),
+          'landed', 'confirmed'),
+         (catch_b, host, trip_b, now(), 'America/Los_Angeles', current_date, now(),
+          'landed', 'confirmed');
+
+  select e.id, e.organization_id, e.tournament_id into entry_, org_, tourn_
+    from public.tournament_entry e
+    join public.tournament_team t on t.id = e.team_id
+   where t.created_by = captain
+   limit 1;
+  perform pg_temp.check('the captain has an entry to submit against', entry_ is not null);
+
+  -- 1. An account holder must bring their own catch row.
+  failed := false;
+  begin
+    insert into public.tournament_catch
+      (tournament_id, organization_id, entry_id, species_id, species_other,
+       caught_at_device, client_generated_id, created_by)
+    values (tourn_, org_, entry_, null, 'Yellowtail', now(), gen_random_uuid(), captain);
+  exception when others then failed := true; end;
+  perform pg_temp.check('an account holder cannot submit a tournament catch with no linked fish', failed);
+
+  -- 2. You may only link your own fish.
+  failed := false;
+  begin
+    insert into public.tournament_catch
+      (tournament_id, organization_id, entry_id, species_id, species_other,
+       caught_at_device, client_generated_id, created_by, catch_id)
+    values (tourn_, org_, entry_, null, 'Yellowtail', now(), gen_random_uuid(), captain, catch_b);
+  exception when others then failed := true; end;
+  perform pg_temp.check('you cannot staple somebody else''s catch onto your claim', failed);
+
+  -- 3. The happy path.
+  insert into public.tournament_catch
+    (id, tournament_id, organization_id, entry_id, species_id, species_other,
+     caught_at_device, client_generated_id, created_by, catch_id)
+  values (gen_random_uuid(), tourn_, org_, entry_, null, 'Yellowtail', now(),
+          gen_random_uuid(), captain, catch_a)
+  returning id into tc;
+  perform pg_temp.check('a linked submission is accepted', tc is not null);
+
+  -- 4. One fish enters one event once.
+  failed := false;
+  begin
+    insert into public.tournament_catch
+      (tournament_id, organization_id, entry_id, species_id, species_other,
+       caught_at_device, client_generated_id, created_by, catch_id)
+    values (tourn_, org_, entry_, null, 'Yellowtail', now(), gen_random_uuid(), captain, catch_a);
+  exception when others then failed := true; end;
+  perform pg_temp.check('the same fish cannot be entered twice in one tournament', failed);
+
+  -- 5. A guest has no personal catch, and must still be able to compete.
+  insert into public.tournament_catch
+    (tournament_id, organization_id, entry_id, species_id, species_other,
+     caught_at_device, client_generated_id, created_by, catch_id)
+  values (tourn_, org_, entry_, null, 'Calico bass', now(), gen_random_uuid(), null, null);
+  perform pg_temp.check('a guest entrant can still submit without a linked fish', true);
+
+  -- 6. The link cannot be re-pointed at a different fish after submission.
+  failed := false;
+  begin
+    update public.tournament_catch set catch_id = catch_b where id = tc;
+  exception when others then failed := true; end;
+  perform pg_temp.check('a submitted claim cannot be re-pointed at another catch', failed);
+
+  /*
+    7. Deleting the personal fish severs the link and stamps it, rather than cascading the
+    competitive result away or blocking the delete. The claim is immutable and carries its
+    own species, time and measurements, so it survives intact — and severed is a different
+    fact from never-linked, which a dispute may need to tell apart.
+  */
+  delete from public.catch where id = catch_a;
+  select catch_id, catch_link_severed_at into linked, severed
+    from public.tournament_catch where id = tc;
+  perform pg_temp.check('deleting the personal fish leaves the claim standing', linked is null);
+  perform pg_temp.check('and records that the link was severed, not merely absent', severed is not null);
+end $$;
+
+-- ---------------------------------------------------------------- cell arithmetic
+/*
+  The generated cells, pinned against the SAME vectors as core/privacy/privacy.test.ts
+  (src/core/privacy/vectors/privacy.json -> "cells").
+
+  These two implementations have to agree exactly. A client that computes a different
+  cell string than the database does not fail loudly — it quietly files its own catches
+  under a cell nothing else uses, and they vanish from every aggregate built on the
+  column. The southern-hemisphere and negative-longitude rows are here because that is
+  where the two would diverge first: SQL `floor` and JavaScript `Math.floor` both go
+  toward minus infinity, but a truncating implementation of either would not.
+*/
+do $$
+declare
+  angler_ uuid := '11111111-1111-1111-1111-111111111111';
+  trip_ uuid := '9a000000-0000-0000-0000-0000000000c9';
+  got record;
+begin
+  insert into public.trip (id, angler_id, water_class, started_at, started_tz, local_date,
+                           client_created_at)
+  values (trip_, angler_, 'salt', now(), 'America/Los_Angeles', current_date, now());
+
+  insert into public.catch (angler_id, trip_id, caught_at, caught_tz, local_date,
+                            client_created_at, lat, lng)
+  values
+    (angler_, trip_, now(), 'America/Los_Angeles', current_date, now(),  33.59870, -118.01230),
+    (angler_, trip_, now(), 'America/Los_Angeles', current_date, now(),  33.00000, -118.04000),
+    (angler_, trip_, now(), 'America/Los_Angeles', current_date, now(), -33.86000,  151.21000),
+    (angler_, trip_, now(), 'America/Los_Angeles', current_date, now(),  34.00000, -118.00000),
+    (angler_, trip_, now(), 'America/Los_Angeles', current_date, now(),  33.99900, -118.00100);
+
+  select
+    count(*) filter (where geo_cell_1km  is not null) as c1,
+    count(*) filter (where geo_cell_10km is not null) as c10,
+    count(*) filter (where geo_cell_50km is not null) as c50
+    into got
+    from public.catch where trip_id = trip_;
+  perform pg_temp.check('every catch with coordinates gets all three cells',
+                        got.c1 = 5 and got.c10 = 5 and got.c50 = 5);
+
+  perform pg_temp.check('southern california, 1 km',
+    (select geo_cell_1km from public.catch where trip_id = trip_ and lat = 33.59870) = '3359_-11802');
+  perform pg_temp.check('southern california, 10 km',
+    (select geo_cell_10km from public.catch where trip_id = trip_ and lat = 33.59870) = '335_-1181');
+  perform pg_temp.check('southern california, 50 km',
+    (select geo_cell_50km from public.catch where trip_id = trip_ and lat = 33.59870) = '67_-237');
+  perform pg_temp.check('negative longitude floors toward minus infinity',
+    (select geo_cell_1km from public.catch where trip_id = trip_ and lat = 33.00000) = '3300_-11804');
+  perform pg_temp.check('southern hemisphere latitude floors the same way',
+    (select geo_cell_10km from public.catch where trip_id = trip_ and lat = -33.86000) = '-339_1512');
+  perform pg_temp.check('a point exactly on a boundary belongs to the cell above it',
+    (select geo_cell_50km from public.catch where trip_id = trip_ and lat = 34.00000) = '68_-236');
+  perform pg_temp.check('and a hair below it belongs to the cell below',
+    (select geo_cell_50km from public.catch where trip_id = trip_ and lat = 33.99900) = '67_-237');
+
+  -- No coordinates is not a zero cell. It is no cell.
+  insert into public.catch (angler_id, trip_id, caught_at, caught_tz, local_date,
+                            client_created_at)
+  values (angler_, trip_, now(), 'America/Los_Angeles', current_date, now());
+  perform pg_temp.check('a catch with no fix has no cell, rather than cell zero',
+    (select count(*) from public.catch
+      where trip_id = trip_ and lat is null and geo_cell_50km is null) = 1);
+
+  -- The per-catch override accepts exactly one value, and null is the normal case.
+  perform pg_temp.check('privacy_override refuses anything but extra_private',
+    not exists (select 1 from public.catch where trip_id = trip_ and privacy_override is not null));
+end $$;
+
+-- ---------------------------------------------------------------- provenance
+/*
+  The rules that make an environmental number usable by somebody who was not there.
+
+  condition_snapshot has had the columns for two months and nothing has ever filled them
+  in, so these checks are the first time anything has asserted what a filled-in one has to
+  look like. All three failures below are ones a hurried worker would produce: a number
+  with no dataset version (irreproducible), a row with no value at all (a refusal stored
+  as data), and sea-surface temperature on a lake.
+*/
+do $$
+declare
+  angler_ uuid := '11111111-1111-1111-1111-111111111111';
+  trip_ uuid := '9a000000-0000-0000-0000-0000000000e1';
+  catch_ uuid := '9c000000-0000-0000-0000-0000000000e1';
+  salt_snap uuid;
+  fresh_snap uuid;
+  failed boolean;
+begin
+  insert into public.trip (id, angler_id, water_class, started_at, started_tz, local_date,
+                           client_created_at)
+  values (trip_, angler_, 'salt', now(), 'America/Los_Angeles', current_date, now());
+  insert into public.catch (id, angler_id, trip_id, caught_at, caught_tz, local_date,
+                            client_created_at, lat, lng)
+  values (catch_, angler_, trip_, now(), 'America/Los_Angeles', current_date, now(),
+          33.5987, -118.0123);
+
+  insert into public.condition_snapshot (angler_id, trip_id, catch_id, kind, observed_at, water_class)
+  values (angler_, trip_, catch_, 'catch', now(), 'salt')
+  returning id into salt_snap;
+  perform pg_temp.check('a snapshot starts pending, as it always has',
+    (select enrichment_status from public.condition_snapshot where id = salt_snap) = 'pending');
+
+  -- 1. The happy path: a tide prediction, labelled as the model it is.
+  insert into public.environmental_observation
+    (snapshot_id, field_name, value_numeric, unit, provider_id, dataset_id, dataset_version,
+     observation_kind, observed_at, retrieved_at, distance_to_source_m)
+  values (salt_snap, 'tide_height_m', 1.42, 'm', 'noaa-coops', 'coops:predictions:9410580',
+          'coops-2026', 'MODEL_ANALYSIS', now(), now(), 4200);
+  perform pg_temp.check('a tide prediction stores as MODEL_ANALYSIS, not as a sensor reading',
+    (select observation_kind from public.environmental_observation
+      where snapshot_id = salt_snap and field_name = 'tide_height_m') = 'MODEL_ANALYSIS');
+
+  -- 2. No dataset version means the number cannot be reproduced. Refused.
+  failed := false;
+  begin
+    insert into public.environmental_observation
+      (snapshot_id, field_name, value_numeric, unit, provider_id, dataset_id, dataset_version,
+       observation_kind, retrieved_at)
+    values (salt_snap, 'sst_c', 18.4, 'C', 'noaa-coops', 'x', null, 'SATELLITE', now());
+  exception when others then failed := true; end;
+  perform pg_temp.check('a value with no dataset version is refused', failed);
+
+  -- 3. A row with neither a number nor a string is a refusal, not an observation.
+  failed := false;
+  begin
+    insert into public.environmental_observation
+      (snapshot_id, field_name, unit, provider_id, dataset_id, dataset_version,
+       observation_kind, retrieved_at)
+    values (salt_snap, 'sst_c', 'C', 'noaa-coops', 'x', 'v1', 'SATELLITE', now());
+  exception when others then failed := true; end;
+  perform pg_temp.check('an empty observation is refused — missing is a refusal, not a value', failed);
+
+  -- 4. Re-fetching the same dataset version is idempotent, not a duplicate.
+  failed := false;
+  begin
+    insert into public.environmental_observation
+      (snapshot_id, field_name, value_numeric, unit, provider_id, dataset_id, dataset_version,
+       observation_kind, retrieved_at)
+    values (salt_snap, 'tide_height_m', 1.42, 'm', 'noaa-coops', 'coops:predictions:9410580',
+            'coops-2026', 'MODEL_ANALYSIS', now());
+  exception when others then failed := true; end;
+  perform pg_temp.check('the same field from the same dataset version cannot be stored twice', failed);
+
+  -- 5. A new dataset version is a NEW row; the old reading is kept, never rewritten.
+  insert into public.environmental_observation
+    (snapshot_id, field_name, value_numeric, unit, provider_id, dataset_id, dataset_version,
+     observation_kind, retrieved_at)
+  values (salt_snap, 'tide_height_m', 1.39, 'm', 'noaa-coops', 'coops:predictions:9410580',
+          'coops-2027', 'MODEL_ANALYSIS', now());
+  perform pg_temp.check('a new dataset version is a new row, and the old one survives',
+    (select count(*) from public.environmental_observation
+      where snapshot_id = salt_snap and field_name = 'tide_height_m') = 2);
+
+  -- 6. A lake has no sea-surface temperature to be missing.
+  insert into public.condition_snapshot (angler_id, trip_id, kind, observed_at, water_class)
+  values (angler_, trip_, 'manual', now(), 'fresh')
+  returning id into fresh_snap;
+  failed := false;
+  begin
+    update public.condition_snapshot set sst_c = 18.4 where id = fresh_snap;
+  exception when others then failed := true; end;
+  perform pg_temp.check('freshwater cannot acquire a sea-surface temperature', failed);
+
+  failed := false;
+  begin
+    update public.condition_snapshot set tide_station_id = '9410580' where id = fresh_snap;
+  exception when others then failed := true; end;
+  perform pg_temp.check('nor a tide station, which is location-bearing as well as wrong', failed);
+
+  -- 7. The provider registry is reference data, not something an angler can assert.
+  perform pg_temp.check('the one provider we can already talk to is registered',
+    exists (select 1 from public.environmental_provider where id = 'noaa-coops'));
+end $$;
 
 -- ---------------------------------------------------------------- host roles
 /*
@@ -401,6 +683,149 @@ begin
   perform pg_temp.check('signed out, the host role is null rather than an error',
     public.my_tournament_host_role('55555555-5555-5555-5555-555555555555') is null);
   reset role;
+end $$;
+
+-- ---------------------------------------------------------------- host permission boundaries
+-- Full fixture rows retain their foreign keys: approvals operate on real drafts derived
+-- from a result set, not a mocked table with its constraints removed.
+do $$
+declare
+  t record;
+  rv uuid; sv uuid; vv uuid; bv uuid; computation uuid; result_id uuid;
+  team_id uuid; pool_id uuid;
+begin
+  for t in select id, organization_id from public.tournament
+    where id in ('55555555-5555-5555-5555-555555555555', '88888888-8888-8888-8888-888888888888')
+  loop
+    insert into public.tournament_rule_set_version (tournament_id, version, rules, created_by)
+      values (t.id, 1, '{}'::jsonb, '22222222-2222-2222-2222-222222222222') returning id into rv;
+    insert into public.tournament_scoring_version (tournament_id, version, scoring_family, created_by)
+      values (t.id, 1, 'BIGGEST_FISH', '22222222-2222-2222-2222-222222222222') returning id into sv;
+    insert into public.tournament_verification_policy_version (tournament_id, version, created_by)
+      values (t.id, 1, '22222222-2222-2222-2222-222222222222') returning id into vv;
+    insert into public.tournament_boundary_version (tournament_id, version, created_by)
+      values (t.id, 1, '22222222-2222-2222-2222-222222222222') returning id into bv;
+    insert into public.score_computation
+      (tournament_id, organization_id, scoring_version_id, source_cutoff_at, source_hash)
+      values (t.id, t.organization_id, sv, now(), 'host-approval-fixture') returning id into computation;
+    insert into public.final_result_set
+      (tournament_id, organization_id, version, score_computation_id, rules_version_id,
+       scoring_version_id, verification_policy_version_id, boundary_version_id, finalized_by, source_hash)
+      values (t.id, t.organization_id, 1, computation, rv, sv, vv, bv,
+        '22222222-2222-2222-2222-222222222222', 'host-approval-fixture') returning id into result_id;
+    insert into public.tournament_team (tournament_id, organization_id, name, created_by)
+      values (t.id, t.organization_id, 'Payout crew', '11111111-1111-1111-1111-111111111111') returning id into team_id;
+    insert into public.prize_pool (tournament_id, organization_id, name, currency)
+      values (t.id, t.organization_id, 'Approval fixture', 'USD') returning id into pool_id;
+    insert into public.payout_instruction
+      (id, tournament_id, organization_id, prize_pool_id, final_result_set_id, tournament_team_id, rank, currency, amount_minor)
+      values (case when t.id = '55555555-5555-5555-5555-555555555555' then
+        'eeeeeeee-eeee-eeee-eeee-eeeeeeeeeee1'::uuid else 'eeeeeeee-eeee-eeee-eeee-eeeeeeeeeee2'::uuid end,
+        t.id, t.organization_id, pool_id, result_id, team_id, 1, 'USD', 25000);
+  end loop;
+end $$;
+
+do $$
+declare n integer; denied boolean;
+begin
+  set local role authenticated;
+  set local request.jwt.claim.sub = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa';
+
+  update public.tournament_order set total_minor = 1 where id = 'dddddddd-dddd-dddd-dddd-dddddddddddd';
+  get diagnostics n = row_count;
+  perform pg_temp.check('treasurer cannot rewrite another purchaser order', n = 0);
+
+  denied := false;
+  begin
+    insert into public.tournament_order
+      (organization_id, tournament_id, purchaser_angler_id, currency, subtotal_minor, total_minor, status, idempotency_key)
+      values ('33333333-3333-3333-3333-333333333333', '55555555-5555-5555-5555-555555555555',
+        '11111111-1111-1111-1111-111111111111', 'USD', 1, 1, 'DRAFT', 'finance-cannot-create-order');
+  exception when insufficient_privilege then denied := true; end;
+  perform pg_temp.check('treasurer cannot create an order for another purchaser', denied);
+
+  denied := false;
+  begin
+    insert into public.tournament_order_item (order_id, item_type, description, quantity, unit_amount_minor, total_amount_minor)
+      values ('dddddddd-dddd-dddd-dddd-dddddddddddd', 'TOURNAMENT_ENTRY', 'No permission', 1, 1, 1);
+  exception when insufficient_privilege then denied := true; end;
+  perform pg_temp.check('treasurer cannot add a line item to another purchaser order', denied);
+
+  update public.payout_instruction set amount_minor = 1 where id = 'eeeeeeee-eeee-eeee-eeee-eeeeeeeeeee1';
+  get diagnostics n = row_count;
+  perform pg_temp.check('treasurer cannot rewrite payout terms through table UPDATE', n = 0);
+
+  denied := false;
+  begin
+    insert into public.payout_instruction
+      (tournament_id, organization_id, prize_pool_id, final_result_set_id, tournament_team_id, rank, currency, amount_minor)
+      select tournament_id, organization_id, prize_pool_id, final_result_set_id, tournament_team_id, 2, currency, 1
+      from public.payout_instruction where id = 'eeeeeeee-eeee-eeee-eeee-eeeeeeeeeee1';
+  exception when insufficient_privilege then denied := true; end;
+  perform pg_temp.check('treasurer cannot create a payout instruction', denied);
+
+  select count(*) into n from public.tournament_entry;
+  perform pg_temp.check('treasurer cannot read the entrant roster', n = 0);
+  select count(*) into n from public.tournament_entry_identity;
+  perform pg_temp.check('treasurer cannot read entrant names or phone numbers', n = 0);
+  select count(*) into n from public.tournament_team;
+  perform pg_temp.check('treasurer cannot read the crew roster', n = 0);
+
+  denied := false;
+  begin perform public.approve_tournament_payout('eeeeeeee-eeee-eeee-eeee-eeeeeeeeeee1', '  ');
+  exception when insufficient_privilege then denied := true; end;
+  perform pg_temp.check('approval requires a nonblank reason', denied);
+
+  denied := false;
+  begin perform public.approve_tournament_payout('eeeeeeee-eeee-eeee-eeee-eeeeeeeeeee2', 'Other club');
+  exception when insufficient_privilege then denied := true; end;
+  perform pg_temp.check('treasurer cannot approve another club payout', denied);
+
+  set local request.jwt.claim.sub = 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb';
+  select count(*) into n from public.tournament_entry;
+  perform pg_temp.check('event staff retain roster access', n > 0);
+  denied := false;
+  begin perform public.approve_tournament_payout('eeeeeeee-eeee-eeee-eeee-eeeeeeeeeee1', 'Dock staff');
+  exception when insufficient_privilege then denied := true; end;
+  perform pg_temp.check('event staff cannot approve payouts', denied);
+
+  set local request.jwt.claim.sub = '11111111-1111-1111-1111-111111111111';
+  select count(*) into n from public.tournament_entry;
+  perform pg_temp.check('entrants retain their own claimed entry', n > 0);
+
+  set local request.jwt.claim.sub = 'cccccccc-cccc-cccc-cccc-cccccccccccc';
+  denied := false;
+  begin perform public.approve_tournament_payout('eeeeeeee-eeee-eeee-eeee-eeeeeeeeeee1', 'Stranger');
+  exception when insufficient_privilege then denied := true; end;
+  perform pg_temp.check('strangers cannot approve payouts', denied);
+
+  set local request.jwt.claim.sub = '';
+  denied := false;
+  begin perform public.approve_tournament_payout('eeeeeeee-eeee-eeee-eeee-eeeeeeeeeee1', 'No user');
+  exception when insufficient_privilege then denied := true; end;
+  perform pg_temp.check('an authenticated database role alone cannot approve without a user', denied);
+
+  set local request.jwt.claim.sub = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa';
+  perform pg_temp.check('treasurer can approve their club existing draft',
+    public.approve_tournament_payout('eeeeeeee-eeee-eeee-eeee-eeeeeeeeeee1', '  Reviewed result  ')
+      = 'eeeeeeee-eeee-eeee-eeee-eeeeeeeeeee1'::uuid);
+  denied := false;
+  begin perform public.approve_tournament_payout('eeeeeeee-eeee-eeee-eeee-eeeeeeeeeee1', 'Approve twice');
+  exception when insufficient_privilege then denied := true; end;
+  perform pg_temp.check('an approved instruction cannot be approved again', denied);
+
+  perform pg_temp.check('approval records server-side identity and preserves the amount and rank', exists (
+    select 1 from public.payout_instruction where id = 'eeeeeeee-eeee-eeee-eeee-eeeeeeeeeee1'
+      and status = 'APPROVED' and amount_minor = 25000 and rank = 1
+      and approved_by = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa'
+      and approved_at is not null and approval_reason = 'Reviewed result'
+  ));
+  select count(*) into n from public.payout_event where payout_instruction_id = 'eeeeeeee-eeee-eeee-eeee-eeeeeeeeeee1'
+    and event_type = 'APPROVED' and actor_angler_id = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa';
+  perform pg_temp.check('exactly one approval audit event is recorded', n = 1);
+  reset role;
+  perform pg_temp.check('anonymous callers cannot execute approval',
+    not has_function_privilege('anon', 'public.approve_tournament_payout(uuid,text)', 'EXECUTE'));
 end $$;
 
 rollback;

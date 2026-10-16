@@ -44,7 +44,7 @@ function rolesForPolicy(policyName: string): readonly string[] | null {
 
   for (const sql of allSql) {
     const pattern = new RegExp(
-      `create policy ${policyName}\\b[\\s\\S]*?(?=\\ncreate policy |\\ndrop policy |\\ncreate trigger |\\ncomment on |$)`,
+      `create policy ${policyName}\\b[\\s\\S]*?;`,
       "gi",
     );
     for (const block of sql.match(pattern) ?? []) {
@@ -75,9 +75,7 @@ function rolesWith(capability: keyof HostCapabilities): readonly string[] {
 const PARITY: ReadonlyArray<{ policy: string; capability: keyof HostCapabilities }> = [
   // Money, in every table the ledger is spread across.
   { policy: "tournament_order_owner_read", capability: "readMoney" },
-  { policy: "tournament_order_owner_write", capability: "readMoney" },
   { policy: "tournament_order_item_read", capability: "readMoney" },
-  { policy: "tournament_order_item_insert", capability: "readMoney" },
   { policy: "financial_org_read", capability: "readMoney" },
   { policy: "payment_attempt_read", capability: "readMoney" },
   { policy: "payment_allocation_read", capability: "readMoney" },
@@ -87,10 +85,15 @@ const PARITY: ReadonlyArray<{ policy: string; capability: keyof HostCapabilities
   { policy: "payout_instruction_finance_read", capability: "readMoney" },
   { policy: "payout_finance_read", capability: "readMoney" },
   { policy: "payout_event_finance_read", capability: "readMoney" },
-  // Approving a payout is deliberately the same set as reading the money, and
-  // deliberately not the same as running the event.
-  { policy: "payout_instruction_finance_write", capability: "approvePayout" },
+  // Raw money writes belong only to event administrators. FINANCE approval goes
+  // through approve_tournament_payout, never an unrestricted table-write policy.
+  { policy: "tournament_order_owner_write", capability: "changeEventSettings" },
+  { policy: "tournament_order_item_insert", capability: "changeEventSettings" },
+  { policy: "payout_instruction_finance_write", capability: "changeEventSettings" },
   // The roster.
+  { policy: "tournament_team_org_read", capability: "readRoster" },
+  { policy: "tournament_boat_org_read", capability: "readRoster" },
+  { policy: "boat_owner_or_org_read", capability: "readRoster" },
   { policy: "tournament_entry_admin_write", capability: "writeRoster" },
   { policy: "tournament_team_org_write", capability: "writeRoster" },
   { policy: "tournament_boat_org_write", capability: "writeRoster" },
@@ -101,6 +104,19 @@ const PARITY: ReadonlyArray<{ policy: string; capability: keyof HostCapabilities
 ];
 
 describe("host capabilities match the database policies", () => {
+  it.each([
+    { name: "can_read_tournament_entry", capability: "readRoster" as const },
+    { name: "approve_tournament_payout", capability: "approvePayout" as const },
+  ])("$name enforces the roles with $capability", ({ name, capability }) => {
+    const definitions = allSql.flatMap((sql) => [...sql.matchAll(new RegExp(
+      `create or replace function public\\.${name}\\([^$]*\\$\\$([\\s\\S]*?)\\$\\$;`, "gi",
+    ))]);
+    const body = definitions.at(-1)?.[1] ?? "";
+    const roles = /array\[([^\]]*)\]/i.exec(body)?.[1]
+      .split(",").map((role) => role.trim().replace(/^'|'$/g, "")).sort();
+    expect(roles, `${name} role restriction not found`).toEqual([...rolesWith(capability)].sort());
+  });
+
   it.each(PARITY)("$policy names exactly the roles with $capability", ({ policy, capability }) => {
     const actual = rolesForPolicy(policy);
     expect(actual, `no role array found for policy ${policy}`).not.toBeNull();

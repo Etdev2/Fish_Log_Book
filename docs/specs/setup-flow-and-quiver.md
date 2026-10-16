@@ -16,6 +16,13 @@ The founder also directed, same day: **the log stays on-device for now.** Databa
 comes later, once the offline path has been proven in real use. Nothing in this spec
 should introduce a server round trip.
 
+> **Superseded 2026-09-15 — `SPEC.md` D29.** The founder lifted the sync deferral. Rows
+> now reach the server, which is what unblocks environmental enrichment and everything
+> built on it. **The rest of the direction above still stands and is not softened by the
+> reversal:** reads never touch the network (ADR 004 §1), offline logging stays mandatory
+> (D3), and nothing in this spec's flows may introduce a server round trip the angler
+> waits on. Sync is how rows leave, not how screens fill.
+
 ---
 
 ## Founder brief

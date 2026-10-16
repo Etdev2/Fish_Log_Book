@@ -21,6 +21,8 @@ export const metadata: Metadata = { title: "Calendar | Fish Log Book" };
 export default function CalendarPage() {
   return (
     <div className="flex flex-col gap-4">
+      {/* UI-1 #11: one h1 per screen; the visible month name stays the h2. */}
+      <h1 className="sr-only">Calendar</h1>
       {/*
         An invitation to setup, not setup itself. The six-step guide used to render here in
         full; it now lives at /onboarding, because the home surface is the calendar (D23)

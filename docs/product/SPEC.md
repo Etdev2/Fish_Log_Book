@@ -290,6 +290,39 @@ and carry the calendar's amber flag (`docs/product/ux-calendar-notebook.md`), so
 trip is a thing the angler can see and fix, never a silent hole. If field use shows marks
 going unresolved anyway, the answer is better prompting, not a looser rule.
 
+**D28 — Photos get server storage. The 2026-09-03 cost ruling is REVERSED.** SETTLED
+2026-09-15
+`ROADMAP.md` A2 recorded "❌ NOT NOW — 2026-09-03, founder, on cost": no media table,
+no storage, no EXIF stripping, no moderation budget. The founder reversed that on
+2026-09-15 and photos are back in scope.
+*What it unblocks:* tournament photo evidence, AI fish identification, fish biometric
+re-identification, and passport verification levels 1–2. All three of the expansion
+specs that depend on images were blocked on this one line and are now merely expensive.
+*What comes WITH it, non-negotiably:* EXIF GPS is stripped on ingest, before the file
+lands in storage (`ontology.md` §6 item 1). A photo carries exact coordinates and gets
+forwarded to friends, which makes it a worse leak than the coordinate column itself.
+Content hashing, size limits, offline upload and a moderation path are part of the cost,
+not optional extras discovered later.
+*The cost is still real.* `cfo` should price storage and egress before the first bulk
+upload path ships, because this is the second feature in the product with a marginal
+cost per catch.
+
+**D29 — The personal log syncs to the server. The 2026-09-04 deferral is LIFTED.** SETTLED
+2026-09-15
+`docs/specs/setup-flow-and-quiver.md` records the founder's 2026-09-04 direction that
+"the log stays on-device for now", with database sync deferred until the offline path had
+been proven in real use. The founder lifted that on 2026-09-15.
+*What it unblocks:* environmental enrichment (the worker cannot enrich rows it cannot
+see), aggregation, the fisheries map, research exports, and every government-facing
+feature. It is the gate under roughly half of `docs/specs/expansion/`.
+*What does NOT change:* offline stays mandatory (D3) and reads still never touch the
+network (ADR 004 §1). Sync is how rows reach the server afterwards, not a round trip the
+angler waits on. The ordering contract in `features/catches/create.ts` — the catch row is
+written first and everything optional happens around it — is unaffected and must stay.
+*Sequencing note:* the offline outbox has never run against a real Supabase project at
+volume. Turning sync on is a migration of trust as much as of data, and the first season
+should be watched rather than assumed.
+
 ---
 
 ## 3. Proposed — awaiting the founder's call

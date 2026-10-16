@@ -77,6 +77,14 @@ request may touch; this decides what a person is shown. A lane hidden by
 `hostCapabilities` is a courtesy, not a control, and no rule may ever be enforced only
 there.
 
+**6. Approval is a constrained operation, not permission to rewrite a payout.**
+`approve_tournament_payout(uuid, text)` changes an existing draft to approved, recording
+the authenticated caller, server time, reason and audit event. It accepts no amount,
+recipient, rank or result-set input and cannot submit money to a provider. FINANCE has
+ledger SELECT policies but no organization-wide order, line-item or payout writes.
+Roster reads (including team and boat data) require OWNER, ADMIN or STAFF; an entrant
+retains access to their own claimed entry and an owner retains their own boat.
+
 ## Consequences
 
 - A treasurer can do the job the role was named for, without being handed the tournament.

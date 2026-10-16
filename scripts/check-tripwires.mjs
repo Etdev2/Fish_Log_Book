@@ -128,6 +128,44 @@ for (const file of tracked("'src/*'")) {
   );
 }
 
+/* ---- 5. Coarsening a coordinate happens in core/privacy/, or it does not happen. ---- */
+
+/**
+ * `core/privacy/precision.ts` is the ONLY place a coordinate may become a cell, and
+ * `core/privacy/k-anonymity.ts` the only place a pooled figure may be gated.
+ *
+ * The reason is not tidiness. A second implementation of the cell formula does not fail
+ * loudly when it drifts — it files catches under a cell nothing else uses, and they
+ * vanish from every aggregate built on the column. A second implementation of the k-gate
+ * is worse: it publishes a cell the real gate would have suppressed, and the disclosure
+ * is irreversible. Both are the kind of bug that is found by a stranger, years later.
+ *
+ * So the arithmetic lives in one pure, vector-tested module that the SQL generated
+ * columns are pinned against (supabase/test/rpc-behaviour.sql, "cell arithmetic"), and
+ * everything else imports it.
+ *
+ * docs/specs/expansion/privacy-consent-and-data-governance.md §16.2 asks for exactly this.
+ */
+const PRIVACY_OWNERS = [
+  "src/core/privacy/precision.ts",
+  "src/core/privacy/effective.ts",
+  "src/core/privacy/k-anonymity.ts",
+  "src/core/privacy/privacy.test.ts",
+];
+const COARSENING = /Math\.floor\s*\(\s*\w*(?:lat|lng|latitude|longitude)\w*\s*\*|geo_?[cC]ell\s*=|distinctAnglers\s*<|kAnonym/;
+for (const file of tracked("'src/*'")) {
+  if (!/\.tsx?$/.test(file)) continue;
+  if (PRIVACY_OWNERS.includes(file)) continue;
+  const text = readFileSync(file, "utf8");
+  if (!COARSENING.test(text)) continue;
+  failures.push(
+    `${file} looks like it coarsens a coordinate or gates an aggregate on its own. ` +
+      `That arithmetic lives in src/core/privacy/ and nowhere else — a second copy drifts ` +
+      `silently, and the failure mode is either lost rows or an irreversible disclosure. ` +
+      `Import \`coarsen\`/\`geoCell\`/\`kAnonymityVerdict\` instead.`,
+  );
+}
+
 if (failures.length > 0) {
   console.error(`\ntripwires: ${failures.length} problem(s)\n`);
   for (const f of failures) console.error(`  ${f}\n`);

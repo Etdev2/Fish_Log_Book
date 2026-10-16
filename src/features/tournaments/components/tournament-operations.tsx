@@ -153,8 +153,10 @@ export function TournamentOperations({
 
   return (
     <div className={PAGE}>
+      {demoMode ? <DemoNote /> : null}
+
       <header className="flex flex-col gap-space-3">
-        <BackLink href={`/tournaments/${tournament.id}/overview`} label="Tournament home" />
+        <BackLink href="/tournaments" label="All tournaments" />
         <div className="flex flex-col gap-space-1">
           <span className="text-label text-signal-orange">Host controls</span>
           <div className="flex flex-wrap items-end justify-between gap-space-3">
@@ -207,7 +209,6 @@ export function TournamentOperations({
       {activeLane === "money" ? <FinanceLane load={moneyLoad} caps={caps} /> : null}
       {activeLane === "team" ? <AccessLane /> : null}
 
-      {demoMode ? <DemoNote /> : null}
     </div>
   );
 }
@@ -682,7 +683,7 @@ function FinanceLane({
 function MoneyFigures({ money }: { money: TournamentMoney }) {
   // No orders at all is a real state, and it is not the same as a zero total. Saying
   // "nothing yet" beats printing $0.00, which reads as a tournament whose entries failed.
-  if (money.paidOrders === 0 && money.unpaidOrders === 0) {
+  if (money.paidOrders === 0 && money.unpaidOrders === 0 && money.refundedOrders === 0) {
     return (
       <p className="text-body text-text-primary">
         Nothing has been taken yet. Entry fees appear here as they are paid.

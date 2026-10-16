@@ -69,6 +69,8 @@ export function EventsPage() {
 
   return (
     <div className={PAGE}>
+      {load.demo ? <DemoNote /> : null}
+
       {/*
         Deliberately short. An earlier draft opened with an eyebrow label, a three-line
         subtitle and two stacked buttons, which put roughly 500px of chrome above the first
@@ -148,16 +150,19 @@ export function EventsPage() {
           <EventCalendar events={visible} timeZone={zone} nowMs={nowMs} />
         </div>
       ) : (
-        <ul className="flex flex-col gap-space-3">
-          {visible.map((event) => (
-            <li key={event.id}>
-              <EventCardRow event={event} nowMs={nowMs} />
-            </li>
-          ))}
-        </ul>
+        <>
+          {/* UI-1 heading-order: the cards' h3s need an h2 above them. */}
+          <h2 id="event-list-heading" className="sr-only">Events</h2>
+          <ul className="flex flex-col gap-space-3" aria-labelledby="event-list-heading">
+            {visible.map((event) => (
+              <li key={event.id}>
+                <EventCardRow event={event} nowMs={nowMs} />
+              </li>
+            ))}
+          </ul>
+        </>
       )}
 
-      {load.demo ? <DemoNote /> : null}
     </div>
   );
 }

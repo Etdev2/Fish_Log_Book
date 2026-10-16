@@ -130,6 +130,17 @@ export function TournamentHero({
           </div>
 
           {/*
+            The action, before the facts.
+
+            It used to render after this block and after the countdown, which measured at
+            740px from the top of the page at 320px wide and 712px at 390px — below the
+            fold on every phone, on the screen an angler opens with a fish flapping in the
+            boat. The six facts below are worth having and are not worth scrolling past to
+            reach the one button that matters.
+          */}
+          {children}
+
+          {/*
             The same facts the event card carries, in the same words. A card on the calendar
             that shows where an event is and what the pot is at, linking to a page that shows
             neither, reads as the page having lost them — so the detail screen is never
@@ -178,33 +189,44 @@ export function TournamentHero({
               <span className={TABULAR}>{clock.label}</span>
             </p>
           ) : null}
-
-          {children}
         </div>
       </div>
     </header>
   );
 }
 
+/**
+ * One tab bar, five destinations, no step numbers.
+ *
+ * What this replaces: these chips used to be numbered `Home · ①Entry · ②Compete ·
+ * ③Results · Rules`, and the overview rendered a SECOND set of links underneath them —
+ * `1 Enter · 2 Know the rules · 3 Compete · 4 Results` — while the leaderboard announced
+ * "Step 3 of 3". Three different counts of the same journey, on two adjacent screens,
+ * with "Rules" unnumbered in one place and step 2 in another.
+ *
+ * Numbers belong to a checklist you complete once, not to a bar you live in. A tournament
+ * is not a wizard: an angler moves between these five screens all day, in whatever order
+ * the day takes, and numbering them says otherwise.
+ *
+ * The labels are the product's words for these places and are used verbatim in copy too
+ * (spec Rule T3) — not Entry here and Enter there, not Compete and Competing, not Results
+ * and Standings interchangeably.
+ */
 const TABS = [
-  { label: "Home", route: "overview", step: null },
-  { label: "Entry", route: "register", step: "1" },
-  { label: "Compete", route: "catches", step: "2" },
-  { label: "Results", route: "leaderboard", step: "3" },
-  { label: "Rules", route: "rules", step: null },
+  { label: "Event", route: "overview" },
+  { label: "Rules", route: "rules" },
+  { label: "My entry", route: "register" },
+  { label: "Catches", route: "catches" },
+  { label: "Standings", route: "leaderboard" },
 ] as const;
 
 export function TournamentTabs({ tournamentId }: { tournamentId: string }) {
   const pathname = usePathname();
 
   return (
-    <nav aria-label="Tournament flow" className="flex flex-col gap-space-2">
-      <div className="flex flex-wrap items-end justify-between gap-space-2">
-        <span className="text-label text-text-primary">Tournament flow</span>
-        <span className="text-caption text-text-muted">Entry → Compete → Results</span>
-      </div>
+    <nav aria-label="Tournament sections" className="flex flex-col gap-space-2">
       <ul className="grid grid-cols-2 gap-space-2 sm:grid-cols-5">
-        {TABS.map(({ label, route, step }) => {
+        {TABS.map(({ label, route }) => {
           const href = `/tournaments/${tournamentId}/${route}`;
           const active = pathname === href;
           return (
@@ -218,16 +240,6 @@ export function TournamentTabs({ tournamentId }: { tournamentId: string }) {
                     : "border-border-interactive bg-surface text-text-link hover:border-text-link"
                 }`}
               >
-                {step ? (
-                  <span
-                    aria-hidden="true"
-                    className={`flex h-space-5 w-space-5 items-center justify-center rounded-full border text-caption ${
-                      active ? "border-ink-on-orange/50" : "border-border-interactive text-text-muted"
-                    }`}
-                  >
-                    {step}
-                  </span>
-                ) : null}
                 <span>{label}</span>
               </Link>
             </li>
@@ -286,10 +298,26 @@ export function EmptyState({
   );
 }
 
+/**
+ * Demo mode, said at the top of the screen rather than at the bottom of it.
+ *
+ * This used to be the last element on the page, set in muted caption text. An angler
+ * scrolled an entire fabricated tournament — prize pool, entry fee, a leaderboard with
+ * names on it — before reaching the sentence that said none of it was real. And the demo
+ * store is active in every environment that has no Supabase configured, which today is
+ * all of them.
+ *
+ * Placement is the caller's, but every tournament screen now renders it first. The amber
+ * border is what makes it readable as a warning rather than a footnote; the text carries
+ * the meaning on its own, so colour is reinforcement (01-foundations.md §1.3).
+ */
 export function DemoNote({ children }: { children?: React.ReactNode }) {
   return (
-    <p className="text-caption text-text-muted">
-      {children ?? "Demo mode — this is saved on this phone only, until the tournament server is connected."}
+    <p
+      role="status"
+      className="rounded-md border border-amber-flag/40 bg-surface px-space-3 py-space-2 text-caption text-text-muted"
+    >
+      {children ?? "Demo mode — nothing here is a real event. This is saved on this phone only, until the tournament server is connected."}
     </p>
   );
 }

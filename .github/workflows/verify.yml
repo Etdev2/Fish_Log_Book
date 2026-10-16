@@ -65,3 +65,44 @@ jobs:
 
       - name: Migrations apply to a real database
         run: scripts/check-migrations-apply.sh
+
+      # The layout rules that only a browser can check: horizontal overflow, the 48px
+      # touch floor, one navigation system per tournament screen, no step counters, and
+      # the live primary action clearing the fold.
+      #
+      # Every one of those started as a MEASUREMENT of this application — the primary
+      # action sat 740px down a 640px viewport, two navigation systems pointed at the same
+      # four places under different names, and the shortest label in the bottom bar was a
+      # 45px target. None of them is visible to tsc, to ESLint, or to a test that reads the
+      # files as text, and all of them are one refactor away from returning.
+      #
+      # Chromium only, and installed explicitly: check-layout.mjs exits 2 rather than 0
+      # when the browser is missing, because a skip that reads as a pass is the failure
+      # this step exists to prevent.
+      - name: Install Chromium for the layout check
+        run: npx playwright install --with-deps chromium
+
+      # The server is started here rather than by the script, and BASE_URL points at it.
+      # check-layout.mjs can spawn its own `next start` — the convenient local path — but
+      # this is the one that has been run end to end, and a CI step should exercise the
+      # path somebody has watched work.
+      #
+      # The readiness loop is curl rather than a helper package: one fewer dependency for
+      # a job whose whole purpose is to be trustworthy, and a server that never comes up
+      # fails here with a clear message instead of inside Playwright as a navigation
+      # timeout.
+      - name: Serve the production build and check the layout
+        env:
+          DEV_AUTH_BYPASS: "true"
+          BASE_URL: http://127.0.0.1:3111
+        run: |
+          npx next start --port 3111 &
+          server=$!
+          trap 'kill $server 2>/dev/null || true' EXIT
+          for i in $(seq 1 60); do
+            if curl -sf -o /dev/null http://127.0.0.1:3111/tournaments; then break; fi
+            if ! kill -0 $server 2>/dev/null; then echo "next start exited early" >&2; exit 1; fi
+            sleep 1
+          done
+          curl -sf -o /dev/null http://127.0.0.1:3111/tournaments || { echo "server never became ready" >&2; exit 1; }
+          npm run layout

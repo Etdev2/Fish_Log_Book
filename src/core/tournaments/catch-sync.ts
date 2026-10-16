@@ -15,6 +15,15 @@ export interface TournamentCatchPayload extends TournamentCatchIdentity {
   lengthMm: number | null;
   weightG: number | null;
   disposition: "KEPT" | "RELEASED" | "UNKNOWN" | null;
+  /**
+   * The angler's own `public.catch` row for this fish (migration 20260915120000).
+   *
+   * Null means a guest entrant with no account — there is no personal catch in
+   * existence to point at. It is never null for an account holder's submission; the
+   * database refuses that insert, because a claim with no linked fish is the duplicate
+   * entry this link exists to remove.
+   */
+  catchId: string | null;
 }
 
 export type ReconciliationResult =
@@ -32,6 +41,13 @@ const COMPARABLE_FIELDS: readonly (keyof TournamentCatchPayload)[] = [
   "lengthMm",
   "weightG",
   "disposition",
+  /*
+    The link is part of the claim, so a replay carrying a DIFFERENT one is a conflict and
+    not an idempotent resend. Leaving it out would let a second device quietly re-point a
+    submitted claim at another fish — exactly what the immutability trigger refuses
+    server-side, and the two must agree about what a conflict is.
+  */
+  "catchId",
 ];
 
 /**

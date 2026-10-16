@@ -31,10 +31,10 @@ drop policy if exists tournament_order_owner_write on public.tournament_order;
 create policy tournament_order_owner_write on public.tournament_order
 for all to authenticated using (
   purchaser_angler_id = auth.uid()
-  or public.is_organization_member(organization_id, array['OWNER','ADMIN','FINANCE'])
+  or public.is_organization_member(organization_id, array['OWNER','ADMIN'])
 ) with check (
   purchaser_angler_id = auth.uid()
-  or public.is_organization_member(organization_id, array['OWNER','ADMIN','FINANCE'])
+  or public.is_organization_member(organization_id, array['OWNER','ADMIN'])
 );
 
 drop policy if exists tournament_order_item_read on public.tournament_order_item;
@@ -51,7 +51,7 @@ create policy tournament_order_item_insert on public.tournament_order_item
 for insert to authenticated with check (exists (
   select 1 from public.tournament_order o where o.id = order_id and (
     o.purchaser_angler_id = auth.uid()
-    or public.is_organization_member(o.organization_id, array['OWNER','ADMIN','FINANCE'])
+    or public.is_organization_member(o.organization_id, array['OWNER','ADMIN'])
   )
 ));
 
@@ -119,8 +119,45 @@ using (public.is_organization_member(organization_id, array['OWNER','ADMIN','FIN
 drop policy if exists payout_instruction_finance_write on public.payout_instruction;
 create policy payout_instruction_finance_write on public.payout_instruction
 for all to authenticated
-using (public.is_organization_member(organization_id, array['OWNER','ADMIN','FINANCE']))
-with check (public.is_organization_member(organization_id, array['OWNER','ADMIN','FINANCE']));
+using (public.is_organization_member(organization_id, array['OWNER','ADMIN']))
+with check (public.is_organization_member(organization_id, array['OWNER','ADMIN']));
+
+-- FINANCE can approve an existing draft, not create or rewrite its economic terms.
+-- The definer boundary is needed because that role has no direct table write policy.
+-- All authorization and the only permitted transition happen in one atomic UPDATE.
+create or replace function public.approve_tournament_payout(
+  target_instruction_id uuid, reason text
+) returns uuid
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  approved_id uuid;
+begin
+  if auth.uid() is null or nullif(btrim(reason), '') is null then
+    raise exception 'An authenticated approver and a reason are required' using errcode = '42501';
+  end if;
+
+  update public.payout_instruction
+     set status = 'APPROVED', approved_by = auth.uid(), approved_at = now(),
+         approval_reason = btrim(reason)
+   where id = target_instruction_id
+     and status = 'DRAFT'
+     and public.is_organization_member(organization_id, array['OWNER','ADMIN','FINANCE'])
+  returning id into approved_id;
+
+  if approved_id is null then
+    raise exception 'Payout is not approvable' using errcode = '42501';
+  end if;
+
+  insert into public.payout_event (payout_instruction_id, event_type, actor_angler_id, reason)
+  values (approved_id, 'APPROVED', auth.uid(), btrim(reason));
+  return approved_id;
+end;
+$$;
+revoke all on function public.approve_tournament_payout(uuid, text) from public, anon;
+grant execute on function public.approve_tournament_payout(uuid, text) to authenticated;
 
 drop policy if exists payout_finance_read on public.payout;
 create policy payout_finance_read on public.payout
@@ -137,6 +174,38 @@ for select to authenticated using (exists (
    where pi.id = payout_instruction_id
      and public.is_organization_member(pi.organization_id, array['OWNER','ADMIN','FINANCE'])
 ));
+
+-- A hidden roster tab must also be inaccessible through direct database requests.
+-- Entrants keep access to their own claimed entry, even if they also hold FINANCE.
+create or replace function public.can_read_tournament_entry(target_entry_id uuid)
+returns boolean language sql stable security definer set search_path = ''
+as $$
+  select exists (
+    select 1 from public.tournament_entry e
+    left join public.tournament_entry_identity i on i.tournament_entry_id = e.id
+    where e.id = target_entry_id and e.deleted_at is null
+      and (public.is_organization_member(e.organization_id, array['OWNER','ADMIN','STAFF'])
+        or i.claimed_angler_id = auth.uid())
+  );
+$$;
+revoke all on function public.can_read_tournament_entry(uuid) from public;
+grant execute on function public.can_read_tournament_entry(uuid) to authenticated;
+
+drop policy if exists tournament_team_org_read on public.tournament_team;
+create policy tournament_team_org_read on public.tournament_team
+for select to authenticated
+using (public.is_organization_member(organization_id, array['OWNER','ADMIN','STAFF']));
+
+drop policy if exists tournament_boat_org_read on public.tournament_boat;
+create policy tournament_boat_org_read on public.tournament_boat
+for select to authenticated
+using (public.is_organization_member(organization_id, array['OWNER','ADMIN','STAFF']));
+
+drop policy if exists boat_owner_or_org_read on public.boat;
+create policy boat_owner_or_org_read on public.boat
+for select to authenticated
+using (owner_angler_id = auth.uid()
+  or public.is_organization_member(organization_id, array['OWNER','ADMIN','STAFF']));
 
 -- Which role am I, for this tournament?
 --

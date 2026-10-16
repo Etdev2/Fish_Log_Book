@@ -152,6 +152,8 @@ export function RegistrationPage({ tournamentId }: { tournamentId: string }) {
 
   return (
     <div className={PAGE}>
+      {load.demo ? <DemoNote /> : null}
+
       <BackLink
         href={`/tournaments/${tournamentId}/overview`}
         label={arrivedFrom?.name ?? "Event"}
@@ -196,7 +198,7 @@ export function RegistrationPage({ tournamentId }: { tournamentId: string }) {
           type="checkbox"
           checked={policyAcknowledged}
           onChange={(event) => setPolicyAcknowledged(event.target.checked)}
-          className="mt-space-1 size-space-5 shrink-0 accent-signal-orange"
+          className="-my-space-2 size-touch-floor shrink-0 cursor-pointer accent-signal-orange"
         />
         <span className="text-body text-text-primary">
           I have read the refund policy below and the event&rsquo;s rules.
@@ -238,7 +240,6 @@ export function RegistrationPage({ tournamentId }: { tournamentId: string }) {
         <p className="text-body text-text-muted">Tick at least one event to see the total.</p>
       )}
 
-      {load.demo ? <DemoNote /> : null}
     </div>
   );
 }

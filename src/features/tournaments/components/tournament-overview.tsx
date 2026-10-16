@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 
 import { getDemoEntry, type DemoEntry } from "../demo-store";
-import { entrySteps, formatDateTime, tournamentPhase, visibilityPresentation } from "../format";
+import { entrySteps, tournamentPhase, visibilityPresentation } from "../format";
 import { getDemoTournamentCatches } from "../live-catch-demo";
 import { useStandings } from "../queries/use-standings";
 import { useDemoMode, useTournament } from "../use-tournament";
@@ -88,20 +88,13 @@ export function TournamentOverview({ tournamentId }: { tournamentId: string }) {
 
   return (
     <div className={PAGE}>
+      {demoMode ? <DemoNote /> : null}
+
       <TournamentHero tournament={tournament}>
         <PrimaryAction tournament={tournament} entry={entry} phase={phase} />
       </TournamentHero>
 
       <TournamentTabs tournamentId={tournament.id} />
-
-      <TournamentJourney
-        tournamentId={tournament.id}
-        status={tournament.status}
-        phase={phase}
-        entry={entry}
-        ready={ready}
-        hasStandings={standings.length > 0}
-      />
 
       {entry ? (
         <section className={`${CARD_PADDED} flex flex-col gap-space-3`} aria-labelledby="your-entry-heading">
@@ -199,25 +192,38 @@ export function TournamentOverview({ tournamentId }: { tournamentId: string }) {
             className={`${FOCUS_RING} inline-flex min-h-touch-floor items-center gap-space-2 text-label text-text-link`}
           >
             <TrophyIcon />
-            See all results
+            See all standings
           </Link>
         </section>
       ) : null}
 
-      <section className="flex flex-col gap-space-3" aria-labelledby="details-heading">
+      {/*
+        One card holding a definition list, not four cards holding one fact each.
+
+        Four cards cost roughly 400px at 320px to carry four short strings, and their
+        padding put the labels on a different left edge from every heading above them.
+        Starts and Ends are gone from here entirely: the hero already says when the event
+        is, and a screen that states the same fact twice reads as a screen that lost track
+        of it (spec Rule T6).
+      */}
+      <section className={`${CARD_PADDED} flex flex-col gap-space-3`} aria-labelledby="details-heading">
         <SectionHeading>
           <span id="details-heading">Event details</span>
         </SectionHeading>
-        <div className="grid gap-space-3 sm:grid-cols-2">
-          <DetailCard label="Starts" value={formatDateTime(tournament.starts_at) ?? "Not set yet"} />
-          <DetailCard label="Ends" value={formatDateTime(tournament.ends_at) ?? "Not set yet"} />
-          <DetailCard label="Visibility" value={visibility.label} hint={visibility.blurb} />
-          <DetailCard
-            label="Catches saved on this phone"
-            value={String(deviceCatches)}
-            hint="Saved here whether or not they have reached the scorer yet."
-          />
-        </div>
+        <dl className="flex flex-col gap-space-3">
+          <div className="flex flex-col gap-space-1">
+            <dt className="text-caption text-text-muted">Visibility</dt>
+            <dd className="text-body-strong text-text-primary">{visibility.label}</dd>
+            <dd className="text-caption text-text-muted">{visibility.blurb}</dd>
+          </div>
+          <div className="flex flex-col gap-space-1">
+            <dt className="text-caption text-text-muted">Catches saved on this phone</dt>
+            <dd className={`text-body-strong text-text-primary ${TABULAR}`}>{deviceCatches}</dd>
+            <dd className="text-caption text-text-muted">
+              Saved here whether or not they have reached the scorer yet.
+            </dd>
+          </div>
+        </dl>
       </section>
 
       <Link
@@ -234,110 +240,24 @@ export function TournamentOverview({ tournamentId }: { tournamentId: string }) {
         <ChevronIcon className="text-text-muted" />
       </Link>
 
-      {demoMode ? <DemoNote /> : null}
     </div>
   );
 }
 
-function TournamentJourney({
-  tournamentId,
-  status,
-  phase,
-  entry,
-  ready,
-  hasStandings,
-}: {
-  tournamentId: string;
-  status: string;
-  phase: TournamentPhase;
-  entry: DemoEntry | null;
-  ready: boolean;
-  hasStandings: boolean;
-}) {
-  const steps = [
-    {
-      number: "1",
-      title: "Enter",
-      href: `/tournaments/${tournamentId}/register`,
-      detail: entry
-        ? "Your entry exists. Check eligibility and check-in."
-        : status === "REGISTRATION_OPEN"
-          ? "Registration is open now."
-          : "See registration status and requirements.",
-    },
-    {
-      number: "2",
-      title: "Know the rules",
-      href: `/tournaments/${tournamentId}/rules`,
-      detail: ready
-        ? "Rules, scoring, proof, and boundaries are locked."
-        : "Review what counts before fishing starts.",
-    },
-    {
-      number: "3",
-      title: "Compete",
-      href: `/tournaments/${tournamentId}/catches`,
-      detail:
-        phase === "during"
-          ? "The tournament is live. Log and review catches here."
-          : phase === "before"
-            ? "This opens into your on-the-water catch flow."
-            : "Fishing is complete. Your catch record stays here.",
-    },
-    {
-      number: "4",
-      title: "Results",
-      href: `/tournaments/${tournamentId}/leaderboard`,
-      detail: hasStandings
-        ? phase === "after"
-          ? "Official results are available."
-          : "Live standings are available now."
-        : "Standings appear as catches are approved.",
-    },
-  ] as const;
+/*
+  `TournamentJourney` lived here: four numbered cards — "1 Enter", "2 Know the rules",
+  "3 Compete", "4 Results" — rendered directly beneath the tab bar, linking to the same
+  four places the tabs link to, under different names and a different count.
 
-  return (
-    <section className="flex flex-col gap-space-3" aria-labelledby="journey-heading">
-      <div className="flex flex-col gap-space-1">
-        <SectionHeading>
-          <span id="journey-heading">How this tournament works</span>
-        </SectionHeading>
-        <p className="text-body text-text-muted">
-          Four steps. Start here whenever you are unsure where to go next.
-        </p>
-      </div>
-      <ol className="grid gap-space-3 sm:grid-cols-2">
-        {steps.map((step) => (
-          <li key={step.number}>
-            <Link
-              href={step.href}
-              className={`${CARD} ${FOCUS_RING} flex h-full items-start gap-space-3 p-space-4 transition-colors hover:border-border-interactive`}
-            >
-              <span className="flex h-space-8 w-space-8 shrink-0 items-center justify-center rounded-full border border-border-interactive text-label text-signal-orange">
-                {step.number}
-              </span>
-              <span className="flex min-w-0 flex-1 flex-col gap-space-1">
-                <span className="text-body-strong text-text-primary">{step.title}</span>
-                <span className="text-caption text-text-muted">{step.detail}</span>
-              </span>
-              <ChevronIcon className="mt-space-1 text-text-muted" />
-            </Link>
-          </li>
-        ))}
-      </ol>
-    </section>
-  );
-}
+  It existed because the tabs did not explain themselves, and it was the wrong fix. Two
+  navigation systems on one screen do not add up to clarity; they add up to a user asking
+  which one is the real one. The tabs now say Event / Rules / My entry / Catches /
+  Standings, which is what those screens are, and a second set of links saying the same
+  thing in other words is gone.
 
-function DetailCard({ label, value, hint }: { label: string; value: string; hint?: string }) {
-  return (
-    <article className={`${CARD} flex flex-col gap-space-1 p-space-4`}>
-      <span className="text-caption text-text-muted">{label}</span>
-      <span className="text-body-strong text-text-primary">{value}</span>
-      {hint ? <span className="text-caption text-text-muted">{hint}</span> : null}
-    </article>
-  );
-}
+  If anglers still cannot navigate after this, the answer is better tab labels. It is not
+  a third navigation system.
+*/
 
 function PrimaryAction({
   tournament,
@@ -351,7 +271,7 @@ function PrimaryAction({
   if (phase === "during") {
     return (
       <Link href={`/tournaments/${tournament.id}/catches`} className={BIG_ACTION}>
-        Compete now — log a catch
+        Log a fish
       </Link>
     );
   }
