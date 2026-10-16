@@ -5,6 +5,7 @@ set -euo pipefail
 # check-proof.sh accepted (review of rust-pilot PR #1), and that the drift check
 # catches a changed copy. Each case runs in a throwaway copy of this checkout.
 root="$(cd "$(dirname "$0")/.." && pwd)"
+bash "$root/scripts/test-secret-files.sh"
 work=$(mktemp -d)
 trap 'rm -rf "$work"' EXIT
 failures=0

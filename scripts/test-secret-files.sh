@@ -1,0 +1,46 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+root="$(cd "$(dirname "$0")/.." && pwd)"
+work=$(mktemp -d)
+trap 'rm -rf "$work"' EXIT
+git -C "$work" init -q
+
+# Empty files exercise filenames only; no real secrets enter the fixture.
+check_name() {
+  local path="$1" expected="$2" status=0
+  mkdir -p "$(dirname "$work/$path")"
+  : > "$work/$path"
+  git -C "$work" add -f -- "$path"
+  bash "$root/scripts/check-secret-files.sh" "$work" > "$work/output" 2>&1 || status=$?
+  git -C "$work" rm -q -f -- "$path"
+  if { [ "$expected" = reject ] && [ "$status" -eq 1 ]; } \
+    || { [ "$expected" = allow ] && [ "$status" -eq 0 ]; }; then
+    printf 'ok filename %q: %s\n' "$path" "$expected"
+  else
+    printf 'FAIL filename %q: expected %s, exit %s\n' "$path" "$expected" "$status" >&2
+    cat "$work/output" >&2
+    exit 1
+  fi
+}
+
+for path in .env .env.local config/.env.production .aws/credentials \
+  aws-credentials.json nested/AWS-CREDENTIALS.JSON credentials.json credentials.yaml \
+  service-account.json service_account.json firebase-service-account.json \
+  id_rsa id_dsa id_ecdsa id_ed25519 id_ecdsa_sk nested/ID_ECDSA \
+  signing.pem signing.KEY signing.p8 signing.p12 signing.pfx \
+  $'nested/line\nbreak/service-account.json'; do
+  check_name "$path" reject
+done
+
+for path in .env.example .env.local.example nested/.env.production.example \
+  README.md scripts/check-secret-files.sh src/credentials.ts \
+  docs/service-account-setup.md; do
+  check_name "$path" allow
+done
+
+if bash "$root/scripts/check-secret-files.sh" "$work/missing-repo" >/dev/null 2>&1; then
+  echo 'FAIL a repository enumeration error must fail the gate' >&2
+  exit 1
+fi
+echo 'All secret filename cases pass.'
