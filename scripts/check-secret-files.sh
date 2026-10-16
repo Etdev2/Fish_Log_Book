@@ -7,7 +7,7 @@ repo="${1:-.}"
 pattern='(^|/)(\.env(\.[^/]*)?|id_(rsa|dsa|ecdsa|ed25519)[^/]*|([^/]*[-_.])?credentials(\.(json|ya?ml|toml|ini|xml|txt))?|([^/]*[-_])?service[-_]account(\.(json|ya?ml|toml|ini|xml|txt))?)$|\.(pem|key|p8|p12|pfx)$'
 oauth='(^|/)([^/]*[-_.])?client[-_]secrets?(([_-][^/]*)?\.(json|ya?ml|toml|ini|xml|txt))?$'
 bundle='(^|/)\.?([^/]*[-_.])?(secrets?|credentials?|passwords?|passwd|tokens?|api[-_]?keys?|access[-_]?tokens?|refresh[-_]?tokens?|auth[-_]?tokens?)(([-_.][^/]*)?\.(json|ya?ml|toml|ini|xml|txt|env|conf|config|properties|csv|tsv))?$'
-credential_config='(^|/)(\.netrc|_netrc|\.npmrc|\.pypirc|\.git-credentials|\.pgpass)$|(^|/)\.(aws|ssh|gnupg)/|(^|/)\.docker/config\.json$|(^|/)\.config/gcloud/|(^|/)\.auth/'
+credential_config='(^|/)(\.netrc|_netrc|\.npmrc|\.pypirc|\.git-credentials|\.pgpass)$|(^|/)\.(aws|ssh|gnupg)/|(^|/)\.docker/config\.json$|(^|/)\.kube/config$|(^|/)\.config/gcloud/|(^|/)\.auth/'
 example='(^|/)\.env(\.[^/]+)?\.example$'
 shopt -s nocasematch
 
