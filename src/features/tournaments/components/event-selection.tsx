@@ -57,7 +57,7 @@ export function EventSelection({
                   checked={chosen}
                   disabled={disabled}
                   onChange={() => onToggleEvent(event.id)}
-                  className="mt-space-1 size-space-5 shrink-0 accent-signal-orange"
+                  className="-my-space-2 size-touch-floor shrink-0 cursor-pointer accent-signal-orange"
                 />
                 <span className="min-w-0 flex-1">
                   <span className="block text-body-strong text-text-primary">{event.name}</span>
@@ -95,7 +95,7 @@ export function EventSelection({
                               checked={selectedDivisionIds.includes(division.id)}
                               disabled={disabled}
                               onChange={() => onToggleDivision(division.id)}
-                              className="mt-space-1 size-space-5 shrink-0 accent-signal-orange"
+                              className="-my-space-2 size-touch-floor shrink-0 cursor-pointer accent-signal-orange"
                             />
                             <span className="min-w-0 flex-1">
                               <span className="flex flex-wrap items-baseline justify-between gap-space-2">

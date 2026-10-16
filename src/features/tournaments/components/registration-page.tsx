@@ -198,7 +198,7 @@ export function RegistrationPage({ tournamentId }: { tournamentId: string }) {
           type="checkbox"
           checked={policyAcknowledged}
           onChange={(event) => setPolicyAcknowledged(event.target.checked)}
-          className="mt-space-1 size-space-5 shrink-0 accent-signal-orange"
+          className="-my-space-2 size-touch-floor shrink-0 cursor-pointer accent-signal-orange"
         />
         <span className="text-body text-text-primary">
           I have read the refund policy below and the event&rsquo;s rules.
