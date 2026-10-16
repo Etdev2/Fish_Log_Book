@@ -249,6 +249,7 @@ const PRIVACY: LegalDocument = {
       ],
       bullets: [
         "We send your email address to Supabase, our hosted database and authentication provider, so it can email you a sign-in link. We do not set a password, and we never see one.",
+        "If you choose Continue with Google instead, Google confirms who you are and shares your name, email address, and profile picture with Supabase. We do not see your Google password or anything else in your Google account.",
         "Once signed in, your log syncs to our database: trips, catches, gear, spots, tackle, journal entries, and condition snapshots — including the GPS coordinates stored with them.",
         "Supabase processes this on our behalf under its own terms and security controls. We do not share your log with anyone else.",
       ],
