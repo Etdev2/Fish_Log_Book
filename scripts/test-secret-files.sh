@@ -27,6 +27,8 @@ check_name() {
 for path in .env .env.local config/.env.production .aws/credentials \
   aws-credentials.json nested/AWS-CREDENTIALS.JSON credentials.json credentials.yaml \
   service-account.json service_account.json firebase-service-account.json \
+  client_secret client_secret.json client_secrets.json CLIENT_SECRET.JSON \
+  nested/client_secret_123.apps.googleusercontent.com.json oauth-client-secret.yaml \
   id_rsa id_dsa id_ecdsa id_ed25519 id_ecdsa_sk nested/ID_ECDSA \
   signing.pem signing.KEY signing.p8 signing.p12 signing.pfx \
   $'nested/line\nbreak/service-account.json'; do
@@ -35,6 +37,7 @@ done
 
 for path in .env.example .env.local.example nested/.env.production.example \
   README.md scripts/check-secret-files.sh src/credentials.ts \
+  src/client-secret.ts src/client_secret_utils.ts docs/client-secret-setup.md \
   docs/service-account-setup.md; do
   check_name "$path" allow
 done

@@ -5,6 +5,7 @@ set -euo pipefail
 # certificates or credential files. Content scanning is a separate decision.
 repo="${1:-.}"
 pattern='(^|/)(\.env(\.[^/]*)?|id_(rsa|dsa|ecdsa|ed25519)[^/]*|([^/]*[-_.])?credentials(\.(json|ya?ml|toml|ini|xml|txt))?|([^/]*[-_])?service[-_]account(\.(json|ya?ml|toml|ini|xml|txt))?)$|\.(pem|key|p8|p12|pfx)$'
+oauth='(^|/)([^/]*[-_.])?client[-_]secrets?(([_-][^/]*)?\.(json|ya?ml|toml|ini|xml|txt))?$'
 example='(^|/)\.env(\.[^/]+)?\.example$'
 shopt -s nocasematch
 
@@ -13,7 +14,7 @@ shopt -s nocasematch
 git -C "$repo" ls-files -z | (
   failed=0
   while IFS= read -r -d '' path; do
-    if [[ "$path" =~ $pattern ]] && ! [[ "$path" =~ $example ]]; then
+    if { [[ "$path" =~ $pattern ]] || [[ "$path" =~ $oauth ]]; } && ! [[ "$path" =~ $example ]]; then
       printf 'Secret-looking tracked filename: %q. Remove it from git and rotate any credentials it held.\n' "$path" >&2
       failed=1
     fi
