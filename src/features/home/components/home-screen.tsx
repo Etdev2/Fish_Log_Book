@@ -19,7 +19,8 @@ import { useTideSeries } from "@/features/conditions/queries/use-tide-series";
 import { useLocalTimeZone } from "@/features/conditions/use-local-time-zone";
 import { usePassport } from "@/features/passport/data";
 import { PASSPORT_V1 } from "@/features/passport/flag";
-import { fishInMonth, isOnTheWater } from "@/features/home/month-totals";
+import { fishInMonth, fishedDays, isOnTheWater, weekOf } from "@/features/home/month-totals";
+import { localDateKey } from "@/core/time/month-grid";
 import { useNow } from "@/lib/time/use-now";
 
 /**
@@ -47,20 +48,6 @@ const STROKE = {
   strokeLinecap: "round",
   strokeLinejoin: "round",
 } as const;
-
-const DAY_MS = 86_400_000;
-
-/** "2026-10-16" for an instant, in a zone. The same key catches carry as `local_date`. */
-function dateKey(ms: number, timeZone: string): string {
-  const parts = new Intl.DateTimeFormat("en-CA", {
-    timeZone,
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).formatToParts(ms);
-  const get = (t: string) => parts.find((p) => p.type === t)?.value ?? "";
-  return `${get("year")}-${get("month")}-${get("day")}`;
-}
 
 function greeting(ms: number, timeZone: string): string {
   const hour = Number(
@@ -196,32 +183,15 @@ function YourWeek({ nowMs, zone }: { nowMs: number | null; zone: string }) {
 
   const week = useMemo(() => {
     if (nowMs === null) return null;
-    const todayKey = dateKey(nowMs, zone);
-    const weekday = new Intl.DateTimeFormat("en-US", { timeZone: zone, weekday: "short" }).format(nowMs);
-    const offset = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].indexOf(weekday);
-    // Noon-anchored steps keep each day inside its own date across DST changes.
-    const days = Array.from({ length: 7 }, (_, i) => {
-      const ms = nowMs + (i - offset) * DAY_MS;
-      return {
-        key: dateKey(ms, zone),
-        letter: new Intl.DateTimeFormat("en-US", { timeZone: zone, weekday: "narrow" }).format(ms),
-        dayOfMonth: new Intl.DateTimeFormat("en-US", { timeZone: zone, day: "numeric" }).format(ms),
-        spoken: new Intl.DateTimeFormat("en-US", { timeZone: zone, weekday: "long", month: "long", day: "numeric" }).format(ms),
-      };
-    });
-    return { todayKey, days };
+    const todayKey = localDateKey(nowMs, zone);
+    return { todayKey, days: weekOf(todayKey) };
   }, [nowMs, zone]);
 
-  // A dismissed mis-tap is not a day on the water; a quick mark still is.
-  const live = log.catches.filter(isOnTheWater);
-  const fishedDays = new Set<string>([
-    ...live.map((c) => c.local_date),
-    ...log.trips.filter((t) => t.deleted_at === null).map((t) => t.local_date),
-  ]);
+  const fished = fishedDays(log.catches, log.trips, zone);
 
   const monthPrefix = week?.todayKey.slice(0, 7) ?? "";
-  const daysThisMonth = [...fishedDays].filter((d) => d.startsWith(monthPrefix)).length;
-  const fishThisMonth = fishInMonth(log.catches, monthPrefix);
+  const daysThisMonth = [...fished].filter((d) => d.startsWith(monthPrefix)).length;
+  const fishThisMonth = fishInMonth(log.catches, monthPrefix, zone);
 
   return (
     // No aria-label: each day below speaks its own date and state, which a label would hide.
@@ -234,19 +204,19 @@ function YourWeek({ nowMs, zone }: { nowMs: number | null; zone: string }) {
       <ul className="mt-3 grid grid-cols-7 gap-1 text-center">
         {(week?.days ?? []).map((d) => {
           const today = d.key === week?.todayKey;
-          const fished = fishedDays.has(d.key);
+          const fishedOn = fished.has(d.key);
           return (
             <li key={d.key} className="flex flex-col items-center gap-1">
               <span className="sr-only">
                 {d.spoken}
                 {today ? ", today" : ""}
-                {fished ? ", fished" : ""}
+                {fishedOn ? ", fished" : ""}
               </span>
               <span aria-hidden className="text-caption text-text-muted">{d.letter}</span>
               <span
                 aria-hidden
                 className={`flex size-9 items-center justify-center rounded-full text-body font-semibold ${
-                  fished
+                  fishedOn
                     ? "bg-signal-orange text-ink-on-orange"
                     : today
                       ? "border-2 border-signal-orange text-text-primary"
