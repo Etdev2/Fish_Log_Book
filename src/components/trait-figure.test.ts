@@ -12,7 +12,7 @@ import { FIN_ID_PACK } from "@/features/wildlife/fin-id-pack";
  */
 const FIGURE_KEYS = new Set([
   "tail-spots-both", "tail-spots-upper", "tail-spots-whole", "tail-spots-none",
-  "gums-black", "gums-white",
+  "gums-black", "gums-white", "mouth-black", "mouth-white",
   "spines-even", "spine-third-long",
   "body-blotches", "body-bars", "body-spots", "body-plain",
   "blow-tall", "blow-bushy", "blow-v", "blow-low", "blow-none",

@@ -125,9 +125,11 @@ export function MonthCalendar() {
                   <span key={cell.key} role="gridcell" className="flex min-w-0">
                     <span
                       aria-hidden="true"
-                      className="flex min-h-touch-floor flex-1 flex-col items-center justify-center rounded-md text-caption font-normal text-text-muted select-none"
+                      className="flex min-h-touch-floor flex-1 flex-col items-center justify-center gap-1 rounded-md text-body font-normal text-text-muted select-none"
                     >
                       {cell.dayOfMonth}
+                      {/* Same height as the dot row below in-month days, so every number sits on one line. */}
+                      <span className="h-2" />
                     </span>
                   </span>
                 );
@@ -141,17 +143,23 @@ export function MonthCalendar() {
                     onClick={() => router.push(`/day/${cell.key}`)}
                     className={`flex min-h-touch-floor min-w-0 flex-1 flex-col items-center justify-center gap-1 rounded-md border text-body font-semibold transition-colors focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-focus-ring active:scale-95 motion-reduce:transition-none ${
                       cell.isToday
-                        ? "border-signal-orange text-text-primary"
+                        ? "border-signal-orange bg-signal-orange text-ink-on-orange"
                         : "border-transparent text-text-primary hover:border-border-interactive"
                     }`}
                   >
                     {cell.dayOfMonth}
                     <span className="flex h-2 items-center justify-center gap-1.5" aria-hidden="true">
                       {summary && summary.catches > 0 ? (
-                        <span className="size-2 rounded-full bg-signal-orange" />
+                        <span
+                          className={`size-2 rounded-full ${cell.isToday ? "bg-ink-on-orange" : "bg-signal-orange"}`}
+                        />
                       ) : null}
                       {summary && summary.needsDetails > 0 ? (
-                        <span className="size-2 rounded-full bg-amber-flag" />
+                        /* Amber on today's orange fill is ~1.4:1 and vanishes, so on today the
+                           flag becomes a dark ring: still distinct from the solid catch dot. */
+                        <span
+                          className={`size-2 rounded-full ${cell.isToday ? "border-2 border-ink-on-orange" : "bg-amber-flag"}`}
+                        />
                       ) : null}
                     </span>
                   </button>
@@ -162,10 +170,27 @@ export function MonthCalendar() {
         ))}
       </div>
 
-      <p className="text-caption text-text-muted">
-        Orange dot: catches that day. Amber dot: something still needs details. Tap a day
-        to open it.
-      </p>
+      {/*
+        Founder, 2026-10-16: the legend was one sentence of colour names. It is now the
+        marks themselves, each beside one or two plain words, so it reads at a glance.
+      */}
+      <ul className="flex flex-wrap items-center gap-x-5 gap-y-2 text-caption text-text-muted">
+        <li className="flex items-center gap-2">
+          <span aria-hidden className="flex size-6 items-center justify-center rounded-md bg-signal-orange text-caption font-semibold text-ink-on-orange">
+            {cells.find((c) => c.isToday)?.dayOfMonth ?? "•"}
+          </span>
+          Today
+        </li>
+        <li className="flex items-center gap-2">
+          <span aria-hidden className="size-3 rounded-full bg-signal-orange" />
+          Fish caught
+        </li>
+        <li className="flex items-center gap-2">
+          <span aria-hidden className="size-3 rounded-full bg-amber-flag" />
+          Needs more info
+        </li>
+      </ul>
+      <p className="text-caption text-text-muted">Tap a day to see it.</p>
       {!log.hydrated ? (
         <p className="text-caption text-text-muted">Opening your log…</p>
       ) : null}
