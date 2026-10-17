@@ -18,7 +18,12 @@ import { localDateKey } from "../calendar-data";
  * released. It does NOT promise tide or weather it cannot show yet — those join when the
  * conditions snapshot link-up lands. Founder Historical spec §1: this page is also the
  * backfill door — "+ Add catch for this day" opens the Fish Log pre-set on this date.
+ * Founder, 2026-10-17: you can log back in time but not forward, so a day that hasn't
+ * come yet offers no add button (the log sheet also refuses a future time on save).
  */
+const ADD_BUTTON =
+  "inline-flex min-h-touch-floor items-center justify-center rounded-md border border-border-interactive px-4 text-label text-text-link focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-3 focus-visible:outline-focus-ring";
+
 export function DayView({ dateKey }: { dateKey: string }) {
   const state = useLog();
   const zone = useLocalTimeZone() ?? "UTC";
@@ -34,6 +39,9 @@ export function DayView({ dateKey }: { dateKey: string }) {
   // No clock yet (SSR/first paint): no day is "today". The long-format heading still shows.
   const today = now === null ? "" : localDateKey(Number(now), zone);
   const heading = formatDayHeading(dateKey, today);
+  // Hidden until the clock is known, so a future day never flashes the button.
+  const canAdd = today !== "" && dateKey <= today;
+  const future = today !== "" && dateKey > today;
   const resolved = items.filter((i) => i.speciesName !== null);
   const pending = items.filter((i) => i.speciesName === null);
 
@@ -53,12 +61,11 @@ export function DayView({ dateKey }: { dateKey: string }) {
                 }`
             : ""}
         </p>
-        <Link
-          href={`/log?add=${dateKey}`}
-          className="mt-3 inline-flex min-h-touch-floor items-center justify-center self-start rounded-md border border-border-interactive px-4 text-label text-text-link focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-3 focus-visible:outline-focus-ring"
-        >
-          + Add catch for this day
-        </Link>
+        {canAdd ? (
+          <Link href={`/log?add=${dateKey}`} className={`mt-3 self-start ${ADD_BUTTON}`}>
+            + Add catch for this day
+          </Link>
+        ) : null}
       </section>
 
       {!state.hydrated ? (
@@ -67,17 +74,27 @@ export function DayView({ dateKey }: { dateKey: string }) {
         </section>
       ) : items.length === 0 ? (
         <section className="rounded-lg border border-hairline bg-surface p-4">
-          <h2 className="text-h3">Nothing on this day yet.</h2>
-          <p className="mt-2 text-body text-text-muted">
-            When you log a catch on {formatDayHeading(dateKey, "") === "Today" ? "today" : "this day"}, it lands here
-            — time, species, gear, and where you were.
-          </p>
-          <Link
-            href={`/log?add=${dateKey}`}
-            className="mt-4 inline-flex min-h-touch-floor items-center justify-center rounded-md border border-border-interactive px-4 text-label text-text-link focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-3 focus-visible:outline-focus-ring"
-          >
-            + Add catch for this day
-          </Link>
+          {future ? (
+            <>
+              <h2 className="text-h3">This day hasn&apos;t come yet.</h2>
+              <p className="mt-2 text-body text-text-muted">
+                Come back after you fish it. You can add catches to today or any day before it.
+              </p>
+            </>
+          ) : (
+            <>
+              <h2 className="text-h3">Nothing on this day yet.</h2>
+              <p className="mt-2 text-body text-text-muted">
+                When you log a catch on {formatDayHeading(dateKey, "") === "Today" ? "today" : "this day"}, it lands here
+                — time, species, gear, and where you were.
+              </p>
+              {canAdd ? (
+                <Link href={`/log?add=${dateKey}`} className={`mt-4 ${ADD_BUTTON}`}>
+                  + Add catch for this day
+                </Link>
+              ) : null}
+            </>
+          )}
         </section>
       ) : (
         <>
