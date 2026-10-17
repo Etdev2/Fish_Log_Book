@@ -141,7 +141,9 @@ function WaterNow({ nowMs }: { nowMs: number | null }) {
   const next = reading?.nextTurn ?? null;
 
   return (
-    <Link href="/tides" className={CARD} aria-label={`On the water now: ${headline}. Open the tide chart.`}>
+    // No aria-label: the card's own text is its name, so the next turn, the moon and the
+    // old-data warning all reach a screen reader.
+    <Link href="/tides" className={CARD}>
       <p className="text-caption text-text-muted">On the water now{tide.station ? ` · ${tide.station.name}` : ""}</p>
       <div className="mt-2 flex items-center gap-4">
         <span
@@ -204,6 +206,7 @@ function YourWeek({ nowMs, zone }: { nowMs: number | null; zone: string }) {
         key: dateKey(ms, zone),
         letter: new Intl.DateTimeFormat("en-US", { timeZone: zone, weekday: "narrow" }).format(ms),
         dayOfMonth: new Intl.DateTimeFormat("en-US", { timeZone: zone, day: "numeric" }).format(ms),
+        spoken: new Intl.DateTimeFormat("en-US", { timeZone: zone, weekday: "long", month: "long", day: "numeric" }).format(ms),
       };
     });
     return { todayKey, days };
@@ -219,23 +222,29 @@ function YourWeek({ nowMs, zone }: { nowMs: number | null; zone: string }) {
   const monthPrefix = week?.todayKey.slice(0, 7) ?? "";
   const daysThisMonth = [...fishedDays].filter((d) => d.startsWith(monthPrefix)).length;
   const fishThisMonth = fishInMonth(log.catches, monthPrefix);
-  const daysThisWeek = week ? week.days.filter((d) => fishedDays.has(d.key)).length : 0;
 
   return (
-    <Link href="/calendar" className={CARD} aria-label={`Your week: ${daysThisWeek} days fished. Open the calendar.`}>
+    // No aria-label: each day below speaks its own date and state, which a label would hide.
+    <Link href="/calendar" className={CARD}>
       <div className="flex items-baseline justify-between gap-3">
         <h2 className="text-h3">Your week</h2>
         <span className="text-caption text-text-link">Calendar ›</span>
       </div>
 
-      <div aria-hidden className="mt-3 grid grid-cols-7 gap-1 text-center">
+      <ul className="mt-3 grid grid-cols-7 gap-1 text-center">
         {(week?.days ?? []).map((d) => {
           const today = d.key === week?.todayKey;
           const fished = fishedDays.has(d.key);
           return (
-            <div key={d.key} className="flex flex-col items-center gap-1">
-              <span className="text-caption text-text-muted">{d.letter}</span>
+            <li key={d.key} className="flex flex-col items-center gap-1">
+              <span className="sr-only">
+                {d.spoken}
+                {today ? ", today" : ""}
+                {fished ? ", fished" : ""}
+              </span>
+              <span aria-hidden className="text-caption text-text-muted">{d.letter}</span>
               <span
+                aria-hidden
                 className={`flex size-9 items-center justify-center rounded-full text-body font-semibold ${
                   fished
                     ? "bg-signal-orange text-ink-on-orange"
@@ -246,10 +255,10 @@ function YourWeek({ nowMs, zone }: { nowMs: number | null; zone: string }) {
               >
                 {d.dayOfMonth}
               </span>
-            </div>
+            </li>
           );
         })}
-      </div>
+      </ul>
 
       <p className="mt-3 text-body text-text-muted">
         {daysThisMonth === 0 ? (
