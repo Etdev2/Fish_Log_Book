@@ -1,0 +1,244 @@
+$ scripts/check-pinned-scripts.sh
+4 copied scripts match the pinned control-room commit.
+[exit 0]
+
+$ scripts/check-secret-files.sh
+No secret-looking files are tracked (filename check only).
+[exit 0]
+
+$ scripts/test-proof-tools.sh
+ok filename .env: reject
+ok filename .env.local: reject
+ok filename config/.env.production: reject
+ok filename .aws/credentials: reject
+ok filename aws-credentials.json: reject
+ok filename nested/AWS-CREDENTIALS.JSON: reject
+ok filename credentials.json: reject
+ok filename credentials.yaml: reject
+ok filename service-account.json: reject
+ok filename service_account.json: reject
+ok filename firebase-service-account.json: reject
+ok filename client_secret: reject
+ok filename client_secret.json: reject
+ok filename client_secrets.json: reject
+ok filename CLIENT_SECRET.JSON: reject
+ok filename nested/client_secret_123.apps.googleusercontent.com.json: reject
+ok filename oauth-client-secret.yaml: reject
+ok filename secret: reject
+ok filename secrets: reject
+ok filename secrets.json: reject
+ok filename secrets.yaml: reject
+ok filename .secrets.json: reject
+ok filename nested/secrets.production.toml: reject
+ok filename passwords.json: reject
+ok filename api-keys.json: reject
+ok filename access_tokens.json: reject
+ok filename nested/refresh-token.txt: reject
+ok filename .netrc: reject
+ok filename .npmrc: reject
+ok filename .pypirc: reject
+ok filename .git-credentials: reject
+ok filename .pgpass: reject
+ok filename .docker/config.json: reject
+ok filename .aws/config: reject
+ok filename .ssh/custom-key: reject
+ok filename .config/gcloud/application_default_credentials.json: reject
+ok filename .kube/config: reject
+ok filename nested/.kube/config: reject
+ok filename nested/.KUBE/CONFIG: reject
+ok filename playwright/.auth/user.json: reject
+ok filename id_rsa: reject
+ok filename id_dsa: reject
+ok filename id_ecdsa: reject
+ok filename id_ed25519: reject
+ok filename id_ecdsa_sk: reject
+ok filename nested/ID_ECDSA: reject
+ok filename signing.pem: reject
+ok filename signing.KEY: reject
+ok filename signing.p8: reject
+ok filename signing.p12: reject
+ok filename signing.pfx: reject
+ok filename $'nested/line\nbreak/service-account.json': reject
+ok filename .env.example: allow
+ok filename .env.local.example: allow
+ok filename nested/.env.production.example: allow
+ok filename README.md: allow
+ok filename scripts/check-secret-files.sh: allow
+ok filename src/credentials.ts: allow
+ok filename src/client-secret.ts: allow
+ok filename src/client_secret_utils.ts: allow
+ok filename docs/client-secret-setup.md: allow
+ok filename src/core/design/tokens.json: allow
+ok filename docs/secrets-guide.md: allow
+ok filename src/tokens.ts: allow
+ok filename docs/service-account-setup.md: allow
+ok filename .kube/config.example: allow
+All secret filename cases pass.
+ok   a bundle from the copied writer passes
+ok   evidence named by a pattern fails
+ok   evidence naming a directory fails
+ok   an unstaged manifest edit is ignored; the committed ticket is checked
+ok   an uncommitted edit can't turn a committed FAIL into PASS
+ok   the drift check catches a one-byte change to a copied script
+All proof-tool cases behave as specified.
+[exit 0]
+
+$ npm run verify
+
+> fish-log-book@0.1.0 verify
+> npm run sp:check && npm run tokens:check && npm run tripwires && npm run migrations:check && npm run lint && tsc --noEmit && npm run test
+
+
+> fish-log-book@0.1.0 sp:check
+> bash scripts/check-pinned-scripts.sh && bash scripts/check-secret-files.sh
+
+4 copied scripts match the pinned control-room commit.
+No secret-looking files are tracked (filename check only).
+
+> fish-log-book@0.1.0 tokens:check
+> node scripts/tokens.mjs --check
+
+Wrote src/app/tokens.generated.css
+
+> fish-log-book@0.1.0 tripwires
+> node scripts/check-tripwires.mjs
+
+tripwires: clean.
+
+> fish-log-book@0.1.0 migrations:check
+> node scripts/check-migration-versions.mjs
+
+migrations: 61 unique versions.
+
+> fish-log-book@0.1.0 lint
+> eslint
+
+
+/private/tmp/fish-log-kube-guard-20261016/src/features/fish-legal/components/alerts-page.tsx
+  4:10  warning  'useEffect' is defined but never used   @typescript-eslint/no-unused-vars
+  4:21  warning  'useState' is defined but never used    @typescript-eslint/no-unused-vars
+  8:81  warning  'LegalAlert' is defined but never used  @typescript-eslint/no-unused-vars
+
+/private/tmp/fish-log-kube-guard-20261016/src/features/fish-legal/components/boundary-leaflet.tsx
+  117:6  warning  React Hook useEffect has missing dependencies: 'areas', 'center', and 'showRca'. Either include them or remove the dependency array  react-hooks/exhaustive-deps
+
+/private/tmp/fish-log-kube-guard-20261016/src/features/fish-legal/reg-data-parity.test.ts
+  16:10  warning  'MASSACHUSETTS' is defined but never used  @typescript-eslint/no-unused-vars
+  17:10  warning  'RHODE_ISLAND' is defined but never used   @typescript-eslint/no-unused-vars
+  18:10  warning  'NEW_YORK' is defined but never used       @typescript-eslint/no-unused-vars
+  19:10  warning  'NEW_JERSEY' is defined but never used     @typescript-eslint/no-unused-vars
+
+✖ 8 problems (0 errors, 8 warnings)
+
+
+> fish-log-book@0.1.0 test
+> vitest run
+
+
+ RUN  v4.1.11 /private/tmp/fish-log-kube-guard-20261016
+
+
+ Test Files  97 passed (97)
+      Tests  1077 passed (1077)
+   Start at  15:49:26
+   Duration  2.19s (transform 2.80s, setup 0ms, import 4.83s, tests 1.51s, environment 6ms)
+
+[exit 0]
+
+$ npm run build
+
+> fish-log-book@0.1.0 prebuild
+> npm run tokens
+
+
+> fish-log-book@0.1.0 tokens
+> node scripts/tokens.mjs
+
+Wrote src/app/tokens.generated.css
+
+> fish-log-book@0.1.0 build
+> next build
+
+▲ Next.js 16.3.3 (Turbopack)
+✓ Running next.config.ts took 57ms
+
+  Creating an optimized production build ...
+✓ Compiled successfully in 797ms
+  Running TypeScript ...
+  Finished TypeScript in 1283ms ...
+  Collecting page data using 9 workers ...
+  Generating static pages using 9 workers (0/52) ...
+  Generating static pages using 9 workers (13/52) 
+  Generating static pages using 9 workers (26/52) 
+  Generating static pages using 9 workers (39/52) 
+✓ Generating static pages using 9 workers (52/52) in 348ms
+  Finalizing page optimization ...
+
+Route (app)
+┌ ○ /
+├ ○ /_not-found
+├ ƒ /api/payments/stripe/webhook
+├ ƒ /callback
+├ ƒ /catch/[id]
+├ ƒ /day/[date]
+├ ○ /fin-id
+├ ○ /fish-id
+├ ƒ /fish-id/[packId]
+├ ○ /fish-legal
+├ ○ /fish-legal/alerts
+├ ○ /fish-legal/boundaries
+├ ○ /fish-legal/limits
+├ ○ /fish-legal/offline
+├ ○ /fish-legal/rockfish
+├ ○ /fish-legal/species
+├ ƒ /fish-legal/species/[id]
+├ ○ /games
+├ ○ /games/new
+├ ○ /games/play
+├ ○ /games/result
+├ ○ /learn
+├ ○ /legal
+├   /legal/[slug]
+│ ├ ● /legal/regulations
+│ ├ ● /legal/terms
+│ └ ● /legal/privacy
+├ ○ /log
+├ ○ /onboarding
+├ ○ /passport
+├ ○ /passport/badges
+├ ○ /passport/collections
+├ ƒ /passport/collections/[collectionId]
+├ ○ /passport/slams
+├ ○ /passport/species
+├ ƒ /passport/species/[speciesId]
+├ ○ /settings
+├ ○ /setup
+├ ○ /sign-in
+├ ○ /spots
+├ ƒ /spots/[id]
+├ ○ /tackle
+├   /tackle/[category]
+│ ├ ● /tackle/hooks
+│ ├ ● /tackle/jigs
+│ ├ ● /tackle/hard-baits
+│ └ ● [+10 more paths]
+├ ○ /tides
+├ ○ /tournaments
+├ ƒ /tournaments/[id]/catches
+├ ƒ /tournaments/[id]/leaderboard
+├ ƒ /tournaments/[id]/operations
+├ ƒ /tournaments/[id]/overview
+├ ƒ /tournaments/[id]/register
+├ ƒ /tournaments/[id]/rules
+├ ○ /tournaments/mine
+├ ○ /tournaments/new
+└ ƒ /trip/[id]
+
+
+ƒ Proxy (Middleware)
+
+○  (Static)   prerendered as static content
+●  (SSG)      prerendered as static HTML (uses generateStaticParams)
+ƒ  (Dynamic)  server-rendered on demand
+
+[exit 0]

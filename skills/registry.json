@@ -1,0 +1,67 @@
+{
+  "version": 1,
+  "sources": [
+    {
+      "id": "matt-pocock",
+      "repository": "https://github.com/mattpocock/skills",
+      "commit": "49dd158d1076134a641b33efb035946536778336",
+      "license": "MIT"
+    },
+    {
+      "id": "pstack",
+      "repository": "https://github.com/backnotprop/pstack",
+      "commit": "3a604672c46cd8187d2b19980eae0a34f9f91138",
+      "license": "MIT"
+    }
+  ],
+  "workflow": [
+    {
+      "phase": "discover",
+      "skills": [
+        { "source": "matt-pocock", "name": "grill-with-docs", "path": "skills/engineering/grill-with-docs/SKILL.md" },
+        { "source": "matt-pocock", "name": "wayfinder", "path": "skills/engineering/wayfinder/SKILL.md" },
+        { "source": "matt-pocock", "name": "domain-modeling", "path": "skills/engineering/domain-modeling/SKILL.md" }
+      ]
+    },
+    {
+      "phase": "specify",
+      "skills": [
+        { "source": "matt-pocock", "name": "to-spec", "path": "skills/engineering/to-spec/SKILL.md" },
+        { "source": "matt-pocock", "name": "to-tickets", "path": "skills/engineering/to-tickets/SKILL.md" }
+      ]
+    },
+    {
+      "phase": "architect",
+      "skills": [
+        { "source": "pstack", "name": "architect", "path": "skills/architect/SKILL.md" },
+        { "source": "matt-pocock", "name": "codebase-design", "path": "skills/engineering/codebase-design/SKILL.md" },
+        { "source": "pstack", "name": "principle-type-system-discipline", "path": "skills/principle-type-system-discipline/SKILL.md" }
+      ]
+    },
+    {
+      "phase": "implement",
+      "skills": [
+        { "source": "matt-pocock", "name": "tdd", "path": "skills/engineering/tdd/SKILL.md" },
+        { "source": "pstack", "name": "create-verification-skill", "path": "skills/create-verification-skill/SKILL.md" },
+        { "source": "pstack", "name": "show-me-your-work", "path": "skills/show-me-your-work/SKILL.md" }
+      ]
+    },
+    {
+      "phase": "review",
+      "skills": [
+        { "source": "matt-pocock", "name": "code-review", "path": "skills/engineering/code-review/SKILL.md" },
+        { "source": "pstack", "name": "blast-radius", "path": "skills/blast-radius/SKILL.md" },
+        { "source": "pstack", "name": "interrogate", "path": "skills/interrogate/SKILL.md" }
+      ]
+    },
+    {
+      "phase": "improve",
+      "skills": [
+        { "source": "pstack", "name": "correct", "path": "skills/correct/SKILL.md" },
+        { "source": "pstack", "name": "maintain-verification-skill", "path": "skills/maintain-verification-skill/SKILL.md" },
+        { "source": "pstack", "name": "recall", "path": "skills/recall/SKILL.md" },
+        { "source": "pstack", "name": "unslop", "path": "skills/unslop/SKILL.md" }
+      ]
+    }
+  ]
+}

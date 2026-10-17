@@ -42,6 +42,10 @@ jobs:
       # package.json and the lockfile disagree, which is itself worth catching.
       - run: npm ci
 
+      # Sweet Potato: the proof tools copied from the control room still behave as
+      # specified (pinned-copy drift and bundle rejection cases).
+      - run: scripts/test-proof-tools.sh
+
       # tokens:check, tripwires, lint, tsc, and the test suite — the whole gate.
       - run: npm run verify
 
@@ -106,3 +110,15 @@ jobs:
           done
           curl -sf -o /dev/null http://127.0.0.1:3111/tournaments || { echo "server never became ready" >&2; exit 1; }
           npm run layout
+
+  # Sweet Potato proof gate (control-room ADR 0005). Checks out the PR head, not the
+  # merge ref, because the bundle's digest is tied to the exact code it ran against.
+  proof:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+      - run: scripts/check-proof.sh .
