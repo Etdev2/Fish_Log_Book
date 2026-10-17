@@ -7,7 +7,6 @@ import { instant } from "@/core/units";
 import { moonPhaseAt } from "@/core/rules/astro";
 import { readTideAt } from "@/core/rules/tide";
 import { speciesLabel } from "@/core/ontology/species";
-import { isCountable } from "@/core/rules/catch/rules";
 import { useLog } from "@/features/catches/store";
 import { MoonPhaseVisual } from "@/features/conditions/components/moon-phase-visual";
 import {
@@ -20,6 +19,7 @@ import { useTideSeries } from "@/features/conditions/queries/use-tide-series";
 import { useLocalTimeZone } from "@/features/conditions/use-local-time-zone";
 import { usePassport } from "@/features/passport/data";
 import { PASSPORT_V1 } from "@/features/passport/flag";
+import { fishInMonth, isOnTheWater } from "@/features/home/month-totals";
 import { useNow } from "@/lib/time/use-now";
 
 /**
@@ -210,7 +210,7 @@ function YourWeek({ nowMs, zone }: { nowMs: number | null; zone: string }) {
   }, [nowMs, zone]);
 
   // A dismissed mis-tap is not a day on the water; a quick mark still is.
-  const live = log.catches.filter((c) => c.deleted_at === null && c.resolution_state !== "dismissed");
+  const live = log.catches.filter(isOnTheWater);
   const fishedDays = new Set<string>([
     ...live.map((c) => c.local_date),
     ...log.trips.filter((t) => t.deleted_at === null).map((t) => t.local_date),
@@ -218,10 +218,7 @@ function YourWeek({ nowMs, zone }: { nowMs: number | null; zone: string }) {
 
   const monthPrefix = week?.todayKey.slice(0, 7) ?? "";
   const daysThisMonth = [...fishedDays].filter((d) => d.startsWith(monthPrefix)).length;
-  // Only confirmed, landed fish count (D22): an open quick mark or a lost fish is not a fish.
-  const fishThisMonth = live
-    .filter((c) => isCountable(c) && c.local_date.startsWith(monthPrefix))
-    .reduce((sum, c) => sum + (c.quantity ?? 1), 0);
+  const fishThisMonth = fishInMonth(log.catches, monthPrefix);
   const daysThisWeek = week ? week.days.filter((d) => fishedDays.has(d.key)).length : 0;
 
   return (
@@ -327,7 +324,7 @@ function RecentCatches({ zone }: { zone: string }) {
   if (!log.hydrated) return null;
 
   const recent = log.catches
-    .filter((c) => c.deleted_at === null && c.resolution_state !== "dismissed")
+    .filter(isOnTheWater)
     .slice()
     .sort((a, b) => b.caught_at.localeCompare(a.caught_at))
     .slice(0, 3);
