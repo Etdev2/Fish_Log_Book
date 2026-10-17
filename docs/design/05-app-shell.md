@@ -1,5 +1,14 @@
 # 05 — The App Shell
 
+> **Revised 2026-10-16 (founder, issue #166 / PR #169).** D23 no longer makes the calendar
+> the home screen: `/` is **Home** (today's tide, your week, your nearest Passport goal,
+> recent catches, one "Log a catch" button) and the month grid moves to `/calendar`. The
+> app also has a five-tab bottom bar (Home, Fish ID, Log, Tide, Legal — UI-1 #12 and
+> PR #158), which this document's §1 argued against. Where the text below says "the
+> calendar (home)", read "Home"; the calendar is reached from Home's "Your week" card
+> and the Menu. Home's engagement is built only from true data — no streaks that break
+> on a week off, no invented urgency — which keeps the §1.2 concern below in force.
+
 D23 makes the month calendar the app's home screen. This changes what a "persistent
 nav" even needs to do: there is no tab bar full of five equally-weighted destinations,
 because there aren't five equally important places to go — there's the calendar
