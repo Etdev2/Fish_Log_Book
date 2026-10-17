@@ -3,7 +3,17 @@ import { describe, expect, it } from "vitest";
 import { instant, metres } from "@/core/units";
 import { tideSeries } from "@/core/rules/tide";
 
-import { dailyRanges, hasHourly, isoDay, sliceSeries, viewWindowAround, ZOOM_SPAN_DAYS } from "./view-window";
+import {
+  compactRange,
+  dailyRanges,
+  hasHourly,
+  isoDay,
+  placeMonthLabels,
+  sliceSeries,
+  stationNoonOf,
+  viewWindowAround,
+  ZOOM_SPAN_DAYS,
+} from "./view-window";
 
 const HOUR = 60 * 60 * 1000;
 const DAY = 24 * HOUR;
@@ -78,5 +88,55 @@ describe("dailyRanges", () => {
 
   it("sizes the zoom levels as week, month and year", () => {
     expect(ZOOM_SPAN_DAYS).toEqual({ week: 7, month: 31, year: 365 });
+  });
+});
+
+describe("today on the station calendar (picker showed yesterday in Pacific time)", () => {
+  const LA = "America/Los_Angeles";
+  it("Fri Oct 16 2026 5:25 PM PDT is Oct 16, not Oct 15", () => {
+    const now = Date.parse("2026-10-17T00:25:00Z");
+    expect(isoDay(stationNoonOf(now, LA), LA)).toBe("2026-10-16");
+  });
+  it("early morning PDT is still the same station day", () => {
+    const now = Date.parse("2026-10-16T08:00:00Z"); // 1 AM PDT
+    expect(isoDay(stationNoonOf(now, LA), LA)).toBe("2026-10-16");
+  });
+  it("anchors at local noon", () => {
+    expect(new Date(stationNoonOf(Date.parse("2026-10-17T00:25:00Z"), LA)).toISOString()).toBe("2026-10-16T19:00:00.000Z");
+    expect(new Date(stationNoonOf(Date.parse("2026-01-10T00:00:00Z"), LA)).toISOString()).toBe("2026-01-09T20:00:00.000Z");
+  });
+});
+
+describe("toolbar range label fits a phone", () => {
+  it("is compact", () => {
+    const label = compactRange(Date.parse("2025-10-16T20:00:00Z"), Date.parse("2027-10-16T20:00:00Z"), "America/Los_Angeles");
+    expect(label).toBe("Oct 16 '25 – Oct 16 '27");
+    expect(label.length).toBeLessThanOrEqual(24);
+  });
+});
+
+describe("year-view month labels never overlap", () => {
+  const charPx = 9.6;
+  const dayPx = 390 / 365;
+  // Oct 16 2026 start, then month starts through Oct 2027.
+  const starts = [
+    { index: 0, label: "Oct" },
+    { index: 16, label: "Nov" },
+    { index: 46, label: "Dec" },
+    { index: 77, label: "Jan '27" },
+    { index: 108, label: "Feb" },
+    { index: 136, label: "Mar" },
+    { index: 167, label: "Apr" },
+  ];
+  const kept = placeMonthLabels(starts, dayPx, charPx);
+  it("keeps January (the year) and spaces the rest", () => {
+    expect(kept.map((k) => k.label)).toContain("Jan '27");
+    for (let i = 1; i < kept.length; i++) {
+      const prevRight = kept[i - 1].index * dayPx + 4 + kept[i - 1].label.length * charPx;
+      expect(kept[i].index * dayPx).toBeGreaterThanOrEqual(prevRight);
+    }
+  });
+  it("keeps every label in month view where they fit", () => {
+    expect(placeMonthLabels(starts, 390 / 31, charPx)).toHaveLength(starts.length);
   });
 });

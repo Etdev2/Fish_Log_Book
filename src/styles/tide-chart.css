@@ -839,6 +839,15 @@
   flex: 1;
   min-height: 0;
   width: 100%;
+  /* Last resort on very short phones: the frame scrolls rather than clipping the chart
+     out of reach (Codex P2 on #137). The week chart keeps a usable floor height. */
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+.tide-frame > .tide-screen {
+  flex: 1 0 auto;
+  min-height: 440px;
 }
 
 .tide-toolbar {
@@ -846,8 +855,9 @@
   flex-shrink: 0;
   align-items: center;
   gap: 8px;
+  flex-wrap: wrap;
+  row-gap: 4px;
   padding: 8px 16px 0;
-  overflow-x: auto;
   white-space: nowrap;
   font-size: 13px;
   color: var(--color-text-muted);
@@ -882,6 +892,13 @@
   background: transparent;
   padding: 0 6px;
   color: var(--color-text-primary);
+}
+
+/* The range label never truncates at 390 px: it is short ("Oct 16 '25 – Oct 16 '27") and
+   drops to its own line when the controls fill the row. */
+.tide-range {
+  flex-shrink: 0;
+  margin-left: auto;
 }
 
 .tide-today-button {

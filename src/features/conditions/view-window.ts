@@ -111,3 +111,67 @@ export function dailyRanges(series: TidePredictionSeries, timeZone: string): Day
 export function hasHourly(series: TidePredictionSeries): boolean {
   return series.samples.some((s) => s.turn === null);
 }
+
+/**
+ * Noon on a station calendar day, as an instant. The view's anchor is held here rather than
+ * at UTC midnight: 00:00 UTC is still the previous evening in Pacific time, which made the
+ * picker show yesterday (Oct 15 on Fri Oct 16). Noon is the same station day in every zone
+ * we list, and it only changes when the station's date does, so the slice stays put.
+ */
+export function stationDayNoon(day: string, timeZone: string): number {
+  const guess = Date.parse(`${day}T12:00:00Z`);
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone,
+    hourCycle: "h23",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).formatToParts(new Date(guess));
+  const get = (type: string) => Number(parts.find((p) => p.type === type)?.value);
+  const wall = Date.UTC(get("year"), get("month") - 1, get("day"), get("hour"), get("minute"));
+  return guess - (wall - guess);
+}
+
+/** Today's (or any instant's) station day, as its noon. */
+export function stationNoonOf(ms: number, timeZone: string): number {
+  return stationDayNoon(isoDay(ms, timeZone), timeZone);
+}
+
+/** Compact range label for the toolbar: "Oct 16 '25 – Oct 16 '27", fits a 390 px phone. */
+export function compactRange(fromMs: number, toMs: number, timeZone: string): string {
+  const fmt = (ms: number) => {
+    const [y, m, d] = isoDay(ms, timeZone).split("-");
+    const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    return `${months[Number(m) - 1]} ${Number(d)} '${y.slice(2)}`;
+  };
+  return `${fmt(fromMs)} – ${fmt(toMs)}`;
+}
+
+/**
+ * Month labels for the overview that never overlap (year view at New Year put "Dec" and
+ * "Jan 27" on top of each other). Walks left to right; a label that would collide with the
+ * last kept one is dropped — unless it is January, which carries the year and wins.
+ */
+export function placeMonthLabels(
+  starts: readonly { index: number; label: string }[],
+  dayPx: number,
+  charPx: number,
+  gapPx = 6,
+): { index: number; label: string }[] {
+  const kept: { index: number; label: string }[] = [];
+  const right = (l: { index: number; label: string }) => l.index * dayPx + 4 + l.label.length * charPx + gapPx;
+  for (const start of starts) {
+    const prev = kept.at(-1);
+    if (prev === undefined || start.index * dayPx >= right(prev)) {
+      kept.push(start);
+    } else if (start.label.includes(" ")) {
+      // January (labelled with its year) replaces whatever it would overlap.
+      kept.pop();
+      while (kept.length > 0 && start.index * dayPx < right(kept.at(-1)!)) kept.pop();
+      kept.push(start);
+    }
+  }
+  return kept;
+}

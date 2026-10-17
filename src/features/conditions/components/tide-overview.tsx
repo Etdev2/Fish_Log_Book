@@ -3,7 +3,10 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import type { DayRange, TideZoom } from "../view-window";
-import { ZOOM_SPAN_DAYS } from "../view-window";
+import { placeMonthLabels, ZOOM_SPAN_DAYS } from "../view-window";
+
+/** Width of one IBM Plex Mono glyph at the caption token (16px): 0.6 em. */
+const LABEL_CHAR_PX = 9.6;
 
 /**
  * Month and year zoom (FL-1, ±365 d): one vertical bar per station day, from that day's
@@ -53,8 +56,8 @@ export function TideOverview({
   const dayPx = box.width > 0 ? Math.max(1, box.width / ZOOM_SPAN_DAYS[zoom]) : 0;
   const width = dayPx * days.length;
   const height = Math.max(160, box.height);
-  const top = 28;
-  const bottom = 28;
+  const top = 30;
+  const bottom = 30;
 
   const { yMin, yMax } = useMemo(() => {
     let lo = Number.POSITIVE_INFINITY;
@@ -84,6 +87,8 @@ export function TideOverview({
     () => days.flatMap((d, index) => (d.day.endsWith("-01") || index === 0 ? [{ index, label: monthLabel(d.day) }] : [])),
     [days],
   );
+  // Dividers for every month; labels only where they fit, so they never overlap.
+  const monthLabels = useMemo(() => placeMonthLabels(monthStarts, dayPx, LABEL_CHAR_PX), [monthStarts, dayPx]);
 
   const scrollBy = (direction: -1 | 1) => {
     const element = scrollerRef.current;
@@ -120,13 +125,13 @@ export function TideOverview({
         >
           {width > 0 && (
             <svg width={width} height={height} onClick={(event) => pick(event.clientX)} role="presentation">
-              {monthStarts.map(({ index, label }) => (
-                <g key={index}>
-                  <line x1={index * dayPx} x2={index * dayPx} y1={top - 6} y2={height - bottom} stroke="var(--color-hairline)" />
-                  <text x={index * dayPx + 4} y={height - 8} className="fill-text-muted font-mono text-[11px]">
-                    {label}
-                  </text>
-                </g>
+              {monthStarts.map(({ index }) => (
+                <line key={index} x1={index * dayPx} x2={index * dayPx} y1={top - 6} y2={height - bottom} stroke="var(--color-hairline)" />
+              ))}
+              {monthLabels.map(({ index, label }) => (
+                <text key={`l${index}`} x={index * dayPx + 4} y={height - 6} className="fill-text-muted font-mono text-caption">
+                  {label}
+                </text>
               ))}
               {days.map((d, index) => {
                 const x = index * dayPx + dayPx / 2;
@@ -156,10 +161,11 @@ export function TideOverview({
                     strokeDasharray="4 3"
                   />
                   <text
-                    x={todayIndex * dayPx + dayPx / 2}
-                    y={top - 10}
+                    // Kept fully inside the drawing so "TODAY" is never clipped at either end.
+                    x={Math.min(width - 30, Math.max(30, todayIndex * dayPx + dayPx / 2))}
+                    y={top - 8}
                     textAnchor="middle"
-                    className="fill-text-primary font-mono text-[11px] font-semibold tracking-chart-pill"
+                    className="fill-text-primary font-mono text-caption font-semibold tracking-chart-pill"
                   >
                     TODAY
                   </text>
@@ -178,9 +184,9 @@ export function TideOverview({
 
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
-/** "Oct" or, in January, "Jan 27" so the year boundary is never ambiguous. */
+/** "Oct" or, in January, "Jan '27" so the year boundary is never ambiguous. */
 function monthLabel(day: string): string {
   const [year, month] = day.split("-");
   const name = MONTHS[Number(month) - 1] ?? month;
-  return month === "01" ? `${name} ${year.slice(2)}` : name;
+  return month === "01" ? `${name} '${year.slice(2)}` : name;
 }

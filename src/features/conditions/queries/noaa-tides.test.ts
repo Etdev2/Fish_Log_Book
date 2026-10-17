@@ -95,8 +95,9 @@ describe("the default fetch window", () => {
     const w = windowAround(now);
     const days = (ms: number) => ms / (24 * 60 * 60 * 1000);
     expect(days(now - w.turnsFromMs)).toBe(365);
-    expect(days(w.turnsToMs - now)).toBe(365);
-    expect(days(now - w.fromMs)).toBe(2);
+    // +7 d overlap keeps a week-old cache a full year ahead of the current day.
+    expect(days(w.turnsToMs - now)).toBe(372);
+    expect(days(now - w.fromMs)).toBe(3);
     expect(days(w.toMs - now)).toBe(7);
   });
 });

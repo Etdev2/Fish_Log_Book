@@ -226,3 +226,17 @@ export async function fetchTideSeries(
     retrievedAt: instant(Date.now()),
   });
 }
+
+/**
+ * Hourly predictions for one window (FL-1, Codex P1 on c2fc171): a week the angler jumped
+ * to outside the near window. Without these the detailed chart would draw — and read out
+ * heights, rates and slack from — a curve interpolated between turns, not NOAA's numbers.
+ */
+export async function fetchHourlySamples(
+  stationId: string,
+  fromMs: number,
+  toMs: number,
+  signal?: AbortSignal,
+): Promise<TidePredictionSample[]> {
+  return samplesFrom(await getChunked(stationId, "h", { fromMs, toMs }, signal));
+}

@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 
-import type { TidePredictionSeries } from "@/core/rules/tide";
+import { tideSeries, type TidePredictionSeries } from "@/core/rules/tide";
 
 import { useTideStationPreference } from "../station-preference";
 import { DEFAULT_STATION_ID, stationById, type TideStation } from "../stations";
@@ -46,8 +46,15 @@ export const TURNS_AHEAD_DAYS = 365;
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 /** The hourly curve covers this much before and after now. */
-export const HOURLY_BACK_MS = 2 * DAY_MS;
+// 3 d back so the default week view (2 d before today's station noon) is fully hourly.
+export const HOURLY_BACK_MS = 3 * DAY_MS;
 export const HOURLY_AHEAD_MS = 7 * DAY_MS;
+
+/**
+ * Extra turns fetched past +365 d so a cache stays a full year ahead of the current day for
+ * its whole freshness lifetime (Codex P2 on c2fc171, #163). The screen trims to today ±365.
+ */
+export const TURNS_OVERLAP_MS = CACHE_FRESH_MS;
 
 /**
  * Hourly detail for the near week; high/low turns a year back and a year out, in ONE hilo
@@ -59,24 +66,61 @@ export function windowAround(nowMs: number) {
     fromMs: nowMs - HOURLY_BACK_MS,
     toMs: nowMs + HOURLY_AHEAD_MS,
     turnsFromMs: nowMs - TURNS_BACK_DAYS * DAY_MS,
-    turnsToMs: nowMs + TURNS_AHEAD_DAYS * DAY_MS,
+    turnsToMs: nowMs + TURNS_AHEAD_DAYS * DAY_MS + TURNS_OVERLAP_MS,
   };
 }
 
 /** The cached hourly curve must still reach this far past now to count as fresh. */
 const HOURLY_MARGIN_MS = 2 * DAY_MS;
 
+/** Turns are ~6 h apart; an end within this of the target still counts as reaching it. */
+const TURN_EDGE_SLACK_MS = DAY_MS;
+
+function extents(series: TidePredictionSeries) {
+  let lastHourly = Number.NEGATIVE_INFINITY;
+  let firstTurn = Number.POSITIVE_INFINITY;
+  let lastTurn = Number.NEGATIVE_INFINITY;
+  for (const sample of series.samples) {
+    const at = Number(sample.at);
+    if (sample.turn === null) lastHourly = Math.max(lastHourly, at);
+    else {
+      firstTurn = Math.min(firstTurn, at);
+      lastTurn = Math.max(lastTurn, at);
+    }
+  }
+  return { lastHourly, firstTurn, lastTurn };
+}
+
 /**
- * Fresh means: young enough, AND the hourly curve still reaches past now. The turns
- * outlast a week easily; the hourly near window does not, because it moves with the clock.
+ * Fresh means: young enough, the hourly curve still reaches past now, AND the turns still
+ * cover today ±365 d measured from the CURRENT day, not the day the cache was written
+ * (Codex P2 on c2fc171; overlaps #163). Otherwise the advertised range silently shrinks.
  */
 export function isCacheFresh(series: TidePredictionSeries, nowMs: number): boolean {
   if (ageOf(series, nowMs) >= CACHE_FRESH_MS) return false;
-  let lastHourly = Number.NEGATIVE_INFINITY;
-  for (const sample of series.samples) {
-    if (sample.turn === null) lastHourly = Math.max(lastHourly, Number(sample.at));
-  }
-  return lastHourly >= nowMs + HOURLY_MARGIN_MS;
+  const { lastHourly, firstTurn, lastTurn } = extents(series);
+  if (lastHourly < nowMs + HOURLY_MARGIN_MS) return false;
+  if (firstTurn > nowMs - TURNS_BACK_DAYS * DAY_MS + TURN_EDGE_SLACK_MS) return false;
+  return lastTurn >= nowMs + TURNS_AHEAD_DAYS * DAY_MS - TURN_EDGE_SLACK_MS;
+}
+
+/**
+ * Whether a cached series still describes today at all (#163). An offline fallback that
+ * does not reach now is old data, not a stale reading of today, so it is dropped.
+ */
+export function cacheCoversNow(series: TidePredictionSeries, nowMs: number): boolean {
+  const first = Number(series.samples[0]?.at ?? Number.POSITIVE_INFINITY);
+  const last = Number(series.samples.at(-1)?.at ?? Number.NEGATIVE_INFINITY);
+  return first <= nowMs && last >= nowMs;
+}
+
+/** Trim to today ±365 d so the picker, overview and range label never advertise more. */
+export function trimToRange(series: TidePredictionSeries, nowMs: number): TidePredictionSeries {
+  const from = nowMs - TURNS_BACK_DAYS * DAY_MS;
+  const to = nowMs + TURNS_AHEAD_DAYS * DAY_MS;
+  const samples = series.samples.filter((s) => Number(s.at) >= from && Number(s.at) <= to);
+  if (samples.length === series.samples.length || samples.length === 0) return series;
+  return tideSeries({ station: series.station, samples, provider: series.provider, retrievedAt: series.retrievedAt });
 }
 
 function ageOf(series: TidePredictionSeries, nowMs: number): number {
@@ -99,20 +143,22 @@ async function resolveSeries(
   const cached = readTideCache(station.id);
 
   if (cached !== null && isCacheFresh(cached, now)) {
-    return { stationId: station.id, series: cached, source: "cache", stale: false, error: null };
+    return { stationId: station.id, series: trimToRange(cached, now), source: "cache", stale: false, error: null };
   }
 
   try {
     const series = await fetchTideSeries(station, windowAround(now), signal);
     writeTideCache(series);
-    return { stationId: station.id, series, source: "live", stale: false, error: null };
+    return { stationId: station.id, series: trimToRange(series, now), source: "live", stale: false, error: null };
   } catch (cause) {
     const error = cause instanceof Error ? cause.message : "Could not reach NOAA";
 
     // Offline in the marina is the normal case, not an exception: an old cache still
     // beats an empty chart, as long as the badge admits how old it is.
-    if (cached !== null) {
-      return { stationId: station.id, series: cached, source: "cache", stale: true, error };
+    // ...but only while it still reaches today (#163): a cache that ends before now is
+    // yesterday's chart, and drawing it would read as today's tide.
+    if (cached !== null && cacheCoversNow(cached, now)) {
+      return { stationId: station.id, series: trimToRange(cached, now), source: "cache", stale: true, error };
     }
     if (station.id === DEFAULT_STATION_ID) {
       return {
