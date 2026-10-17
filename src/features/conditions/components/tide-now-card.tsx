@@ -54,8 +54,15 @@ export function TideNowCard() {
     headline = "No tide predictions for this station";
     fallback = "Open the tide chart to pick another station.";
   } else {
-    headline = "The saved predictions don't cover today";
-    fallback = "Open the tide chart when you have signal to refresh them.";
+    // Name the data by where it came from, so this line never contradicts the source
+    // label below it (Codex review, PR #165).
+    headline =
+      tide.source === "fixture"
+        ? "The bundled sample doesn't cover today"
+        : tide.source === "cache"
+          ? "The saved predictions don't cover today"
+          : "The predictions don't cover today";
+    fallback = "Open the tide chart when you have signal to load live predictions.";
   }
 
   return (
