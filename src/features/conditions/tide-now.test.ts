@@ -48,6 +48,15 @@ describe("tideNowCopy", () => {
     expect(copyAt(BASE + 6 * HOUR + 5 * 60 * 1000).headline).toMatch(/^(Slack|Nearly slack) at high tide$/);
   });
 
+  it("names the turn itself when now is exactly on it (Codex review, PR #165)", () => {
+    // The turn lookups exclude a turn at the reading time, so both neighbours are lows.
+    const atHigh = copyAt(BASE + 6 * HOUR);
+    expect(atHigh.headline).toMatch(/^(Slack|Nearly slack) at high tide$/);
+    expect(atHigh.staffLevel).toBe(1);
+    expect(copyAt(BASE + 12 * HOUR).headline).toMatch(/^(Slack|Nearly slack) at low tide$/);
+    expect(copyAt(BASE + 12 * HOUR).staffLevel).toBe(0);
+  });
+
   it("fills the staff from low to high between the bounding turns", () => {
     expect(copyAt(BASE + 3 * HOUR).staffLevel).toBeCloseTo(0.5, 1);
     expect(copyAt(BASE + 5 * HOUR).staffLevel).toBeGreaterThan(0.85);

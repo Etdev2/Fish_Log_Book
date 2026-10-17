@@ -23,7 +23,25 @@ export interface TideNowFormat {
 
 const KIND_WORD: Record<TideTurn["kind"], string> = { high: "high", low: "low" };
 
+const OTHER_KIND: Record<TideTurn["kind"], TideTurn["kind"]> = { high: "low", low: "high" };
+
+/**
+ * The kind of turn sitting exactly at the reading time, if any. The turn lookups exclude a
+ * turn at that instant, and highs and lows alternate, so two neighbours of the same kind
+ * mean the turn between them is now (Codex review, PR #165).
+ */
+function kindAtReading(reading: TideReading): TideTurn["kind"] | null {
+  const { previousTurn: prev, nextTurn: next } = reading;
+  return prev !== null && next !== null && prev.kind === next.kind ? OTHER_KIND[prev.kind] : null;
+}
+
 /** The turn the slack belongs to: whichever bounding turn is closer to now. */
+function nearerKind(reading: TideReading, nowMs: number): TideTurn["kind"] | null {
+  const exact = kindAtReading(reading);
+  if (exact !== null) return exact;
+  return nearerTurn(reading, nowMs)?.kind ?? null;
+}
+
 function nearerTurn(reading: TideReading, nowMs: number): TideTurn | null {
   const { previousTurn: prev, nextTurn: next } = reading;
   if (prev === null) return next;
@@ -44,15 +62,17 @@ export function tideNowCopy(reading: TideReading, nowMs: number, format: TideNow
     headline =
       next === null ? verb : `${verb} toward ${KIND_WORD[next.kind]} tide at ${format.clock(Number(next.at))}`;
   } else {
-    const turn = nearerTurn(reading, nowMs);
+    const kind = nearerKind(reading, nowMs);
     const slack = reading.motion === "slack" ? "Slack" : "Nearly slack";
-    headline = turn === null ? `${slack} water` : `${slack} at ${KIND_WORD[turn.kind]} tide`;
+    headline = kind === null ? `${slack} water` : `${slack} at ${KIND_WORD[kind]} tide`;
   }
 
   return { headline, upcoming, staffLevel: staffLevel(reading) };
 }
 
 function staffLevel(reading: TideReading): number | null {
+  const exact = kindAtReading(reading);
+  if (exact !== null) return exact === "high" ? 1 : 0;
   const { previousTurn: prev, nextTurn: next } = reading;
   if (prev === null || next === null) return null;
   const low = Math.min(Number(prev.height), Number(next.height));
