@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 
 import { MonthCalendar } from "@/features/calendar/components/month-calendar";
+import { TideNowCard } from "@/features/conditions/components/tide-now-card";
 import { PassportHomeCard } from "@/features/passport/components/passport-home-card";
 import { PASSPORT_V1 } from "@/features/passport/flag";
 import { SetupBanner } from "@/features/setup/components/setup-banner";
@@ -30,13 +30,12 @@ export default function CalendarPage() {
         banner disappears entirely once setup is finished — see `setup-banner.tsx`.
       */}
       <SetupBanner />
+      {/*
+        The tide first, as one sentence, because it is what an angler opens the app to
+        check. It replaces the old "Open tide chart" button: the card is that link.
+      */}
+      <TideNowCard />
       <MonthCalendar />
-      <Link
-        href="/tides"
-        className="inline-flex min-h-touch-floor items-center justify-center self-start rounded-md border border-border-interactive px-4 text-label text-text-link transition-colors hover:border-tide-cyan focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-3 focus-visible:outline-focus-ring"
-      >
-        Open tide chart
-      </Link>
       {/*
         Below the calendar and the tide link on purpose: the calendar is the home surface
         (D23) and the passport is the thing you read after the fishing, not before it.
