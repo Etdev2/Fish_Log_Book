@@ -146,7 +146,7 @@ export function ShellNav() {
                   Equal grid columns give every tab the same width; the icon + caption stack
                   stays above the 48px floor (docs/design/06-accessibility-baseline.md §3).
                 */
-                className={`flex min-h-touch-floor min-w-0 flex-col items-center justify-center px-0.5 pb-0.5 pt-1 text-center text-caption font-semibold focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-0 focus-visible:outline-focus-ring ${
+                className={`flex min-h-touch-floor min-w-touch-floor flex-col items-center justify-center px-0.5 pb-0.5 pt-1 text-center text-caption font-semibold focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-0 focus-visible:outline-focus-ring ${
                   active ? "text-signal-orange" : "text-text-link"
                 }`}
               >

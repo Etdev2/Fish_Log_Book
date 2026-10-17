@@ -68,7 +68,9 @@ export function PackWizard({ pack }: { pack: TraitPack }) {
          * Founder, 2026-10-16: "a five-year-old understands it". When every answer has a
          * colour picture, the answers ARE the pictures: big cards, two to a row, the words
          * underneath. Otherwise the answers are full-width buttons, one per line, so a long
-         * label never wraps beside a short one.
+         * label never wraps beside a short one. Two-up only from the `picture-pair` width
+         * (280px): below it — a 320px phone at 200% zoom is 160px — two columns would drop
+         * each card under the 48px touch floor, so they stack one per row.
          */
         const pictures = question.options.every(
           (option) => option.figure !== undefined && isPicture(option.figure as TraitFigureKey),
@@ -76,7 +78,7 @@ export function PackWizard({ pack }: { pack: TraitPack }) {
         return (
           <section key={question.id} className="rounded-lg border border-hairline bg-surface p-4">
             <h2 className="text-h3">{question.question}</h2>
-            <div className={`mt-3 grid gap-3 ${pictures ? "grid-cols-2" : "grid-cols-1"}`}>
+            <div className={`mt-3 grid grid-cols-1 gap-3 ${pictures ? "picture-pair:grid-cols-2" : ""}`}>
               {question.options.map((option) => {
                 const on = chosen.includes(option.id);
                 if (pictures) {
