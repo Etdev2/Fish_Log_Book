@@ -155,7 +155,11 @@ export function MonthCalendar() {
                         />
                       ) : null}
                       {summary && summary.needsDetails > 0 ? (
-                        <span className="size-2 rounded-full bg-amber-flag" />
+                        /* Amber on today's orange fill is ~1.4:1 and vanishes, so on today the
+                           flag becomes a dark ring: still distinct from the solid catch dot. */
+                        <span
+                          className={`size-2 rounded-full ${cell.isToday ? "border-2 border-ink-on-orange" : "bg-amber-flag"}`}
+                        />
                       ) : null}
                     </span>
                   </button>
