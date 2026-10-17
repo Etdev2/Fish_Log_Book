@@ -24,6 +24,29 @@ ok filename client_secrets.json: reject
 ok filename CLIENT_SECRET.JSON: reject
 ok filename nested/client_secret_123.apps.googleusercontent.com.json: reject
 ok filename oauth-client-secret.yaml: reject
+ok filename secret: reject
+ok filename secrets: reject
+ok filename secrets.json: reject
+ok filename secrets.yaml: reject
+ok filename .secrets.json: reject
+ok filename nested/secrets.production.toml: reject
+ok filename passwords.json: reject
+ok filename api-keys.json: reject
+ok filename access_tokens.json: reject
+ok filename nested/refresh-token.txt: reject
+ok filename .netrc: reject
+ok filename .npmrc: reject
+ok filename .pypirc: reject
+ok filename .git-credentials: reject
+ok filename .pgpass: reject
+ok filename .docker/config.json: reject
+ok filename .aws/config: reject
+ok filename .ssh/custom-key: reject
+ok filename .config/gcloud/application_default_credentials.json: reject
+ok filename .kube/config: reject
+ok filename nested/.kube/config: reject
+ok filename nested/.KUBE/CONFIG: reject
+ok filename playwright/.auth/user.json: reject
 ok filename id_rsa: reject
 ok filename id_dsa: reject
 ok filename id_ecdsa: reject
@@ -45,7 +68,11 @@ ok filename src/credentials.ts: allow
 ok filename src/client-secret.ts: allow
 ok filename src/client_secret_utils.ts: allow
 ok filename docs/client-secret-setup.md: allow
+ok filename src/core/design/tokens.json: allow
+ok filename docs/secrets-guide.md: allow
+ok filename src/tokens.ts: allow
 ok filename docs/service-account-setup.md: allow
+ok filename .kube/config.example: allow
 All secret filename cases pass.
 ok   a bundle from the copied writer passes
 ok   evidence named by a pattern fails
@@ -57,51 +84,45 @@ All proof-tool cases behave as specified.
 [exit 0]
 
 $ npm run verify
-npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
 
 > fish-log-book@0.1.0 verify
 > npm run sp:check && npm run tokens:check && npm run tripwires && npm run migrations:check && npm run lint && tsc --noEmit && npm run test
 
-npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
 
 > fish-log-book@0.1.0 sp:check
 > bash scripts/check-pinned-scripts.sh && bash scripts/check-secret-files.sh
 
 4 copied scripts match the pinned control-room commit.
 No secret-looking files are tracked (filename check only).
-npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
 
 > fish-log-book@0.1.0 tokens:check
 > node scripts/tokens.mjs --check
 
 Wrote src/app/tokens.generated.css
-npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
 
 > fish-log-book@0.1.0 tripwires
 > node scripts/check-tripwires.mjs
 
 tripwires: clean.
-npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
 
 > fish-log-book@0.1.0 migrations:check
 > node scripts/check-migration-versions.mjs
 
 migrations: 61 unique versions.
-npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
 
 > fish-log-book@0.1.0 lint
 > eslint
 
 
-/workspace/scratch/8e6adc6858a8/fish-log-oauth/src/features/fish-legal/components/alerts-page.tsx
+/private/tmp/fish-log-kube-guard-20261016/src/features/fish-legal/components/alerts-page.tsx
   4:10  warning  'useEffect' is defined but never used   @typescript-eslint/no-unused-vars
   4:21  warning  'useState' is defined but never used    @typescript-eslint/no-unused-vars
   8:81  warning  'LegalAlert' is defined but never used  @typescript-eslint/no-unused-vars
 
-/workspace/scratch/8e6adc6858a8/fish-log-oauth/src/features/fish-legal/components/boundary-leaflet.tsx
+/private/tmp/fish-log-kube-guard-20261016/src/features/fish-legal/components/boundary-leaflet.tsx
   117:6  warning  React Hook useEffect has missing dependencies: 'areas', 'center', and 'showRca'. Either include them or remove the dependency array  react-hooks/exhaustive-deps
 
-/workspace/scratch/8e6adc6858a8/fish-log-oauth/src/features/fish-legal/reg-data-parity.test.ts
+/private/tmp/fish-log-kube-guard-20261016/src/features/fish-legal/reg-data-parity.test.ts
   16:10  warning  'MASSACHUSETTS' is defined but never used  @typescript-eslint/no-unused-vars
   17:10  warning  'RHODE_ISLAND' is defined but never used   @typescript-eslint/no-unused-vars
   18:10  warning  'NEW_YORK' is defined but never used       @typescript-eslint/no-unused-vars
@@ -109,29 +130,26 @@ npm warn Unknown env config "http-proxy". This will stop working in the next maj
 
 ✖ 8 problems (0 errors, 8 warnings)
 
-npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
 
 > fish-log-book@0.1.0 test
 > vitest run
 
 
- RUN  v4.1.11 /workspace/scratch/8e6adc6858a8/fish-log-oauth
+ RUN  v4.1.11 /private/tmp/fish-log-kube-guard-20261016
 
 
  Test Files  97 passed (97)
       Tests  1077 passed (1077)
-   Start at  07:43:45
-   Duration  5.01s (transform 6.22s, setup 0ms, import 10.38s, tests 2.90s, environment 12ms)
+   Start at  15:49:26
+   Duration  2.19s (transform 2.80s, setup 0ms, import 4.83s, tests 1.51s, environment 6ms)
 
 [exit 0]
 
 $ npm run build
-npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
 
 > fish-log-book@0.1.0 prebuild
 > npm run tokens
 
-npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
 
 > fish-log-book@0.1.0 tokens
 > node scripts/tokens.mjs
@@ -142,18 +160,18 @@ Wrote src/app/tokens.generated.css
 > next build
 
 ▲ Next.js 16.3.3 (Turbopack)
-✓ Running next.config.ts took 20ms
+✓ Running next.config.ts took 57ms
 
   Creating an optimized production build ...
-✓ Compiled successfully in 11.9s
+✓ Compiled successfully in 797ms
   Running TypeScript ...
-  Finished TypeScript in 7.1s ...
-  Collecting page data using 8 workers ...
-  Generating static pages using 8 workers (0/52) ...
-  Generating static pages using 8 workers (13/52) 
-  Generating static pages using 8 workers (26/52) 
-  Generating static pages using 8 workers (39/52) 
-✓ Generating static pages using 8 workers (52/52) in 569ms
+  Finished TypeScript in 1283ms ...
+  Collecting page data using 9 workers ...
+  Generating static pages using 9 workers (0/52) ...
+  Generating static pages using 9 workers (13/52) 
+  Generating static pages using 9 workers (26/52) 
+  Generating static pages using 9 workers (39/52) 
+✓ Generating static pages using 9 workers (52/52) in 348ms
   Finalizing page optimization ...
 
 Route (app)

@@ -29,6 +29,12 @@ for path in .env .env.local config/.env.production .aws/credentials \
   service-account.json service_account.json firebase-service-account.json \
   client_secret client_secret.json client_secrets.json CLIENT_SECRET.JSON \
   nested/client_secret_123.apps.googleusercontent.com.json oauth-client-secret.yaml \
+  secret secrets secrets.json secrets.yaml .secrets.json nested/secrets.production.toml \
+  passwords.json api-keys.json access_tokens.json nested/refresh-token.txt \
+  .netrc .npmrc .pypirc .git-credentials .pgpass .docker/config.json \
+  .aws/config .ssh/custom-key .config/gcloud/application_default_credentials.json \
+  .kube/config nested/.kube/config nested/.KUBE/CONFIG \
+  playwright/.auth/user.json \
   id_rsa id_dsa id_ecdsa id_ed25519 id_ecdsa_sk nested/ID_ECDSA \
   signing.pem signing.KEY signing.p8 signing.p12 signing.pfx \
   $'nested/line\nbreak/service-account.json'; do
@@ -38,7 +44,8 @@ done
 for path in .env.example .env.local.example nested/.env.production.example \
   README.md scripts/check-secret-files.sh src/credentials.ts \
   src/client-secret.ts src/client_secret_utils.ts docs/client-secret-setup.md \
-  docs/service-account-setup.md; do
+  src/core/design/tokens.json docs/secrets-guide.md src/tokens.ts \
+  docs/service-account-setup.md .kube/config.example; do
   check_name "$path" allow
 done
 
