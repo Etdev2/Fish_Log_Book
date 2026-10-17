@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 
 import { activeRodSetups, repeatSeedFrom } from "@/core/rules/catch/rules";
@@ -87,6 +87,12 @@ export function FishLog({ unitSystem }: { unitSystem: UnitSystem }) {
         backfillDateKey: add,
       };
     }
+    // Home → the big "Log a catch" button lands here with `?new=1` (founder, 2026-10-16).
+    // It opens the same fresh sheet as "+ Log catch"; the GPS request starts in the effect
+    // below, because the geolocation API cannot be touched during render.
+    if (searchParams.get("new") === "1") {
+      return { key: "fresh-from-home", seed: null, note: null, title: "Log a catch" };
+    }
     return null;
   });
   const [openCatchId, setOpenCatchId] = useState<string | null>(null);
@@ -96,6 +102,13 @@ export function FishLog({ unitSystem }: { unitSystem: UnitSystem }) {
   // never awaited (see `startPositionRequest`). A fix that arrives after the save is
   // patched on afterwards. A ref, not state: it must not cause a render.
   const positionRequest = useRef<PositionRequest | null>(null);
+  const openedFromHome = searchParams.get("new") === "1";
+  useEffect(() => {
+    // A ref write, not state: no extra render. Only for the sheet Home opened.
+    if (openedFromHome && positionRequest.current === null) {
+      positionRequest.current = startPositionRequest();
+    }
+  }, [openedFromHome]);
 
   /*
    * Calendar → day → an unresolved mark lands here with `?resolve=<id>`.

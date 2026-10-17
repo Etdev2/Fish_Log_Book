@@ -39,7 +39,7 @@ export function DayView({ dateKey }: { dateKey: string }) {
 
   return (
     <div className="flex flex-col gap-4">
-      <BackLink href="/" label="Calendar" />
+      <BackLink href="/calendar" label="Calendar" />
 
       <section className="rounded-lg border border-hairline bg-surface p-4">
         <h1 className="text-h1">{heading}</h1>
