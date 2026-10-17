@@ -55,7 +55,7 @@ export function TideNowCard() {
     fallback = "Open the tide chart to pick another station.";
   } else {
     // Name the data by where it came from, so this line never contradicts the source
-    // label below it (Codex review, PR #165).
+    // label below it (Codex review on pull request 165).
     headline =
       tide.source === "fixture"
         ? "The bundled sample doesn't cover today"
