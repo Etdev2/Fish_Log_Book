@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { popularSpecies, popularSpeciesIds, regionById, REGIONS } from "./regions";
-import { speciesById } from "./species";
+import { searchSpecies, speciesById } from "./species";
 
 /*
  * ADR 007 §4: regions are picker defaults, never a filter. These tests pin the two
@@ -20,6 +20,27 @@ describe("fishing regions", () => {
   it("SoCal keeps the exact list the picker historically led with", () => {
     expect(popularSpeciesIds("southern_california")).toContain("kelp_bass");
     expect(popularSpeciesIds("southern_california")).toContain("bluefin_tuna");
+  });
+
+  it("offers offshore catches in both SoCal picker defaults", () => {
+    const offshore = [
+      "yellowtail", "bluefin_tuna", "yellowfin_tuna", "albacore_tuna",
+      "bigeye_tuna", "skipjack_tuna", "dorado", "wahoo", "striped_marlin", "swordfish",
+    ];
+    for (const region of ["southern_california", "ca_gma_southern"] as const) {
+      expect(popularSpecies(region).map((species) => species.id)).toEqual(expect.arrayContaining(offshore));
+    }
+  });
+
+  it("finds offshore fish by their common logging names", () => {
+    expect(searchSpecies("tuna").map((species) => species.id)).toEqual(expect.arrayContaining([
+      "bluefin_tuna", "yellowfin_tuna", "albacore_tuna", "bigeye_tuna", "skipjack_tuna",
+    ]));
+    for (const query of ["mahi", "mahi-mahi", "dolphinfish"]) {
+      expect(searchSpecies(query).map((species) => species.id)).toContain("dorado");
+    }
+    expect(searchSpecies("longfin tuna").map((species) => species.id)).toContain("albacore_tuna");
+    expect(searchSpecies("mahi", "fresh")).toEqual([]);
   });
 
   it("freshwater regions surface freshwater species", () => {

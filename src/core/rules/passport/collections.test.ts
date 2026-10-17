@@ -16,6 +16,12 @@ describe("collection definitions", () => {
     expect(validateCollections()).toEqual([]);
   });
 
+  it("includes albacore in the tuna and pelagic collections", () => {
+    for (const id of ["tuna", "pelagic"]) {
+      expect(collectionById(id)?.species.map((entry) => entry.speciesId)).toContain("albacore_tuna");
+    }
+  });
+
   it("ships something to collect", () => {
     expect(COLLECTIONS.length).toBeGreaterThan(0);
     for (const collection of COLLECTIONS) {

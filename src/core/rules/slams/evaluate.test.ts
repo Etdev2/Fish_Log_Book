@@ -80,6 +80,17 @@ describe("slam evaluation", () => {
     });
   }
 
+  it("counts albacore in the offshore tuna slot", () => {
+    const vector = vectors.cases.find((entry) => entry.expect.achieved && entry.catches.some((fish) => fish.species === "bluefin_tuna"))!;
+    const catches = vector.catches.map((fish) => expand({
+      ...fish,
+      species: fish.species === "bluefin_tuna" ? "albacore_tuna" : fish.species,
+    }));
+    const standing = evaluateSlam(slamById(vector.slam)!, catches);
+    expect(standing.achieved).toBe(vector.expect.achieved);
+    expect(standing.closest?.have ?? null).toBe(vector.expect.closestHave);
+  });
+
   it("does not care what order the catches arrive in", () => {
     const vector = vectors.cases[0];
     const definition = slamById(vector.slam)!;

@@ -72,6 +72,7 @@ export const SPECIES: readonly Species[] = [
   { id: "bluefin_tuna", commonName: "Bluefin tuna", scientificName: "Thunnus orientalis", isGroup: false, rollsUpTo: null, waterClass: "salt", takeStatus: "regulated", sortOrder: 306 },
   { id: "yellowfin_tuna", commonName: "Yellowfin tuna", scientificName: "Thunnus albacares", isGroup: false, rollsUpTo: null, waterClass: "salt", takeStatus: "regulated", sortOrder: 307 },
   { id: "dorado", commonName: "Dorado", scientificName: "Coryphaena hippurus", isGroup: false, rollsUpTo: null, waterClass: "salt", takeStatus: "open", sortOrder: 308 },
+  { id: "albacore_tuna", commonName: "Albacore tuna", scientificName: "Thunnus alalunga", isGroup: false, rollsUpTo: null, waterClass: "salt", takeStatus: "regulated", sortOrder: 310 },
   { id: "thresher_shark", commonName: "Thresher shark", scientificName: "Alopias vulpinus", isGroup: false, rollsUpTo: null, waterClass: "salt", takeStatus: "regulated", sortOrder: 309 },
 
   /* Regional expansion (ADR 007, founder requirements 2026-09-01 §4/§5). The list stays
@@ -237,6 +238,11 @@ export const SPECIES: readonly Species[] = [
   { id: "rainbow_smelt", commonName: "Rainbow smelt", scientificName: "Osmerus mordax", isGroup: false, rollsUpTo: null, waterClass: "salt", takeStatus: "regulated", sortOrder: 680 },
 ];
 
+const SEARCH_ALIASES: Readonly<Record<string, string>> = {
+  dorado: "mahi mahi-mahi dolphinfish",
+  albacore_tuna: "longfin longfinned tuna",
+};
+
 const BY_ID = new Map(SPECIES.map((s) => [s.id, s]));
 
 export function speciesById(id: string | null): Species | null {
@@ -261,7 +267,7 @@ export function searchSpecies(
   return SPECIES.filter((species) => {
     if (waterClass !== null && species.waterClass !== waterClass) return false;
     if (tokens.length === 0) return true;
-    const text = `${species.commonName} ${species.scientificName ?? ""}`.toLowerCase();
+    const text = `${species.commonName} ${species.scientificName ?? ""} ${SEARCH_ALIASES[species.id] ?? ""}`.toLowerCase();
     return tokens.every((token) => text.includes(token));
   }).slice().sort((a, b) => a.sortOrder - b.sortOrder);
 }

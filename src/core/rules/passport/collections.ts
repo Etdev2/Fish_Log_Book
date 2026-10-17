@@ -96,12 +96,12 @@ const GROUPER = [
 ];
 const MARLIN = ["blue_marlin", "black_marlin", "striped_marlin", "white_marlin"];
 const PELAGIC = [
-  "bluefin_tuna", "yellowfin_tuna", "bigeye_tuna", "skipjack_tuna", "false_albacore",
+  "bluefin_tuna", "yellowfin_tuna", "bigeye_tuna", "skipjack_tuna", "albacore_tuna", "false_albacore",
   "atlantic_bonito", "pacific_bonito", "dorado", "wahoo", "cobia",
   "blue_marlin", "black_marlin", "striped_marlin", "white_marlin", "sailfish", "swordfish",
   "king_mackerel", "spanish_mackerel", "sierra_mackerel", "yellowtail",
 ];
-const TUNA = ["bluefin_tuna", "yellowfin_tuna", "bigeye_tuna", "skipjack_tuna"];
+const TUNA = ["bluefin_tuna", "yellowfin_tuna", "bigeye_tuna", "skipjack_tuna", "albacore_tuna"];
 const SALMON_TROUT = [
   "chinook_salmon", "coho_salmon", "pink_salmon", "chum_salmon", "sockeye_salmon",
   "steelhead", "lake_trout", "brown_trout", "dolly_varden",

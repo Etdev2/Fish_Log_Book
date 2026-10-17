@@ -152,6 +152,8 @@ const BY_REGION: Record<RegionId, readonly string[]> = {
     "kelp_bass", "barred_sand_bass", "california_halibut", "barred_surfperch",
     "spotfin_croaker", "rockfish", "lingcod", "california_sheephead",
     "yellowtail", "white_seabass", "pacific_bonito", "bluefin_tuna",
+    "yellowfin_tuna", "albacore_tuna", "bigeye_tuna", "skipjack_tuna",
+    "dorado", "wahoo", "striped_marlin", "swordfish",
   ],
   southern_california: [
     "kelp_bass",
@@ -166,6 +168,14 @@ const BY_REGION: Record<RegionId, readonly string[]> = {
     "white_seabass",
     "pacific_bonito",
     "bluefin_tuna",
+    "yellowfin_tuna",
+    "albacore_tuna",
+    "bigeye_tuna",
+    "skipjack_tuna",
+    "dorado",
+    "wahoo",
+    "striped_marlin",
+    "swordfish",
   ],
   california_freshwater: [
     "largemouth_bass",

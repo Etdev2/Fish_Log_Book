@@ -20,9 +20,9 @@
 
 import type { SlamDefinition } from "./types";
 
-export const SLAM_RULE_VERSION = 1;
+export const SLAM_RULE_VERSION = 2;
 
-const TUNA = ["bluefin_tuna", "yellowfin_tuna", "bigeye_tuna", "skipjack_tuna"];
+const TUNA = ["bluefin_tuna", "yellowfin_tuna", "bigeye_tuna", "skipjack_tuna", "albacore_tuna"];
 const BILLFISH = ["blue_marlin", "black_marlin", "striped_marlin", "white_marlin", "sailfish", "swordfish"];
 const MARLIN = ["blue_marlin", "black_marlin", "striped_marlin", "white_marlin"];
 
