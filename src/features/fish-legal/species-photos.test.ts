@@ -22,4 +22,12 @@ describe("species pictures", () => {
     expect(credits).toHaveLength(1);
     expect(pictureCredits([null, null])).toEqual([]);
   });
+
+  it("credits the artist whose signature is on the drawing", () => {
+    // The widow and calico drawings are signed by other artists than the rest of the set.
+    expect(idPhoto("widow_rockfish")?.credit).toContain("C. Makeyev");
+    expect(idPhoto("calico_rockfish")?.credit).toContain("L. Sinclair");
+    expect(idPhoto("widow_rockfish")?.credit).not.toContain("Bachar");
+    expect(idPhoto("calico_rockfish")?.credit).not.toContain("Bachar");
+  });
 });
