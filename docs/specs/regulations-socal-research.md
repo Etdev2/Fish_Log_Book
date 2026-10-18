@@ -139,11 +139,22 @@ and that a later August 2025 emergency action *restored fishing depths* previous
 to protect quillback while **explicitly not reopening quillback retention**. That coheres
 with zero retention today.
 
-**Resolution: none.** Quillback ships as `zero_retention` **only if** Tier-A confirmed;
-until then it ships as `unknown`, because guessing "zero" and guessing "one" are both
-guesses and the app must not do either. This single item is the clearest argument in the
-whole research pass for the `unknown` / `zero-retention` / `no-limit` three-way
-distinction in the data model.
+**Resolution: RESOLVED 2026-10-18 — zero retention.** Tier-A confirmed against the CDFW
+primary source, [Summary of Recreational Groundfish Fishing Regulations](https://wildlife.ca.gov/fishing/ocean/regulations/groundfish-summary)
+(page "Updated June 23, 2026"; retrieved live by the coordinator on 2026-10-18, about
+10:30 AM PT):
+
+> These Rockfishes May Not Be Taken or Possessed in California - No Retention at Any
+> Time: Bronzespotted Rockfish, Cowcod, Quillback Rockfish, and Yelloweye Rockfish
+> (CCR T14, §28.55). Fishing is closed year-round, at all depths, no retention at any
+> time (zero fish per person).
+
+Corroborated by the [2026 Central Management Area summary (PDF)](https://nrm.dfg.ca.gov/FileHandler.ashx?DocumentID=234713&inline=)
+(updated Jan 1, 2026), which carries the same §28.55 line. The "1-fish sub-bag" reading
+above was the stale pre-2023 rule. Quillback now ships as `zero_retention` in every
+California area (species vocabulary `protected`; species-level `prohibited` rows in the
+Southern and Northern packs). The three-way `unknown` / `zero-retention` / `no-limit`
+distinction in the data model stays: it is what kept this item from being guessed.
 
 ### 4.3 Depth constraints and season
 
@@ -401,7 +412,7 @@ and it is "you may not keep this"). The app must render all three differently �
 
 | Item | Class | Detail |
 |---|---|---|
-| Quillback rockfish retention | UNKNOWN (candidate ZERO RETENTION) | Two official-attributed summaries directly conflict, §4.2. Ships `unknown` until resolved. |
+| Quillback rockfish retention | RESOLVED — ZERO RETENTION | Confirmed 2026-10-18 against the CDFW Groundfish Summary (updated 2026-06-23), CCR T14 §28.55; see §4.2. |
 | Southern Management Area depth constraint | UNKNOWN | Three irreconcilable Tier-B fragments, §4.3. |
 | Southern Management Area 2026 season windows | UNKNOWN | Same. |
 | Canary rockfish 2-fish sub-limit | UNKNOWN | Reported Tier B, but the accompanying third-party claim ("previously prohibited") contradicts my prior understanding, which means one of the two is wrong and I cannot tell which. |

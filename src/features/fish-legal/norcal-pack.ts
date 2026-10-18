@@ -177,8 +177,19 @@ export const NC_RULES: readonly RegRule[] = [
     minSizeIn: null, maxSizeIn: null, sizeMeasure: null, platformScope: null, depthNote: null,
     checkInseason: false, staleAfterDays: 60,
   }),
+  // Species-level twin of the advisory row above: the engine only lets a species' OWN
+  // prohibited row release it, so the quartet's quillback member needs this one.
   rule({
-    id: "nc-lingcod-bag", speciesId: "lingcod", regAreaId: "ca-ocean-northern", kind: "bag_limit",
+    id: "nc-zero-quillback_rockfish", speciesId: "quillback_rockfish", regAreaId: "ca-ocean-northern", kind: "prohibited",
+    verbatim:
+      "These Rockfishes May Not Be Taken or Possessed in California - No Retention at Any Time: Bronzespotted Rockfish, Cowcod, Quillback Rockfish, and Yelloweye Rockfish (CCR T14, §28.55). Fishing is closed year-round, at all depths, no retention at any time (zero fish per person).",
+    sourceUrl: SRC_GMA, sourceTitle: GMA_T, sourceUpdatedAt: "2026-06-23", verifiedAt: "2026-10-18",
+    seasonStart: null, seasonEnd: null, bagDaily: 0, possessionLimit: 0, bagSharesWithGroup: false,
+    minSizeIn: null, maxSizeIn: null, sizeMeasure: null, platformScope: null, depthNote: null,
+    checkInseason: false, staleAfterDays: 60,
+  }),
+  rule({
+    id: "nc-lingcod-bag",speciesId: "lingcod", regAreaId: "ca-ocean-northern", kind: "bag_limit",
     verbatim: "Lingcod (§28.27): 2 fish per person; minimum size 22 inches total length.",
     sourceUrl: N.url, sourceTitle: N.title, sourceUpdatedAt: N.updated, verifiedAt: VERIFIED,
     seasonStart: null, seasonEnd: null, bagDaily: 2, possessionLimit: 2, bagSharesWithGroup: false,
