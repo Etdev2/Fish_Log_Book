@@ -44,8 +44,9 @@ code.
   photo, say so plainly ("Photo coming — compare with the CDFW guide") and never borrow a
   look-alike.
 - **No invented boundaries.** Boundary coordinates come from the official source (CDFW
-  MPA datasets ds3207/ds582, 50 CFR 660 subpart G waypoints for RCA lines and the Cowcod
-  Conservation Areas) with source, retrieval date and simplification tolerance recorded
+  MPA datasets ds3207/ds582, 50 CFR §660.72(a) (Subpart C) waypoints for the 50-fm RCA
+  line, and 50 CFR §660.70(t) for the current recreational closed areas, which replaced
+  the recreational Cowcod Conservation Areas in 2024) with source, retrieval date and simplification tolerance recorded
   in `RuleProvenance` (ADR 007 §3). If you cannot download a source, leave the existing
   labelled-simplified geometry in place and report the blocked host.
 - **ADR 007 forbids a map tile layer without a superseding ADR.** Write that ADR first.
@@ -114,7 +115,8 @@ blocked.
 ### E. Real chart and official boundaries (network and an accepted ADR needed)
 
 - Superseding ADR (next number in `docs/architecture/decisions/`) covering basemap source
-  (NOAA ENC-derived chart display is the Navionics-grade public option), licensing,
+  (NOAA's ENC-derived chart display is the best public option; NOAA marks it "not for
+  navigation", so the app must not claim to equal Navionics or a certified chart), licensing,
   offline behaviour, attribution, and how the basemap is kept from contradicting the
   boundary geometry.
 - Replace the simplified boundary geometry with official geometry, simplified with a
