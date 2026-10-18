@@ -85,6 +85,7 @@ const PARITY: ReadonlyArray<{ policy: string; capability: keyof HostCapabilities
   { policy: "payout_instruction_finance_read", capability: "readMoney" },
   { policy: "payout_finance_read", capability: "readMoney" },
   { policy: "payout_event_finance_read", capability: "readMoney" },
+  { policy: "organizer_payment_account_admin_read", capability: "readMoney" },
   // Raw money writes belong only to event administrators. FINANCE approval goes
   // through approve_tournament_payout, never an unrestricted table-write policy.
   { policy: "tournament_order_owner_write", capability: "changeEventSettings" },

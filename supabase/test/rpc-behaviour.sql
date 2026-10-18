@@ -935,6 +935,53 @@ begin
   reset role;
   perform pg_temp.check('unallocated partial refunds across events fail rather than guess', denied);
 
+  -- An order filed under one event whose every line belongs to another is a disagreement,
+  -- not a transfer: neither event's ledger may silently absorb or drop it.
+  denied := false;
+  begin
+    insert into public.tournament_order (id, organization_id, tournament_id, purchaser_angler_id,
+      currency, subtotal_minor, total_minor, status, idempotency_key)
+    values ('eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee', '33333333-3333-3333-3333-333333333333',
+      '55555555-5555-5555-5555-555555555555', '11111111-1111-1111-1111-111111111111',
+      'USD', 700, 700, 'PAID', 'header-line-mismatch-a');
+    insert into public.tournament_order_item (order_id, item_type, reference_id, description, quantity, unit_amount_minor, total_amount_minor)
+    values ('eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee', 'TOURNAMENT_ENTRY', '66666666-6666-6666-6666-666666666666', 'Entry', 1, 700, 700);
+    set local role authenticated;
+    set local request.jwt.claim.sub = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa';
+    perform * from public.tournament_money_totals('55555555-5555-5555-5555-555555555555');
+  exception when invalid_parameter_value then denied := true; end;
+  reset role;
+  perform pg_temp.check('an order whose lines all belong to another event fails on its header event', denied);
+
+  denied := false;
+  begin
+    insert into public.tournament_order (id, organization_id, tournament_id, purchaser_angler_id,
+      currency, subtotal_minor, total_minor, status, idempotency_key)
+    values ('eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee', '33333333-3333-3333-3333-333333333333',
+      '55555555-5555-5555-5555-555555555555', '11111111-1111-1111-1111-111111111111',
+      'USD', 700, 700, 'PAID', 'header-line-mismatch-b');
+    insert into public.tournament_order_item (order_id, item_type, reference_id, description, quantity, unit_amount_minor, total_amount_minor)
+    values ('eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee', 'TOURNAMENT_ENTRY', '66666666-6666-6666-6666-666666666666', 'Entry', 1, 700, 700);
+    set local role authenticated;
+    set local request.jwt.claim.sub = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa';
+    perform * from public.tournament_money_totals('66666666-6666-6666-6666-666666666666');
+  exception when invalid_parameter_value then denied := true; end;
+  reset role;
+  perform pg_temp.check('the same order fails on the event its lines name', denied);
+
+  -- ADR 011: FINANCE reads every money table, including whether the club's provider
+  -- account can take charges and pay out. Dock staff read none of it.
+  insert into public.organizer_payment_account (organization_id, provider_account_id, payouts_enabled)
+  values ('33333333-3333-3333-3333-333333333333', 'acct_fixture_treasurer', true);
+  set local role authenticated;
+  set local request.jwt.claim.sub = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa';
+  select count(*) into n from public.organizer_payment_account where provider_account_id = 'acct_fixture_treasurer';
+  perform pg_temp.check('treasurer can read the club payment account state', n = 1);
+  set local request.jwt.claim.sub = 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb';
+  select count(*) into n from public.organizer_payment_account where provider_account_id = 'acct_fixture_treasurer';
+  perform pg_temp.check('dock staff cannot read the club payment account state', n = 0);
+  reset role;
+
   perform pg_temp.check('anonymous callers cannot execute ledger totals',
     not has_function_privilege('anon', 'public.tournament_money_totals(uuid)', 'EXECUTE'));
 end $$;

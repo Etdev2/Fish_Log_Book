@@ -430,6 +430,12 @@ for select to authenticated using (exists (
   where cp.id = crypto_payment_id and (o.purchaser_angler_id = auth.uid() or public.is_organization_member(o.organization_id, array['OWNER','ADMIN','FINANCE']))
 ));
 
+-- Whether the club's provider account can take charges and pay out is money state too
+-- (ADR 011), so the treasurer reads it alongside the owner and admins.
+drop policy if exists organizer_payment_account_admin_read on public.organizer_payment_account;
+create policy organizer_payment_account_admin_read on public.organizer_payment_account
+for select to authenticated using (public.is_organization_member(organization_id, array['OWNER','ADMIN','FINANCE']));
+
 -- One statement snapshot of every order and confirmed refund, with no REST row limit.
 -- SECURITY INVOKER retains the underlying table grants and RLS. Integer results cross
 -- the JSON boundary as text, so the client can reject overflow before any rounding.
@@ -455,8 +461,13 @@ begin
         or (i.item_type in ('JACKPOT','SIDE_POT') and d.tournament_id = target_tournament_id)
         then i.total_amount_minor else 0 end) as event_total,
       bool_or(case when i.item_type in ('TEAM_ENTRY','TOURNAMENT_ENTRY') then t.id is null
-        when i.item_type in ('JACKPOT','SIDE_POT') then d.id is null else true end) as unmapped
+        when i.item_type in ('JACKPOT','SIDE_POT') then d.id is null else true end) as unmapped,
+      -- An order must carry at least one line for the event in its own header. Without one,
+      -- the header and lines disagree, and the money would land on whichever event asks.
+      bool_or((i.item_type in ('TEAM_ENTRY','TOURNAMENT_ENTRY') and t.id = o.tournament_id)
+        or (i.item_type in ('JACKPOT','SIDE_POT') and d.tournament_id = o.tournament_id)) as header_mapped
     from public.tournament_order_item i
+    join public.tournament_order o on o.id = i.order_id
     left join public.tournament t on i.item_type in ('TEAM_ENTRY','TOURNAMENT_ENTRY') and t.id = i.reference_id
     left join public.tournament_division d on i.item_type in ('JACKPOT','SIDE_POT') and d.id = i.reference_id
     group by i.order_id
@@ -467,7 +478,8 @@ begin
   ), ledger as (
     select o.currency, o.total_minor, o.status, coalesce(r.amount, 0) as refunded,
       case when li.order_id is null then o.total_minor else li.event_total end as event_minor,
-      coalesce(li.unmapped or li.line_total <> o.total_minor, false) as unmapped
+      coalesce(li.unmapped or li.line_total <> o.total_minor
+        or (o.tournament_id is not null and not li.header_mapped), false) as unmapped
     from public.tournament_order o left join refunds r on r.order_id = o.id
     left join lines li on li.order_id = o.id
     where o.tournament_id = target_tournament_id or li.event_total > 0
