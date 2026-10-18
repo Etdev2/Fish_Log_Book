@@ -105,10 +105,15 @@
   letter-spacing: -0.01em;
 }
 
+/* UI-1 #9: wrap a long station name to two lines instead of "Newport Bay Entran…". */
 .tide-station-button > span {
+  display: -webkit-box;
   overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  text-align: left;
+  white-space: normal;
 }
 
 .tide-moon-button {
@@ -365,7 +370,13 @@
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  min-height: calc(var(--tide-readout-line) * 1.3);
+  /* UI-1 #4: now a real <button>, so it gets the 48 px floor and a plain look. */
+  min-height: 48px;
+  padding: 0;
+  border: 0;
+  background: none;
+  font-family: inherit;
+  cursor: pointer;
   color: var(--color-text-link);
   font-size: 16px;
   font-weight: 600;
@@ -434,7 +445,7 @@
 
 .tide-station-button:focus-visible,
 .tide-moon-button:focus-visible,
-.tide-readout:focus-visible,
+.tide-readout-more:focus-visible,
 .tide-date-button:focus-visible,
 .tide-step-button:focus-visible,
 .tide-now-button:focus-visible,

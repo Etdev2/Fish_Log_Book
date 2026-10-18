@@ -136,11 +136,11 @@ function TideViewWindow({
           {tideData.error !== null ? ` (${tideData.error})` : ""}.
         </p>
       ) : null}
-      <label className="mx-4 mt-3 flex items-center gap-2 text-caption text-text-muted">
+      <label className="mx-4 mt-3 flex flex-wrap items-center gap-2 text-caption text-text-muted">
         Jump to date
         <input
           type="date"
-          className="rounded border border-hairline bg-surface px-2 py-1 text-text-primary"
+          className="min-h-touch-floor rounded border border-hairline bg-surface px-3 text-text-primary"
           min={isoDay(fullStart, stationZone)}
           max={isoDay(fullEnd, stationZone)}
           value={isoDay(viewAnchor, stationZone)}
@@ -414,7 +414,11 @@ function TideChartScreen({
           and down mid-swipe. Anything added here needs a reserved slot, not a conditional
           row.
         */}
-        {/* A `role="button"` div rather than a `<button>`: the two `SourcedValue` certainty
+        {/* UI-1 #4: no longer a `role="button"` div — a button role makes its children
+            presentational, so the certainty disclosures inside were "nested-interactive"
+            (axe serious). The card stays tappable as a convenience, and the keyboard /
+            screen-reader way in is the real "Tide detail" button at the bottom.
+            Original note: a div rather than a `<button>`: the two `SourcedValue` certainty
             disclosures inside this card are native interactive `<details>/<summary>`
             elements, and interactive content nested inside a `<button>` is invalid HTML —
             the disclosure's click bubbles up and opens the sheet instead of toggling.
@@ -422,20 +426,10 @@ function TideChartScreen({
             native button would, and any activation that starts inside a `<details>` stays
             with the disclosure. */}
         <div
-          role="button"
-          tabIndex={0}
           className="tide-readout"
-          aria-haspopup="dialog"
           onClick={(event) => {
             if ((event.target as HTMLElement).closest("details")) return;
             setSheet("tide");
-          }}
-          onKeyDown={(event) => {
-            if ((event.target as HTMLElement).closest("details")) return;
-            if (event.key === "Enter" || event.key === " ") {
-              event.preventDefault();
-              setSheet("tide");
-            }
           }}
         >
           <span className="tide-readout-when">
@@ -473,6 +467,14 @@ function TideChartScreen({
             <SourcedValue
               className="tide-readout-rate"
               value={reading.rate}
+              // UI-1 #9: one "Interpolated" per card — the rate's marker only when it says
+              // something the height's doesn't. Same certainty is not enough: height is a
+              // monotone-curve interpolation and rate a centred difference, so a different
+              // basis still needs its own disclosure.
+              showMarker={
+                reading.rate.certainty !== reading.height.certainty ||
+                reading.rate.basis !== reading.height.basis
+              }
               render={(value) => <span className="tide-readout-value">{formatRate(value, unit)}</span>}
             />
           ) : (
@@ -498,9 +500,17 @@ function TideChartScreen({
               />
             )}
           </span>
-          <span className="tide-readout-more" aria-hidden="true">
+          <button
+            type="button"
+            className="tide-readout-more"
+            aria-haspopup="dialog"
+            onClick={(event) => {
+              event.stopPropagation();
+              setSheet("tide");
+            }}
+          >
             Tide detail <Chevron />
-          </span>
+          </button>
         </div>
       </header>
 

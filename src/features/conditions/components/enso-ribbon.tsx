@@ -144,9 +144,11 @@ export function EnsoRibbon({
         <span><span aria-hidden="true" style={{ color: "var(--color-tide-cyan)" }}>■</span> La Niña</span>
         <span>▨ CPC outlook (issued {OUTLOOK_ISSUED})</span>
         <span>□ no forecast</span>
-        <span>
-          Source: <a className="text-text-link" href={ONI_SOURCE_URL}>NOAA CPC ONI v5</a> ·{" "}
-          <a className="text-text-link" href={OUTLOOK_SOURCE_URL}>outlook</a>
+        {/* UI-1: 48 px source links (were 17 px inline). */}
+        <span className="flex flex-wrap items-center gap-x-3">
+          Source:
+          <a className="inline-flex min-h-touch-floor items-center text-text-link underline" href={ONI_SOURCE_URL}>NOAA CPC ONI v5</a>
+          <a className="inline-flex min-h-touch-floor items-center text-text-link underline" href={OUTLOOK_SOURCE_URL}>CPC outlook</a>
         </span>
       </figcaption>
     </figure>

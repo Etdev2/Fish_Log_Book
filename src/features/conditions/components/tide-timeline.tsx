@@ -7,7 +7,13 @@ import { heightAt, type TidePredictionSeries, type TideTurn } from "@/core/rules
 import type { DaylightSpan } from "@/core/rules/astro";
 
 import { unwrapSourced } from "./sourced-value";
-import { clusterCatchMarkers, type CatchMarkerInput } from "../catch-markers";
+import {
+  CATCH_HIT_DIAMETER_PX,
+  clusterCatchMarkers,
+  hitAreaPath,
+  type CatchMarkerInput,
+  type Point,
+} from "../catch-markers";
 import {
   DEFAULT_CHART_HEIGHT,
   MIN_CHART_HEIGHT,
@@ -32,9 +38,9 @@ const KEY_STEP_MS_FAST = 180 * 60_000;
 /** Pointer travel, in pixels, above which a press is a pan and not a tap on a marker. */
 const TAP_SLOP_PX = 6;
 /** Two turn labels closer together than this share pixels; the later one drops its text. */
-const TURN_LABEL_MIN_GAP_PX = 78;
+const TURN_LABEL_MIN_GAP_PX = 96; // UI-1 #1: sized for 16 px labels (was 78 for 13 px)
 /** Catches closer together than this read as one clustered marker with a count. */
-const CATCH_CLUSTER_MIN_GAP_PX = 32;
+const CATCH_CLUSTER_MIN_GAP_PX = CATCH_HIT_DIAMETER_PX;
 /** The most a cluster's reveal panel lists; past that it says "+N more". */
 const CATCH_REVEAL_MAX_LINES = 4;
 /**
@@ -160,6 +166,14 @@ export function TideTimeline({
     [yMinimum, yMaximum, chartHeight],
   );
 
+  // Where each marker sits on the curve, so overlapping catch and sun targets can split.
+  const pointOnCurve = (at: number): Point | null => {
+    const height = heightAt(series, instant(at));
+    return height ? { x: xForAt(at, seriesStart), y: yFor(unwrapSourced(height)) } : null;
+  };
+  const catchPoints = catchClusters.map((c) => pointOnCurve(c.at)).filter((p) => p !== null);
+  const sunPoints = sunMarkers.map((m) => pointOnCurve(m.at)).filter((p) => p !== null);
+
   // The plotted curve reads heights from the engine's monotone-cubic heightAt, not the raw
   // sample tuples. Dense uniform sampling (plus every published sample instant, so the
   // curve still passes exactly through each one) means the shape between turns follows the
@@ -259,16 +273,25 @@ export function TideTimeline({
 
   return (
     <div className="tide-timeline" ref={viewportRef}>
+      {/*
+        Description only, not live: TideChartScreen already announces `valueText` in its own
+        polite live region, and two live nodes made screen readers read every reading twice.
+      */}
+      <span id="tide-timeline-value" className="sr-only">
+        {valueText}
+      </span>
       <div
         ref={scrollerRef}
         className="tide-timeline-scroller"
         tabIndex={0}
-        role="slider"
+        // UI-1 #4: was role="slider", whose children are presentational, so the sunrise /
+        // sunset / catch buttons inside it were "nested-interactive" (axe serious) and
+        // unreachable to screen readers. A labelled group keeps the arrow keys and lets
+        // those buttons be buttons; the reading is announced by the live region below.
+        role="group"
+        aria-roledescription="tide timeline"
         aria-label="Tide timeline. Swipe sideways to move through time; the reading under the centre line updates as you go. Left and right arrows step 15 minutes."
-        aria-valuemin={0}
-        aria-valuemax={Math.round(seriesEnd - seriesStart)}
-        aria-valuenow={Math.round(selectedAt - seriesStart)}
-        aria-valuetext={valueText}
+        aria-describedby="tide-timeline-value"
         onScroll={handleScroll}
         onPointerDown={(event) => {
           if (event.pointerType !== "mouse") return;
@@ -318,7 +341,13 @@ export function TideTimeline({
           <svg
             width={chartWidth}
             height={chartHeight}
-            role="img"
+            // A catch or sunrise at the very start of the series sits 10px from the left
+            // edge; clipping would cut its 50px tap circle to about 35px. The track's
+            // inline padding leaves room for it to spill (Codex review, UI-1c).
+            overflow="visible"
+            // UI-1 #4: "group", not "img" — an img's children are presentational, which hid
+            // the sunrise/sunset/catch buttons drawn on the curve (axe nested-interactive).
+            role="group"
             aria-label={`Continuous tide prediction for ${series.station.name} across the loaded window, with labelled highs and lows, daylight and night shading, and sunrise and sunset markers on the curve.`}
           >
             <defs>
@@ -363,12 +392,12 @@ export function TideTimeline({
             {dayBoundaries.map((at) => (
               <g key={at}>
                 <line x1={xFor(at)} x2={xFor(at)} y1={PLOT_TOP - 12} y2={plotBottom + 26} stroke="var(--color-border-interactive)" strokeDasharray="2 5" />
-                <text x={xFor(at) + 8} y={PLOT_TOP - 6} className="fill-text-muted font-mono text-[11px] font-semibold tracking-widest">{dividerDay(instant(at), stationTimeZone)}</text>
+                <text x={xFor(at) + 8} y={PLOT_TOP - 6} className="fill-text-muted font-mono text-[16px] font-semibold tracking-wider">{dividerDay(instant(at), stationTimeZone)}</text>
               </g>
             ))}
 
             {hourLabels(seriesStart, seriesEnd, displayTimeZone).map((at) => (
-              <text key={at} x={xFor(at)} y={plotBottom + 22} textAnchor="middle" className="fill-text-muted font-mono text-[13px]">{hourLabel(instant(at), displayTimeZone)}</text>
+              <text key={at} x={xFor(at)} y={plotBottom + 22} textAnchor="middle" className="fill-text-muted font-mono text-[16px]">{hourLabel(instant(at), displayTimeZone)}</text>
             ))}
 
             <path d={`${path}L${xFor(seriesEnd)},${plotBottom}L${xFor(seriesStart)},${plotBottom}Z`} fill="url(#tide-area)" />
@@ -382,77 +411,35 @@ export function TideTimeline({
               const x = xFor(Number(turn.at));
               const y = yFor(turn.height);
               const isHigh = turn.kind === "high";
-              const firstLineY = isHigh ? y - 30 : y + 26;
+              const firstLineY = isHigh ? y - 34 : y + 28;
               const heightText = formatHeight(turn.height, unit);
               const timeText = clock(turn.at, displayTimeZone);
               const plateText = heightText.length > timeText.length ? heightText : timeText;
-              const plate = labelPlate(x, firstLineY, plateText, 13, 2);
+              const plate = labelPlate(x, firstLineY, plateText, 16, 2);
               return (
                 <g key={String(turn.at)}>
                   <circle cx={x} cy={y} r="5" fill="var(--color-tide-cyan)" stroke="var(--color-surface)" strokeWidth="2" />
                   {turnLabelVisible[index] && (
                     <>
                       <rect x={plate.x} y={plate.y} width={plate.width} height={plate.height} rx="4" fill="var(--color-background)" />
-                      <text x={x} y={firstLineY} textAnchor="middle" className="fill-text-primary font-mono text-[13px] font-semibold">{heightText}</text>
-                      <text x={x} y={firstLineY + 16} textAnchor="middle" className="fill-text-muted font-mono text-[13px]">{timeText}</text>
+                      <text x={x} y={firstLineY} textAnchor="middle" className="fill-text-primary font-mono text-[16px] font-semibold">{heightText}</text>
+                      <text x={x} y={firstLineY + 19} textAnchor="middle" className="fill-text-muted font-mono text-[16px]">{timeText}</text>
                     </>
                   )}
                 </g>
               );
             })}
 
-            {/* Sunrise/sunset sit ON the curve at its real height, so the chart answers
-                "what is the tide doing at sunrise" with no mental arithmetic. The time is
-                revealed on tap rather than printed permanently — the old always-on labels
-                were a large part of what made this screen unreadable. Every one of these
-                times is also plain text in the tide-details sheet, so nothing here is
-                reachable only by tapping a 20px glyph. */}
-            {sunMarkers.map((marker) => {
-              const height = heightAt(series, instant(marker.at));
-              if (!height) return null;
-              const x = xFor(marker.at);
-              const y = yFor(unwrapSourced(height));
-              const isSunrise = marker.kind === "sunrise";
-              const label = isSunrise ? "Sunrise" : "Sunset";
-              const time = clock(instant(marker.at), displayTimeZone);
-              const revealed = revealedSunAt === marker.at;
-              const labelY = isSunrise ? y - 20 : y + 30;
-              const plate = labelPlate(x, labelY, `${label} ${time}`, 12);
-              return (
-                <g
-                  key={`sun-${marker.at}`}
-                  data-sun-transition={marker.kind}
-                  role="button"
-                  tabIndex={0}
-                  aria-label={`${label}, ${time}, tide ${formatHeight(unwrapSourced(height), unit)}. Activate to show or hide the time on the chart.`}
-                  onClick={() => {
-                    if (dragRef.current?.moved) return;
-                    setRevealedSunAt((current) => (current === marker.at ? null : marker.at));
-                  }}
-                  onKeyDown={(event) => {
-                    if (event.key !== "Enter" && event.key !== " ") return;
-                    event.preventDefault();
-                    setRevealedSunAt((current) => (current === marker.at ? null : marker.at));
-                  }}
-                >
-                  <SunTransitionGlyph kind={marker.kind} x={x} y={y} />
-                  {revealed && (
-                    <>
-                      <rect x={plate.x} y={plate.y} width={plate.width} height={plate.height} rx="3" fill="var(--color-background)" />
-                      <text x={x} y={labelY} textAnchor="middle" className="fill-text-primary font-mono text-[12px] font-semibold"><tspan fill={isSunrise ? "var(--color-amber-flag)" : "var(--color-signal-orange)"}>{isSunrise ? "↑" : "↓"}</tspan> {label} <tspan className="fill-text-muted font-normal">{time}</tspan></text>
-                    </>
-                  )}
-                </g>
-              );
-            })}
-
+            {/* Catches and sun markers both carry 50px hit circles. Where a catch was logged
+                near sunrise the circles overlap, so each gives up the side nearer the other
+                (hitAreaPath) and every visible glyph keeps its own tap (Codex review, UI-1c). */}
             {/* Catch markers (founder requirements §6): every logged catch sits ON the
                 curve at its exact instant. Tapping one does two things — reveals
                 species + time, and pins the read-head onto the catch, so the header
                 readout immediately answers "what was the tide doing when I caught it"
                 (height and movement at that instant). Clusters carry a count instead
                 of overlapping glyphs. Same tap-not-pan guard and keyboard contract as
-                the sun markers above. */}
+                the sun markers below. */}
             {catchClusters.map((cluster) => {
               const height = heightAt(series, instant(cluster.at));
               if (!height) return null;
@@ -471,10 +458,10 @@ export function TideTimeline({
                   : memberLines;
               const longest = lines.reduce((a, b) => (b.length > a.length ? b : a), "");
               // Bubble unfolds with its last line just above the marker (y - 22)…
-              let firstBaseline = y - 22 - (lines.length - 1) * 15;
+              let firstBaseline = y - 26 - (lines.length - 1) * 19;
               // …unless that runs off the chart: then it unfolds below the marker.
               if (firstBaseline < PLOT_TOP + 12) firstBaseline = y + 26;
-              const plate = labelPlate(x, firstBaseline + (lines.length - 1) * 15, longest, 12, 1);
+              const plate = labelPlate(x, firstBaseline + (lines.length - 1) * 19, longest, 16, 1);
               const desc =
                 count === 1
                   ? `${cluster.members[0].label} caught ${clock(instant(cluster.at), displayTimeZone)}, tide ${formatHeight(unwrapSourced(height), unit)}`
@@ -501,7 +488,8 @@ export function TideTimeline({
                     setRevealedCatchKey((current) => (current === cluster.key ? null : cluster.key));
                   }}
                 >
-                  <circle cx={x} cy={y} r="9" fill={markerFill} stroke="var(--color-surface)" strokeWidth="2" />
+                  <HitArea centre={{ x, y }} rivals={sunPoints} />
+                  <circle cx={x} cy={y} r={count === 1 ? 9 : 12} fill={markerFill} stroke="var(--color-surface)" strokeWidth="2" />
                   {count === 1 ? (
                     // A fish body with a tail, sized to sit inside the marker.
                     <path
@@ -509,16 +497,63 @@ export function TideTimeline({
                       fill={inkFill}
                     />
                   ) : (
-                    <text x={x} y={y + 4} textAnchor="middle" dominantBaseline="middle" className="font-mono text-[11px] font-bold" fill={inkFill}>
+                    <text x={x} y={y + 1} textAnchor="middle" dominantBaseline="middle" className="font-mono text-[16px] font-bold" fill={inkFill}>
                       {count}
                     </text>
                   )}
                   {revealed && (
                     <>
-                      <rect x={plate.x} y={plate.y - (lines.length - 1) * 15} width={plate.width} height={plate.height + (lines.length - 1) * 15} rx="4" fill="var(--color-background)" />
+                      <rect x={plate.x} y={plate.y - (lines.length - 1) * 19} width={plate.width} height={plate.height + (lines.length - 1) * 19} rx="4" fill="var(--color-background)" />
                       {lines.map((line, index) => (
-                        <text key={line} x={x} y={firstBaseline + index * 15} textAnchor="middle" className="fill-text-primary font-mono text-[12px] font-semibold">{line}</text>
+                        <text key={line} x={x} y={firstBaseline + index * 19} textAnchor="middle" className="fill-text-primary font-mono text-[16px] font-semibold">{line}</text>
                       ))}
+                    </>
+                  )}
+                </g>
+              );
+            })}
+
+            {/* Sunrise/sunset sit ON the curve at its real height, so the chart answers
+                "what is the tide doing at sunrise" with no mental arithmetic. The time is
+                revealed on tap rather than printed permanently — the old always-on labels
+                were a large part of what made this screen unreadable. Every one of these
+                times is also plain text in the tide-details sheet, so nothing here is
+                reachable only by tapping a 20px glyph. */}
+            {sunMarkers.map((marker) => {
+              const height = heightAt(series, instant(marker.at));
+              if (!height) return null;
+              const x = xFor(marker.at);
+              const y = yFor(unwrapSourced(height));
+              const isSunrise = marker.kind === "sunrise";
+              const label = isSunrise ? "Sunrise" : "Sunset";
+              const time = clock(instant(marker.at), displayTimeZone);
+              const revealed = revealedSunAt === marker.at;
+              const labelY = isSunrise ? y - 20 : y + 30;
+              const plate = labelPlate(x, labelY, `${label} ${time}`, 16);
+              return (
+                <g
+                  key={`sun-${marker.at}`}
+                  data-sun-transition={marker.kind}
+                  role="button"
+                  tabIndex={0}
+                  aria-label={`${label}, ${time}, tide ${formatHeight(unwrapSourced(height), unit)}. Activate to show or hide the time on the chart.`}
+                  onClick={() => {
+                    if (dragRef.current?.moved) return;
+                    setRevealedSunAt((current) => (current === marker.at ? null : marker.at));
+                  }}
+                  onKeyDown={(event) => {
+                    if (event.key !== "Enter" && event.key !== " ") return;
+                    event.preventDefault();
+                    setRevealedSunAt((current) => (current === marker.at ? null : marker.at));
+                  }}
+                >
+                  {/* UI-1 #5: a 50 px transparent hit area (48 px floor + subpixel margin); the visible glyph keeps its size. */}
+                  <HitArea centre={{ x, y }} rivals={catchPoints} />
+                  <SunTransitionGlyph kind={marker.kind} x={x} y={y} />
+                  {revealed && (
+                    <>
+                      <rect x={plate.x} y={plate.y} width={plate.width} height={plate.height} rx="3" fill="var(--color-background)" />
+                      <text x={x} y={labelY} textAnchor="middle" className="fill-text-primary font-mono text-[16px] font-semibold"><tspan fill={isSunrise ? "var(--color-amber-flag)" : "var(--color-signal-orange)"}>{isSunrise ? "↑" : "↓"}</tspan> {label} <tspan className="fill-text-muted font-normal">{time}</tspan></text>
                     </>
                   )}
                 </g>
@@ -532,10 +567,10 @@ export function TideTimeline({
                 <line x1={xFor(now)} x2={xFor(now)} y1={PLOT_TOP} y2={plotBottom} stroke="var(--color-text-muted)" strokeWidth="2" strokeDasharray="1 4" />
                 <circle cx={xFor(now)} cy={yFor(nowHeight)} r="4.5" fill="var(--color-surface)" stroke="var(--color-text-muted)" strokeWidth="2" />
                 {(() => {
-                  const plate = labelPlate(xFor(now), PLOT_TOP - 6, "NOW", 11);
+                  const plate = labelPlate(xFor(now), PLOT_TOP - 6, "NOW", 16);
                   return <rect x={plate.x - 2} y={plate.y} width={plate.width + 4} height={plate.height} rx="3" fill="var(--color-background)" />;
                 })()}
-                <text x={xFor(now)} y={PLOT_TOP - 6} textAnchor="middle" className="fill-text-muted font-mono text-[11px] font-semibold tracking-chart-pill">NOW</text>
+                <text x={xFor(now)} y={PLOT_TOP - 6} textAnchor="middle" className="fill-text-muted font-mono text-[16px] font-semibold tracking-chart-pill">NOW</text>
               </g>
             )}
           </svg>
@@ -548,12 +583,12 @@ export function TideTimeline({
         {gridValues(yMinimum, yMaximum).map((value) => {
           const y = yFor(metres(value));
           const text = formatHeight(metres(value), unit).replace(` ${unit}`, "");
-          const plate = labelPlate(0, y + 4, text, 12);
+          const plate = labelPlate(0, y + 5, text, 16);
           if (y < PLOT_TOP + 6 || y > plotBottom - 6) return null;
           return (
             <g key={value}>
               <rect x={AXIS_LABEL_INSET_PX} y={plate.y + 1} width={plate.width} height={plate.height - 2} fill="var(--color-background)" fillOpacity=".8" />
-              <text x={AXIS_LABEL_INSET_PX + plate.width / 2} y={y + 4} textAnchor="middle" className="fill-text-muted font-mono text-[12px]">{text}</text>
+              <text x={AXIS_LABEL_INSET_PX + plate.width / 2} y={y + 5} textAnchor="middle" className="fill-text-muted font-mono text-[16px]">{text}</text>
             </g>
           );
         })}
@@ -580,6 +615,17 @@ export function TideTimeline({
         </button>
       )}
     </div>
+  );
+}
+
+/** A marker's transparent tap target: the full 50px circle, or its share where it overlaps. */
+function HitArea({ centre, rivals }: { centre: Point; rivals: readonly Point[] }) {
+  const radius = CATCH_HIT_DIAMETER_PX / 2;
+  const path = hitAreaPath(centre, radius, rivals);
+  return path === null ? (
+    <circle cx={centre.x} cy={centre.y} r={radius} fill="transparent" pointerEvents="all" />
+  ) : (
+    <path d={path} fill="transparent" pointerEvents="all" />
   );
 }
 

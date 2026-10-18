@@ -116,11 +116,21 @@ describe("calendar dates", () => {
 });
 
 describe("hourLabels", () => {
-  it("labels every third station hour across the window", () => {
-    // Window: 2026-08-28 07:00 UTC (midnight PDT) through 2026-08-29 06:59 UTC.
+  it("labels every sixth station hour by default (16 px labels need the room)", () => {
     const start = Date.UTC(2026, 7, 28, 7, 0, 0);
     const end = Date.UTC(2026, 7, 29, 6, 59, 0);
     expect(hourLabels(start, end, ZONE)).toEqual([
+      Date.UTC(2026, 7, 28, 13, 0, 0), // 06:00 PDT
+      Date.UTC(2026, 7, 28, 19, 0, 0), // 12:00 PDT
+      Date.UTC(2026, 7, 29, 1, 0, 0), // 18:00 PDT
+    ]);
+  });
+
+  it("labels every third station hour when asked", () => {
+    // Window: 2026-08-28 07:00 UTC (midnight PDT) through 2026-08-29 06:59 UTC.
+    const start = Date.UTC(2026, 7, 28, 7, 0, 0);
+    const end = Date.UTC(2026, 7, 29, 6, 59, 0);
+    expect(hourLabels(start, end, ZONE, 3)).toEqual([
       Date.UTC(2026, 7, 28, 10, 0, 0), // 03:00 PDT
       Date.UTC(2026, 7, 28, 13, 0, 0), // 06:00 PDT
       Date.UTC(2026, 7, 28, 16, 0, 0), // 09:00 PDT
