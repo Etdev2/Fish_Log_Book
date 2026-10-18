@@ -7,7 +7,7 @@ import type { TidePredictionSeries } from "@/core/rules/tide";
 import { useTideStationPreference } from "../station-preference";
 import { DEFAULT_STATION_ID, stationById, type TideStation } from "../stations";
 import { fetchTideSeries } from "./noaa-tides";
-import { CACHE_FRESH_MS, readTideCache, writeTideCache } from "./tide-cache";
+import { CACHE_FRESH_MS, readTideCache, seriesCoversNow, writeTideCache } from "./tide-cache";
 import { loadTideSeriesFixture } from "./tide-series";
 
 /**
@@ -76,8 +76,9 @@ async function resolveSeries(
     const error = cause instanceof Error ? cause.message : "Could not reach NOAA";
 
     // Offline in the marina is the normal case, not an exception: an old cache still
-    // beats an empty chart, as long as the badge admits how old it is.
-    if (cached !== null) {
+    // beats an empty chart, as long as the badge admits how old it is, and as long as it
+    // still reaches today. A cache wholly in the past would draw old tides as current.
+    if (cached !== null && seriesCoversNow(cached, now)) {
       return { stationId: station.id, series: cached, source: "cache", stale: true, error };
     }
     if (station.id === DEFAULT_STATION_ID) {
