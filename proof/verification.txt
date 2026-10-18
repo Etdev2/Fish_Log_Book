@@ -58,6 +58,17 @@ ok filename signing.KEY: reject
 ok filename signing.p8: reject
 ok filename signing.p12: reject
 ok filename signing.pfx: reject
+ok filename private-key.json: reject
+ok filename private_key.json: reject
+ok filename privatekey: reject
+ok filename nested/PRIVATE-KEY.JSON: reject
+ok filename private_keys.yaml: reject
+ok filename signing-key.json: reject
+ok filename keypair.json: reject
+ok filename keystore.json: reject
+ok filename release.jks: reject
+ok filename app.keystore: reject
+ok filename putty.ppk: reject
 ok filename $'nested/line\nbreak/service-account.json': reject
 ok filename .env.example: allow
 ok filename .env.local.example: allow
@@ -73,6 +84,9 @@ ok filename docs/secrets-guide.md: allow
 ok filename src/tokens.ts: allow
 ok filename docs/service-account-setup.md: allow
 ok filename .kube/config.example: allow
+ok filename src/private-key.ts: allow
+ok filename docs/private-key-rotation.md: allow
+ok filename src/keystore.ts: allow
 All secret filename cases pass.
 ok   a bundle from the copied writer passes
 ok   evidence named by a pattern fails
@@ -114,15 +128,15 @@ migrations: 61 unique versions.
 > eslint
 
 
-/private/tmp/fish-log-kube-guard-20261016/src/features/fish-legal/components/alerts-page.tsx
+/home/user/wt-139/src/features/fish-legal/components/alerts-page.tsx
   4:10  warning  'useEffect' is defined but never used   @typescript-eslint/no-unused-vars
   4:21  warning  'useState' is defined but never used    @typescript-eslint/no-unused-vars
   8:81  warning  'LegalAlert' is defined but never used  @typescript-eslint/no-unused-vars
 
-/private/tmp/fish-log-kube-guard-20261016/src/features/fish-legal/components/boundary-leaflet.tsx
+/home/user/wt-139/src/features/fish-legal/components/boundary-leaflet.tsx
   117:6  warning  React Hook useEffect has missing dependencies: 'areas', 'center', and 'showRca'. Either include them or remove the dependency array  react-hooks/exhaustive-deps
 
-/private/tmp/fish-log-kube-guard-20261016/src/features/fish-legal/reg-data-parity.test.ts
+/home/user/wt-139/src/features/fish-legal/reg-data-parity.test.ts
   16:10  warning  'MASSACHUSETTS' is defined but never used  @typescript-eslint/no-unused-vars
   17:10  warning  'RHODE_ISLAND' is defined but never used   @typescript-eslint/no-unused-vars
   18:10  warning  'NEW_YORK' is defined but never used       @typescript-eslint/no-unused-vars
@@ -135,13 +149,13 @@ migrations: 61 unique versions.
 > vitest run
 
 
- RUN  v4.1.11 /private/tmp/fish-log-kube-guard-20261016
+ RUN  v4.1.11 /home/user/wt-139
 
 
- Test Files  97 passed (97)
-      Tests  1077 passed (1077)
-   Start at  15:49:26
-   Duration  2.19s (transform 2.80s, setup 0ms, import 4.83s, tests 1.51s, environment 6ms)
+ Test Files  98 passed (98)
+      Tests  1087 passed (1087)
+   Start at  16:09:47
+   Duration  9.42s (transform 3.85s, setup 0ms, import 6.89s, tests 2.84s, environment 12ms)
 
 [exit 0]
 
@@ -160,24 +174,25 @@ Wrote src/app/tokens.generated.css
 > next build
 
 ▲ Next.js 16.3.3 (Turbopack)
-✓ Running next.config.ts took 57ms
+✓ Running next.config.ts took 29ms
 
   Creating an optimized production build ...
-✓ Compiled successfully in 797ms
+✓ Compiled successfully in 21.0s
   Running TypeScript ...
-  Finished TypeScript in 1283ms ...
-  Collecting page data using 9 workers ...
-  Generating static pages using 9 workers (0/52) ...
-  Generating static pages using 9 workers (13/52) 
-  Generating static pages using 9 workers (26/52) 
-  Generating static pages using 9 workers (39/52) 
-✓ Generating static pages using 9 workers (52/52) in 348ms
+  Finished TypeScript in 12.0s ...
+  Collecting page data using 3 workers ...
+  Generating static pages using 3 workers (0/53) ...
+  Generating static pages using 3 workers (13/53) 
+  Generating static pages using 3 workers (26/53) 
+  Generating static pages using 3 workers (39/53) 
+✓ Generating static pages using 3 workers (53/53) in 899ms
   Finalizing page optimization ...
 
 Route (app)
 ┌ ○ /
 ├ ○ /_not-found
 ├ ƒ /api/payments/stripe/webhook
+├ ○ /calendar
 ├ ƒ /callback
 ├ ƒ /catch/[id]
 ├ ƒ /day/[date]
