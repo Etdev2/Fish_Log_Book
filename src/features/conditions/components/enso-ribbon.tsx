@@ -8,9 +8,11 @@
  * in solid colour, CPC outlook months faded and labelled with their probability, and months
  * past the outlook left empty as "no forecast".
  *
- * Every month is a button: tapping or focusing it shows its exact state in the detail line
- * under the strip (touch screens have no hover, so a `title` alone would hide it). Until one
- * is picked, the detail line describes the month the chart's week sits in.
+ * The strip itself is a picture. With two years in a phone-width row, one month is about
+ * 12–15px wide, far under the 48px touch floor (`docs/design/03-touch-and-interaction.md`),
+ * so months are not tapped on the strip. Instead the row under it steps one month at a time
+ * with full-size ◀ ▶ buttons, the strip outlines the month being read, and the detail line
+ * says its exact state in words. It starts on the month the chart's week sits in.
  */
 import { useMemo, useState } from "react";
 
@@ -48,6 +50,18 @@ export function monthSpans(months: readonly EnsoMonth[], fromMs: number, toMs: n
   });
 }
 
+/** The key of the month `delta` steps from `fromKey`, clamped to the loaded range. */
+export function stepMonthKey(months: readonly EnsoMonth[], fromKey: string, delta: number): string | null {
+  if (months.length === 0) return null;
+  const at = months.findIndex((m) => `${m.year}-${m.month}` === fromKey);
+  const next = Math.max(0, Math.min(months.length - 1, (at === -1 ? 0 : at) + delta));
+  const m = months[next];
+  return `${m.year}-${m.month}`;
+}
+
+const STEP =
+  "flex size-touch-floor shrink-0 items-center justify-center rounded-md border border-border-interactive text-label text-text-link disabled:opacity-40 focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-focus-ring";
+
 export function EnsoRibbon({
   fromMs,
   toMs,
@@ -76,18 +90,14 @@ export function EnsoRibbon({
       <div className="relative flex h-4 overflow-hidden rounded border border-hairline">
         {months.map((m, i) => {
           const k = keyOf(m);
+          const isSelected = selected !== undefined && keyOf(selected) === k;
           return (
-            <button
-              type="button"
+            <span
               key={k}
-              title={monthTitle(m)}
-              aria-label={monthTitle(m)}
-              aria-pressed={selected !== undefined && keyOf(selected) === k}
+              aria-hidden="true"
               data-phase={m.phase ?? "none"}
               data-basis={m.basis}
-              onClick={() => setPicked(k)}
-              onFocus={() => setPicked(k)}
-              className="h-full min-w-0 p-0 focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-focus-ring"
+              className={`h-full min-w-0 ${isSelected ? "outline outline-2 -outline-offset-2 outline-text-primary" : ""}`}
               style={{
                 flex: `${spans[i]} 1 0`,
                 background: m.phase === null ? "transparent" : FILL[m.phase],
@@ -106,9 +116,29 @@ export function EnsoRibbon({
           style={{ left: `${left}%`, width: `${width}%` }}
         />
       </div>
-      <p aria-live="polite" className="mt-1 text-caption text-text-primary">
-        {selected !== undefined ? monthTitle(selected) : null}
-      </p>
+      <div className="mt-1 flex items-center gap-2">
+        <button
+          type="button"
+          className={STEP}
+          aria-label="Previous month"
+          disabled={selected === undefined || keyOf(selected) === keyOf(months[0])}
+          onClick={() => selected && setPicked(stepMonthKey(months, keyOf(selected), -1))}
+        >
+          ◀
+        </button>
+        <p aria-live="polite" className="min-w-0 flex-1 text-center text-caption text-text-primary">
+          {selected !== undefined ? monthTitle(selected) : null}
+        </p>
+        <button
+          type="button"
+          className={STEP}
+          aria-label="Next month"
+          disabled={selected === undefined || keyOf(selected) === keyOf(months[months.length - 1])}
+          onClick={() => selected && setPicked(stepMonthKey(months, keyOf(selected), 1))}
+        >
+          ▶
+        </button>
+      </div>
       <figcaption className="mt-1 flex flex-wrap gap-x-3 text-caption text-text-muted">
         <span><span aria-hidden="true" style={{ color: "var(--color-signal-orange)" }}>■</span> El Niño</span>
         <span><span aria-hidden="true" style={{ color: "var(--color-tide-cyan)" }}>■</span> La Niña</span>
