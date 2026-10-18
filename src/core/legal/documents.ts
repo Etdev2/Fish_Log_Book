@@ -222,7 +222,7 @@ const PRIVACY: LegalDocument = {
   id: "privacy",
   slug: "privacy",
   title: "Privacy Notice",
-  summary: "Your log lives on your phone. Two things leave it, and this says exactly what.",
+  summary: "Your log lives on your phone. This says exactly what leaves it, and when.",
   effective: LEGAL_VERSION,
   sections: [
     {
@@ -263,7 +263,7 @@ const PRIVACY: LegalDocument = {
       ],
     },
     {
-      heading: "The one outside service the app calls",
+      heading: "The one outside service the app calls on its own",
       paragraphs: [
         "Tide predictions come from the NOAA Tides & Currents public API. Your device requests them directly, which means NOAA sees the request — including your device's IP address, as with any web request.",
         "We send NOAA a station identifier and a date range. We do not send your identity, your account, your log, or your GPS position.",
