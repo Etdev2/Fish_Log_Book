@@ -462,8 +462,8 @@ begin
         then i.total_amount_minor else 0 end) as event_total,
       bool_or(case when i.item_type in ('TEAM_ENTRY','TOURNAMENT_ENTRY') then t.id is null
         when i.item_type in ('JACKPOT','SIDE_POT') then d.id is null else true end) as unmapped,
-      -- An order must carry at least one line for the event in its own header. Without one,
-      -- the header and lines disagree, and the money would land on whichever event asks.
+      -- A priced header event must carry at least one line of its own. Without one, the
+      -- header and lines disagree, and the money would land on whichever event asks.
       bool_or((i.item_type in ('TEAM_ENTRY','TOURNAMENT_ENTRY') and t.id = o.tournament_id)
         or (i.item_type in ('JACKPOT','SIDE_POT') and d.tournament_id = o.tournament_id)) as header_mapped
     from public.tournament_order_item i
@@ -478,10 +478,14 @@ begin
   ), ledger as (
     select o.currency, o.total_minor, o.status, coalesce(r.amount, 0) as refunded,
       case when li.order_id is null then o.total_minor else li.event_total end as event_minor,
+      -- A priced header event with no line of its own is a disagreement. An unpriced one
+      -- (null fee) is how register_crew_for_tournaments files a shared order whose first
+      -- event is free, so it is not.
       coalesce(li.unmapped or li.line_total <> o.total_minor
-        or (o.tournament_id is not null and not li.header_mapped), false) as unmapped
+        or (ht.entry_fee_minor is not null and not li.header_mapped), false) as unmapped
     from public.tournament_order o left join refunds r on r.order_id = o.id
     left join lines li on li.order_id = o.id
+    left join public.tournament ht on ht.id = o.tournament_id
     where o.tournament_id = target_tournament_id or li.event_total > 0
   )
   select min(l.currency) as currency, count(distinct l.currency) as currencies,

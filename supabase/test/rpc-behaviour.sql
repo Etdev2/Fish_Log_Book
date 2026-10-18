@@ -969,6 +969,27 @@ begin
   reset role;
   perform pg_temp.check('the same order fails on the event its lines name', denied);
 
+  -- register_crew_for_tournaments files an unpriced first event as the order header and
+  -- gives it no line (null fee = "the host has not said"). That is a valid shared order, not
+  -- a disagreement: the priced event's ledger must still read it.
+  begin
+    update public.tournament set entry_fee_minor = null where id = '55555555-5555-5555-5555-555555555555';
+    insert into public.tournament_order (id, organization_id, tournament_id, purchaser_angler_id,
+      currency, subtotal_minor, total_minor, status, idempotency_key)
+    values ('eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee', '33333333-3333-3333-3333-333333333333',
+      '55555555-5555-5555-5555-555555555555', '11111111-1111-1111-1111-111111111111',
+      'USD', 700, 700, 'PAID', 'unpriced-header-shared-order');
+    insert into public.tournament_order_item (order_id, item_type, reference_id, description, quantity, unit_amount_minor, total_amount_minor)
+    values ('eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee', 'TEAM_ENTRY', '66666666-6666-6666-6666-666666666666', 'Entry', 1, 700, 700);
+    set local role authenticated;
+    set local request.jwt.claim.sub = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa';
+    select * into totals from public.tournament_money_totals('66666666-6666-6666-6666-666666666666');
+    -- Undo the fixture; plpgsql variables keep their values across the rollback.
+    raise exception 'undo unpriced-header fixture' using errcode = 'UF001';
+  exception when sqlstate 'UF001' then null; end;
+  reset role;
+  perform pg_temp.check('an unpriced header event with lines only for a priced event still totals', totals.collected_minor = '25700');
+
   -- ADR 011: FINANCE reads every money table, including whether the club's provider
   -- account can take charges and pay out. Dock staff read none of it.
   insert into public.organizer_payment_account (organization_id, provider_account_id, payouts_enabled)
