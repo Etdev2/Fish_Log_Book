@@ -4,10 +4,11 @@ import { useEffect, useMemo, useState } from "react";
 
 import type { TidePredictionSeries } from "@/core/rules/tide";
 
+import { useNow } from "@/lib/time/use-now";
 import { useTideStationPreference } from "../station-preference";
 import { DEFAULT_STATION_ID, stationById, type TideStation } from "../stations";
 import { fetchTideSeries } from "./noaa-tides";
-import { CACHE_FRESH_MS, readTideCache, seriesCoversNow, writeTideCache } from "./tide-cache";
+import { CACHE_FRESH_MS, readTideCache, seriesCoversNow, seriesExpired, writeTideCache } from "./tide-cache";
 import { loadTideSeriesFixture } from "./tide-series";
 
 /**
@@ -98,6 +99,14 @@ export function useTideSeries(): TideReading {
   const [stationId] = useTideStationPreference();
   const station = useMemo(() => stationById(stationId), [stationId]);
   const [resolved, setResolved] = useState<Resolved | null>(null);
+  /*
+   * A screen left open, or a tab resumed days later, can outlive the week it loaded.
+   * Once the series on screen no longer reaches now, resolve again: fresh data if there is
+   * signal, otherwise the same honest fallbacks as a cold start.
+   */
+  const now = useNow(60_000);
+  const expired =
+    resolved !== null && now !== null && seriesExpired(resolved.series, Number(now));
 
   useEffect(() => {
     if (station === null) return;
@@ -115,7 +124,7 @@ export function useTideSeries(): TideReading {
       cancelled = true;
       controller.abort();
     };
-  }, [station]);
+  }, [station, expired]);
 
   return useMemo((): TideReading => {
     // A result for the previous station is not this station's answer.

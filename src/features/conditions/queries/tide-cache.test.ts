@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { tideSeries } from "@/core/rules/tide";
 import { instant, metres } from "@/core/units";
-import { seriesCoversNow } from "./tide-cache";
+import { seriesCoversNow, seriesExpired } from "./tide-cache";
 
 const HOUR = 3_600_000;
 const start = Date.UTC(2026, 9, 10, 0, 0, 0);
@@ -35,5 +35,16 @@ describe("whether a saved tide series still reaches now (#163)", () => {
 
   it("does not cover a moment before it starts", () => {
     expect(seriesCoversNow(week, start - HOUR)).toBe(false);
+  });
+});
+
+describe("when a series already on screen must be resolved again", () => {
+  it("expires once the clock passes its last sample", () => {
+    expect(seriesExpired(week, start + 3 * 24 * HOUR)).toBe(false);
+    expect(seriesExpired(week, start + 8 * 24 * HOUR)).toBe(true);
+  });
+
+  it("never expires when there is no series to show", () => {
+    expect(seriesExpired(null, start)).toBe(false);
   });
 });

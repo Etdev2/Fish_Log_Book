@@ -99,3 +99,12 @@ export function seriesCoversNow(series: TidePredictionSeries, nowMs: number): bo
   const last = series.samples[series.samples.length - 1].at as number;
   return first <= nowMs && nowMs <= last;
 }
+
+/**
+ * True when a series on screen has run out: the clock has moved past what it covers, so
+ * it must be resolved again rather than kept for the life of the screen (#163, review).
+ * No series means nothing to expire.
+ */
+export function seriesExpired(series: TidePredictionSeries | null, nowMs: number): boolean {
+  return series !== null && !seriesCoversNow(series, nowMs);
+}
