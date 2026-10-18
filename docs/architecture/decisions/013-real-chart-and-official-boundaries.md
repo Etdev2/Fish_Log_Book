@@ -51,11 +51,13 @@ Two separate problems are bundled in the request, and they get separate answers:
 | Layer | Official source | Notes |
 | --- | --- | --- |
 | California MPAs | CDFW `ds582` (cartographic) and `ds3207` (from CCR §632) | ds582 carries CDFW's "not intended for navigational use or defining legal boundaries" disclaimer, rendered verbatim (ADR 007 §3) |
-| 50-fm RCA lines | 50 CFR 660 subpart G waypoint tables | Waypoints are published as coordinates; import them, do not trace them |
-| Cowcod Conservation Areas | 50 CFR 660.70 | Same |
+| 50-fm RCA lines | 50 CFR §660.72(a) (Subpart C waypoint tables) | Waypoints are published as coordinates; import them, do not trace them |
+| Current recreational closed areas | 50 CFR §660.70(t) | Import the current recreational closures with their stated applicability. Older Cowcod Conservation Area geometry must not be turned into a current restriction |
 | Groundfish management areas | 50 CFR 660 / CDFW | Same |
 
-Each imported layer records source URL, retrieval date, and `simplify_tolerance_m` in
+Citations corrected 2026-10-18 from Codex's review and #174; the importing session confirms
+each against the live eCFR before use. Each imported layer records source URL, retrieval
+date, and `simplify_tolerance_m` in
 `RuleProvenance`. The resolver widens its ambiguity band by that tolerance (ADR 007 §3).
 `scripts/` gets a refresh script per source, like `refresh-enso.mjs` (ADR 012), so an
 update is a reviewed diff, not a hand edit.
