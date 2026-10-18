@@ -3,9 +3,8 @@ import { describe, expect, it } from "vitest";
 import {
   CATCH_HIT_DIAMETER_PX,
   clusterCatchMarkers,
-  hitAreaPath,
+  hitTargetsOverlap,
   type CatchMarkerInput,
-  type Point,
 } from "./catch-markers";
 
 // 560 px/day scale, same as the chart: toX maps ms → px at that density.
@@ -68,49 +67,14 @@ describe("catch marker clustering", () => {
   });
 });
 
-/** Even-odd ray cast against the polygon in a `hitAreaPath` result. */
-function inside(path: string, p: Point): boolean {
-  const pts = [...path.matchAll(/[ML] (-?[\d.]+) (-?[\d.]+)/g)].map((m) => ({ x: Number(m[1]), y: Number(m[2]) }));
-  let hit = false;
-  for (let i = 0, j = pts.length - 1; i < pts.length; j = i++) {
-    const a = pts[i];
-    const b = pts[j];
-    if (a.y > p.y !== b.y > p.y && p.x < ((b.x - a.x) * (p.y - a.y)) / (b.y - a.y) + a.x) hit = !hit;
-  }
-  return hit;
-}
-
-describe("hit areas where a catch overlaps a sun marker (Codex review, UI-1c)", () => {
-  const r = CATCH_HIT_DIAMETER_PX / 2;
-  const catchAt = { x: 100, y: 80 };
-  const sunAt = { x: 118, y: 82 };
-
-  it("keeps the plain circle when nothing overlaps", () => {
-    expect(hitAreaPath(catchAt, r, [{ x: 200, y: 80 }])).toBeNull();
+describe("catch and sun tap targets that would overlap (Codex review, UI-1c)", () => {
+  it("overlap when the centres are closer than one 50px target", () => {
+    expect(hitTargetsOverlap({ x: 100, y: 80 }, { x: 118, y: 82 })).toBe(true);
+    expect(hitTargetsOverlap({ x: 100, y: 80 }, { x: 149, y: 80 })).toBe(true);
   });
 
-  it("gives each glyph its own side, so neither steals the other's tap", () => {
-    const catchArea = hitAreaPath(catchAt, r, [sunAt]);
-    const sunArea = hitAreaPath(sunAt, r, [catchAt]);
-    if (catchArea === null || sunArea === null) throw new Error("expected split areas");
-
-    // Each centre (where its glyph is drawn) is only in its own target.
-    expect(inside(catchArea, catchAt)).toBe(true);
-    expect(inside(catchArea, sunAt)).toBe(false);
-    expect(inside(sunArea, sunAt)).toBe(true);
-    expect(inside(sunArea, catchAt)).toBe(false);
-
-    // Away from the shared edge each still reaches its full radius.
-    expect(inside(catchArea, { x: catchAt.x - r + 1, y: catchAt.y })).toBe(true);
-    expect(inside(sunArea, { x: sunAt.x + r - 1, y: sunAt.y })).toBe(true);
-  });
-
-  it("sends a tap between them to the nearer marker", () => {
-    const catchArea = hitAreaPath(catchAt, r, [sunAt]);
-    const sunArea = hitAreaPath(sunAt, r, [catchAt]);
-    if (catchArea === null || sunArea === null) throw new Error("expected split areas");
-    const nearCatch = { x: 106, y: 80 };
-    expect(inside(catchArea, nearCatch)).toBe(true);
-    expect(inside(sunArea, nearCatch)).toBe(false);
+  it("do not overlap once the centres are a full target apart", () => {
+    expect(hitTargetsOverlap({ x: 100, y: 80 }, { x: 150, y: 80 })).toBe(false);
+    expect(hitTargetsOverlap({ x: 100, y: 80 }, { x: 100, y: 140 })).toBe(false);
   });
 });

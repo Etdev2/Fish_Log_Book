@@ -10,7 +10,7 @@ import { unwrapSourced } from "./sourced-value";
 import {
   CATCH_HIT_DIAMETER_PX,
   clusterCatchMarkers,
-  hitAreaPath,
+  hitTargetsOverlap,
   type CatchMarkerInput,
   type Point,
 } from "../catch-markers";
@@ -166,13 +166,12 @@ export function TideTimeline({
     [yMinimum, yMaximum, chartHeight],
   );
 
-  // Where each marker sits on the curve, so overlapping catch and sun targets can split.
+  // Where each catch sits on the curve, so a sun marker on top of one can yield its target.
   const pointOnCurve = (at: number): Point | null => {
     const height = heightAt(series, instant(at));
     return height ? { x: xForAt(at, seriesStart), y: yFor(unwrapSourced(height)) } : null;
   };
   const catchPoints = catchClusters.map((c) => pointOnCurve(c.at)).filter((p) => p !== null);
-  const sunPoints = sunMarkers.map((m) => pointOnCurve(m.at)).filter((p) => p !== null);
 
   // The plotted curve reads heights from the engine's monotone-cubic heightAt, not the raw
   // sample tuples. Dense uniform sampling (plus every published sample instant, so the
@@ -431,8 +430,10 @@ export function TideTimeline({
             })}
 
             {/* Catches and sun markers both carry 50px hit circles. Where a catch was logged
-                near sunrise the circles overlap, so each gives up the side nearer the other
-                (hitAreaPath) and every visible glyph keeps its own tap (Codex review, UI-1c). */}
+                near sunrise the circles would overlap, and neither may shrink below the 48px
+                floor, so the catch keeps its whole target and the sun marker yields its own
+                there: the sun time stays a keyboard button and plain text in the tide-details
+                sheet (Codex review, UI-1c). */}
             {/* Catch markers (founder requirements §6): every logged catch sits ON the
                 curve at its exact instant. Tapping one does two things — reveals
                 species + time, and pins the read-head onto the catch, so the header
@@ -488,7 +489,7 @@ export function TideTimeline({
                     setRevealedCatchKey((current) => (current === cluster.key ? null : cluster.key));
                   }}
                 >
-                  <HitArea centre={{ x, y }} rivals={sunPoints} />
+                  <circle cx={x} cy={y} r={CATCH_HIT_DIAMETER_PX / 2} fill="transparent" pointerEvents="all" />
                   <circle cx={x} cy={y} r={count === 1 ? 9 : 12} fill={markerFill} stroke="var(--color-surface)" strokeWidth="2" />
                   {count === 1 ? (
                     // A fish body with a tail, sized to sit inside the marker.
@@ -548,14 +549,19 @@ export function TideTimeline({
                   }}
                 >
                   {/* UI-1 #5: a 50 px transparent hit area (48 px floor + subpixel margin); the visible glyph keeps its size. */}
-                  <HitArea centre={{ x, y }} rivals={catchPoints} />
-                  <SunTransitionGlyph kind={marker.kind} x={x} y={y} />
-                  {revealed && (
-                    <>
-                      <rect x={plate.x} y={plate.y} width={plate.width} height={plate.height} rx="3" fill="var(--color-background)" />
-                      <text x={x} y={labelY} textAnchor="middle" className="fill-text-primary font-mono text-[16px] font-semibold"><tspan fill={isSunrise ? "var(--color-amber-flag)" : "var(--color-signal-orange)"}>{isSunrise ? "↑" : "↓"}</tspan> {label} <tspan className="fill-text-muted font-normal">{time}</tspan></text>
-                    </>
+                  {catchPoints.some((p) => hitTargetsOverlap({ x, y }, p)) ? null : (
+                    <circle cx={x} cy={y} r={CATCH_HIT_DIAMETER_PX / 2} fill="transparent" pointerEvents="all" />
                   )}
+                  {/* Artwork never takes a tap: only the hit circle above decides who gets it. */}
+                  <g pointerEvents="none">
+                    <SunTransitionGlyph kind={marker.kind} x={x} y={y} />
+                    {revealed && (
+                      <>
+                        <rect x={plate.x} y={plate.y} width={plate.width} height={plate.height} rx="3" fill="var(--color-background)" />
+                        <text x={x} y={labelY} textAnchor="middle" className="fill-text-primary font-mono text-[16px] font-semibold"><tspan fill={isSunrise ? "var(--color-amber-flag)" : "var(--color-signal-orange)"}>{isSunrise ? "↑" : "↓"}</tspan> {label} <tspan className="fill-text-muted font-normal">{time}</tspan></text>
+                      </>
+                    )}
+                  </g>
                 </g>
               );
             })}
@@ -615,17 +621,6 @@ export function TideTimeline({
         </button>
       )}
     </div>
-  );
-}
-
-/** A marker's transparent tap target: the full 50px circle, or its share where it overlaps. */
-function HitArea({ centre, rivals }: { centre: Point; rivals: readonly Point[] }) {
-  const radius = CATCH_HIT_DIAMETER_PX / 2;
-  const path = hitAreaPath(centre, radius, rivals);
-  return path === null ? (
-    <circle cx={centre.x} cy={centre.y} r={radius} fill="transparent" pointerEvents="all" />
-  ) : (
-    <path d={path} fill="transparent" pointerEvents="all" />
   );
 }
 

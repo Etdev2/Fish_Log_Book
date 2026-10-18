@@ -80,53 +80,15 @@ export interface Point {
   readonly y: number;
 }
 
-const HIT_AREA_SIDES = 32;
-
 /**
- * The tap target of a marker whose 50px circle overlaps another kind of marker's.
+ * Whether two markers' 50px tap circles would overlap where they are drawn.
  *
  * Catches never overlap each other (they cluster) and sunrise never sits near sunset, but a
- * catch logged at sunrise does overlap a sun marker. Painting one before the other only
- * chose which marker stole taps. Instead each circle gives up the far side of the line
- * halfway between the two centres, so a tap goes to whichever marker it is nearer and
- * each visible glyph sits inside its own target.
- *
- * Returns null when nothing overlaps, so the caller keeps the plain circle.
+ * catch logged near sunrise does overlap a sun marker. Two 48px targets cannot share less
+ * than 48px of space, and trimming either one below the floor is not allowed
+ * (docs/design/06-accessibility-baseline.md), so the tide timeline gives the overlap to the
+ * catch and the sun marker yields its tap target there.
  */
-export function hitAreaPath(centre: Point, radius: number, rivals: readonly Point[]): string | null {
-  const near = rivals.filter((r) => Math.hypot(r.x - centre.x, r.y - centre.y) < 2 * radius);
-  if (near.length === 0) return null;
-
-  let polygon: Point[] = Array.from({ length: HIT_AREA_SIDES }, (_, i) => {
-    const angle = (2 * Math.PI * i) / HIT_AREA_SIDES;
-    return { x: centre.x + radius * Math.cos(angle), y: centre.y + radius * Math.sin(angle) };
-  });
-  for (const rival of near) polygon = keepNearer(polygon, centre, rival);
-  if (polygon.length < 3) return null;
-
-  const [first, ...rest] = polygon;
-  const round = (n: number) => Math.round(n * 100) / 100;
-  return `M ${round(first.x)} ${round(first.y)} ${rest.map((p) => `L ${round(p.x)} ${round(p.y)}`).join(" ")} Z`;
-}
-
-/** Sutherland–Hodgman against one half-plane: the points no farther from `own` than `rival`. */
-function keepNearer(polygon: readonly Point[], own: Point, rival: Point): Point[] {
-  // f(p) <= 0 exactly when p is at least as near `own` as `rival`.
-  const nx = rival.x - own.x;
-  const ny = rival.y - own.y;
-  const c = (rival.x * rival.x + rival.y * rival.y - own.x * own.x - own.y * own.y) / 2;
-  const f = (p: Point) => nx * p.x + ny * p.y - c;
-
-  const out: Point[] = [];
-  polygon.forEach((current, i) => {
-    const previous = polygon[(i + polygon.length - 1) % polygon.length];
-    const fc = f(current);
-    const fp = f(previous);
-    if ((fc <= 0) !== (fp <= 0)) {
-      const t = fp / (fp - fc);
-      out.push({ x: previous.x + t * (current.x - previous.x), y: previous.y + t * (current.y - previous.y) });
-    }
-    if (fc <= 0) out.push(current);
-  });
-  return out;
+export function hitTargetsOverlap(a: Point, b: Point): boolean {
+  return Math.hypot(a.x - b.x, a.y - b.y) < CATCH_HIT_DIAMETER_PX;
 }
