@@ -21,7 +21,7 @@ import { loadTideSeriesFixture } from "./tide-series";
  */
 export type TideSource = "live" | "cache" | "fixture" | "none";
 
-interface Resolved {
+export interface Resolved {
   readonly stationId: string;
   readonly series: TidePredictionSeries | null;
   readonly source: TideSource;
@@ -95,6 +95,27 @@ async function resolveSeries(
   }
 }
 
+/**
+ * The resolution to keep when a new one lands.
+ *
+ * When an expired series is refreshed, `expired` flips back to false and the effect runs
+ * once more. That second run finds the series just fetched sitting in the fresh cache and
+ * would relabel it "Saved on this device" moments after it came live from NOAA. The same
+ * series is the same reading, so the live label stays.
+ */
+export function nextResolved(prev: Resolved | null, next: Resolved): Resolved {
+  const sameLiveSeries =
+    prev !== null &&
+    prev.source === "live" &&
+    next.source === "cache" &&
+    !next.stale &&
+    prev.stationId === next.stationId &&
+    prev.series !== null &&
+    next.series !== null &&
+    prev.series.retrievedAt === next.series.retrievedAt;
+  return sameLiveSeries ? prev : next;
+}
+
 export function useTideSeries(): TideReading {
   const [stationId] = useTideStationPreference();
   const station = useMemo(() => stationById(stationId), [stationId]);
@@ -117,7 +138,7 @@ export function useTideSeries(): TideReading {
     // setState only from the resolution — an effect body that sets state synchronously
     // costs an extra render pass, and the lint rule that catches it is right.
     void resolveSeries(station, controller.signal).then((next) => {
-      if (!cancelled) setResolved(next);
+      if (!cancelled) setResolved((prev) => nextResolved(prev, next));
     });
 
     return () => {
