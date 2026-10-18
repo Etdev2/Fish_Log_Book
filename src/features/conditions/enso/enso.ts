@@ -94,10 +94,14 @@ export function classify(seq: readonly Entry[] = ensoSequence()): Map<number, En
   while (i < seq.length) {
     let j = i;
     // A run only extends into the very next calendar month: a missing season (e.g. the
-    // September gap between the last observation and the outlook) breaks it.
+    // September gap between the last observation and the outlook) breaks it. It also never
+    // crosses from observed into outlook: ADR 012 defines a past episode from five
+    // consecutive ONI observations, and a forecast cannot confirm what was observed.
+    // Outlook months are labelled from their own probabilities below.
     while (
       j + 1 < seq.length &&
       seq[j + 1].sign === seq[i].sign &&
+      seq[j + 1].basis === seq[i].basis &&
       key(seq[j + 1].year, seq[j + 1].month) === key(seq[j].year, seq[j].month) + 1
     )
       j++;

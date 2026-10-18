@@ -28,7 +28,7 @@ describe("ENSO classification from CPC ONI v5", () => {
     expect([...months.values()].every((m) => m.phase === "neutral")).toBe(true);
   });
 
-  it("lets an observed run continue into the outlook to make an episode", () => {
+  it("never lets the outlook confirm an observed episode (ADR 012)", () => {
     const history = [
       [2000, 1, 0.6],
       [2000, 2, 0.7],
@@ -39,8 +39,24 @@ describe("ENSO classification from CPC ONI v5", () => {
       ["AMJ", 0, 30, 70],
     ] as const;
     const months = classify(ensoSequence(history, { year: 2000, month: 2 }, outlook));
-    expect(months.get(2000 * 12 + 0)!.phase).toBe("el-nino");
+    // Two warm observed seasons are not an episode, however warm the forecast after them.
+    expect(months.get(2000 * 12 + 0)!.phase).toBe("neutral");
+    expect(months.get(2000 * 12 + 1)!.phase).toBe("neutral");
+    // The outlook months still carry their own probability-based label.
     expect(months.get(2000 * 12 + 3)).toMatchObject({ basis: "outlook", phase: "el-nino", probability: 80 });
+  });
+
+  it("still marks an observed run of five as an episode when an outlook follows it", () => {
+    const history = [
+      [2000, 1, 0.6],
+      [2000, 2, 0.7],
+      [2000, 3, 0.8],
+      [2000, 4, 0.9],
+      [2000, 5, 1.0],
+    ] as const;
+    const outlook = [["JJA", 0, 10, 90]] as const;
+    const months = classify(ensoSequence(history, { year: 2000, month: 5 }, outlook));
+    for (let m = 0; m < 5; m++) expect(months.get(2000 * 12 + m)!.phase).toBe("el-nino");
   });
 
   it("does not join a run across a missing season", () => {
