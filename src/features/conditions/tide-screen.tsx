@@ -468,8 +468,13 @@ function TideChartScreen({
               className="tide-readout-rate"
               value={reading.rate}
               // UI-1 #9: one "Interpolated" per card — the rate's marker only when it says
-              // something the height's doesn't.
-              showMarker={reading.rate.certainty !== reading.height.certainty}
+              // something the height's doesn't. Same certainty is not enough: height is a
+              // monotone-curve interpolation and rate a centred difference, so a different
+              // basis still needs its own disclosure.
+              showMarker={
+                reading.rate.certainty !== reading.height.certainty ||
+                reading.rate.basis !== reading.height.basis
+              }
               render={(value) => <span className="tide-readout-value">{formatRate(value, unit)}</span>}
             />
           ) : (

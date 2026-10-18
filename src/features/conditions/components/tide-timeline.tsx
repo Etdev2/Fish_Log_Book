@@ -412,60 +412,16 @@ export function TideTimeline({
               );
             })}
 
-            {/* Sunrise/sunset sit ON the curve at its real height, so the chart answers
-                "what is the tide doing at sunrise" with no mental arithmetic. The time is
-                revealed on tap rather than printed permanently — the old always-on labels
-                were a large part of what made this screen unreadable. Every one of these
-                times is also plain text in the tide-details sheet, so nothing here is
-                reachable only by tapping a 20px glyph. */}
-            {sunMarkers.map((marker) => {
-              const height = heightAt(series, instant(marker.at));
-              if (!height) return null;
-              const x = xFor(marker.at);
-              const y = yFor(unwrapSourced(height));
-              const isSunrise = marker.kind === "sunrise";
-              const label = isSunrise ? "Sunrise" : "Sunset";
-              const time = clock(instant(marker.at), displayTimeZone);
-              const revealed = revealedSunAt === marker.at;
-              const labelY = isSunrise ? y - 20 : y + 30;
-              const plate = labelPlate(x, labelY, `${label} ${time}`, 16);
-              return (
-                <g
-                  key={`sun-${marker.at}`}
-                  data-sun-transition={marker.kind}
-                  role="button"
-                  tabIndex={0}
-                  aria-label={`${label}, ${time}, tide ${formatHeight(unwrapSourced(height), unit)}. Activate to show or hide the time on the chart.`}
-                  onClick={() => {
-                    if (dragRef.current?.moved) return;
-                    setRevealedSunAt((current) => (current === marker.at ? null : marker.at));
-                  }}
-                  onKeyDown={(event) => {
-                    if (event.key !== "Enter" && event.key !== " ") return;
-                    event.preventDefault();
-                    setRevealedSunAt((current) => (current === marker.at ? null : marker.at));
-                  }}
-                >
-                  {/* UI-1 #5: a 50 px transparent hit area (48 px floor + subpixel margin); the visible glyph keeps its size. */}
-                  <circle cx={x} cy={y} r={CATCH_HIT_DIAMETER_PX / 2} fill="transparent" pointerEvents="all" />
-                  <SunTransitionGlyph kind={marker.kind} x={x} y={y} />
-                  {revealed && (
-                    <>
-                      <rect x={plate.x} y={plate.y} width={plate.width} height={plate.height} rx="3" fill="var(--color-background)" />
-                      <text x={x} y={labelY} textAnchor="middle" className="fill-text-primary font-mono text-[16px] font-semibold"><tspan fill={isSunrise ? "var(--color-amber-flag)" : "var(--color-signal-orange)"}>{isSunrise ? "↑" : "↓"}</tspan> {label} <tspan className="fill-text-muted font-normal">{time}</tspan></text>
-                    </>
-                  )}
-                </g>
-              );
-            })}
-
+            {/* Catches paint before sun markers on purpose: both carry 50px hit circles, and
+                in SVG the later element wins a tap. A catch logged at sunrise must not steal
+                the tap aimed at the visible sun glyph (review on #143). */}
             {/* Catch markers (founder requirements §6): every logged catch sits ON the
                 curve at its exact instant. Tapping one does two things — reveals
                 species + time, and pins the read-head onto the catch, so the header
                 readout immediately answers "what was the tide doing when I caught it"
                 (height and movement at that instant). Clusters carry a count instead
                 of overlapping glyphs. Same tap-not-pan guard and keyboard contract as
-                the sun markers above. */}
+                the sun markers below. */}
             {catchClusters.map((cluster) => {
               const height = heightAt(series, instant(cluster.at));
               if (!height) return null;
@@ -533,6 +489,53 @@ export function TideTimeline({
                       {lines.map((line, index) => (
                         <text key={line} x={x} y={firstBaseline + index * 19} textAnchor="middle" className="fill-text-primary font-mono text-[16px] font-semibold">{line}</text>
                       ))}
+                    </>
+                  )}
+                </g>
+              );
+            })}
+
+            {/* Sunrise/sunset sit ON the curve at its real height, so the chart answers
+                "what is the tide doing at sunrise" with no mental arithmetic. The time is
+                revealed on tap rather than printed permanently — the old always-on labels
+                were a large part of what made this screen unreadable. Every one of these
+                times is also plain text in the tide-details sheet, so nothing here is
+                reachable only by tapping a 20px glyph. */}
+            {sunMarkers.map((marker) => {
+              const height = heightAt(series, instant(marker.at));
+              if (!height) return null;
+              const x = xFor(marker.at);
+              const y = yFor(unwrapSourced(height));
+              const isSunrise = marker.kind === "sunrise";
+              const label = isSunrise ? "Sunrise" : "Sunset";
+              const time = clock(instant(marker.at), displayTimeZone);
+              const revealed = revealedSunAt === marker.at;
+              const labelY = isSunrise ? y - 20 : y + 30;
+              const plate = labelPlate(x, labelY, `${label} ${time}`, 16);
+              return (
+                <g
+                  key={`sun-${marker.at}`}
+                  data-sun-transition={marker.kind}
+                  role="button"
+                  tabIndex={0}
+                  aria-label={`${label}, ${time}, tide ${formatHeight(unwrapSourced(height), unit)}. Activate to show or hide the time on the chart.`}
+                  onClick={() => {
+                    if (dragRef.current?.moved) return;
+                    setRevealedSunAt((current) => (current === marker.at ? null : marker.at));
+                  }}
+                  onKeyDown={(event) => {
+                    if (event.key !== "Enter" && event.key !== " ") return;
+                    event.preventDefault();
+                    setRevealedSunAt((current) => (current === marker.at ? null : marker.at));
+                  }}
+                >
+                  {/* UI-1 #5: a 50 px transparent hit area (48 px floor + subpixel margin); the visible glyph keeps its size. */}
+                  <circle cx={x} cy={y} r={CATCH_HIT_DIAMETER_PX / 2} fill="transparent" pointerEvents="all" />
+                  <SunTransitionGlyph kind={marker.kind} x={x} y={y} />
+                  {revealed && (
+                    <>
+                      <rect x={plate.x} y={plate.y} width={plate.width} height={plate.height} rx="3" fill="var(--color-background)" />
+                      <text x={x} y={labelY} textAnchor="middle" className="fill-text-primary font-mono text-[16px] font-semibold"><tspan fill={isSunrise ? "var(--color-amber-flag)" : "var(--color-signal-orange)"}>{isSunrise ? "↑" : "↓"}</tspan> {label} <tspan className="fill-text-muted font-normal">{time}</tspan></text>
                     </>
                   )}
                 </g>
