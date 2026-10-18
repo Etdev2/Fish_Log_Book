@@ -112,8 +112,18 @@ export async function POST(request: Request): Promise<Response> {
       exist, an amount below the total — shows up repeatedly in the Stripe dashboard where
       somebody will see it, rather than being swallowed by a 200.
     */
+    /*
+      The database's own message stays in the server log (Vercel's function logs), never in
+      the response body: a webhook endpoint is public, and table, constraint or function
+      names are not something to hand to whoever is calling it (#162).
+    */
+    if (confirmed.reason === "failed") {
+      console.error(
+        `[stripe webhook] confirm_tournament_order failed for order ${intent.orderId}: ${confirmed.message}`,
+      );
+    }
     return Response.json(
-      { error: confirmed.reason === "failed" ? confirmed.message : confirmed.reason },
+      { error: confirmed.reason === "failed" ? "confirmation failed" : confirmed.reason },
       { status: 500 },
     );
   }
