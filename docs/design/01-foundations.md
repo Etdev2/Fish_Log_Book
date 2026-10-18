@@ -31,6 +31,8 @@ missing.
 | `ink-on-orange` | `#140800` | Text/icons placed on an orange fill |
 | `tide-cyan` | `#3FC7E0` | Reserved exclusively for tide data and the focus ring — see `02-semantic-colors.md` |
 | `moon-pale` | `#E8D9A8` | Reserved exclusively for moon-phase data |
+| `enso-warm` | `#EADBD2` | El Niño months on the ENSO ribbon only — see `02-semantic-colors.md` |
+| `enso-cool` | `#587893` | La Niña months on the ENSO ribbon only |
 | `amber-flag` | `#E8B55F` | The one "needs attention" color — unresolved marks, open trips (D22/D27) |
 | `success-green` | `#48CE8A` | Confirmed/complete state (e.g. sync indicator), never used for "good catch" |
 | `error-red` | `#FF8A80` | Error text, destructive text/icons, validation messages |
@@ -61,6 +63,10 @@ for anything decorative-adjacent; nothing in the system is allowed to fall below
 | `tide-cyan` | `surface` | **8.76:1** | AAA | Tide readouts on cards |
 | `moon-pale` | `background` | **13.60:1** | AAA | Moon readouts |
 | `moon-pale` | `surface` | **12.49:1** | AAA | Moon readouts on cards |
+| `enso-warm` | `surface` | **13.03:1** | AA (non-text floor) | El Niño ribbon fill |
+| `enso-cool` | `surface` | **3.79:1** | AA (non-text floor) | La Niña ribbon fill |
+| `enso-cool` | `surface-raised` | **3.49:1** | AA (non-text floor) | La Niña beside a neutral month |
+| `enso-warm` | `enso-cool` | **3.44:1** | AA (non-text floor) | El Niño beside La Niña |
 | `amber-flag` | `background` | **10.21:1** | AAA | Flag icon + "needs a look" text |
 | `amber-flag` | `surface` | **9.38:1** | AAA | Flag on cards |
 | `success-green` | `background` | **9.54:1** | AAA | Sync/confirmation state |

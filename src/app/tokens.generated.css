@@ -16,6 +16,8 @@
   --color-ink-on-orange: #140800;
   --color-tide-cyan: #3FC7E0;
   --color-moon-pale: #E8D9A8;
+  --color-enso-warm: #EADBD2;
+  --color-enso-cool: #587893;
   --color-amber-flag: #E8B55F;
   --color-success-green: #48CE8A;
   --color-error-red: #FF8A80;
@@ -116,6 +118,8 @@
     --color-ink-on-orange: #140800;
     --color-tide-cyan: #3FC7E0;
     --color-moon-pale: #E8D9A8;
+    --color-enso-warm: #EADBD2;
+    --color-enso-cool: #587893;
     --color-amber-flag: #E8B55F;
     --color-success-green: #48CE8A;
     --color-error-red: #FF8A80;

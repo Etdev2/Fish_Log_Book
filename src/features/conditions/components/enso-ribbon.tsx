@@ -19,9 +19,11 @@ import { useMemo, useState } from "react";
 import { ensoMonths, isCoverageGap, type EnsoMonth } from "../enso/enso";
 import { OUTLOOK_ISSUED, OUTLOOK_SOURCE_URL, ONI_SOURCE_URL } from "../enso/enso-data.generated";
 
+// Not orange (that means "tap this") and not cyan (that means tide): the ribbon has its own
+// pair, told apart by lightness (docs/design/02-semantic-colors.md, ENSO).
 const FILL: Record<string, string> = {
-  "el-nino": "var(--color-signal-orange)",
-  "la-nina": "var(--color-tide-cyan)",
+  "el-nino": "var(--color-enso-warm)",
+  "la-nina": "var(--color-enso-cool)",
   neutral: "var(--color-surface-raised)",
 };
 
@@ -35,7 +37,7 @@ export function monthTitle(m: EnsoMonth): string {
   if (m.basis === "none") return `${when}: no ENSO forecast this far out`;
   const name = m.phase === "el-nino" ? "El Niño" : m.phase === "la-nina" ? "La Niña" : "Neutral";
   if (m.basis === "observed") return `${when}: ${name} (ONI ${m.oni! > 0 ? "+" : ""}${m.oni!.toFixed(2)} °C)`;
-  return `${when}: ${name} ${m.probability}% (CPC outlook)`;
+  return `${when}: ${name} ${m.probability}% (CPC outlook, RONI)`;
 }
 
 /**
@@ -140,13 +142,15 @@ export function EnsoRibbon({
         </button>
       </div>
       <figcaption className="mt-1 flex flex-wrap gap-x-3 text-caption text-text-muted">
-        <span><span aria-hidden="true" style={{ color: "var(--color-signal-orange)" }}>■</span> El Niño</span>
-        <span><span aria-hidden="true" style={{ color: "var(--color-tide-cyan)" }}>■</span> La Niña</span>
+        <span><span aria-hidden="true" style={{ color: FILL["el-nino"] }}>■</span> El Niño</span>
+        <span><span aria-hidden="true" style={{ color: FILL["la-nina"] }}>■</span> La Niña</span>
         <span>▨ CPC outlook (issued {OUTLOOK_ISSUED})</span>
         <span>□ no forecast</span>
         <span>
-          Source: <a className="text-text-link" href={ONI_SOURCE_URL}>NOAA CPC ONI v5</a> ·{" "}
-          <a className="text-text-link" href={OUTLOOK_SOURCE_URL}>outlook</a>
+          {/* Two index bases, named both times (docs/fl-1/decisions.md Q4): history is ONI,
+              CPC verifies its outlook against RONI, and the two can differ by half a degree. */}
+          Source: <a className="text-text-link" href={ONI_SOURCE_URL}>NOAA CPC ONI v5</a> (history) ·{" "}
+          <a className="text-text-link" href={OUTLOOK_SOURCE_URL}>CPC outlook</a> (RONI)
         </span>
       </figcaption>
     </figure>

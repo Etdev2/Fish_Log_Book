@@ -10,7 +10,7 @@ describe("ENSO ribbon labels", () => {
   });
   it("names outlook months with their probability", () => {
     expect(monthTitle({ year: 2027, month: 4, phase: "neutral", basis: "outlook", oni: null, probability: 54 })).toBe(
-      "Apr 2027: Neutral 54% (CPC outlook)",
+      "Apr 2027: Neutral 54% (CPC outlook, RONI)",
     );
   });
   it("says plainly when there is no forecast", () => {

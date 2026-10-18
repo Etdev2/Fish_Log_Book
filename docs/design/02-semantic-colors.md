@@ -61,6 +61,18 @@ always tide, with no disambiguation needed.
 Reserved exclusively for moon-phase data — the moon icon, moon-phase readout. Same
 single-purpose reasoning as tide-cyan.
 
+## ENSO (enso-warm, enso-cool)
+
+Reserved for the El Niño / La Niña months on the tide screen's ENSO ribbon, and nothing
+else. The ribbon is a picture, not a control, so it cannot use orange; and it sits on the
+tide screen, where cyan must always mean tide. So the two phases get their own pair, told
+apart by **lightness** rather than hue: pale warm for El Niño, dark slate for La Niña,
+near-background for neutral. Each pair is at least 3:1, so the strip reads the same to a
+colour-deficient viewer.
+
+- Non-color signal: the legend names both phases, and the line under the strip says the
+  month's phase in words ("Dec 2015: El Niño (ONI +2.64 °C)").
+
 ## Disabled
 
 Not a color — a treatment: **45% opacity applied to the element's normal colors**,
