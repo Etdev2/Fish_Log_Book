@@ -131,7 +131,7 @@ export function ShellNav() {
   return (
     <nav
       aria-label="Primary"
-      className="border-t border-hairline bg-surface"
+      className="border-t border-hairline bg-surface pb-[env(safe-area-inset-bottom)]"
     >
       <ul className="mx-auto grid max-w-3xl grid-cols-5">
         {SHELL_ROUTES.map((route) => {

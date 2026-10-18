@@ -6,8 +6,10 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 
 import { TraitFigure, isPicture, type TraitFigureKey } from "@/components/trait-figure";
-import { identify } from "@/core/rules/identification/identify";
-import type { Candidate, TraitPack } from "@/core/rules/identification/types";
+import { identify, matchBand, STRONG_SHARE_PCT } from "@/core/rules/identification/identify";
+import type { Candidate, Identification, TraitPack } from "@/core/rules/identification/types";
+import { CandidateCard } from "@/features/fish-legal/components/candidate-card";
+import { idPhoto } from "@/features/fish-legal/species-photos";
 
 /**
  * One trait pack, asked and answered (spec §17).
@@ -22,10 +24,18 @@ const FOCUS =
 
 export function PackWizard({ pack }: { pack: TraitPack }) {
   const [chosen, setChosen] = useState<readonly string[]>([]);
+  const [showAll, setShowAll] = useState(false);
 
   const reading = useMemo(() => identify(pack, chosen), [pack, chosen]);
   const top = reading.candidates[0];
-  const confident = reading.ranked && top !== undefined && top.sharePct >= 40;
+  const confident = reading.ranked && top !== undefined && top.sharePct >= STRONG_SHARE_PCT;
+  /*
+   * Before any answer every fish is shown: the pictures are the first way in, and a
+   * five-year-old can match a picture before they can answer a question about gums.
+   * After answers, the four likeliest, with the rest one tap away.
+   */
+  const shown =
+    chosen.length === 0 || showAll ? reading.candidates : reading.candidates.slice(0, 4);
 
   function toggle(questionId: string, optionId: string) {
     const siblings = new Set(
@@ -141,24 +151,40 @@ export function PackWizard({ pack }: { pack: TraitPack }) {
       <section className="rounded-lg border border-hairline bg-surface p-4" aria-live="polite">
         <h2 className="text-h3">
           {chosen.length === 0
-            ? "Possible matches"
+            ? "Which one looks like your fish?"
             : confident
-              ? `Likely ${top.profile.commonName.toLowerCase()}`
-              : "Not enough to say yet"}
+              ? `Best match: ${top.profile.commonName}`
+              : "Not sure yet"}
         </h2>
 
-        {chosen.length > 0 && !confident ? (
-          <p className="mt-2 text-caption text-text-muted">
-            {reading.reason ?? "Still too broad."} If it could be a protected fish, release
-            wins — a fish returned is never a ticket.
-          </p>
-        ) : null}
+        <p className="mt-2 text-caption text-text-muted">
+          {chosen.length === 0
+            ? "Tap what you see above, or find the picture that looks like your fish."
+            : confident
+              ? "Check “How to tell” against the fish in your hands before you keep it."
+              : `${reading.reason ?? "Still too broad."} If it could be a protected fish, release wins — a fish returned is never a ticket.`}
+        </p>
 
-        <ul className="mt-3 flex flex-col gap-3">
-          {reading.candidates.slice(0, 4).map((candidate) => (
-            <CandidateRow key={candidate.profile.speciesId} candidate={candidate} />
+        <ul className="mt-3 flex flex-col gap-4">
+          {shown.map((candidate) => (
+            <PackCandidate
+              key={candidate.profile.speciesId}
+              candidate={candidate}
+              reading={reading}
+              answered={chosen.length}
+            />
           ))}
         </ul>
+
+        {shown.length < reading.candidates.length ? (
+          <button
+            type="button"
+            onClick={() => setShowAll(true)}
+            className={`mt-3 inline-flex min-h-touch-floor items-center text-label text-text-link ${FOCUS}`}
+          >
+            Show all {reading.candidates.length} fish
+          </button>
+        ) : null}
 
         <p className="mt-4 text-caption text-text-muted">
           Limits and seasons change. Check the rules where you are before you keep anything.
@@ -176,45 +202,37 @@ export function PackWizard({ pack }: { pack: TraitPack }) {
   );
 }
 
-function CandidateRow({ candidate }: { candidate: Candidate }) {
-  const [open, setOpen] = useState(false);
-  const { profile, sharePct } = candidate;
-
+function PackCandidate({
+  candidate,
+  reading,
+  answered,
+}: {
+  candidate: Candidate;
+  reading: Identification;
+  answered: number;
+}) {
+  const { profile } = candidate;
   return (
-    <li className="rounded-md border border-hairline">
-      <button
-        type="button"
-        onClick={() => setOpen((v) => !v)}
-        aria-expanded={open}
-        className={`flex w-full items-center gap-3 p-3 text-left ${FOCUS}`}
-      >
-        <span className="flex-1">
-          <span className="text-body font-semibold">
-            {profile.commonName}
-            {profile.noRetention ? " · RELEASE ONLY" : ""}
-          </span>
-          <span className="block text-caption italic text-text-muted">{profile.scientificName}</span>
-        </span>
-        <span className="text-label text-text-muted">{sharePct}%</span>
-      </button>
-
-      {open ? (
-        <div className="flex flex-col gap-3 border-t border-hairline p-3">
-          <ul className="flex flex-col gap-1 text-caption">
-            {profile.keyFeatures.map((feature) => (
-              <li key={feature}>• {feature}</li>
-            ))}
-          </ul>
-          {candidate.supporting.length > 0 || candidate.against.length > 0 ? (
-            <p className="text-caption text-text-muted">
-              {candidate.supporting.length > 0
-                ? `Matches what you said: ${candidate.supporting.join(", ")}.`
-                : ""}
-              {candidate.against.length > 0 ? ` Counts against: ${candidate.against.join(", ")}.` : ""}
-            </p>
-          ) : null}
-        </div>
+    <CandidateCard
+      name={profile.commonName}
+      scientificName={profile.scientificName}
+      noRetention={profile.noRetention}
+      photo={idPhoto(profile.speciesId)}
+      band={matchBand(reading, profile.speciesId, answered)}
+    >
+      <ul className="flex flex-col gap-1 text-body">
+        {profile.keyFeatures.map((feature) => (
+          <li key={feature}>• {feature}</li>
+        ))}
+      </ul>
+      {candidate.supporting.length > 0 || candidate.against.length > 0 ? (
+        <p className="text-caption text-text-muted">
+          {candidate.supporting.length > 0
+            ? `Matches what you said: ${candidate.supporting.join(", ")}.`
+            : ""}
+          {candidate.against.length > 0 ? ` Counts against: ${candidate.against.join(", ")}.` : ""}
+        </p>
       ) : null}
-    </li>
+    </CandidateCard>
   );
 }

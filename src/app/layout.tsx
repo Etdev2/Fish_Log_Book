@@ -24,6 +24,9 @@ const ibmPlexMono = IBM_Plex_Mono({
 export const metadata: Metadata = {
   title: "Fish Log Book",
   description: "Log every trip — including the ones that caught nothing.",
+  // Opened from the iPhone home screen, the app runs full-screen. "black" keeps the page
+  // below the status bar, so no screen needs a top safe-area inset.
+  appleWebApp: { capable: true, title: "Fish Log", statusBarStyle: "black" },
 };
 
 export const viewport: Viewport = {
@@ -31,6 +34,9 @@ export const viewport: Viewport = {
   // The app is used one-handed on a moving boat; pinch-zoom stays available.
   width: "device-width",
   initialScale: 1,
+  // Draw to the bottom edge of the iPhone; the bottom dock pads itself for the home
+  // indicator with env(safe-area-inset-bottom) (shell-nav.tsx).
+  viewportFit: "cover",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

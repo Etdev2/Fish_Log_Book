@@ -17,8 +17,9 @@
  * it also avoids reopening the image-licensing debt that `species-photos.ts` already
  * carries and that photos were cut over.
  *
- * This is the same stance the rockfish wizard's colour swatch already took: an honest
- * schematic rather than a picture pretending to be the fish in your hands.
+ * These figures explain a single feature (a spike, a gum line). Whole-fish pictures are a
+ * separate thing: the candidate cards show the checked agency drawings from
+ * `species-photos.ts`, never a schematic pretending to be the fish in your hands.
  *
  * Everything is stroked in `currentColor`, so a figure inherits its button's text colour
  * and is legible selected or not, in either theme, with no colour literal in sight — which

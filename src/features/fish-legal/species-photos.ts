@@ -91,3 +91,16 @@ export const SPECIES_PHOTOS: Record<string, SpeciesPhoto> = {
 export function speciesPhoto(speciesId: string): SpeciesPhoto | null {
   return SPECIES_PHOTOS[speciesId] ?? null;
 }
+
+/**
+ * The picture an ID screen may show to help someone decide what is in their hand.
+ *
+ * Stricter than `speciesPhoto`: a stock thumbnail with no licence (`S`) is left out, so the
+ * screens that decide "can this go in the box" only ever show agency or open-licence
+ * images. Every image this returns was checked by eye against its species on 2026-10-18
+ * (worklog of that date). A species with nothing here gets the honest placeholder.
+ */
+export function idPhoto(speciesId: string): SpeciesPhoto | null {
+  const photo = speciesPhoto(speciesId);
+  return photo !== null && photo.license !== S ? photo : null;
+}

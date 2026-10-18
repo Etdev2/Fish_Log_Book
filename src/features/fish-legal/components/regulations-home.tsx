@@ -210,7 +210,8 @@ export function RegulationsHome() {
       <nav aria-label="Regulation sections" className="grid grid-cols-2 gap-3">
         <HomeCard href="/fish-legal/species" title="Species & limits" body="Pick a fish; get the 2-second answer." />
         <HomeCard href="/fish-legal/limits" title="Today's limits" body="What you're carrying vs. what the day allows." />
-        <HomeCard href="/fish-legal/rockfish" title="Rockfish ID" body="Six questions; likely species with confidence, not verdicts." />
+        <HomeCard href="/fish-legal/rockfish" title="Rockfish ID" body="Six questions, or pick the picture that looks like your fish." />
+        <HomeCard href="/fish-legal/rockfish/catalog" title="Rockfish catalog" body="Every rockfish we know, A to Z, with pictures." />
         <HomeCard href="/fish-id" title="Fish ID" body="Salmon, sand bass and rockfish — the ones that are genuinely hard to call." />
         <HomeCard href="/fin-id" title="Whale & dolphin ID" body="What surfaced next to the boat, and how far back to stay." />
         {/*

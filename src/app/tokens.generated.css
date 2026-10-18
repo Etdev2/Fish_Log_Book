@@ -29,6 +29,7 @@
   --color-map-position-stroke: #111827;
   --color-map-position-fill: #fb923c;
   --color-fish-back: #3D5A63;
+  --color-photo-mat: #FFFFFF;
   --color-fish-side: #9DB3BB;
   --color-fish-belly: #E3EBEE;
   --color-fish-fin: #5E7A84;
@@ -129,6 +130,7 @@
     --color-map-position-stroke: #111827;
     --color-map-position-fill: #fb923c;
     --color-fish-back: #3D5A63;
+    --color-photo-mat: #FFFFFF;
     --color-fish-side: #9DB3BB;
     --color-fish-belly: #E3EBEE;
     --color-fish-fin: #5E7A84;

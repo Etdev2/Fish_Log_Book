@@ -10,7 +10,7 @@
  * cannot separate, and §4.7's requirement that every candidate can say why it is there.
  */
 
-import type { Candidate, Identification, TraitPack, TraitProfile } from "./types";
+import type { Candidate, Identification, MatchBand, TraitPack, TraitProfile } from "./types";
 
 /** Neutral affinity — the answer tells us nothing about this species either way. */
 const NO_SIGNAL = 0.5;
@@ -38,6 +38,32 @@ export const MIN_ANSWERS_TO_RANK = 2;
  * whole spec is written against.
  */
 export const MIN_LEAD_PCT = 10;
+
+/** A ranked winner at or above this share is a strong match: "Best match". */
+export const STRONG_SHARE_PCT = 40;
+
+/** Below this share a candidate is weak: "Less likely". */
+export const MODERATE_SHARE_PCT = 15;
+
+/**
+ * The band to show for one candidate (ADR 007 §4), or null when nothing has been answered.
+ *
+ * Only the engine's own ranked winner can be strong, so the §4.5 refusal to rank cannot be
+ * undone by the wording. With no answers there is no evidence, and every share is just the
+ * pool split evenly, so no band is shown at all.
+ */
+export function matchBand(
+  reading: Identification,
+  speciesId: string,
+  answeredCount: number,
+): MatchBand | null {
+  if (answeredCount === 0) return null;
+  const candidate = reading.candidates.find((c) => c.profile.speciesId === speciesId);
+  if (candidate === undefined) return null;
+  const isTop = reading.candidates[0]?.profile.speciesId === speciesId;
+  if (reading.ranked && isTop && candidate.sharePct >= STRONG_SHARE_PCT) return "strong";
+  return candidate.sharePct >= MODERATE_SHARE_PCT ? "moderate" : "weak";
+}
 
 function optionOwner(pack: TraitPack, optionId: string) {
   return pack.questions.find((q) => q.options.some((o) => o.id === optionId)) ?? null;

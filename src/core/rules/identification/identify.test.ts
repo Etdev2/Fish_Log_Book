@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import vectors from "../vectors/identification.json";
-import { identify, MIN_LEAD_PCT, validatePack } from "./identify";
+import { identify, matchBand, MIN_LEAD_PCT, validatePack } from "./identify";
 import type { TraitPack, TraitProfile } from "./types";
 
 const PACK: TraitPack = {
@@ -96,5 +96,34 @@ describe("the Fin ID engine", () => {
     expect(problems.join(" ")).toContain("not-an-option");
     expect(problems.join(" ")).toContain("no source");
     expect(problems.join(" ")).toContain("key features");
+  });
+
+  it("shows no band before anything is answered — an even split is not evidence", () => {
+    const reading = identify(PACK, []);
+    for (const c of reading.candidates) {
+      expect(matchBand(reading, c.profile.speciesId, 0)).toBeNull();
+    }
+  });
+
+  it("calls only the engine's ranked winner a strong match (ADR 007 §4)", () => {
+    const reading = identify(PACK, ["red", "big"]);
+    const [top, ...rest] = reading.candidates;
+    expect(reading.ranked).toBe(true);
+    expect(matchBand(reading, top.profile.speciesId, 2)).toBe("strong");
+    for (const c of rest) expect(matchBand(reading, c.profile.speciesId, 2)).not.toBe("strong");
+  });
+
+  it("never says strong when the engine refused to rank", () => {
+    const twins: TraitPack = {
+      ...PACK,
+      profiles: [
+        { ...PACK.profiles[0], speciesId: "a", commonName: "A" },
+        { ...PACK.profiles[0], speciesId: "b", commonName: "B" },
+      ],
+    };
+    const reading = identify(twins, ["red", "big"]);
+    expect(reading.ranked).toBe(false);
+    expect(matchBand(reading, "a", 2)).toBe("moderate");
+    expect(matchBand(reading, "b", 2)).toBe("moderate");
   });
 });

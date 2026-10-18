@@ -9,8 +9,8 @@ import { FISH_ID_PACKS } from "../packs";
  * Packs are listed rather than merged into one giant questionnaire, because the questions
  * that separate salmon are not the questions that separate sand bass, and a single form
  * asking both would be longer and worse. Rockfish keeps its own screen for now; it has
- * bespoke colour swatches and a direct line into the SoCal regulation pack that are worth
- * more than the consistency of folding it in.
+ * a direct line into the SoCal regulation pack and its own picture catalog, which are
+ * worth more than the consistency of folding it in.
  */
 const FOCUS =
   "focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-3 focus-visible:outline-focus-ring";
