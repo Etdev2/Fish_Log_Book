@@ -7,7 +7,7 @@ import { heightAt, type TidePredictionSeries, type TideTurn } from "@/core/rules
 import type { DaylightSpan } from "@/core/rules/astro";
 
 import { unwrapSourced } from "./sourced-value";
-import { clusterCatchMarkers, type CatchMarkerInput } from "../catch-markers";
+import { CATCH_HIT_DIAMETER_PX, clusterCatchMarkers, type CatchMarkerInput } from "../catch-markers";
 import {
   DEFAULT_CHART_HEIGHT,
   MIN_CHART_HEIGHT,
@@ -34,7 +34,7 @@ const TAP_SLOP_PX = 6;
 /** Two turn labels closer together than this share pixels; the later one drops its text. */
 const TURN_LABEL_MIN_GAP_PX = 96; // UI-1 #1: sized for 16 px labels (was 78 for 13 px)
 /** Catches closer together than this read as one clustered marker with a count. */
-const CATCH_CLUSTER_MIN_GAP_PX = 32;
+const CATCH_CLUSTER_MIN_GAP_PX = CATCH_HIT_DIAMETER_PX;
 /** The most a cluster's reveal panel lists; past that it says "+N more". */
 const CATCH_REVEAL_MAX_LINES = 4;
 /**
@@ -259,7 +259,11 @@ export function TideTimeline({
 
   return (
     <div className="tide-timeline" ref={viewportRef}>
-      <span id="tide-timeline-value" className="sr-only" aria-live="polite">
+      {/*
+        Description only, not live: TideChartScreen already announces `valueText` in its own
+        polite live region, and two live nodes made screen readers read every reading twice.
+      */}
+      <span id="tide-timeline-value" className="sr-only">
         {valueText}
       </span>
       <div
@@ -443,7 +447,7 @@ export function TideTimeline({
                   }}
                 >
                   {/* UI-1 #5: a 50 px transparent hit area (48 px floor + subpixel margin); the visible glyph keeps its size. */}
-                  <circle cx={x} cy={y} r="25" fill="transparent" pointerEvents="all" />
+                  <circle cx={x} cy={y} r={CATCH_HIT_DIAMETER_PX / 2} fill="transparent" pointerEvents="all" />
                   <SunTransitionGlyph kind={marker.kind} x={x} y={y} />
                   {revealed && (
                     <>
@@ -510,7 +514,7 @@ export function TideTimeline({
                     setRevealedCatchKey((current) => (current === cluster.key ? null : cluster.key));
                   }}
                 >
-                  <circle cx={x} cy={y} r="25" fill="transparent" pointerEvents="all" />
+                  <circle cx={x} cy={y} r={CATCH_HIT_DIAMETER_PX / 2} fill="transparent" pointerEvents="all" />
                   <circle cx={x} cy={y} r={count === 1 ? 9 : 12} fill={markerFill} stroke="var(--color-surface)" strokeWidth="2" />
                   {count === 1 ? (
                     // A fish body with a tail, sized to sit inside the marker.

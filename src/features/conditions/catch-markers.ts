@@ -31,6 +31,13 @@ export interface CatchMarkerCluster {
 }
 
 /**
+ * Each catch marker's transparent hit circle is this wide (UI-1 #5: a 50px target around a
+ * small glyph). Two separate markers closer than this would overlap, and the one painted
+ * later would steal taps aimed at the earlier one, so this is also the clustering gap.
+ */
+export const CATCH_HIT_DIAMETER_PX = 50;
+
+/**
  * Group markers that would draw on top of each other. Two clusters may never be closer
  * than `minGapPx` to each other's running centre at the current scale; a new marker that
  * breaks the gap starts the next cluster.
@@ -38,7 +45,7 @@ export interface CatchMarkerCluster {
 export function clusterCatchMarkers(
   markers: readonly CatchMarkerInput[],
   toX: (at: number) => number,
-  minGapPx = 32,
+  minGapPx = CATCH_HIT_DIAMETER_PX,
 ): readonly CatchMarkerCluster[] {
   const sorted = [...markers].sort((a, b) => a.at - b.at);
   const clusters: CatchMarkerCluster[] = [];

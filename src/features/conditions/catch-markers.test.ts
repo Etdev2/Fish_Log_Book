@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { clusterCatchMarkers, type CatchMarkerInput } from "./catch-markers";
+import { CATCH_HIT_DIAMETER_PX, clusterCatchMarkers, type CatchMarkerInput } from "./catch-markers";
 
 // 560 px/day scale, same as the chart: toX maps ms → px at that density.
 const PX_PER_MS = 560 / 86_400_000;
@@ -46,5 +46,18 @@ describe("catch marker clustering", () => {
 
   it("an empty log means no markers", () => {
     expect(clusterCatchMarkers([], toX)).toEqual([]);
+  });
+
+  it("merges catches whose 50px hit circles would overlap", () => {
+    // 40 px apart: further than the old 32 px gap, but the two hit circles would overlap.
+    const hours = 40 / 560 * 24;
+    const clusters = clusterCatchMarkers([mark("a", 6), mark("b", 6 + hours)], toX);
+    expect(clusters).toHaveLength(1);
+  });
+
+  it("keeps catches separate once their hit circles no longer touch", () => {
+    const hours = (CATCH_HIT_DIAMETER_PX + 1) / 560 * 24;
+    const clusters = clusterCatchMarkers([mark("a", 6), mark("b", 6 + hours)], toX);
+    expect(clusters).toHaveLength(2);
   });
 });
