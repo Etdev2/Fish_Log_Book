@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 
+import { callbackErrorReason } from "@/lib/supabase/callback-error";
 import { createClient } from "@/lib/supabase/server";
 
 /**
@@ -11,9 +12,10 @@ export async function GET(request: NextRequest) {
   const { searchParams, origin } = new URL(request.url);
   const code = searchParams.get("code");
 
-  // Supabase sends `error` instead of `code` when the angler backs out of Google's screen.
+  // Supabase sends `error` instead of `code` when sign-in fails: a cancel on Google's
+  // screen, an expired email link, or a provider problem. Each gets its own message.
   if (searchParams.get("error")) {
-    return NextResponse.redirect(`${origin}/sign-in?error=cancelled`);
+    return NextResponse.redirect(`${origin}/sign-in?error=${callbackErrorReason(searchParams)}`);
   }
 
   if (!code) {

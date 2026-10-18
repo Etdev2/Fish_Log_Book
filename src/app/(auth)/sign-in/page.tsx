@@ -142,6 +142,8 @@ export default function SignInPage() {
 
 const CALLBACK_ERRORS: Record<string, string> = {
   cancelled: "Google sign-in didn't finish. Try again, or use your email instead.",
+  link_expired: "That sign-in link has expired or was already used. Ask for a new one.",
+  provider_failed: "Sign-in didn't go through on the sign-in service's side. Try again in a minute, or use the other way to sign in.",
   missing_code: "That sign-in link was incomplete. Ask for a new one.",
   exchange_failed:
     "That sign-in didn't go through. Open the link on the same device you asked from, or try again.",
