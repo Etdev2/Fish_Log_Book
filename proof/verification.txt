@@ -102,6 +102,8 @@ ok   evidence naming a directory fails
 ok   an unstaged manifest edit is ignored; the committed ticket is checked
 ok   an uncommitted edit can't turn a committed FAIL into PASS
 ok   the drift check catches a one-byte change to a copied script
+ok   the drift check catches a pinned file committed as executable
+ok   the drift check catches a copied script that lost its execute bit
 All proof-tool cases behave as specified.
 [exit 0]
 
@@ -136,15 +138,15 @@ migrations: 61 unique versions.
 > eslint
 
 
-/home/user/wt-139/src/features/fish-legal/components/alerts-page.tsx
+/tmp/claude-0/-home-user/17b2e9bc-48f2-5e68-97c2-c4c61a354eb5/scratchpad/wt/grok-sweet-potato-adopt/src/features/fish-legal/components/alerts-page.tsx
   4:10  warning  'useEffect' is defined but never used   @typescript-eslint/no-unused-vars
   4:21  warning  'useState' is defined but never used    @typescript-eslint/no-unused-vars
   8:81  warning  'LegalAlert' is defined but never used  @typescript-eslint/no-unused-vars
 
-/home/user/wt-139/src/features/fish-legal/components/boundary-leaflet.tsx
+/tmp/claude-0/-home-user/17b2e9bc-48f2-5e68-97c2-c4c61a354eb5/scratchpad/wt/grok-sweet-potato-adopt/src/features/fish-legal/components/boundary-leaflet.tsx
   117:6  warning  React Hook useEffect has missing dependencies: 'areas', 'center', and 'showRca'. Either include them or remove the dependency array  react-hooks/exhaustive-deps
 
-/home/user/wt-139/src/features/fish-legal/reg-data-parity.test.ts
+/tmp/claude-0/-home-user/17b2e9bc-48f2-5e68-97c2-c4c61a354eb5/scratchpad/wt/grok-sweet-potato-adopt/src/features/fish-legal/reg-data-parity.test.ts
   16:10  warning  'MASSACHUSETTS' is defined but never used  @typescript-eslint/no-unused-vars
   17:10  warning  'RHODE_ISLAND' is defined but never used   @typescript-eslint/no-unused-vars
   18:10  warning  'NEW_YORK' is defined but never used       @typescript-eslint/no-unused-vars
@@ -157,13 +159,13 @@ migrations: 61 unique versions.
 > vitest run
 
 
- RUN  v4.1.11 /home/user/wt-139
+ RUN  v4.1.11 /tmp/claude-0/-home-user/17b2e9bc-48f2-5e68-97c2-c4c61a354eb5/scratchpad/wt/grok-sweet-potato-adopt
 
 
  Test Files  98 passed (98)
       Tests  1087 passed (1087)
-   Start at  16:47:07
-   Duration  9.28s (transform 3.93s, setup 0ms, import 6.95s, tests 2.81s, environment 12ms)
+   Start at  17:37:18
+   Duration  8.18s (transform 3.82s, setup 0ms, import 6.37s, tests 2.47s, environment 10ms)
 
 [exit 0]
 
@@ -182,18 +184,18 @@ Wrote src/app/tokens.generated.css
 > next build
 
 ▲ Next.js 16.3.3 (Turbopack)
-✓ Running next.config.ts took 27ms
+✓ Running next.config.ts took 24ms
 
   Creating an optimized production build ...
-✓ Compiled successfully in 20.2s
+✓ Compiled successfully in 17.9s
   Running TypeScript ...
-  Finished TypeScript in 12.3s ...
+  Finished TypeScript in 10.8s ...
   Collecting page data using 3 workers ...
   Generating static pages using 3 workers (0/53) ...
   Generating static pages using 3 workers (13/53) 
   Generating static pages using 3 workers (26/53) 
   Generating static pages using 3 workers (39/53) 
-✓ Generating static pages using 3 workers (53/53) in 861ms
+✓ Generating static pages using 3 workers (53/53) in 769ms
   Finalizing page optimization ...
 
 Route (app)
