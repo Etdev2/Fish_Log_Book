@@ -11,6 +11,7 @@ import { clusterCatchMarkers, type CatchMarkerInput } from "../catch-markers";
 import {
   DEFAULT_CHART_HEIGHT,
   MIN_CHART_HEIGHT,
+  MS_PER_PIXEL,
   PLOT_TOP,
   atFromScrollLeft,
   chartWidthFor,
@@ -80,6 +81,9 @@ export function TideTimeline({
   series,
   seriesStart,
   seriesEnd,
+  rangeStart,
+  rangeEnd,
+  yDomain,
   unit,
   displayTimeZone,
   stationTimeZone,
@@ -95,9 +99,16 @@ export function TideTimeline({
   nowAction,
 }: {
   ref?: React.Ref<TideTimelineHandle>;
+  /** The slice being DRAWN — a few days around the read-head, not the whole range. */
   series: TidePredictionSeries;
   seriesStart: number;
   seriesEnd: number;
+  /** The whole range the angler can scroll through (today ± 730 days). Only the scroll
+   *  extent is this wide; nothing outside the drawn slice is rendered. */
+  rangeStart: number;
+  rangeEnd: number;
+  /** Fixed height scale for the whole range, so the curve never rescales mid-scroll. */
+  yDomain: { min: number; max: number };
   unit: UnitPreference;
   displayTimeZone: string;
   stationTimeZone: string;
@@ -135,10 +146,14 @@ export function TideTimeline({
   const chartHeight = Math.max(MIN_CHART_HEIGHT, box.height);
   const plotHeight = plotHeightFor(chartHeight);
   const plotBottom = PLOT_TOP + plotHeight;
+  // The track is as wide as the whole range (that is what makes the scroll continuous); the
+  // svg is only as wide as the slice drawn, and sits at that slice's place on the track.
+  const trackWidth = chartWidthFor(rangeStart, rangeEnd);
   const chartWidth = chartWidthFor(seriesStart, seriesEnd);
+  const sliceOffset = (seriesStart - rangeStart) / MS_PER_PIXEL;
   const padInline = box.width / 2;
   const xFor = (at: number) => xForAt(at, seriesStart);
-  const clampAt = (at: number) => Math.round(Math.max(seriesStart, Math.min(seriesEnd, at)));
+  const clampAt = (at: number) => Math.round(Math.max(rangeStart, Math.min(rangeEnd, at)));
 
   // Catches cluster only when their marks would print on top of each other at this
   // scale (founder §6). `xFor` closes over `seriesStart`, so that edge is the dep.
@@ -149,12 +164,9 @@ export function TideTimeline({
   );
 
   const { yMinimum, yMaximum } = useMemo(() => {
-    const heights = series.samples.map((s) => Number(s.height));
-    const low = Math.min(...heights);
-    const high = Math.max(...heights);
-    const pad = (high - low) * 0.2;
-    return { yMinimum: low - pad, yMaximum: high + pad };
-  }, [series]);
+    const pad = (yDomain.max - yDomain.min) * 0.2;
+    return { yMinimum: yDomain.min - pad, yMaximum: yDomain.max + pad };
+  }, [yDomain.min, yDomain.max]);
   const yFor = useMemo(
     () => makeYFor(yMinimum, yMaximum, chartHeight),
     [yMinimum, yMaximum, chartHeight],
@@ -198,7 +210,7 @@ export function TideTimeline({
     if (!scroller) return;
     const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     scroller.scrollTo({
-      left: scrollLeftFor(clampAt(at), seriesStart),
+      left: scrollLeftFor(clampAt(at), rangeStart),
       behavior: smooth && !reducedMotion ? "smooth" : "auto",
     });
   };
@@ -229,7 +241,7 @@ export function TideTimeline({
     if (box.width === 0) return;
     scrollToAt(selectedAtRef.current, false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [box.width, seriesStart]);
+  }, [box.width, rangeStart]);
 
   useEffect(
     () => () => {
@@ -244,7 +256,7 @@ export function TideTimeline({
       scrollFrameRef.current = null;
       const scroller = scrollerRef.current;
       if (!scroller) return;
-      onSelectedAtChange(clampAt(atFromScrollLeft(scroller.scrollLeft, seriesStart)));
+      onSelectedAtChange(clampAt(atFromScrollLeft(scroller.scrollLeft, rangeStart)));
     });
   };
 
@@ -266,8 +278,8 @@ export function TideTimeline({
         role="slider"
         aria-label="Tide timeline. Swipe sideways to move through time; the reading under the centre line updates as you go. Left and right arrows step 15 minutes."
         aria-valuemin={0}
-        aria-valuemax={Math.round(seriesEnd - seriesStart)}
-        aria-valuenow={Math.round(selectedAt - seriesStart)}
+        aria-valuemax={Math.round(rangeEnd - rangeStart)}
+        aria-valuenow={Math.round(selectedAt - rangeStart)}
         aria-valuetext={valueText}
         onScroll={handleScroll}
         onPointerDown={(event) => {
@@ -307,17 +319,18 @@ export function TideTimeline({
             scrollToAt(selectedAt - step, false);
           } else if (event.key === "Home") {
             event.preventDefault();
-            scrollToAt(seriesStart, false);
+            scrollToAt(rangeStart, false);
           } else if (event.key === "End") {
             event.preventDefault();
-            scrollToAt(seriesEnd, false);
+            scrollToAt(rangeEnd, false);
           }
         }}
       >
-        <div className="tide-timeline-track" style={{ paddingInline: `${padInline}px` }}>
+        <div className="tide-timeline-track" style={{ paddingInline: `${padInline}px`, width: `${trackWidth + 2 * padInline}px` }}>
           <svg
             width={chartWidth}
             height={chartHeight}
+            style={{ marginLeft: `${sliceOffset}px` }}
             role="img"
             aria-label={`Continuous tide prediction for ${series.station.name} across the loaded window, with labelled highs and lows, daylight and night shading, and sunrise and sunset markers on the curve.`}
           >

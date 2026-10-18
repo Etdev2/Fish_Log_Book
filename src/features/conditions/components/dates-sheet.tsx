@@ -33,6 +33,7 @@ export function DatesSheet({
   stationTimeZone,
   range,
   onPickDate,
+  coverage,
 }: {
   open: boolean;
   onClose: () => void;
@@ -43,6 +44,12 @@ export function DatesSheet({
   /** The whole loaded range as station `YYYY-MM-DD` dates, for the picker. */
   range?: { min: string; max: string; value: string };
   onPickDate?: (value: string) => void;
+  /** What is actually stored on this device, as station `YYYY-MM-DD` dates. */
+  coverage?: {
+    turns: { from: string; to: string } | null;
+    hourly: readonly { from: string; to: string }[];
+    source: string;
+  };
 }) {
   const railRef = useRef<HTMLDivElement>(null);
 
@@ -62,14 +69,27 @@ export function DatesSheet({
 
   return (
     <ConditionsSheet open={open} onClose={onClose} eyebrow="Dates" title="Cached days">
+      {coverage?.turns ? (
+        <>
+          <p className="tide-sheet-note">
+            Saved on this device: every high and low from {coverage.turns.from} to {coverage.turns.to}
+            {coverage.source === "fixture" ? " (bundled sample, not a live reading)" : ""}.
+          </p>
+          <p className="tide-sheet-note">
+            {coverage.hourly.length > 0
+              ? `Hourly detail saved for: ${coverage.hourly.map((span) => `${span.from} to ${span.to}`).join("; ")}. It loads as you scroll; elsewhere the curve runs between the highs and lows only.`
+              : "Hourly detail loads as you scroll; until it does the curve runs between the highs and lows only."}
+          </p>
+        </>
+      ) : null}
       <p className="tide-sheet-note">
         {first && last
-          ? `${monthDay(instant(first.from), stationTimeZone)}–${monthDay(instant(last.to), stationTimeZone)}, station dates. Use the date picker for any other day.`
+          ? `Showing ${monthDay(instant(first.from), stationTimeZone)}–${monthDay(instant(last.to), stationTimeZone)} around the selected day. Use the date picker for any other day.`
           : "No days are loaded."}
       </p>
       {range && onPickDate ? (
         <label className="tide-sheet-note">
-          Jump to any date through {range.max}:{" "}
+          Jump to any date from {range.min} through {range.max}:{" "}
           <input
             type="date"
             min={range.min}

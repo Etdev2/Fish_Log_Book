@@ -63,11 +63,28 @@ describe("chunking a long range (ADR 011: no request over one year)", () => {
     expect(chunkRange(from, from + 6 * DAY)).toHaveLength(1);
   });
 
-  it("splits today -2 d … today +365 d into two requests, none over 365 days", () => {
+  it("splits an hourly span of today -730 d … today +730 d into five requests, none over 365 days", () => {
     const today = Date.UTC(2026, 9, 18, 15, 30);
-    const chunks = chunkRange(today - 2 * DAY, today + HORIZON_DAYS * DAY);
-    expect(chunks).toHaveLength(2);
-    for (const c of chunks) expect(days(c)).toBeLessThanOrEqual(MAX_REQUEST_DAYS);
+    const chunks = chunkRange(today - HORIZON_DAYS * DAY, today + HORIZON_DAYS * DAY, MAX_REQUEST_DAYS.h);
+    expect(chunks).toHaveLength(5);
+    for (const c of chunks) expect(days(c)).toBeLessThanOrEqual(MAX_REQUEST_DAYS.h);
+    // Both ends of the range are inside a chunk: −730 d and +730 d.
+    expect(chunks[0].fromMs).toBe(Math.floor((today - 730 * DAY) / DAY) * DAY);
+    expect(chunks[chunks.length - 1].toMs).toBe(Math.floor((today + 730 * DAY) / DAY) * DAY);
+  });
+
+  it("asks for the whole ±730-day high/low span in ONE request (limit 3,650 days)", () => {
+    const today = Date.UTC(2026, 9, 18, 15, 30);
+    const chunks = chunkRange(today - HORIZON_DAYS * DAY, today + HORIZON_DAYS * DAY, MAX_REQUEST_DAYS.hilo);
+    expect(chunks).toHaveLength(1);
+    expect(days(chunks[0])).toBe(1461);
+    expect(days(chunks[0])).toBeLessThanOrEqual(MAX_REQUEST_DAYS.hilo);
+  });
+
+  it("splits a high/low span only past 3,650 days", () => {
+    const from = Date.UTC(2026, 0, 1);
+    expect(chunkRange(from, from + 3649 * DAY, MAX_REQUEST_DAYS.hilo)).toHaveLength(1);
+    expect(chunkRange(from, from + 3650 * DAY, MAX_REQUEST_DAYS.hilo)).toHaveLength(2);
   });
 
   it("covers every day with no gap and no overlap, across the year boundary", () => {
@@ -84,19 +101,20 @@ describe("chunking a long range (ADR 011: no request over one year)", () => {
 
   it("allows exactly 365 days in one request and splits at 366", () => {
     const from = Date.UTC(2026, 0, 1);
-    expect(chunkRange(from, from + 364 * DAY)).toHaveLength(1);
-    expect(chunkRange(from, from + 365 * DAY)).toHaveLength(2);
+    expect(chunkRange(from, from + 364 * DAY, MAX_REQUEST_DAYS.h)).toHaveLength(1);
+    expect(chunkRange(from, from + 365 * DAY, MAX_REQUEST_DAYS.h)).toHaveLength(2);
   });
 });
 
 describe("the fetch window", () => {
-  it("asks for hourly across the near week and turns a year out", () => {
+  it("asks for hourly −2 d … +7 d and high/lows −730 d … +730 d", () => {
     const now = Date.UTC(2026, 9, 18, 12);
     const w = windowAround(now);
     expect(w.fromMs).toBe(now - 2 * DAY);
-    expect(w.toMs).toBe(now + 5 * DAY);
-    expect(w.turnsToMs).toBe(now + 365 * DAY);
-    for (const c of chunkRange(w.fromMs, w.turnsToMs)) expect(days(c)).toBeLessThanOrEqual(365);
-    for (const c of chunkRange(w.fromMs, w.toMs)) expect(days(c)).toBeLessThanOrEqual(365);
+    expect(w.toMs).toBe(now + 7 * DAY);
+    expect(w.turnsFromMs).toBe(now - 730 * DAY);
+    expect(w.turnsToMs).toBe(now + 730 * DAY);
+    expect(chunkRange(w.turnsFromMs, w.turnsToMs, MAX_REQUEST_DAYS.hilo)).toHaveLength(1);
+    expect(chunkRange(w.fromMs, w.toMs, MAX_REQUEST_DAYS.h)).toHaveLength(1);
   });
 });

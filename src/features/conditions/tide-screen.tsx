@@ -30,8 +30,17 @@ import { DatesSheet, type CalendarDay } from "./components/dates-sheet";
 import { MoonDetailsSheet } from "./components/moon-details-sheet";
 import { StationDetailsSheet } from "./components/station-details-sheet";
 import { TideDetailsSheet } from "./components/tide-details-sheet";
-import { localDayIndex, localMidnights, zonedMidnightUtc, zonedYmd } from "./tide-chart-geometry";
-import { inWindow, sliceSeries, viewWindowAround } from "./tide-view-window";
+import {
+  localDayIndex,
+  localMidnights,
+  shiftStationDay,
+  stationDayBounds,
+  zonedMidnightUtc,
+  zonedYmd,
+} from "./tide-chart-geometry";
+import { renderWindowAround, windowSeries } from "./tide-view-window";
+import { coverageOf } from "./queries/cache-coverage";
+import { useHourlyBlocks } from "./queries/use-hourly-blocks";
 import type { CatchMarkerInput } from "./catch-markers";
 import {
   clock,
@@ -53,6 +62,11 @@ type SheetName = "station" | "moon" | "tide" | "dates";
 const AT_NOW_TOLERANCE_MS = 60_000;
 
 const DAY_MS = 24 * 60 * 60 * 1000;
+
+/** Days either side of the read-head the Dates sheet's chip rail lists. */
+const DATES_RAIL_DAYS = 45;
+/** A jump longer than this snaps instead of gliding — a glide across years is a long wait. */
+const SMOOTH_SCROLL_MAX_MS = 3 * DAY_MS;
 
 /**
  * The tide screen: one screen, no vertical scrolling, the curve as the instrument.
@@ -89,43 +103,7 @@ export function TideScreen() {
   if (tideData.series === null || tideData.series.samples.length === 0) {
     return <TideUnavailable reading={tideData} />;
   }
-  return <TideWindowed key={tideData.series.station.id} tideData={tideData} series={tideData.series} />;
-}
-
-/**
- * The loaded series runs about a year ahead; the chart draws a week of it. This owns which
- * week: it starts around today and moves when the angler steps past either edge, picks a
- * date, or taps Now. Changing week remounts the chart (keyed on the window start), which
- * re-centres the timeline on the requested instant.
- */
-function TideWindowed({ tideData, series }: { tideData: TideReading; series: TidePredictionSeries }) {
-  const now = useNow();
-  const [anchor, setAnchor] = useState<number | null>(null);
-
-  const start = Number(series.samples[0].at);
-  const end = Number(series.samples[series.samples.length - 1].at);
-  const nowMs = now === null ? null : Number(now);
-  // Day-quantised so the 30-second clock never slides the window under the chart.
-  const defaultCentre =
-    nowMs !== null && nowMs >= start && nowMs <= end
-      ? Math.floor(nowMs / DAY_MS) * DAY_MS + DAY_MS / 2
-      : Math.max(start, Math.min(end, Number(TIDE_SELECTED_AT)));
-  const centre = anchor ?? defaultCentre;
-
-  const week = useMemo(() => viewWindowAround(centre, start, end), [centre, start, end]);
-  const view = useMemo(() => sliceSeries(series, week), [series, week]);
-
-  return (
-    <TideChartScreen
-      key={week.from}
-      tideData={tideData}
-      series={view}
-      fullStart={start}
-      fullEnd={end}
-      initialAt={anchor}
-      onMoveTo={setAnchor}
-    />
-  );
+  return <TideChartScreen key={tideData.series.station.id} tideData={tideData} baseSeries={tideData.series} />;
 }
 
 function TideUnavailable({ reading }: { reading: TideReading }) {
@@ -156,24 +134,13 @@ function TideUnavailable({ reading }: { reading: TideReading }) {
   );
 }
 
-function TideChartScreen({
-  tideData,
-  series,
-  fullStart,
-  fullEnd,
-  initialAt: requestedAt,
-  onMoveTo,
-}: {
-  tideData: TideReading;
-  /** The week being drawn. */
-  series: TidePredictionSeries;
-  /** The whole loaded range the angler can move through. */
-  fullStart: number;
-  fullEnd: number;
-  /** Set when the angler moved the week: open on this instant instead of on now. */
-  initialAt: number | null;
-  onMoveTo: (at: number) => void;
-}) {
+/**
+ * `baseSeries` is everything on the device: high/lows across the whole range (today ± 730
+ * days) plus the near week of hourly points. The chart scrolls across all of it, but only
+ * a few days around the read-head are drawn (`series` below), with real hourly predictions
+ * for that stretch loaded on demand.
+ */
+function TideChartScreen({ tideData, baseSeries }: { tideData: TideReading; baseSeries: TidePredictionSeries }) {
   const stationZone = tideData.station?.timeZone ?? STATION_TIME_ZONE;
   const stationLocation = useMemo(
     () =>
@@ -186,12 +153,9 @@ function TideChartScreen({
     [tideData.station],
   );
 
-  const hasSamples = series.samples.length > 0;
-  const seriesStart = hasSamples ? Number(series.samples[0].at) : 0;
-  const seriesEnd = hasSamples ? Number(series.samples[series.samples.length - 1].at) : 0;
-  const initialAt = hasSamples
-    ? Math.max(seriesStart, Math.min(seriesEnd, requestedAt ?? Number(TIDE_SELECTED_AT)))
-    : 0;
+  const fullStart = Number(baseSeries.samples[0].at);
+  const fullEnd = Number(baseSeries.samples[baseSeries.samples.length - 1].at);
+  const initialAt = Math.max(fullStart, Math.min(fullEnd, Number(TIDE_SELECTED_AT)));
 
   const [unit] = useUnitPreference();
   const now = useNow();
@@ -206,23 +170,45 @@ function TideChartScreen({
   const [selectedAt, setSelectedAt] = useState(initialAt);
   const [sheet, setSheet] = useState<SheetName | null>(null);
   const timelineRef = useRef<TideTimelineHandle>(null);
-  const anchoredToNowRef = useRef(requestedAt !== null);
+  const anchoredToNowRef = useRef(false);
 
   const nowMs = now === null ? null : Number(now);
-  const nowWithinRange = nowMs !== null && nowMs >= fullStart && nowMs <= fullEnd;
-  const currentAt = nowWithinRange ? nowMs : null;
-  const nowInView = currentAt !== null && currentAt >= seriesStart && currentAt <= seriesEnd;
+  const currentAt = nowMs !== null && nowMs >= fullStart && nowMs <= fullEnd ? nowMs : null;
   const atNow = currentAt !== null && Math.abs(selectedAt - currentAt) < AT_NOW_TOLERANCE_MS;
+
+  // Only a few days around the read-head are drawn. The slice moves in two-day steps, so
+  // `renderFrom/renderTo` change rarely and the curve is not rebuilt on every scroll frame.
+  const renderWindow = renderWindowAround(selectedAt, fullStart, fullEnd);
+  const renderFrom = renderWindow.from;
+  const renderTo = renderWindow.to;
+  const hourly = useHourlyBlocks(baseSeries.station.id, renderFrom, renderTo, tideData.source !== "fixture");
+  const series = useMemo(
+    () => windowSeries(baseSeries, hourly.samples, { from: renderFrom, to: renderTo }),
+    [baseSeries, hourly.samples, renderFrom, renderTo],
+  );
+  const seriesStart = Number(series.samples[0].at);
+  const seriesEnd = Number(series.samples[series.samples.length - 1].at);
+  // One height scale for the whole range, so the curve does not rescale as the slice moves.
+  const yDomain = useMemo(() => {
+    let min = Number.POSITIVE_INFINITY;
+    let max = Number.NEGATIVE_INFINITY;
+    for (const sample of baseSeries.samples) {
+      const h = Number(sample.height);
+      if (h < min) min = h;
+      if (h > max) max = h;
+    }
+    return { min, max };
+  }, [baseSeries]);
 
   // First paint centres on the fixture's own anchor (SSR-safe, no clock). The moment the
   // real clock arrives on the client, the timeline re-centres on now — once, so it never
   // yanks the chart back out from under someone who has already started scrubbing.
   useEffect(() => {
-    if (anchoredToNowRef.current || currentAt === null || !nowInView) return;
+    if (anchoredToNowRef.current || currentAt === null) return;
     anchoredToNowRef.current = true;
     setSelectedAt(currentAt);
     timelineRef.current?.scrollToAt(currentAt, false);
-  }, [currentAt, nowInView]);
+  }, [currentAt]);
 
   const dayBoundaries = useMemo(
     () => [seriesStart, ...localMidnights(seriesStart, seriesEnd, stationZone)],
@@ -250,19 +236,30 @@ function TideChartScreen({
         .filter((m) => m.at >= seriesStart && m.at <= seriesEnd),
     [log.catches, seriesStart, seriesEnd],
   );
-  const calendarDays: CalendarDay[] = useMemo(
-    () =>
-      dayBoundaries.map((from, index) => {
-        const to = dayBoundaries[index + 1] ?? seriesEnd;
-        const anchor = Math.round(from + (to - from) / 2);
-        return { from, to, anchor, moon: moonPhaseAt(instant(anchor)) };
-      }),
-    [dayBoundaries, seriesEnd],
-  );
+  // The station day the read-head is in. Days are looked up from the instant, never counted
+  // from the start of the drawn slice, because the slice moves.
+  const day = stationDayBounds(selectedAt, stationZone);
 
-  const dayIndex = localDayIndex(selectedAt, seriesStart, stationZone);
-  const day = calendarDays[dayIndex] ?? calendarDays[0];
-  const finalDayIndex = calendarDays.length - 1;
+  // The Dates sheet lists the days around the read-head — a month and a half either way —
+  // rather than all ~1,460. Built only while the sheet is open; the picker reaches the rest.
+  const sheetDayZero = sheet === "dates" ? day.from : null;
+  const calendarDays: CalendarDay[] = useMemo(() => {
+    if (sheetDayZero === null) return [];
+    const lo = Math.max(fullStart, sheetDayZero - DATES_RAIL_DAYS * DAY_MS);
+    const hi = Math.min(fullEnd, sheetDayZero + DATES_RAIL_DAYS * DAY_MS);
+    const boundaries = [lo, ...localMidnights(lo, hi, stationZone)];
+    return boundaries.map((from, index) => {
+      const to = boundaries[index + 1] ?? hi;
+      const anchor = Math.round(from + (to - from) / 2);
+      return { from, to, anchor, moon: moonPhaseAt(instant(anchor)) };
+    });
+  }, [sheetDayZero, fullStart, fullEnd, stationZone]);
+  const dayIndex = calendarDays.length === 0 ? 0 : localDayIndex(selectedAt, calendarDays[0].from, stationZone);
+  const dayCount = localDayIndex(fullEnd, fullStart, stationZone) + 1;
+  const cachedCoverage = useMemo(
+    () => coverageOf(baseSeries, hourly.cachedBlocks),
+    [baseSeries, hourly.cachedBlocks],
+  );
 
   const spans = useMemo(
     () => daylightSpans(instant(seriesStart), instant(seriesEnd), stationLocation),
@@ -308,45 +305,23 @@ function TideChartScreen({
       ? `${formatHeight(selectedHeightForText, unit)} at ${clock(instant(selectedAt), displayTimeZone)}, ${dayLabel(instant(selectedAt), displayTimeZone)}${phaseNote}`
       : `No tide prediction at ${clock(instant(selectedAt), displayTimeZone)}, ${dayLabel(instant(selectedAt), displayTimeZone)}${phaseNote}`;
 
+  /** Move the read-head anywhere in the range. The timeline scrolls there; the drawn slice follows. */
   const goToAt = (at: number) => {
     const clamped = Math.round(Math.max(fullStart, Math.min(fullEnd, at)));
-    // Outside the week on screen but inside the loaded year: move the week.
-    if (!inWindow(clamped, { from: seriesStart, to: seriesEnd })) {
-      onMoveTo(clamped);
-      return;
-    }
+    const glide = Math.abs(clamped - selectedAt) <= SMOOTH_SCROLL_MAX_MS;
     setSelectedAt(clamped);
-    timelineRef.current?.scrollToAt(clamped, true);
+    timelineRef.current?.scrollToAt(clamped, glide);
   };
 
-  if (!hasSamples) {
-    return (
-      <section className="tide-screen">
-        {/* The immersive canvas has no visible title; keep the page named for outline and screen readers. */}
-        <h1 className="sr-only">Tide</h1>
-        <div className="tide-empty">
-          <p className="tide-empty-title">No tide predictions loaded</p>
-          <p className="tide-empty-note">
-            The prediction window is empty. Check the station feed and try again.
-          </p>
-        </div>
-      </section>
-    );
-  }
+  /** Same station clock time, `delta` calendar days over — calendar arithmetic, so a
+   *  daylight-saving change in between does not also move the hour. */
+  const stepDay = (delta: number) => goToAt(shiftStationDay(selectedAt, delta, stationZone));
 
-  /** Same clock time, one station day over — so stepping days does not also move the hour. */
+  /** A chip on the Dates sheet: the same clock time on that day. */
   const goToDay = (index: number) => {
     const target = calendarDays[index];
     if (!target) return;
-    const offsetInDay = selectedAt - day.from;
-    goToAt(Math.min(target.from + offsetInDay, target.to - 1));
-  };
-
-  /** One station day either way; past the week on screen this moves the week. */
-  const stepDay = (delta: 1 | -1) => {
-    const index = dayIndex + delta;
-    if (index >= 0 && index <= finalDayIndex) goToDay(index);
-    else goToAt(selectedAt + delta * DAY_MS);
+    stepDay(localDayIndex(target.anchor, selectedAt, stationZone));
   };
 
   /** A `YYYY-MM-DD` station date from the picker, opened at station-local noon. */
@@ -506,7 +481,7 @@ function TideChartScreen({
           type="button"
           className="tide-step-button"
           aria-label="Previous day"
-          disabled={dayIndex <= 0 && day.from <= fullStart}
+          disabled={day.from <= fullStart}
           onClick={() => stepDay(-1)}
         >
           <span aria-hidden="true">‹</span>
@@ -519,7 +494,7 @@ function TideChartScreen({
           type="button"
           className="tide-step-button"
           aria-label="Next day"
-          disabled={dayIndex >= finalDayIndex && day.to >= fullEnd}
+          disabled={day.to > fullEnd}
           onClick={() => stepDay(1)}
         >
           <span aria-hidden="true">›</span>
@@ -531,6 +506,9 @@ function TideChartScreen({
         series={series}
         seriesStart={seriesStart}
         seriesEnd={seriesEnd}
+        rangeStart={fullStart}
+        rangeEnd={fullEnd}
+        yDomain={yDomain}
         unit={unit}
         displayTimeZone={displayTimeZone}
         stationTimeZone={stationZone}
@@ -559,9 +537,9 @@ function TideChartScreen({
         stationTimeZone={stationZone}
         displayTimeZone={displayTimeZone}
         selectedAt={selectedAt}
-        seriesStart={seriesStart}
-        seriesEnd={seriesEnd}
-        dayCount={calendarDays.length}
+        seriesStart={fullStart}
+        seriesEnd={fullEnd}
+        dayCount={dayCount}
         now={now}
       />
       <MoonDetailsSheet
@@ -593,6 +571,12 @@ function TideChartScreen({
         stationTimeZone={stationZone}
         range={{ min: ymdText(fullStart), max: ymdText(fullEnd), value: ymdText(selectedAt) }}
         onPickDate={goToDate}
+        coverage={{
+          turns: cachedCoverage.turns === null ? null : { from: ymdText(cachedCoverage.turns.fromMs), to: ymdText(cachedCoverage.turns.toMs) },
+          // A span is [from, to): its last day is the one before `to`.
+          hourly: cachedCoverage.hourly.map((span) => ({ from: ymdText(span.fromMs), to: ymdText(span.toMs - 1) })),
+          source: tideData.source,
+        }}
       />
     </section>
   );

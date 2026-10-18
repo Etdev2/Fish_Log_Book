@@ -11,7 +11,7 @@
 import type { Instant, Millis, Metres, MetresPerHour, Sourced } from "@/core/units";
 import { metres, metresPerHour, sourced } from "@/core/units";
 import type { TidePredictionSample, TidePredictionSeries } from "./source";
-import { RATE_WINDOW } from "./constants";
+import { RATE_WINDOW, HOURLY_GAP } from "./constants";
 
 /** Fritsch–Carlson tangents, one per sample, cached per `samples` array identity. */
 const tangentCache = new WeakMap<readonly TidePredictionSample[], readonly number[]>();
@@ -74,6 +74,21 @@ function floorIndex(samples: readonly TidePredictionSample[], at: Instant): numb
   return lo;
 }
 
+/**
+ * What an interpolated value was drawn between. Samples no more than `HOURLY_GAP` apart are
+ * NOAA's hourly predictions (plus exact turns slotted between them); a wider gap means only
+ * the high/low turns, about six hours apart, were available there.
+ */
+function bracketKind(samples: readonly TidePredictionSample[], at: Instant): "hourly" | "turns-only" {
+  const i = Math.min(floorIndex(samples, at), samples.length - 2);
+  return samples[i + 1].at - samples[i].at <= HOURLY_GAP ? "hourly" : "turns-only";
+}
+
+const BETWEEN: Record<"hourly" | "turns-only", string> = {
+  hourly: "between NOAA hourly prediction samples",
+  "turns-only": "between NOAA high/low turns only (no hourly samples are loaded for this time)",
+};
+
 function hermite(
   s0: TidePredictionSample,
   s1: TidePredictionSample,
@@ -111,7 +126,7 @@ export function heightAt(s: TidePredictionSeries, at: Instant): Sourced<Metres> 
   return sourced(
     metres(value),
     "interpolated",
-    "Interpolated between NOAA prediction samples with a shape-preserving monotone curve.",
+    `Interpolated ${BETWEEN[bracketKind(samples, at)]}, with a shape-preserving monotone curve.`,
   );
 }
 
@@ -144,9 +159,11 @@ export function rateAt(
   const durationHours = (highAt - lowAt) / 3_600_000;
   const rate = (highHeight.value - lowHeight.value) / durationHours;
   const clamped = highAt - lowAt < w ? " (window clamped to the loaded prediction range)" : "";
+  // The rate is only as good as the coarser of the two heights it differences.
+  const turnsOnly = bracketKind(samples, lowAt) === "turns-only" || bracketKind(samples, highAt) === "turns-only";
   return sourced(
     metresPerHour(rate),
     "interpolated",
-    `Centred finite difference over the monotone height curve${clamped}.`,
+    `Centred finite difference over the monotone height curve ${BETWEEN[turnsOnly ? "turns-only" : "hourly"]}${clamped}.`,
   );
 }

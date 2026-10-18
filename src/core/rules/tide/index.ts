@@ -7,7 +7,7 @@ export { tideSeries } from "./source";
 export { heightAt, rateAt } from "./height";
 export { turnsIn, nextTurnAfter, previousTurnBefore, nextSlackAfter } from "./turns";
 export type { TideTurn, SlackWindow } from "./turns";
-export { dailyRange, readTideAt } from "./state";
+export { dailyRange, readTideAt, paceBaselineAround } from "./state";
 export type { TideMotion, TideReading } from "./index-types";
 export { paceAt, PACE_BANDS } from "./pace";
 export type { PaceClass, PaceBand, PaceBaseline, TidePace } from "./pace";

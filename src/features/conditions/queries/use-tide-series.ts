@@ -7,8 +7,11 @@ import type { TidePredictionSeries } from "@/core/rules/tide";
 import { useTideStationPreference } from "../station-preference";
 import { DEFAULT_STATION_ID, stationById, type TideStation } from "../stations";
 import { fetchTideSeries, HORIZON_DAYS } from "./noaa-tides";
+import { coversWindow } from "./cache-coverage";
 import { CACHE_FRESH_MS, readTideCache, writeTideCache } from "./tide-cache";
 import { loadTideSeriesFixture } from "./tide-series";
+
+const DAY_MS = 24 * 60 * 60 * 1000;
 
 /**
  * Where the numbers on the chart came from. Shown to the angler, not just logged.
@@ -40,15 +43,16 @@ export interface TideReading {
 }
 
 /**
- * Hourly curve for the near week; high/low turns from two days back to a year ahead
- * (ADR 011). Predictions are astronomical, so far dates are as good as near ones.
+ * What is fetched up front: hourly for the near week (−2 d … +7 d, ADR 011) and high/low
+ * turns for ±730 days. Predictions are astronomical, so far dates are as good as near ones.
+ * Hourly detail anywhere else loads lazily as the chart scrolls there (`use-hourly-blocks`).
  */
 export function windowAround(nowMs: number) {
-  const day = 24 * 60 * 60 * 1000;
   return {
-    fromMs: nowMs - 2 * day,
-    toMs: nowMs + 5 * day,
-    turnsToMs: nowMs + HORIZON_DAYS * day,
+    fromMs: nowMs - 2 * DAY_MS,
+    toMs: nowMs + 7 * DAY_MS,
+    turnsFromMs: nowMs - HORIZON_DAYS * DAY_MS,
+    turnsToMs: nowMs + HORIZON_DAYS * DAY_MS,
   };
 }
 
@@ -71,12 +75,17 @@ async function resolveSeries(
   const now = Date.now();
   const cached = readTideCache(station.id);
 
-  if (cached !== null && ageOf(cached, now) < CACHE_FRESH_MS) {
+  const wanted = windowAround(now);
+  if (
+    cached !== null &&
+    ageOf(cached, now) < CACHE_FRESH_MS &&
+    coversWindow(cached, wanted.turnsFromMs, wanted.turnsToMs)
+  ) {
     return { stationId: station.id, series: cached, source: "cache", stale: false, error: null };
   }
 
   try {
-    const series = await fetchTideSeries(station, windowAround(now), signal);
+    const series = await fetchTideSeries(station, wanted, signal);
     writeTideCache(series);
     return { stationId: station.id, series, source: "live", stale: false, error: null };
   } catch (cause) {

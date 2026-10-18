@@ -4,6 +4,12 @@ import { millis, metresPerHour } from "@/core/units";
 /** Centred window for `rateAt`'s finite difference, unless overridden. */
 export const RATE_WINDOW: Millis = millis(60 * 60_000);
 
+/** Samples this close are NOAA's hourly predictions (with exact turns slotted between). */
+export const HOURLY_GAP: Millis = millis(65 * 60_000);
+
+/** A reading's pace is ranked against this much of the series, centred on the read instant. */
+export const PACE_BASELINE: Millis = millis(7 * 24 * 60 * 60_000);
+
 /** Below this |rate|, motion is classified `"slack"`. */
 export const SLACK_BELOW: MetresPerHour = metresPerHour(0.05);
 

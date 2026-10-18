@@ -75,7 +75,16 @@ function dayNumber({ y, m, d }: { y: number; m: number; d: number }): number {
  *  for the case where the naive guess and the real instant land in different UTC offsets
  *  (i.e. the guess itself straddles a DST transition). */
 export function zonedMidnightUtc(ymd: { y: number; m: number; d: number }, timeZone: string): number {
-  const guess = Date.UTC(ymd.y, ymd.m - 1, ymd.d, 0, 0, 0);
+  return zonedInstantUtc({ ...ymd, hour: 0, minute: 0, second: 0 }, timeZone);
+}
+
+/** The UTC instant of a wall-clock time on a zone's calendar date (same DST correction as
+ *  `zonedMidnightUtc`). A time that does not exist that day lands on the nearest real one. */
+export function zonedInstantUtc(
+  wall: { y: number; m: number; d: number; hour: number; minute: number; second: number },
+  timeZone: string,
+): number {
+  const guess = Date.UTC(wall.y, wall.m - 1, wall.d, wall.hour, wall.minute, wall.second);
   const offsetAt = (ts: number) => {
     const p = zonedYmdWithTime(ts, timeZone);
     return Date.UTC(p.y, p.m - 1, p.d, p.hour, p.minute, p.second) - ts;
@@ -99,6 +108,32 @@ function zonedYmdWithTime(at: number, timeZone: string) {
   }).formatToParts(new Date(at));
   const map = Object.fromEntries(parts.map((p) => [p.type, p.value]));
   return { y: Number(map.year), m: Number(map.month), d: Number(map.day), hour: Number(map.hour), minute: Number(map.minute), second: Number(map.second) };
+}
+
+/**
+ * The same station wall-clock time `delta` calendar days over. Adding 24 h instead would
+ * land an hour off across a daylight-saving change, breaking "same time, next day".
+ */
+export function shiftStationDay(at: number, delta: number, timeZone: string): number {
+  const wall = zonedYmdWithTime(at, timeZone);
+  const day = new Date(Date.UTC(wall.y, wall.m - 1, wall.d + delta));
+  return zonedInstantUtc(
+    { ...wall, y: day.getUTCFullYear(), m: day.getUTCMonth() + 1, d: day.getUTCDate() },
+    timeZone,
+  );
+}
+
+/** Start and end (exclusive) of the station calendar day containing `at`. */
+export function stationDayBounds(at: number, timeZone: string): { from: number; to: number } {
+  const { y, m, d } = zonedYmd(at, timeZone);
+  const next = new Date(Date.UTC(y, m - 1, d + 1));
+  return {
+    from: zonedMidnightUtc({ y, m, d }, timeZone),
+    to: zonedMidnightUtc(
+      { y: next.getUTCFullYear(), m: next.getUTCMonth() + 1, d: next.getUTCDate() },
+      timeZone,
+    ),
+  };
 }
 
 export function xFor(at: number, seriesStart: number): number {
