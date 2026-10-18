@@ -5,13 +5,14 @@
  *
  * The chart shows a week, which always sits inside a single ENSO state, so shading only the
  * week would say nothing. The ribbon shows the years-out context instead: observed episodes
- * in solid colour, CPC outlook months faded and labelled with their probability, and months
+ * in solid colour, CPC outlook months hatched and labelled with their probability, and months
  * past the outlook left empty as "no forecast".
  *
  * The strip itself is a picture. With two years in a phone-width row, one month is about
  * 12–15px wide, far under the 48px touch floor (`docs/design/03-touch-and-interaction.md`),
  * so months are not tapped on the strip. Instead the row under it steps one month at a time
- * with full-size ◀ ▶ buttons, the strip outlines the month being read, and the detail line
+ * with full-size "Previous month" / "Next month" buttons, the strip outlines the month being
+ * read, and the detail line
  * says its exact state in words. It starts on the month the chart's week sits in.
  */
 import { useMemo, useState } from "react";
@@ -62,7 +63,7 @@ export function stepMonthKey(months: readonly EnsoMonth[], fromKey: string, delt
 }
 
 const STEP =
-  "flex size-touch-floor shrink-0 items-center justify-center rounded-md border border-border-interactive text-label text-text-link disabled:opacity-40 focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-focus-ring";
+  "flex min-h-touch-floor flex-1 items-center justify-center gap-2 rounded-md border border-border-interactive px-3 text-label text-text-link disabled:opacity-40 focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-focus-ring";
 
 export function EnsoRibbon({
   fromMs,
@@ -102,8 +103,9 @@ export function EnsoRibbon({
               className={`h-full min-w-0 ${isSelected ? "outline outline-2 -outline-offset-2 outline-text-primary" : ""}`}
               style={{
                 flex: `${spans[i]} 1 0`,
+                // Outlook months keep their full colour and carry the hatch instead of a fade:
+                // fading pulled El Niño, La Niña and neutral under the 3:1 pair floor.
                 background: m.phase === null ? "transparent" : FILL[m.phase],
-                opacity: m.basis === "outlook" ? 0.55 : 1,
                 backgroundImage:
                   m.basis === "outlook"
                     ? "repeating-linear-gradient(45deg, transparent 0 3px, var(--color-background) 3px 5px)"
@@ -118,27 +120,27 @@ export function EnsoRibbon({
           style={{ left: `${left}%`, width: `${width}%` }}
         />
       </div>
-      <div className="mt-1 flex items-center gap-2">
+      <p aria-live="polite" className="mt-1 text-center text-caption text-text-primary">
+        {selected !== undefined ? monthTitle(selected) : null}
+      </p>
+      {/* Words on the buttons, not just arrows: every icon button carries a visible label
+          that is also its accessible name (docs/design/04-components.md). */}
+      <div className="mt-1 flex gap-2">
         <button
           type="button"
           className={STEP}
-          aria-label="Previous month"
           disabled={selected === undefined || keyOf(selected) === keyOf(months[0])}
           onClick={() => selected && setPicked(stepMonthKey(months, keyOf(selected), -1))}
         >
-          ◀
+          <span aria-hidden="true">◀</span> Previous month
         </button>
-        <p aria-live="polite" className="min-w-0 flex-1 text-center text-caption text-text-primary">
-          {selected !== undefined ? monthTitle(selected) : null}
-        </p>
         <button
           type="button"
           className={STEP}
-          aria-label="Next month"
           disabled={selected === undefined || keyOf(selected) === keyOf(months[months.length - 1])}
           onClick={() => selected && setPicked(stepMonthKey(months, keyOf(selected), 1))}
         >
-          ▶
+          Next month <span aria-hidden="true">▶</span>
         </button>
       </div>
       <figcaption className="mt-1 flex flex-wrap gap-x-3 text-caption text-text-muted">
