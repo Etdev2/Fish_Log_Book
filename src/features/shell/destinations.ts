@@ -45,7 +45,8 @@ export function destinationGroups(): readonly DestinationGroup[] {
     {
       heading: "Your fishing",
       items: [
-        { href: "/", label: "Calendar", blurb: "Your days on the water, and what you caught" },
+        { href: "/", label: "Home", blurb: "Today's tide, your week and your next badge" },
+        { href: "/calendar", label: "Calendar", blurb: "Every day you fished, and what you caught" },
         { href: "/log", label: "Fish Log", blurb: "Every catch, searchable" },
         ...(PASSPORT_V1
           ? [

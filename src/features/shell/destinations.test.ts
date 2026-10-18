@@ -77,8 +77,9 @@ describe("every destination is findable from anywhere", () => {
     ).toEqual([]);
   });
 
-  it("includes the Calendar, which has no directory of its own", () => {
+  it("includes Home, which has no directory of its own, and the Calendar", () => {
     expect(hrefs.has("/")).toBe(true);
+    expect(hrefs.has("/calendar")).toBe(true);
   });
 
   it("points only at routes that exist", () => {
