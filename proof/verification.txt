@@ -47,6 +47,12 @@ ok filename .kube/config: reject
 ok filename nested/.kube/config: reject
 ok filename nested/.KUBE/CONFIG: reject
 ok filename playwright/.auth/user.json: reject
+ok filename .config/gh/hosts.yml: reject
+ok filename .config/gh/hosts.yaml: reject
+ok filename nested/.config/gh/hosts.yml: reject
+ok filename .config/hub: reject
+ok filename .azure/accessTokens.json: reject
+ok filename .terraform.d/credentials.tfrc.json: reject
 ok filename id_rsa: reject
 ok filename id_dsa: reject
 ok filename id_ecdsa: reject
@@ -87,6 +93,8 @@ ok filename .kube/config.example: allow
 ok filename src/private-key.ts: allow
 ok filename docs/private-key-rotation.md: allow
 ok filename src/keystore.ts: allow
+ok filename .config/gh/config.yml: allow
+ok filename docs/gh-hosts.md: allow
 All secret filename cases pass.
 ok   a bundle from the copied writer passes
 ok   evidence named by a pattern fails
@@ -154,8 +162,8 @@ migrations: 61 unique versions.
 
  Test Files  98 passed (98)
       Tests  1087 passed (1087)
-   Start at  16:09:47
-   Duration  9.42s (transform 3.85s, setup 0ms, import 6.89s, tests 2.84s, environment 12ms)
+   Start at  16:47:07
+   Duration  9.28s (transform 3.93s, setup 0ms, import 6.95s, tests 2.81s, environment 12ms)
 
 [exit 0]
 
@@ -174,18 +182,18 @@ Wrote src/app/tokens.generated.css
 > next build
 
 ▲ Next.js 16.3.3 (Turbopack)
-✓ Running next.config.ts took 29ms
+✓ Running next.config.ts took 27ms
 
   Creating an optimized production build ...
-✓ Compiled successfully in 21.0s
+✓ Compiled successfully in 20.2s
   Running TypeScript ...
-  Finished TypeScript in 12.0s ...
+  Finished TypeScript in 12.3s ...
   Collecting page data using 3 workers ...
   Generating static pages using 3 workers (0/53) ...
   Generating static pages using 3 workers (13/53) 
   Generating static pages using 3 workers (26/53) 
   Generating static pages using 3 workers (39/53) 
-✓ Generating static pages using 3 workers (53/53) in 899ms
+✓ Generating static pages using 3 workers (53/53) in 861ms
   Finalizing page optimization ...
 
 Route (app)

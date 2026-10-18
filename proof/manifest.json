@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
   "ticket": "Etdev2/sweet-potato#4",
-  "sourceDigest": "sha256:dee705b7f564b1b915af9b1e433a9a4fcbdd9f41c593f35f1974eeebf44583b3",
-  "capturedAt": "2026-10-18T16:10:34Z",
+  "sourceDigest": "sha256:f34ecb4721c8d6b132d1cecb42d821175e873b8726ed0445902f1aeeeac150d0",
+  "capturedAt": "2026-10-18T16:47:53Z",
   "result": "PASS",
   "verification": {
     "command": "npm run verify",
