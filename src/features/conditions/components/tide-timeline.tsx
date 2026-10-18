@@ -414,7 +414,7 @@ export function TideTimeline({
 
             {/* Catches paint before sun markers on purpose: both carry 50px hit circles, and
                 in SVG the later element wins a tap. A catch logged at sunrise must not steal
-                the tap aimed at the visible sun glyph (review on #143). */}
+                the tap aimed at the visible sun glyph (Codex review, UI-1c). */}
             {/* Catch markers (founder requirements §6): every logged catch sits ON the
                 curve at its exact instant. Tapping one does two things — reveals
                 species + time, and pins the read-head onto the catch, so the header
