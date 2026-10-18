@@ -29,8 +29,8 @@ const CA_AREAS = [
 ];
 
 describe("quillback rockfish in California", () => {
-  it("is a protected species in the vocabulary", () => {
-    expect(SPECIES.find((s) => s.id === QUILLBACK)?.takeStatus).toBe("protected");
+  it("stays jurisdiction-neutral (regulated) in the vocabulary", () => {
+    expect(SPECIES.find((s) => s.id === QUILLBACK)?.takeStatus).toBe("regulated");
   });
 
   for (const area of CA_AREAS) {
@@ -58,5 +58,15 @@ describe("quillback rockfish outside California is unchanged", () => {
   it("Alaska still counts quillback in demersal shelf rockfish", () => {
     const dsr = ALASKA.groups.find((g) => g.id === "akse-dsr");
     expect(dsr?.memberSpeciesIds).toContain(QUILLBACK);
+  });
+
+  it("a legal Alaska catch is not zeroed", () => {
+    const card = regulationCard(ALASKA, "ak-se-state", QUILLBACK, "2026-08-01", "boat");
+    expect(card?.verdict).not.toBe("release");
+  });
+
+  it("a legal Washington catch outside May–July is not zeroed", () => {
+    const card = regulationCard(WASHINGTON, "wa-ma-1-4-coastal", QUILLBACK, "2026-09-15", "boat");
+    expect(card?.verdict).not.toBe("release");
   });
 });

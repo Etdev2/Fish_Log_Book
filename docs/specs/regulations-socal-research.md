@@ -152,8 +152,8 @@ primary source, [Summary of Recreational Groundfish Fishing Regulations](https:/
 Corroborated by the [2026 Central Management Area summary (PDF)](https://nrm.dfg.ca.gov/FileHandler.ashx?DocumentID=234713&inline=)
 (updated Jan 1, 2026), which carries the same §28.55 line. The "1-fish sub-bag" reading
 above was the stale pre-2023 rule. Quillback now ships as `zero_retention` in every
-California area (species vocabulary `protected`; species-level `prohibited` rows in the
-Southern and Northern packs). The three-way `unknown` / `zero-retention` / `no-limit`
+California area (species-level `prohibited` rows in the Southern and Northern packs; the
+species vocabulary stays `regulated` because Alaska and Washington still allow legal take). The three-way `unknown` / `zero-retention` / `no-limit`
 distinction in the data model stays: it is what kept this item from being guessed.
 
 ### 4.3 Depth constraints and season

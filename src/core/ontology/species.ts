@@ -177,7 +177,7 @@ export const SPECIES: readonly Species[] = [
   { id: "widow_rockfish", commonName: "Widow rockfish", scientificName: "Sebastes entomelas", isGroup: false, rollsUpTo: "rockfish", waterClass: "salt", takeStatus: "regulated", sortOrder: 460 },
   { id: "bocaccio", commonName: "Bocaccio", scientificName: "Sebastes paucispinis", isGroup: false, rollsUpTo: "rockfish", waterClass: "salt", takeStatus: "regulated", sortOrder: 461 },
   { id: "copper_rockfish", commonName: "Copper rockfish", scientificName: "Sebastes caurinus", isGroup: false, rollsUpTo: "rockfish", waterClass: "salt", takeStatus: "regulated", sortOrder: 462 },
-  { id: "quillback_rockfish", commonName: "Quillback rockfish", scientificName: "Sebastes maliger", isGroup: false, rollsUpTo: "rockfish", waterClass: "salt", takeStatus: "protected", sortOrder: 463 },
+  { id: "quillback_rockfish", commonName: "Quillback rockfish", scientificName: "Sebastes maliger", isGroup: false, rollsUpTo: "rockfish", waterClass: "salt", takeStatus: "regulated", sortOrder: 463 },
   { id: "vermilion_rockfish", commonName: "Vermilion rockfish", scientificName: "Sebastes miniatus", isGroup: false, rollsUpTo: "rockfish", waterClass: "salt", takeStatus: "regulated", sortOrder: 464 },
   { id: "yelloweye_rockfish", commonName: "Yelloweye rockfish", scientificName: "Sebastes ruberrimus", isGroup: false, rollsUpTo: "rockfish", waterClass: "salt", takeStatus: "protected", sortOrder: 465 },
   { id: "sablefish", commonName: "Sablefish (black cod)", scientificName: "Anoplopoma fimbria", isGroup: false, rollsUpTo: null, waterClass: "salt", takeStatus: "regulated", sortOrder: 466 },

@@ -189,7 +189,7 @@ export const NC_RULES: readonly RegRule[] = [
     checkInseason: false, staleAfterDays: 60,
   }),
   rule({
-    id: "nc-lingcod-bag",speciesId: "lingcod", regAreaId: "ca-ocean-northern", kind: "bag_limit",
+    id: "nc-lingcod-bag", speciesId: "lingcod", regAreaId: "ca-ocean-northern", kind: "bag_limit",
     verbatim: "Lingcod (§28.27): 2 fish per person; minimum size 22 inches total length.",
     sourceUrl: N.url, sourceTitle: N.title, sourceUpdatedAt: N.updated, verifiedAt: VERIFIED,
     seasonStart: null, seasonEnd: null, bagDaily: 2, possessionLimit: 2, bagSharesWithGroup: false,

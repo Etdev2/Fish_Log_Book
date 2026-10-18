@@ -2,10 +2,9 @@
 -- Source: CDFW, Summary of Recreational Groundfish Fishing Regulations
 -- (https://wildlife.ca.gov/fishing/ocean/regulations/groundfish-summary, updated 2026-06-23),
 -- retrieved live by the coordinator on 2026-10-18.
--- Forward-only: v1_pnw_wa_or_packs seeded the species 'regulated' with
--- `on conflict (id) do nothing`, so an insert would be a no-op; this is an update.
-
-update public.species set take_status = 'protected' where id = 'quillback_rockfish';
+-- Forward-only. The species row stays take_status = 'regulated': the no-retention rule is
+-- California-only (Alaska DSR allows one per day; Washington closes only May–July), so it is
+-- expressed as an area-scoped 'prohibited' rule, never as a global species status.
 
 -- Species-level twin of the group-level §28.55 row on the Northern California region:
 -- the engine only lets a species' own prohibited row release it.
