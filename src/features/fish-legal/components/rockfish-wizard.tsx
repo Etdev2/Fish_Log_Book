@@ -23,6 +23,7 @@ import {
 import { speciesDisplayName } from "../reg-species";
 import { idPhoto } from "../species-photos";
 import { CandidateCard } from "./candidate-card";
+import { NEVER_KEEP } from "./species-picture";
 import { matchBand, STRONG_SHARE_PCT } from "@/core/rules/identification/identify";
 import type { Identification } from "@/core/rules/identification/types";
 
@@ -161,7 +162,7 @@ function CandidateRow({
     <CandidateCard
       name={profile.commonName}
       scientificName={profile.scientificName}
-      noRetention={profile.noRetention}
+      warning={profile.noRetention ? NEVER_KEEP : null}
       photo={idPhoto(profile.speciesId)}
       band={matchBand(reading, profile.speciesId, answered)}
     >

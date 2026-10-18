@@ -9,6 +9,7 @@ import { TraitFigure, isPicture, type TraitFigureKey } from "@/components/trait-
 import { identify, matchBand, STRONG_SHARE_PCT } from "@/core/rules/identification/identify";
 import type { Candidate, Identification, TraitPack } from "@/core/rules/identification/types";
 import { CandidateCard } from "@/features/fish-legal/components/candidate-card";
+import { NEVER_KEEP } from "@/features/fish-legal/components/species-picture";
 import { idPhoto } from "@/features/fish-legal/species-photos";
 
 /**
@@ -216,7 +217,7 @@ function PackCandidate({
     <CandidateCard
       name={profile.commonName}
       scientificName={profile.scientificName}
-      noRetention={profile.noRetention}
+      warning={profile.noRetention ? NEVER_KEEP : null}
       photo={idPhoto(profile.speciesId)}
       band={matchBand(reading, profile.speciesId, answered)}
     >

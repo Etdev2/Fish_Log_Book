@@ -32,14 +32,15 @@ const FOCUS =
 export function CandidateCard({
   name,
   scientificName,
-  noRetention,
+  warning,
   photo,
   band,
   children,
 }: {
   name: string;
   scientificName: string | null;
-  noRetention: boolean;
+  /** One line that must not be missed, in amber: "never keep", "stay 100 yards back". */
+  warning: string | null;
   photo: SpeciesPhoto | null;
   band: MatchBand | null;
   children: React.ReactNode;
@@ -68,9 +69,9 @@ export function CandidateCard({
         ) : null}
       </div>
 
-      {noRetention ? (
+      {warning !== null ? (
         <p className="rounded-md border border-amber-flag p-2 text-body font-semibold text-amber-flag">
-          Never keep this fish. Put it back.
+          {warning}
         </p>
       ) : null}
 

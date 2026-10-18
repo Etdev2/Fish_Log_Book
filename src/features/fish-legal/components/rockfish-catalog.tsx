@@ -4,7 +4,7 @@ import { SECONDARY_BUTTON } from "@/features/catches/ui-classes";
 import { ROCKFISH_CATALOG } from "../rockfish-catalog";
 import { hasVerifiedRules } from "../rockfish-id";
 import { idPhoto } from "../species-photos";
-import { SpeciesPicture } from "./species-picture";
+import { NEVER_KEEP, SpeciesPicture } from "./species-picture";
 
 /**
  * Every rockfish the app knows, each with its picture, A to Z.
@@ -41,7 +41,7 @@ export function RockfishCatalog() {
             </div>
             {fish.noRetention ? (
               <p className="rounded-md border border-amber-flag p-2 text-body font-semibold text-amber-flag">
-                Never keep this fish. Put it back.
+                {NEVER_KEEP}
               </p>
             ) : null}
             {hasVerifiedRules(fish.speciesId) ? (

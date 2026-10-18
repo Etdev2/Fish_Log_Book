@@ -1,5 +1,8 @@
 import { pictureCredits, type SpeciesPhoto } from "../species-photos";
 
+/** The warning a no-take fish carries on its card. Plain module, so server pages can use it. */
+export const NEVER_KEEP = "Never keep this fish. Put it back.";
+
 /**
  * A species' picture, big enough to hold up next to the fish in your hand.
  *
@@ -20,8 +23,7 @@ export function SpeciesPicture({
   if (photo === null) {
     return (
       <div className="flex aspect-video w-full items-center justify-center rounded-md border border-dashed border-hairline bg-background p-3 text-center text-caption text-text-muted">
-        No checked picture of the {name.toLowerCase()} yet. Compare with the state agency
-        guide before you keep it.
+        No checked picture of the {name.toLowerCase()} yet.
       </div>
     );
   }
