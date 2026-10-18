@@ -10,11 +10,37 @@ import {
   makeYFor,
   plotHeightFor,
   scrollLeftFor,
+  shiftStationDay,
+  stationDayBounds,
   visibleLabelFlags,
 } from "./tide-chart-geometry";
 import { metres } from "@/core/units";
 
 const SERIES_START = Date.UTC(2026, 7, 28, 8, 0, 0);
+
+describe("stepping station days across daylight saving", () => {
+  const zone = "America/Los_Angeles";
+
+  it("keeps the wall-clock time when the clocks go back (a 25-hour day)", () => {
+    const before = Date.UTC(2026, 9, 31, 19, 0); // Oct 31 12:00 PDT
+    const after = shiftStationDay(before, 1, zone);
+    expect(after).toBe(Date.UTC(2026, 10, 1, 20, 0)); // Nov 1 12:00 PST
+    expect(after - before).toBe(25 * 3_600_000);
+    expect(shiftStationDay(after, -1, zone)).toBe(before);
+  });
+
+  it("keeps the wall-clock time when the clocks go forward (a 23-hour day)", () => {
+    const before = Date.UTC(2027, 2, 13, 20, 0); // Mar 13 12:00 PST
+    const after = shiftStationDay(before, 1, zone);
+    expect(after).toBe(Date.UTC(2027, 2, 14, 19, 0)); // Mar 14 12:00 PDT
+    expect(after - before).toBe(23 * 3_600_000);
+  });
+
+  it("finds the bounds of a station day, 25 hours long when the clocks go back", () => {
+    const day = stationDayBounds(Date.UTC(2026, 10, 1, 20, 0), zone);
+    expect(day.to - day.from).toBe(25 * 3_600_000);
+  });
+});
 
 describe("scroll <-> time", () => {
   it("round-trips an instant through the scroll position it centres on", () => {

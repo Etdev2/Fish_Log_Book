@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { instant, millis } from "@/core/units";
 import { heightAt, rateAt } from "./height";
+import { tideSeries } from "./source";
+import { metres } from "@/core/units";
 import { fixtureSeries } from "./test-support";
 
 describe("heightAt", () => {
@@ -18,6 +20,25 @@ describe("heightAt", () => {
     const midpoint = instant((samples[0].at + samples[1].at) / 2);
     const result = heightAt(series, midpoint);
     expect(result?.certainty).toBe("interpolated");
+  });
+
+  it("says what it was interpolated between: hourly samples, or high/low turns only", () => {
+    const H = 60 * 60_000;
+    const make = (stepMs: number) =>
+      tideSeries({
+        station: { id: "x", name: "x", timeZone: "UTC", datum: "MLLW" },
+        samples: Array.from({ length: 6 }, (_, i) => ({
+          at: instant(i * stepMs),
+          height: metres(i % 2 === 0 ? 0.2 : 1.4),
+          turn: null,
+        })),
+        provider: "noaa-coops",
+      });
+    expect(heightAt(make(H), instant(H * 2.5))?.basis).toMatch(/hourly prediction samples/);
+    expect(heightAt(make(6 * H), instant(6 * H * 2.5))?.basis).toMatch(/high\/low turns only/);
+    // The rate is as coarse as the coarser height it differences.
+    expect(rateAt(make(H), instant(H * 2.5))?.basis).toMatch(/hourly prediction samples/);
+    expect(rateAt(make(6 * H), instant(6 * H * 2.5))?.basis).toMatch(/high\/low turns only/);
   });
 
   it("returns null outside the loaded range", () => {

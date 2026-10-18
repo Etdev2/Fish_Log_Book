@@ -128,7 +128,57 @@ export function mergeSamples(
 
 export interface FetchWindow {
   readonly fromMs: number;
+  /** End of the hourly curve. */
   readonly toMs: number;
+  /** Start of the high/low turns. Defaults to `fromMs`. */
+  readonly turnsFromMs?: number;
+  /** End of the high/low turns. Defaults to `toMs`. */
+  readonly turnsToMs?: number;
+}
+
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+/** How far either side of today the chart can be taken (FL-1 / #135, ADR 011). */
+export const HORIZON_DAYS = 730;
+
+/**
+ * The longest span one request may cover, in whole UTC days *inclusive* of both ends —
+ * NOAA's dates are inclusive, so 365 days means begin + 364. The limit differs by interval
+ * (ADR 011): hourly and 6-minute predictions are capped at one year, high/low at ten.
+ * Hilo is held to 3,650 days (NOAA rejects past 3,655), so the whole ±730-day span is ONE
+ * request; hourly is fetched lazily in blocks (`hourly-blocks.ts`), never in bulk.
+ */
+export const MAX_REQUEST_DAYS = { h: 365, hilo: 3650 } as const;
+
+/**
+ * Split `[fromMs, toMs]` into consecutive UTC-day ranges of at most `maxDays` days each.
+ * Adjacent ranges neither overlap nor leave a gap; `mergeSamples` de-duplicates anyway.
+ */
+export function chunkRange(
+  fromMs: number,
+  toMs: number,
+  maxDays: number = MAX_REQUEST_DAYS.h,
+): FetchWindow[] {
+  const firstDay = Math.floor(fromMs / DAY_MS);
+  const lastDay = Math.floor(toMs / DAY_MS);
+  const chunks: FetchWindow[] = [];
+  for (let start = firstDay; start <= lastDay; start += maxDays) {
+    const end = Math.min(start + maxDays - 1, lastDay);
+    chunks.push({ fromMs: start * DAY_MS, toMs: end * DAY_MS });
+  }
+  return chunks;
+}
+
+/** Hourly predictions for any span, in requests of at most a year. Ascending, de-duplicated. */
+export async function fetchHourlySamples(
+  stationId: string,
+  fromMs: number,
+  toMs: number,
+  signal?: AbortSignal,
+): Promise<TidePredictionSample[]> {
+  const chunks = chunkRange(fromMs, toMs, MAX_REQUEST_DAYS.h);
+  const rows = await Promise.all(chunks.map((c) => getPredictions(stationId, "h", c.fromMs, c.toMs, signal)));
+  return mergeSamples(samplesFrom(rows.flat()), []);
 }
 
 /** Fetch one station's predictions for a window and shape them for the chart. */
@@ -137,12 +187,18 @@ export async function fetchTideSeries(
   window: FetchWindow,
   signal?: AbortSignal,
 ): Promise<TidePredictionSeries> {
+  const hourlyChunks = chunkRange(window.fromMs, window.toMs, MAX_REQUEST_DAYS.h);
+  const turnChunks = chunkRange(
+    window.turnsFromMs ?? window.fromMs,
+    window.turnsToMs ?? window.toMs,
+    MAX_REQUEST_DAYS.hilo,
+  );
   const [hourly, turns] = await Promise.all([
-    getPredictions(station.id, "h", window.fromMs, window.toMs, signal),
-    getPredictions(station.id, "hilo", window.fromMs, window.toMs, signal),
+    Promise.all(hourlyChunks.map((c) => getPredictions(station.id, "h", c.fromMs, c.toMs, signal))),
+    Promise.all(turnChunks.map((c) => getPredictions(station.id, "hilo", c.fromMs, c.toMs, signal))),
   ]);
 
-  const samples = mergeSamples(samplesFrom(hourly), samplesFrom(turns));
+  const samples = mergeSamples(samplesFrom(hourly.flat()), samplesFrom(turns.flat()));
   if (samples.length === 0) {
     throw new TideFetchError(`No usable predictions came back for station ${station.id}`);
   }

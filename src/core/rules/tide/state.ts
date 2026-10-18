@@ -8,7 +8,7 @@ import { heightAt, rateAt } from "./height";
 import { turnsIn, nextTurnAfter, previousTurnBefore } from "./turns";
 import { paceAt } from "./pace";
 import type { TideMotion, TideReading } from "./index-types";
-import { SLACK_BELOW, NEAR_SLACK_BELOW, type TideReadOptions } from "./constants";
+import { SLACK_BELOW, NEAR_SLACK_BELOW, PACE_BASELINE, type TideReadOptions } from "./constants";
 
 export function dailyRange(s: TidePredictionSeries, from: Instant, to: Instant): Sourced<Metres> | null {
   const candidates: Sourced<Metres>[] = turnsIn(s, from, to).map((t) =>
@@ -45,6 +45,31 @@ function ruleOfTwelfths(progress: number): { hour: 1 | 2 | 3 | 4 | 5 | 6; twelft
   return { hour, twelfths: TWELFTHS_BY_HOUR[hour - 1] };
 }
 
+/**
+ * The week of the series centred on `at`, slid inward at the ends of the series (ADR 011).
+ * The series runs years; ranking against all of it on every read would stall the UI, and
+ * "fast" should mean fast for this part of the month, not for the whole four years.
+ */
+export function paceBaselineAround(s: TidePredictionSeries, at: Instant): TidePredictionSeries {
+  const samples = s.samples;
+  const start = samples[0].at as number;
+  const end = samples[samples.length - 1].at as number;
+  if (end - start <= PACE_BASELINE) return s;
+  const from = Math.max(start, Math.min(end - PACE_BASELINE, at - PACE_BASELINE / 2));
+  const to = from + PACE_BASELINE;
+  let lo = 0;
+  let hi = samples.length;
+  while (lo < hi) {
+    const mid = (lo + hi) >> 1;
+    if (samples[mid].at < from) lo = mid + 1;
+    else hi = mid;
+  }
+  let stop = lo;
+  while (stop < samples.length && samples[stop].at <= to) stop++;
+  const slice = samples.slice(lo, stop);
+  return slice.length < 2 ? s : { ...s, samples: slice };
+}
+
 export function readTideAt(s: TidePredictionSeries, at: Instant, o?: TideReadOptions): TideReading | null {
   const height = heightAt(s, at);
   if (height === null) return null;
@@ -74,7 +99,7 @@ export function readTideAt(s: TidePredictionSeries, at: Instant, o?: TideReadOpt
     twelfths = rot.twelfths;
   }
 
-  const pace = paceAt(s, at, rate.value, { rateWindow: o?.rateWindow });
+  const pace = paceAt(paceBaselineAround(s, at), at, rate.value, { rateWindow: o?.rateWindow });
 
   return {
     at,
