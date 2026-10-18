@@ -55,14 +55,75 @@ import { FIN_ID } from "@/features/wildlife/flag";
  * (a 5-column grid, centered labels, normal px-1 padding) on one row at every width;
  * Settings moved out of the bar and stays reachable from the Menu ("Settings" under
  * Your gear). At 390px each tab is 78px wide x 48px tall; at 320px, 64px.
+ *
+ * Founder, 2026-10-16 ("a five-year-old understands it"): text-only tabs at 18px clipped
+ * "Calendar" against the screen edge and gave no picture to recognise. Each tab is now an
+ * icon over a 16px caption (the type floor, not below it), and the current tab is an
+ * orange pill behind its icon rather than a 2px line. The stack is sized to the 56px dock
+ * allowance at 390px (scripts/check-layout.mjs): 28px pill + 20px caption + 6px padding. Icons live in TAB_ICONS, keyed by
+ * href, so SHELL_ROUTES and its tests keep their exact shape.
+ *
+ * Same day: the first tab is "Home", not "Calendar". At 320px a 64px column cannot hold
+ * "Calendar" at the 16px floor (it truncated to "Calen…"), and "Home" is the word every
+ * phone app uses for the screen you start on — which this is, calendar and all.
  */
 export const SHELL_ROUTES = [
-  { href: "/", label: "Calendar" },
+  { href: "/", label: "Home" },
   FIN_ID ? { href: "/fish-id", label: "Fish ID" } : { href: "/setup", label: "Setup" },
   { href: "/log", label: "Log" },
   { href: "/tides", label: "Tide" },
   { href: "/fish-legal", label: "Legal" },
 ] as const;
+
+const ICON = {
+  fill: "none",
+  stroke: "currentColor",
+  strokeWidth: 2,
+  strokeLinecap: "round",
+  strokeLinejoin: "round",
+} as const;
+
+/** One picture per tab. Drawn in currentColor so the active tab's colour carries through. */
+const TAB_ICONS: Record<string, React.ReactNode> = {
+  "/": (
+    <>
+      <path d="M3 11l9-7 9 7" {...ICON} />
+      <path d="M5 10v10h14V10" {...ICON} />
+      <path d="M10 20v-5h4v5" {...ICON} />
+    </>
+  ),
+  "/fish-id": (
+    <>
+      <path d="M2 12c3-4 7-5 11-3l4-3v12l-4-3c-4 2-8 1-11-3z" {...ICON} />
+      <circle cx="7" cy="11" r="1" fill="currentColor" />
+      <path d="M20 4l2 2M22 4l-2 2" {...ICON} />
+    </>
+  ),
+  "/setup": (
+    <>
+      <circle cx="12" cy="12" r="3" {...ICON} />
+      <path d="M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M5 19l2-2M17 7l2-2" {...ICON} />
+    </>
+  ),
+  "/log": (
+    <>
+      <path d="M5 3h11l3 3v15H5z" {...ICON} />
+      <path d="M9 9h6M9 13h6M9 17h4" {...ICON} />
+    </>
+  ),
+  "/tides": (
+    <>
+      <path d="M2 9c2.5-2 4.5-2 7 0s4.5 2 7 0 4.5-2 6 0" {...ICON} />
+      <path d="M2 15c2.5-2 4.5-2 7 0s4.5 2 7 0 4.5-2 6 0" {...ICON} />
+    </>
+  ),
+  "/fish-legal": (
+    <>
+      <path d="M12 2l8 3v6c0 5-3.5 9-8 11-4.5-2-8-6-8-11V5z" {...ICON} />
+      <path d="M8.5 12l2.5 2.5 4.5-5" {...ICON} />
+    </>
+  ),
+};
 
 export function ShellNav() {
   const pathname = usePathname();
@@ -82,17 +143,24 @@ export function ShellNav() {
                 href={route.href}
                 aria-current={active ? "page" : undefined}
                 /*
-                  Equal grid columns give every tab the same width; `min-h-touch-floor`
-                  keeps the 48px height floor (docs/design/06-accessibility-baseline.md §3)
-                  and five 48px columns (240px) fit well inside 320px.
+                  Equal grid columns give every tab the same width; the icon + caption stack
+                  stays above the 48px floor (docs/design/06-accessibility-baseline.md §3).
                 */
-                className={`flex min-h-touch-floor min-w-touch-floor items-center justify-center border-t-2 px-1 text-center text-label ${
-                  active
-                    ? "border-signal-orange text-text-primary"
-                    : "border-transparent text-text-link"
+                className={`flex min-h-touch-floor min-w-touch-floor flex-col items-center justify-center px-0.5 pb-0.5 pt-1 text-center text-caption font-semibold focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-0 focus-visible:outline-focus-ring ${
+                  active ? "text-signal-orange" : "text-text-link"
                 }`}
               >
-                {route.label}
+                <span
+                  aria-hidden
+                  className={`flex h-7 w-14 items-center justify-center rounded-full ${
+                    active ? "bg-surface-raised" : ""
+                  }`}
+                >
+                  <svg viewBox="0 0 24 24" className="size-6">
+                    {TAB_ICONS[route.href]}
+                  </svg>
+                </span>
+                <span className="max-w-full truncate leading-tight">{route.label}</span>
               </Link>
             </li>
           );

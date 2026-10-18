@@ -228,8 +228,12 @@ real data instead of an empty row. Sticky per trip, editable mid-trip, and each 
 values it inherited so that changing the rig later never rewrites history.
 
 **D23 — The calendar is the history surface, and the notebook is a day-level journal.**
-SETTLED 2026-08-28
-The app opens onto a month calendar. Tapping a day opens that day's page.
+SETTLED 2026-08-28 · REVISED 2026-10-16 (founder): the app no longer opens onto the calendar.
+~~The app opens onto a month calendar.~~ The app opens onto **Home** (`/`): today's tide,
+your week, your nearest Passport goal and recent catches, under one "Log a catch" button
+(issue #166, PR #169). The month calendar lives at `/calendar`, one tap from Home's "Your
+week" card and listed in the Menu. Tapping a day still opens that day's page, and everything
+below about the notebook is unchanged.
 - **One freeform journal entry per calendar day** — the notebook page. A day can hold two
   trips, or none, and still have something written on it.
 - Individual catches keep their own short notes. Trip notes stay as the ontology has them.
