@@ -1,11 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState, useSyncExternalStore } from "react";
+import { useSyncExternalStore } from "react";
 
 import { useLocalTimeZone } from "@/features/conditions/use-local-time-zone";
 import { CHIP_CLASS, CHIP_OFF, CHIP_OFF_ON_SURFACE, CHIP_ON } from "@/features/catches/ui-classes";
-import { useLegalAlertPrefs, readInbox, clearInbox, markRead, EMPTY_INBOX, type LegalAlert, type LegalAlertPrefs } from "../alerts";
+import { useLegalAlertPrefs, readInbox, clearInbox, markRead, EMPTY_INBOX, type LegalAlertPrefs } from "../alerts";
 
 const TOGGLES: { key: keyof LegalAlertPrefs; label: string; hint: string }[] = [
   { key: "boundary", label: "Approach alerts", hint: "Heads-up when you near a boundary band (~600 m)." },
