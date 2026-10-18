@@ -39,6 +39,7 @@ import {
   zonedYmd,
 } from "./tide-chart-geometry";
 import { renderWindowAround, windowSeries } from "./tide-view-window";
+import { provenanceNotice } from "./tide-provenance";
 import { coverageOf } from "./queries/cache-coverage";
 import { useHourlyBlocks } from "./queries/use-hourly-blocks";
 import type { CatchMarkerInput } from "./catch-markers";
@@ -175,6 +176,12 @@ function TideChartScreen({ tideData, baseSeries }: { tideData: TideReading; base
   const nowMs = now === null ? null : Number(now);
   const currentAt = nowMs !== null && nowMs >= fullStart && nowMs <= fullEnd ? nowMs : null;
   const atNow = currentAt !== null && Math.abs(selectedAt - currentAt) < AT_NOW_TOLERANCE_MS;
+  const notice = provenanceNotice({
+    source: tideData.source,
+    retrievedAtMs: baseSeries.retrievedAt === null ? null : Number(baseSeries.retrievedAt),
+    nowMs,
+    timeZone: stationZone,
+  });
 
   // Only a few days around the read-head are drawn. The slice moves in two-day steps, so
   // `renderFrom/renderTo` change rarely and the curve is not rebuilt on every scroll frame.
@@ -340,6 +347,11 @@ function TideChartScreen({ tideData, baseSeries }: { tideData: TideReading; base
       {/* The immersive canvas has no visible title; keep the page named for outline and screen readers. */}
       <h1 className="sr-only">Tide</h1>
       <header className="tide-header">
+        {notice !== null && (
+          <p className="tide-provenance" role="status" data-source={notice.kind}>
+            {notice.text}
+          </p>
+        )}
         <div className="tide-header-top">
           <button type="button" className="tide-station-button" aria-haspopup="dialog" onClick={() => setSheet("station")}>
             <span>{series.station.name}</span>
@@ -532,7 +544,7 @@ function TideChartScreen({ tideData, baseSeries }: { tideData: TideReading; base
         sourceLabel={tideSourceLabel(tideData)}
         open={sheet === "station"}
         onClose={() => setSheet(null)}
-        series={series}
+        series={baseSeries}
         location={stationLocation}
         stationTimeZone={stationZone}
         displayTimeZone={displayTimeZone}
