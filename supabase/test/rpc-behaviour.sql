@@ -960,9 +960,44 @@ begin
   exception when sqlstate 'UF001' then null; end;
   reset role;
   perform pg_temp.check('a header fee set after the order does not fail the header event''s ledger',
-    totals.collected_minor = before.collected_minor and totals.paid_orders::int = before.paid_orders::int + 1);
+    totals.collected_minor = before.collected_minor and totals.paid_orders = before.paid_orders
+    and totals.unpriced_orders::int = before.unpriced_orders::int + 1);
   perform pg_temp.check('the event the lines name still collects the order after the header fee changes',
     later.collected_minor = '25700');
+
+  -- A shared order: unpriced header event, priced second event. Paying it confirms only
+  -- the priced event, so for the header event it is waiting on a price, before and after
+  -- payment, never "owed $0" and never paid.
+  begin
+    update public.tournament set entry_fee_minor = null where id = '55555555-5555-5555-5555-555555555555';
+    set local role authenticated;
+    set local request.jwt.claim.sub = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa';
+    select * into before from public.tournament_money_totals('55555555-5555-5555-5555-555555555555');
+    reset role;
+    insert into public.tournament_order (id, organization_id, tournament_id, purchaser_angler_id,
+      currency, subtotal_minor, total_minor, status, idempotency_key)
+    values ('eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee', '33333333-3333-3333-3333-333333333333',
+      '55555555-5555-5555-5555-555555555555', '11111111-1111-1111-1111-111111111111',
+      'USD', 700, 700, 'PENDING_PAYMENT', 'mixed-basket-pending');
+    insert into public.tournament_order_item (order_id, item_type, reference_id, description, quantity, unit_amount_minor, total_amount_minor)
+    values ('eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee', 'TEAM_ENTRY', '66666666-6666-6666-6666-666666666666', 'Entry', 1, 700, 700);
+    set local role authenticated;
+    set local request.jwt.claim.sub = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa';
+    select * into totals from public.tournament_money_totals('55555555-5555-5555-5555-555555555555');
+    reset role;
+    update public.tournament_order set status = 'PAID' where id = 'eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee';
+    set local role authenticated;
+    set local request.jwt.claim.sub = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa';
+    select * into later from public.tournament_money_totals('55555555-5555-5555-5555-555555555555');
+    raise exception 'undo mixed-basket fixture' using errcode = 'UF001';
+  exception when sqlstate 'UF001' then null; end;
+  reset role;
+  perform pg_temp.check('a mixed basket waits on a price for its unpriced header event, not owed zero',
+    totals.unpriced_orders::int = before.unpriced_orders::int + 1
+    and totals.unpaid_orders = before.unpaid_orders and totals.outstanding_minor = before.outstanding_minor);
+  perform pg_temp.check('paying a mixed basket does not count it as paid for the unpriced header event',
+    later.unpriced_orders::int = before.unpriced_orders::int + 1 and later.paid_orders = before.paid_orders
+    and later.collected_minor = before.collected_minor);
 
   -- An order whose every event was unpriced has no lines and a zero total. It is waiting on
   -- the host's price, not owed zero, so it is counted apart from unpaid money.

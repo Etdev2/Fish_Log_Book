@@ -460,6 +460,8 @@ begin
       sum(case when (i.item_type in ('TEAM_ENTRY','TOURNAMENT_ENTRY') and t.id = target_tournament_id)
         or (i.item_type in ('JACKPOT','SIDE_POT') and d.tournament_id = target_tournament_id)
         then i.total_amount_minor else 0 end) as event_total,
+      bool_or((i.item_type in ('TEAM_ENTRY','TOURNAMENT_ENTRY') and t.id = target_tournament_id)
+        or (i.item_type in ('JACKPOT','SIDE_POT') and d.tournament_id = target_tournament_id)) as target_line,
       bool_or(case when i.item_type in ('TEAM_ENTRY','TOURNAMENT_ENTRY') then t.id is null
         when i.item_type in ('JACKPOT','SIDE_POT') then d.id is null else true end) as unmapped
     from public.tournament_order_item i
@@ -478,9 +480,13 @@ begin
       -- was when the order was made, and the current fee can change after, so the header is
       -- not checked against the lines.
       case when li.order_id is null then o.total_minor else li.event_total end as event_minor,
-      -- No lines and nothing to pay: every event in the order was unpriced. That is "the
-      -- host has not said", not a settled zero, so it is counted apart from money owed.
-      (li.order_id is null and o.total_minor = 0) as unpriced,
+      -- Unpriced for this event: the order names it as the header but carries no line for
+      -- it, because its fee was not set ("the host has not said"). That holds for an order
+      -- with no lines at all and for a shared order whose other events are priced. Paying
+      -- the order confirms only the events its lines name, so this event's entry is still
+      -- waiting on a price, not owed zero and not paid.
+      case when li.order_id is null then o.total_minor = 0
+        else not li.target_line end as unpriced,
       coalesce(li.unmapped or li.line_total <> o.total_minor, false) as unmapped
     from public.tournament_order o left join refunds r on r.order_id = o.id
     left join lines li on li.order_id = o.id
@@ -491,9 +497,9 @@ begin
       then case when l.refunded = l.total_minor then 0
         else l.event_minor - l.refunded end else 0 end), 0)::text as collected_minor,
     coalesce(sum(case when l.status in ('DRAFT','PENDING_PAYMENT') then l.event_minor else 0 end), 0)::text as outstanding_minor,
-    count(*) filter (where l.status in ('PAID','PARTIALLY_REFUNDED'))::text as paid_orders,
+    count(*) filter (where l.status in ('PAID','PARTIALLY_REFUNDED') and not l.unpriced)::text as paid_orders,
     count(*) filter (where l.status in ('DRAFT','PENDING_PAYMENT') and not l.unpriced)::text as unpaid_orders,
-    count(*) filter (where l.status in ('DRAFT','PENDING_PAYMENT') and l.unpriced)::text as unpriced_orders,
+    count(*) filter (where l.status in ('DRAFT','PENDING_PAYMENT','PAID','PARTIALLY_REFUNDED') and l.unpriced)::text as unpriced_orders,
     count(*) filter (where l.refunded > 0 or l.status in ('PARTIALLY_REFUNDED','REFUNDED'))::text as refunded_orders,
     coalesce(bool_or(l.unmapped or l.refunded > l.total_minor
       or (l.refunded > 0 and l.refunded < l.total_minor and l.event_minor <> l.total_minor)
