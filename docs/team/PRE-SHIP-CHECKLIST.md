@@ -72,7 +72,8 @@ Not tasks — properties the app currently has that are worth not losing, each e
 test in `src/core/legal/documents.test.ts` so they cannot be lost quietly:
 
 - No analytics, advertising, tracking, or crash-reporting dependency.
-- No runtime fetch to any host beyond Supabase and NOAA tides.
+- No runtime fetch to any host beyond Supabase and NOAA tides. The one other host is
+  Google's sign-in page, reached by redirect only when the angler taps Continue with Google.
 - No basemap tile layer: the boundary map makes no outside calls, so looking at where you
   are does not tell anyone where you are.
 - Species photos served from the app itself, never a remote host.

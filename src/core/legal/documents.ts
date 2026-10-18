@@ -18,7 +18,7 @@
  * NOT bump it, because re-asking everyone for a comma is how people learn to click
  * through without reading.
  */
-export const LEGAL_VERSION = "2026-09-04";
+export const LEGAL_VERSION = "2026-10-18";
 
 /**
  * The details only the founder can supply. `resolved: false` makes the gap visible in the

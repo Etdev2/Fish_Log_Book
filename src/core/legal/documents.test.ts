@@ -82,7 +82,7 @@ describe("the privacy notice still matches the code", () => {
     }
   });
 
-  it("calls exactly two outside hosts at runtime: Supabase and NOAA", () => {
+  it("calls only Supabase and NOAA at runtime; Google only by the sign-in redirect", () => {
     // Citation links are not calls. Only a URL that reaches a fetch() or a client
     // constructor counts, so this looks at the two files allowed to make requests and
     // asserts nothing else in src/ contains a runtime fetch to an absolute URL.
@@ -99,6 +99,19 @@ describe("the privacy notice still matches the code", () => {
     expect(tides).toContain("api.tidesandcurrents.noaa.gov");
     // The notice says we send a station and a date range, not who or where you are.
     expect(tides).not.toMatch(/\b(lat|lon|latitude|longitude|email|user_id)\b\s*:/);
+
+    // Google's sign-in page is the one other host, and only by redirect: Supabase returns
+    // its URL at runtime, so no literal URL exists to scan. Pin the only route there
+    // instead: one OAuth call in src/, on the sign-in page, for Google.
+    const oauth = sourceFiles().filter(({ text }) => text.includes("signInWithOAuth"));
+    expect(oauth.map(({ path }) => path)).toEqual(["src/app/(auth)/sign-in/page.tsx"]);
+    expect(oauth[0].text).toMatch(/provider:\s*["']google["']/);
+  });
+
+  it("bumped the legal version when the notice started naming Google", () => {
+    // The privacy notice promises a new version, and a fresh acknowledgement, whenever
+    // where data goes changes. Google sign-in was that change.
+    expect(LEGAL_VERSION >= "2026-10-18").toBe(true);
   });
 
   it("draws the boundary map with no tile server, as the notice claims", () => {
