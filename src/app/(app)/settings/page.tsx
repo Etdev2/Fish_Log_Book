@@ -130,7 +130,8 @@ export default function SettingsPage() {
       <section className="rounded-lg border border-hairline bg-surface p-4">
         <h2 className="text-h3">Notices</h2>
         <p className="mt-2 text-body text-text-muted">
-          Your log stays on this device. No ads or tracking.
+          {/* Accuracy beats brevity here: signed-in logs sync (documents.ts, privacy). */}
+          Saved on this device, synced if you sign in. No ads or analytics.
         </p>
         <Link
           href="/legal"
