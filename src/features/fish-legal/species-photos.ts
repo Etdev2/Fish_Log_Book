@@ -104,3 +104,8 @@ export function idPhoto(speciesId: string): SpeciesPhoto | null {
   const photo = speciesPhoto(speciesId);
   return photo !== null && photo.license !== S ? photo : null;
 }
+
+/** Each credit once, sorted: the attribution line for a list of thumbnails. */
+export function pictureCredits(photos: readonly (SpeciesPhoto | null)[]): readonly string[] {
+  return [...new Set(photos.flatMap((p) => (p === null ? [] : [p.credit])))].sort();
+}

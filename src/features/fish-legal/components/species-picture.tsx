@@ -1,4 +1,4 @@
-import type { SpeciesPhoto } from "../species-photos";
+import { pictureCredits, type SpeciesPhoto } from "../species-photos";
 
 /**
  * A species' picture, big enough to hold up next to the fish in your hand.
@@ -40,5 +40,44 @@ export function SpeciesPicture({
       </span>
       <figcaption className="text-caption text-text-muted">{photo.credit}</figcaption>
     </figure>
+  );
+}
+
+/**
+ * A list-row thumbnail. Credit is not shown per row (there is no room at 320px); a list
+ * that uses this must show `PictureCredits` for the pictures it drew.
+ *
+ * With no checked picture the slot is an empty frame, so names still line up.
+ */
+export function SpeciesThumb({ photo }: { photo: SpeciesPhoto | null }) {
+  if (photo === null) {
+    return (
+      <span
+        aria-hidden
+        className="block aspect-video w-20 shrink-0 rounded border border-dashed border-hairline"
+      />
+    );
+  }
+  return (
+    <span className="block w-20 shrink-0 overflow-hidden rounded bg-photo-mat">
+      {/* eslint-disable-next-line @next/next/no-img-element -- bundled local asset, offline-first */}
+      <img
+        src={photo.src}
+        alt=""
+        className="aspect-video w-full object-contain"
+        width={160}
+        height={87}
+        loading="lazy"
+      />
+    </span>
+  );
+}
+
+/** The attribution line for every picture a list showed, each credit once. */
+export function PictureCredits({ photos }: { photos: readonly (SpeciesPhoto | null)[] }) {
+  const credits = pictureCredits(photos);
+  if (credits.length === 0) return null;
+  return (
+    <p className="text-caption text-text-muted">Pictures: {credits.join("; ")}.</p>
   );
 }
