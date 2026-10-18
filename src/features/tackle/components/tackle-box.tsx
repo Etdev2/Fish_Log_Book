@@ -83,13 +83,14 @@ export function TackleBox() {
         </div>
       </section>
 
-      <section aria-labelledby="all-gear-heading">
+      {/* UI-1 landmark-unique: the inventory list below is the labelled section. */}
+      <div>
         <div className="mb-4 flex items-baseline justify-between gap-3">
           <h2 id="all-gear-heading" className="text-h2">All gear</h2>
           <p className="text-caption text-text-muted">{items.length} in this session</p>
         </div>
         <TackleInventoryList headingId="all-gear-heading" onAdd={() => editor.openAdd()} onEdit={editor.openEdit} />
-      </section>
+      </div>
 
       <TackleEditorSheet
         request={editor.editor}

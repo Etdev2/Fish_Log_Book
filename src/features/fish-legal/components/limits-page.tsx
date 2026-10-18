@@ -182,7 +182,7 @@ export function LimitsPage() {
                     <h2 className="text-h3">
                       <Link
                         href={line.kind === "species" ? `/fish-legal/species/${line.id}` : "/fish-legal/species"}
-                        className="underline decoration-dotted underline-offset-4"
+                        className="inline-flex min-h-touch-floor items-center underline decoration-dotted underline-offset-4"
                       >
                         {label}
                       </Link>

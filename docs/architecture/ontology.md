@@ -717,3 +717,15 @@ Added by D21–D24 (2026-08-28), in the same order:
 9. **Backfilled tide accuracy.** CO-OPS *predictions* backfill perfectly; verified
    *water levels* for a past date are a different and better dataset we are not using.
    `biostat` should say whether that is worth the second fetch.
+
+## FL-1 terms (2026-10-13)
+
+- **Tide turn (hilo)** — a published NOAA high or low prediction. Long-range (> 1 week) tide
+  curves are built from turns only (ADR 011).
+- **View window** — the 7-day slice of a loaded `TidePredictionSeries` that the chart renders.
+- **ONI** — CPC Oceanic Niño Index v5: 3-month running Niño-3.4 SST anomaly. **RONI** — CPC's
+  Relative ONI (minus the tropical-mean anomaly), which CPC now uses to verify its outlook.
+- **ENSO episode** — ≥ 5 consecutive overlapping seasons with ONI ≥ +0.5 (El Niño) or ≤ −0.5
+  (La Niña).
+- **ENSO outlook** — CPC's published probabilities for the next 9 overlapping seasons. It is not
+  a forecast beyond them.

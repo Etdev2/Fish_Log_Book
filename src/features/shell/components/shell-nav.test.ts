@@ -1,16 +1,22 @@
 import { describe, expect, it } from "vitest";
 
+import { FIN_ID } from "@/features/wildlife/flag";
+
 import { SHELL_ROUTES } from "./shell-nav";
 
 describe("shell navigation", () => {
-  it("offers Setup beside Log — configure once, log repeatedly", () => {
+  it("offers Fish ID beside Log — identify it, then log it (UI-1 #12: Setup is one-time and lives in the Menu)", () => {
     const hrefs = SHELL_ROUTES.map((route) => route.href);
-    expect(hrefs).toContain("/setup");
-    expect(hrefs.indexOf("/setup")).toBe(hrefs.indexOf("/log") - 1);
+    // With NEXT_PUBLIC_FIN_ID=off, Setup keeps the slot instead of leaving a hole.
+    const [shown, hidden] = FIN_ID ? ["/fish-id", "/setup"] : ["/setup", "/fish-id"];
+    expect(hrefs).toContain(shown);
+    expect(hrefs).not.toContain(hidden);
+    expect(hrefs.indexOf(shown)).toBe(hrefs.indexOf("/log") - 1);
   });
 
-  it("stays at six destinations — the sixth ('Legal', the Fish Legal spec §2's rename) was the founder's call (spec §16); a seventh still needs a decision, not a patch", () => {
-    expect(SHELL_ROUTES.length).toBeLessThanOrEqual(6);
+  it("stays at five equal tabs — Settings lives in the Menu (founder-approved); a sixth tab needs a decision, not a patch", () => {
+    expect(SHELL_ROUTES.length).toBe(5);
+    expect(SHELL_ROUTES.map((route) => route.href)).not.toContain("/settings");
     expect(SHELL_ROUTES).toContainEqual({ href: "/fish-legal", label: "Legal" });
   });
 
