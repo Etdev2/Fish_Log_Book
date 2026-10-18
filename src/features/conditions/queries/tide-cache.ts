@@ -88,3 +88,23 @@ export function clearTideCache(stationId: string): void {
     // Nothing to do.
   }
 }
+
+/**
+ * True when the series has samples on both sides of `nowMs`. The cache only ever holds a
+ * week around the day it was fetched, so an old one can be entirely in the past: showing
+ * it as "saved on this device" would draw last week's tide as if it were today's (#163).
+ */
+export function seriesCoversNow(series: TidePredictionSeries, nowMs: number): boolean {
+  const first = series.samples[0].at as number;
+  const last = series.samples[series.samples.length - 1].at as number;
+  return first <= nowMs && nowMs <= last;
+}
+
+/**
+ * True when a series on screen has run out: the clock has moved past what it covers, so
+ * it must be resolved again rather than kept for the life of the screen (#163, review).
+ * No series means nothing to expire.
+ */
+export function seriesExpired(series: TidePredictionSeries | null, nowMs: number): boolean {
+  return series !== null && !seriesCoversNow(series, nowMs);
+}

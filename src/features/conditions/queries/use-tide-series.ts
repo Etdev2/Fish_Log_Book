@@ -4,10 +4,11 @@ import { useEffect, useMemo, useState } from "react";
 
 import type { TidePredictionSeries } from "@/core/rules/tide";
 
+import { useNow } from "@/lib/time/use-now";
 import { useTideStationPreference } from "../station-preference";
 import { DEFAULT_STATION_ID, stationById, type TideStation } from "../stations";
 import { fetchTideSeries } from "./noaa-tides";
-import { CACHE_FRESH_MS, readTideCache, writeTideCache } from "./tide-cache";
+import { CACHE_FRESH_MS, readTideCache, seriesCoversNow, seriesExpired, writeTideCache } from "./tide-cache";
 import { loadTideSeriesFixture } from "./tide-series";
 
 /**
@@ -20,7 +21,7 @@ import { loadTideSeriesFixture } from "./tide-series";
  */
 export type TideSource = "live" | "cache" | "fixture" | "none";
 
-interface Resolved {
+export interface Resolved {
   readonly stationId: string;
   readonly series: TidePredictionSeries | null;
   readonly source: TideSource;
@@ -76,8 +77,9 @@ async function resolveSeries(
     const error = cause instanceof Error ? cause.message : "Could not reach NOAA";
 
     // Offline in the marina is the normal case, not an exception: an old cache still
-    // beats an empty chart, as long as the badge admits how old it is.
-    if (cached !== null) {
+    // beats an empty chart, as long as the badge admits how old it is, and as long as it
+    // still reaches today. A cache wholly in the past would draw old tides as current.
+    if (cached !== null && seriesCoversNow(cached, now)) {
       return { stationId: station.id, series: cached, source: "cache", stale: true, error };
     }
     if (station.id === DEFAULT_STATION_ID) {
@@ -93,10 +95,39 @@ async function resolveSeries(
   }
 }
 
+/**
+ * The resolution to keep when a new one lands.
+ *
+ * When an expired series is refreshed, `expired` flips back to false and the effect runs
+ * once more. That second run finds the series just fetched sitting in the fresh cache and
+ * would relabel it "Saved on this device" moments after it came live from NOAA. The same
+ * series is the same reading, so the live label stays.
+ */
+export function nextResolved(prev: Resolved | null, next: Resolved): Resolved {
+  const sameLiveSeries =
+    prev !== null &&
+    prev.source === "live" &&
+    next.source === "cache" &&
+    !next.stale &&
+    prev.stationId === next.stationId &&
+    prev.series !== null &&
+    next.series !== null &&
+    prev.series.retrievedAt === next.series.retrievedAt;
+  return sameLiveSeries ? prev : next;
+}
+
 export function useTideSeries(): TideReading {
   const [stationId] = useTideStationPreference();
   const station = useMemo(() => stationById(stationId), [stationId]);
   const [resolved, setResolved] = useState<Resolved | null>(null);
+  /*
+   * A screen left open, or a tab resumed days later, can outlive the week it loaded.
+   * Once the series on screen no longer reaches now, resolve again: fresh data if there is
+   * signal, otherwise the same honest fallbacks as a cold start.
+   */
+  const now = useNow(60_000);
+  const expired =
+    resolved !== null && now !== null && seriesExpired(resolved.series, Number(now));
 
   useEffect(() => {
     if (station === null) return;
@@ -107,14 +138,14 @@ export function useTideSeries(): TideReading {
     // setState only from the resolution — an effect body that sets state synchronously
     // costs an extra render pass, and the lint rule that catches it is right.
     void resolveSeries(station, controller.signal).then((next) => {
-      if (!cancelled) setResolved(next);
+      if (!cancelled) setResolved((prev) => nextResolved(prev, next));
     });
 
     return () => {
       cancelled = true;
       controller.abort();
     };
-  }, [station]);
+  }, [station, expired]);
 
   return useMemo((): TideReading => {
     // A result for the previous station is not this station's answer.
