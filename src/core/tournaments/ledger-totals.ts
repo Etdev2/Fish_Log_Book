@@ -6,6 +6,8 @@ export interface TournamentMoney {
   readonly paidOrders: number;
   readonly unpaidOrders: number;
   readonly refundedOrders: number;
+  /** Waiting orders where every event was unpriced: no amount is owed until the host sets one. */
+  readonly unpricedOrders: number;
 }
 
 function safeInteger(value: unknown): number {
@@ -35,5 +37,6 @@ export function parseTournamentMoneyTotals(value: unknown): TournamentMoney {
     paidOrders: safeInteger(row.paid_orders),
     unpaidOrders: safeInteger(row.unpaid_orders),
     refundedOrders: safeInteger(row.refunded_orders),
+    unpricedOrders: safeInteger(row.unpriced_orders),
   };
 }

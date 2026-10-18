@@ -35,6 +35,7 @@ const NOTHING: TournamentMoney = {
   paidOrders: 0,
   unpaidOrders: 0,
   refundedOrders: 0,
+  unpricedOrders: 0,
 };
 
 export function useTournamentMoney(tournamentId: string, enabled: boolean): MoneyLoad {

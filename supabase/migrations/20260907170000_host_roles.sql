@@ -445,7 +445,7 @@ grant select on public.tournament_division to authenticated;
 create or replace function public.tournament_money_totals(target_tournament_id uuid)
 returns table (
   currency text, collected_minor text, outstanding_minor text,
-  paid_orders text, unpaid_orders text, refunded_orders text
+  paid_orders text, unpaid_orders text, refunded_orders text, unpriced_orders text
 )
 language plpgsql stable security invoker set search_path = ''
 as $$
@@ -461,13 +461,8 @@ begin
         or (i.item_type in ('JACKPOT','SIDE_POT') and d.tournament_id = target_tournament_id)
         then i.total_amount_minor else 0 end) as event_total,
       bool_or(case when i.item_type in ('TEAM_ENTRY','TOURNAMENT_ENTRY') then t.id is null
-        when i.item_type in ('JACKPOT','SIDE_POT') then d.id is null else true end) as unmapped,
-      -- A priced header event must carry at least one line of its own. Without one, the
-      -- header and lines disagree, and the money would land on whichever event asks.
-      bool_or((i.item_type in ('TEAM_ENTRY','TOURNAMENT_ENTRY') and t.id = o.tournament_id)
-        or (i.item_type in ('JACKPOT','SIDE_POT') and d.tournament_id = o.tournament_id)) as header_mapped
+        when i.item_type in ('JACKPOT','SIDE_POT') then d.id is null else true end) as unmapped
     from public.tournament_order_item i
-    join public.tournament_order o on o.id = i.order_id
     left join public.tournament t on i.item_type in ('TEAM_ENTRY','TOURNAMENT_ENTRY') and t.id = i.reference_id
     left join public.tournament_division d on i.item_type in ('JACKPOT','SIDE_POT') and d.id = i.reference_id
     group by i.order_id
@@ -477,15 +472,18 @@ begin
     where r.status = 'CONFIRMED' group by p.order_id
   ), ledger as (
     select o.currency, o.total_minor, o.status, coalesce(r.amount, 0) as refunded,
+      -- Lines decide which event an amount belongs to. The header names the first event
+      -- registered, and register_crew_for_tournaments gives an unpriced event no line, so a
+      -- header with no line of its own is normal. Nothing stored says what the header's fee
+      -- was when the order was made, and the current fee can change after, so the header is
+      -- not checked against the lines.
       case when li.order_id is null then o.total_minor else li.event_total end as event_minor,
-      -- A priced header event with no line of its own is a disagreement. An unpriced one
-      -- (null fee) is how register_crew_for_tournaments files a shared order whose first
-      -- event is free, so it is not.
-      coalesce(li.unmapped or li.line_total <> o.total_minor
-        or (ht.entry_fee_minor is not null and not li.header_mapped), false) as unmapped
+      -- No lines and nothing to pay: every event in the order was unpriced. That is "the
+      -- host has not said", not a settled zero, so it is counted apart from money owed.
+      (li.order_id is null and o.total_minor = 0) as unpriced,
+      coalesce(li.unmapped or li.line_total <> o.total_minor, false) as unmapped
     from public.tournament_order o left join refunds r on r.order_id = o.id
     left join lines li on li.order_id = o.id
-    left join public.tournament ht on ht.id = o.tournament_id
     where o.tournament_id = target_tournament_id or li.event_total > 0
   )
   select min(l.currency) as currency, count(distinct l.currency) as currencies,
@@ -494,7 +492,8 @@ begin
         else l.event_minor - l.refunded end else 0 end), 0)::text as collected_minor,
     coalesce(sum(case when l.status in ('DRAFT','PENDING_PAYMENT') then l.event_minor else 0 end), 0)::text as outstanding_minor,
     count(*) filter (where l.status in ('PAID','PARTIALLY_REFUNDED'))::text as paid_orders,
-    count(*) filter (where l.status in ('DRAFT','PENDING_PAYMENT'))::text as unpaid_orders,
+    count(*) filter (where l.status in ('DRAFT','PENDING_PAYMENT') and not l.unpriced)::text as unpaid_orders,
+    count(*) filter (where l.status in ('DRAFT','PENDING_PAYMENT') and l.unpriced)::text as unpriced_orders,
     count(*) filter (where l.refunded > 0 or l.status in ('PARTIALLY_REFUNDED','REFUNDED'))::text as refunded_orders,
     coalesce(bool_or(l.unmapped or l.refunded > l.total_minor
       or (l.refunded > 0 and l.refunded < l.total_minor and l.event_minor <> l.total_minor)
@@ -507,7 +506,7 @@ begin
     raise exception 'Ledger currency, event allocation or confirmed refunds are inconsistent' using errcode = '22023';
   end if;
   return query select totals.currency, totals.collected_minor, totals.outstanding_minor,
-    totals.paid_orders, totals.unpaid_orders, totals.refunded_orders;
+    totals.paid_orders, totals.unpaid_orders, totals.refunded_orders, totals.unpriced_orders;
 end;
 $$;
 revoke all on function public.tournament_money_totals(uuid) from public, anon;

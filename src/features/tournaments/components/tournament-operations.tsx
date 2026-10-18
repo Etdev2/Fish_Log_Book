@@ -683,7 +683,7 @@ function FinanceLane({
 function MoneyFigures({ money }: { money: TournamentMoney }) {
   // No orders at all is a real state, and it is not the same as a zero total. Saying
   // "nothing yet" beats printing $0.00, which reads as a tournament whose entries failed.
-  if (money.paidOrders === 0 && money.unpaidOrders === 0 && money.refundedOrders === 0) {
+  if (money.paidOrders === 0 && money.unpaidOrders === 0 && money.refundedOrders === 0 && money.unpricedOrders === 0) {
     return (
       <p className="text-body text-text-primary">
         Nothing has been taken yet. Entry fees appear here as they are paid.
@@ -699,14 +699,26 @@ function MoneyFigures({ money }: { money: TournamentMoney }) {
         <StatTile label="Collected" value={formatMoney(money.collectedMinor, currency) ?? "—"} />
         <StatTile
           label="Still owed"
-          value={formatMoney(money.outstandingMinor, currency) ?? "—"}
+          // Only unpriced boats waiting: the amount is unknown, not zero.
+          value={
+            money.outstandingMinor === 0 && money.unpaidOrders === 0 && money.unpricedOrders > 0
+              ? "—"
+              : (formatMoney(money.outstandingMinor, currency) ?? "—")
+          }
           tone={money.outstandingMinor > 0 ? "attention" : "neutral"}
         />
       </div>
       <p className={`text-caption ${TABULAR} text-text-muted`}>
         {money.paidOrders} paid · {money.unpaidOrders} waiting
         {money.refundedOrders > 0 ? ` · ${money.refundedOrders} refunded` : ""}
+        {money.unpricedOrders > 0 ? ` · ${money.unpricedOrders} waiting on a price` : ""}
       </p>
+      {money.unpricedOrders > 0 ? (
+        <p className="text-caption text-text-muted">
+          Waiting on a price means the boat entered an event with no entry fee set yet. Nothing is
+          owed for it until you set one.
+        </p>
+      ) : null}
       {money.unpaidOrders > 0 ? (
         <p className="text-caption text-text-muted">
           Waiting means a checkout was started and the payment has not been confirmed. Those boats stay

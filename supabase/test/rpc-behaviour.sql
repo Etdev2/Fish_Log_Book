@@ -853,7 +853,7 @@ insert into public.crypto_chain_observation
 values ('ffffffff-ffff-ffff-ffff-fffffffffff3', 'synthetic-hash', 'fixture', 'USDC', 400000000, 'synthetic-recipient', 'SEEN');
 
 do $$
-declare n integer; denied boolean; totals record;
+declare n integer; denied boolean; totals record; before record; later record;
 begin
   set local role authenticated;
   set local request.jwt.claim.sub = 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb';
@@ -935,39 +935,58 @@ begin
   reset role;
   perform pg_temp.check('unallocated partial refunds across events fail rather than guess', denied);
 
-  -- An order filed under one event whose every line belongs to another is a disagreement,
-  -- not a transfer: neither event's ledger may silently absorb or drop it.
-  denied := false;
+  -- Lines decide the event. The header only names the first event registered, and its fee
+  -- can be set after the order is made: an order filed while the header event was unpriced
+  -- must still total for both events once the host sets that fee.
   begin
+    update public.tournament set entry_fee_minor = null where id = '55555555-5555-5555-5555-555555555555';
+    set local role authenticated;
+    set local request.jwt.claim.sub = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa';
+    select * into before from public.tournament_money_totals('55555555-5555-5555-5555-555555555555');
+    reset role;
     insert into public.tournament_order (id, organization_id, tournament_id, purchaser_angler_id,
       currency, subtotal_minor, total_minor, status, idempotency_key)
     values ('eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee', '33333333-3333-3333-3333-333333333333',
       '55555555-5555-5555-5555-555555555555', '11111111-1111-1111-1111-111111111111',
-      'USD', 700, 700, 'PAID', 'header-line-mismatch-a');
+      'USD', 700, 700, 'PAID', 'header-fee-set-later');
     insert into public.tournament_order_item (order_id, item_type, reference_id, description, quantity, unit_amount_minor, total_amount_minor)
-    values ('eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee', 'TOURNAMENT_ENTRY', '66666666-6666-6666-6666-666666666666', 'Entry', 1, 700, 700);
+    values ('eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee', 'TEAM_ENTRY', '66666666-6666-6666-6666-666666666666', 'Entry', 1, 700, 700);
+    update public.tournament set entry_fee_minor = 500 where id = '55555555-5555-5555-5555-555555555555';
     set local role authenticated;
     set local request.jwt.claim.sub = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa';
-    perform * from public.tournament_money_totals('55555555-5555-5555-5555-555555555555');
-  exception when invalid_parameter_value then denied := true; end;
+    select * into totals from public.tournament_money_totals('55555555-5555-5555-5555-555555555555');
+    select * into later from public.tournament_money_totals('66666666-6666-6666-6666-666666666666');
+    raise exception 'undo fee-set-later fixture' using errcode = 'UF001';
+  exception when sqlstate 'UF001' then null; end;
   reset role;
-  perform pg_temp.check('an order whose lines all belong to another event fails on its header event', denied);
+  perform pg_temp.check('a header fee set after the order does not fail the header event''s ledger',
+    totals.collected_minor = before.collected_minor and totals.paid_orders::int = before.paid_orders::int + 1);
+  perform pg_temp.check('the event the lines name still collects the order after the header fee changes',
+    later.collected_minor = '25700');
 
-  denied := false;
+  -- An order whose every event was unpriced has no lines and a zero total. It is waiting on
+  -- the host's price, not owed zero, so it is counted apart from unpaid money.
   begin
+    update public.tournament set entry_fee_minor = null where id = '55555555-5555-5555-5555-555555555555';
+    set local role authenticated;
+    set local request.jwt.claim.sub = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa';
+    select * into before from public.tournament_money_totals('55555555-5555-5555-5555-555555555555');
+    reset role;
     insert into public.tournament_order (id, organization_id, tournament_id, purchaser_angler_id,
       currency, subtotal_minor, total_minor, status, idempotency_key)
     values ('eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee', '33333333-3333-3333-3333-333333333333',
       '55555555-5555-5555-5555-555555555555', '11111111-1111-1111-1111-111111111111',
-      'USD', 700, 700, 'PAID', 'header-line-mismatch-b');
-    insert into public.tournament_order_item (order_id, item_type, reference_id, description, quantity, unit_amount_minor, total_amount_minor)
-    values ('eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee', 'TOURNAMENT_ENTRY', '66666666-6666-6666-6666-666666666666', 'Entry', 1, 700, 700);
+      'USD', 0, 0, 'PENDING_PAYMENT', 'unpriced-only-order');
     set local role authenticated;
     set local request.jwt.claim.sub = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa';
-    perform * from public.tournament_money_totals('66666666-6666-6666-6666-666666666666');
-  exception when invalid_parameter_value then denied := true; end;
+    select * into totals from public.tournament_money_totals('55555555-5555-5555-5555-555555555555');
+    raise exception 'undo unpriced-only fixture' using errcode = 'UF001';
+  exception when sqlstate 'UF001' then null; end;
   reset role;
-  perform pg_temp.check('the same order fails on the event its lines name', denied);
+  perform pg_temp.check('an order with only unpriced events counts as waiting on a price',
+    totals.unpriced_orders::int = before.unpriced_orders::int + 1);
+  perform pg_temp.check('an order with only unpriced events adds nothing to unpaid orders or money owed',
+    totals.unpaid_orders = before.unpaid_orders and totals.outstanding_minor = before.outstanding_minor);
 
   -- register_crew_for_tournaments files an unpriced first event as the order header and
   -- gives it no line (null fee = "the host has not said"). That is a valid shared order, not
