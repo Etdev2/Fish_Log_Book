@@ -35,6 +35,8 @@ for path in .env .env.local config/.env.production .aws/credentials \
   .aws/config .ssh/custom-key .config/gcloud/application_default_credentials.json \
   .kube/config nested/.kube/config nested/.KUBE/CONFIG \
   playwright/.auth/user.json \
+  .config/gh/hosts.yml .config/gh/hosts.yaml nested/.config/gh/hosts.yml .config/hub \
+  .azure/accessTokens.json .terraform.d/credentials.tfrc.json \
   id_rsa id_dsa id_ecdsa id_ed25519 id_ecdsa_sk nested/ID_ECDSA \
   signing.pem signing.KEY signing.p8 signing.p12 signing.pfx \
   private-key.json private_key.json privatekey nested/PRIVATE-KEY.JSON private_keys.yaml \
@@ -48,7 +50,8 @@ for path in .env.example .env.local.example nested/.env.production.example \
   src/client-secret.ts src/client_secret_utils.ts docs/client-secret-setup.md \
   src/core/design/tokens.json docs/secrets-guide.md src/tokens.ts \
   docs/service-account-setup.md .kube/config.example \
-  src/private-key.ts docs/private-key-rotation.md src/keystore.ts; do
+  src/private-key.ts docs/private-key-rotation.md src/keystore.ts \
+  .config/gh/config.yml docs/gh-hosts.md; do
   check_name "$path" allow
 done
 
