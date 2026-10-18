@@ -22,8 +22,14 @@ while read -r mode type hash path; do
     echo "::error file=$path::$path differs from the reviewed copy pinned in scripts/control-room-pin.txt. Change it in the control room, then update the copy and the pin."
     failed=1
   fi
-  if [ "$mode" = 100755 ] && [ ! -x "$repo/$path" ]; then
-    echo "::error file=$path::$path must be executable, as it is at the pinned commit."
+  # The blob hash ignores the execute bit, so compare modes separately and both
+  # ways: the mode git records, or the file's own bit when it isn't tracked yet.
+  actual_mode=$(git -C "$repo" ls-files --format='%(objectmode)' -- ":(top,literal)$path")
+  if [ -z "$actual_mode" ]; then
+    if [ -x "$repo/$path" ]; then actual_mode=100755; else actual_mode=100644; fi
+  fi
+  if [ "$actual_mode" != "$mode" ]; then
+    echo "::error file=$path::$path has mode $actual_mode; the pinned commit has $mode."
     failed=1
   fi
 done < "$pin"

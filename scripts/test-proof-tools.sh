@@ -103,6 +103,29 @@ else
   failures=$((failures + 1))
 fi
 
+# The blob hash ignores the execute bit, so mode drift is checked both ways.
+expect_mode_drift() {
+  local label=$1 repo=$2 path=$3
+  out=$(bash "$repo/scripts/check-pinned-scripts.sh" "$repo" 2>&1) && code=0 || code=$?
+  if [ "$code" -ne 0 ] && grep -qF "$path has mode" <<< "$out"; then
+    echo "ok   $label"
+  else
+    echo "FAIL $label (exit $code)"
+    sed 's/^/     /' <<< "$out"
+    failures=$((failures + 1))
+  fi
+}
+
+repo=$(new_repo mode-gained)
+chmod +x "$repo/skills/registry.json"
+commit "$repo" "Make the pinned registry executable"
+expect_mode_drift "the drift check catches a pinned file committed as executable" "$repo" skills/registry.json
+
+repo=$(new_repo mode-lost)
+chmod -x "$repo/scripts/check-proof.sh"
+commit "$repo" "Drop the execute bit from a copied script"
+expect_mode_drift "the drift check catches a copied script that lost its execute bit" "$repo" scripts/check-proof.sh
+
 if [ "$failures" -gt 0 ]; then
   echo "$failures proof-tool case(s) failed."
   exit 1
