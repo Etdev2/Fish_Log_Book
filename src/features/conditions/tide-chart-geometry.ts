@@ -54,7 +54,7 @@ export function plotHeightFor(chartHeight: number): number {
  * (the read-head readout, the sheets' event times) is unaffected and continues to convert
  * to the viewer's own zone, which is the feature this was never meant to break.
  */
-function zonedYmd(at: number, timeZone: string): { y: number; m: number; d: number } {
+export function zonedYmd(at: number, timeZone: string): { y: number; m: number; d: number } {
   const parts = new Intl.DateTimeFormat("en-US", {
     timeZone,
     year: "numeric",
@@ -74,7 +74,7 @@ function dayNumber({ y, m, d }: { y: number; m: number; d: number }): number {
 /** The UTC instant of local midnight for the given zone's calendar date, correcting once
  *  for the case where the naive guess and the real instant land in different UTC offsets
  *  (i.e. the guess itself straddles a DST transition). */
-function zonedMidnightUtc(ymd: { y: number; m: number; d: number }, timeZone: string): number {
+export function zonedMidnightUtc(ymd: { y: number; m: number; d: number }, timeZone: string): number {
   const guess = Date.UTC(ymd.y, ymd.m - 1, ymd.d, 0, 0, 0);
   const offsetAt = (ts: number) => {
     const p = zonedYmdWithTime(ts, timeZone);

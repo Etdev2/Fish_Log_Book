@@ -6,7 +6,7 @@ import type { TidePredictionSeries } from "@/core/rules/tide";
 
 import { useTideStationPreference } from "../station-preference";
 import { DEFAULT_STATION_ID, stationById, type TideStation } from "../stations";
-import { fetchTideSeries } from "./noaa-tides";
+import { fetchTideSeries, HORIZON_DAYS } from "./noaa-tides";
 import { CACHE_FRESH_MS, readTideCache, writeTideCache } from "./tide-cache";
 import { loadTideSeriesFixture } from "./tide-series";
 
@@ -39,10 +39,17 @@ export interface TideReading {
   readonly error: string | null;
 }
 
-/** A week around now: enough for the chart's window and for planning the next trip. */
-function windowAround(nowMs: number) {
+/**
+ * Hourly curve for the near week; high/low turns from two days back to a year ahead
+ * (ADR 011). Predictions are astronomical, so far dates are as good as near ones.
+ */
+export function windowAround(nowMs: number) {
   const day = 24 * 60 * 60 * 1000;
-  return { fromMs: nowMs - 2 * day, toMs: nowMs + 5 * day };
+  return {
+    fromMs: nowMs - 2 * day,
+    toMs: nowMs + 5 * day,
+    turnsToMs: nowMs + HORIZON_DAYS * day,
+  };
 }
 
 function ageOf(series: TidePredictionSeries, nowMs: number): number {

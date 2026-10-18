@@ -31,6 +31,8 @@ export function DatesSheet({
   activeIndex,
   onPick,
   stationTimeZone,
+  range,
+  onPickDate,
 }: {
   open: boolean;
   onClose: () => void;
@@ -38,6 +40,9 @@ export function DatesSheet({
   activeIndex: number;
   onPick: (index: number) => void;
   stationTimeZone: string;
+  /** The whole loaded range as station `YYYY-MM-DD` dates, for the picker. */
+  range?: { min: string; max: string; value: string };
+  onPickDate?: (value: string) => void;
 }) {
   const railRef = useRef<HTMLDivElement>(null);
 
@@ -59,9 +64,25 @@ export function DatesSheet({
     <ConditionsSheet open={open} onClose={onClose} eyebrow="Dates" title="Cached days">
       <p className="tide-sheet-note">
         {first && last
-          ? `${monthDay(instant(first.from), stationTimeZone)}–${monthDay(instant(last.to), stationTimeZone)}, station dates. Nothing outside this window is loaded.`
+          ? `${monthDay(instant(first.from), stationTimeZone)}–${monthDay(instant(last.to), stationTimeZone)}, station dates. Use the date picker for any other day.`
           : "No days are loaded."}
       </p>
+      {range && onPickDate ? (
+        <label className="tide-sheet-note">
+          Jump to any date through {range.max}:{" "}
+          <input
+            type="date"
+            min={range.min}
+            max={range.max}
+            value={range.value}
+            onChange={(event) => {
+              if (!event.target.value) return;
+              onPickDate(event.target.value);
+              onClose();
+            }}
+          />
+        </label>
+      ) : null}
       <div ref={railRef} className="tide-date-rail" role="group" aria-label="Loaded tide prediction dates">
         {days.map((day, index) => (
           <button
