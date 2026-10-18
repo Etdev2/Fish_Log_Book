@@ -120,7 +120,7 @@ export function OnboardingPage() {
       </ol>
 
       <section className={`${CARD_CLASS} flex flex-col gap-3 p-4`}>
-        <Link href="/" className={`${allDone ? PRIMARY_BUTTON : SECONDARY_BUTTON} self-start`}>
+        <Link href="/calendar" className={`${allDone ? PRIMARY_BUTTON : SECONDARY_BUTTON} self-start`}>
           {allDone ? "Go to the Calendar" : "Skip for now — go to the Calendar"}
         </Link>
         <p className="text-caption text-text-muted">

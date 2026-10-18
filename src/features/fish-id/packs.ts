@@ -32,17 +32,17 @@ export const SALMON_PACK: TraitPack = {
   questions: [
     {
       id: "tail-spots",
-      question: "What do the spots do on the tail?",
+      question: "Look at the tail. Where are the black spots?",
       options: [
-        { id: "tail-both", label: "Spots on both lobes", figure: "tail-spots-both" },
-        { id: "tail-upper", label: "Spots on the upper lobe only", figure: "tail-spots-upper" },
-        { id: "tail-whole", label: "Large oval spots over the whole tail", figure: "tail-spots-whole" },
-        { id: "tail-none", label: "No spots on the tail", figure: "tail-spots-none" },
+        { id: "tail-both", label: "Top and bottom of the tail", figure: "tail-spots-both" },
+        { id: "tail-upper", label: "Only the top of the tail", figure: "tail-spots-upper" },
+        { id: "tail-whole", label: "Big spots all over", figure: "tail-spots-whole" },
+        { id: "tail-none", label: "No spots", figure: "tail-spots-none" },
       ],
     },
     {
       id: "gums",
-      question: "Pull back the lip — what colour is the gum line?",
+      question: "Lift the bottom lip. What colour are the gums where the teeth are?",
       options: [
         { id: "gums-black", label: "Black gums", figure: "gums-black" },
         { id: "gums-white", label: "White gums", figure: "gums-white" },
@@ -50,29 +50,29 @@ export const SALMON_PACK: TraitPack = {
     },
     {
       id: "mouth",
-      question: "And the inside of the mouth?",
+      question: "Look inside the mouth. What colour is it?",
       options: [
-        { id: "mouth-black", label: "Black" },
-        { id: "mouth-white", label: "White or pale" },
+        { id: "mouth-black", label: "Black inside", figure: "mouth-black" },
+        { id: "mouth-white", label: "White inside", figure: "mouth-white" },
       ],
     },
     {
       id: "body",
-      question: "What does the body look like?",
+      question: "What does the fish look like?",
       options: [
-        { id: "body-bright", label: "Bright silver, fresh from the salt" },
-        { id: "body-red", label: "Red body, green head" },
-        { id: "body-bars", label: "Olive with vertical bars or calico blotches" },
-        { id: "body-hump", label: "Big hump on the back" },
+        { id: "body-bright", label: "Shiny silver all over" },
+        { id: "body-red", label: "Red body and a green head" },
+        { id: "body-bars", label: "Green with stripes or patches" },
+        { id: "body-hump", label: "A big hump on its back" },
       ],
     },
     {
       id: "size",
       question: "How big?",
       options: [
-        { id: "size-small", label: "Under about 6 lb" },
-        { id: "size-mid", label: "Around 6 to 15 lb" },
-        { id: "size-big", label: "Over about 15 lb" },
+        { id: "size-small", label: "Small — under 6 pounds" },
+        { id: "size-mid", label: "Medium — 6 to 15 pounds" },
+        { id: "size-big", label: "Big — over 15 pounds" },
       ],
     },
   ],
@@ -210,20 +210,20 @@ export const SOCAL_BASS_PACK: TraitPack = {
   questions: [
     {
       id: "spine",
-      question: "Look at the spiny part of the back fin. Is one spine much longer?",
+      question: "Look at the spiky fin on its back. Is one spike much taller?",
       options: [
-        { id: "spine-even", label: "All about the same height", figure: "spines-even" },
-        { id: "spine-third", label: "The third spine is clearly the longest", figure: "spine-third-long" },
+        { id: "spine-even", label: "All the same height", figure: "spines-even" },
+        { id: "spine-third", label: "The third spike is the tallest", figure: "spine-third-long" },
       ],
     },
     {
       id: "pattern",
-      question: "What is the pattern on the body?",
+      question: "What is on its side?",
       options: [
-        { id: "pattern-blotch", label: "Pale blotches on olive or brown", figure: "body-blotches" },
-        { id: "pattern-bars", label: "Dark vertical bars on the sides", figure: "body-bars" },
-        { id: "pattern-spots", label: "Orange, brown or black spots", figure: "body-spots" },
-        { id: "pattern-plain", label: "Plain, no real pattern", figure: "body-plain" },
+        { id: "pattern-blotch", label: "Pale patches", figure: "body-blotches" },
+        { id: "pattern-bars", label: "Dark stripes going up and down", figure: "body-bars" },
+        { id: "pattern-spots", label: "Little spots", figure: "body-spots" },
+        { id: "pattern-plain", label: "Nothing — plain", figure: "body-plain" },
       ],
     },
     {
@@ -239,9 +239,9 @@ export const SOCAL_BASS_PACK: TraitPack = {
       id: "size",
       question: "How big?",
       options: [
-        { id: "size-small", label: "Under about 14 inches" },
-        { id: "size-legal", label: "Roughly 14 to 24 inches" },
-        { id: "size-huge", label: "Much bigger — over about 3 feet" },
+        { id: "size-small", label: "Small — under 14 inches" },
+        { id: "size-legal", label: "Medium — 14 to 24 inches" },
+        { id: "size-huge", label: "Huge — over 3 feet" },
       ],
     },
   ],

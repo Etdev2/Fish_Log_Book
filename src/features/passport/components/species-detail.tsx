@@ -7,7 +7,8 @@ import { useMemo } from "react";
 import { speciesById } from "@/core/ontology/species";
 import { collectionsForSpecies } from "@/core/rules/passport/collections";
 import { formatLength, formatWeight, type UnitSystem } from "@/features/catches/format";
-import { currentZone, useLog } from "@/features/catches/store";
+import { useLog } from "@/features/catches/store";
+import { useLocalTimeZone } from "@/features/conditions/use-local-time-zone";
 import { speciesPhoto } from "@/features/fish-legal/species-photos";
 
 import { usePassport } from "../data";
@@ -47,7 +48,12 @@ export function SpeciesDetail({
 
   const summary = summaryOf(speciesId);
   const photo = useMemo(() => speciesPhoto(speciesId), [speciesId]);
-  const zone = currentZone();
+  // UI-1 item 15 (React error 418): this page is prerendered, so reading the zone during render
+  // printed the BUILD server's zone (UTC on Vercel) into the HTML and the phone's zone on
+  // hydration — a text mismatch for every angler outside UTC. `useLocalTimeZone` keeps the
+  // client snapshot null too until its post-mount subscribe runs (a plain getSnapshot that
+  // reads Intl can still be used on the hydration render), so the line renders only after.
+  const zone = useLocalTimeZone();
 
   const catches = useMemo(
     () =>
@@ -234,7 +240,7 @@ export function SpeciesDetail({
         </Link>
       </section>
 
-      <p className="text-caption text-text-muted">Zone: {zone}</p>
+      {zone ? <p className="text-caption text-text-muted">Zone: {zone}</p> : null}
     </div>
   );
 }
@@ -247,3 +253,4 @@ function Stat({ label, value }: { label: string; value: string }) {
     </div>
   );
 }
+

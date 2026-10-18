@@ -5,7 +5,7 @@ import { BackLink } from "@/components/back-link";
 import Link from "next/link";
 import { useMemo, useState } from "react";
 
-import { TraitFigure, type TraitFigureKey } from "@/components/trait-figure";
+import { TraitFigure, isPicture, type TraitFigureKey } from "@/components/trait-figure";
 import { identify } from "@/core/rules/identification/identify";
 import type { Candidate, TraitPack } from "@/core/rules/identification/types";
 
@@ -44,8 +44,8 @@ export function PackWizard({ pack }: { pack: TraitPack }) {
       <section className="rounded-lg border border-hairline bg-surface p-4">
         <h1 className="text-h1">{pack.name}</h1>
         <p className="mt-1 text-caption text-text-muted">
-          Answer what you can see. Skip anything you are unsure of — that is a real answer
-          and it costs you nothing. This narrows the field; it never certifies a fish.
+          Look at your fish and tap what you see. Not sure? Skip it. This helps you guess
+          the fish; it can be wrong.
         </p>
         <div className="mt-3">
           <LegalNotice kind="identification" />
@@ -63,35 +63,80 @@ export function PackWizard({ pack }: { pack: TraitPack }) {
         </p>
       ) : null}
 
-      {pack.questions.map((question) => (
-        <section key={question.id} className="rounded-lg border border-hairline bg-surface p-4">
-          <h2 className="text-h3">{question.question}</h2>
-          <div className="mt-3 flex flex-wrap gap-2">
-            {question.options.map((option) => {
-              const on = chosen.includes(option.id);
-              return (
-                <button
-                  key={option.id}
-                  type="button"
-                  onClick={() => toggle(question.id, option.id)}
-                  aria-pressed={on}
-                  className={`flex min-h-touch-floor items-center gap-2 rounded-full border px-4 text-label transition-colors ${FOCUS} active:scale-95 motion-reduce:transition-none ${
-                    on
-                      ? "border-signal-orange bg-signal-orange text-ink-on-orange"
-                      : "border-border-interactive bg-surface text-text-link"
-                  }`}
-                >
-                  {/* Drawn in currentColor, so it reads on the chip whether it is selected or not. */}
-                  {option.figure !== undefined ? (
-                    <TraitFigure figure={option.figure as TraitFigureKey} />
-                  ) : null}
-                  {option.label}
-                </button>
-              );
-            })}
-          </div>
-        </section>
-      ))}
+      {pack.questions.map((question) => {
+        /*
+         * Founder, 2026-10-16: "a five-year-old understands it". When every answer has a
+         * colour picture, the answers ARE the pictures: big cards, two to a row, the words
+         * underneath. Otherwise the answers are full-width buttons, one per line, so a long
+         * label never wraps beside a short one. Two-up only from the `picture-pair` width
+         * (280px): below it — a 320px phone at 200% zoom is 160px — two columns would drop
+         * each card under the 48px touch floor, so they stack one per row.
+         */
+        const pictures = question.options.every(
+          (option) => option.figure !== undefined && isPicture(option.figure as TraitFigureKey),
+        );
+        return (
+          <section key={question.id} className="rounded-lg border border-hairline bg-surface p-4">
+            <h2 className="text-h3">{question.question}</h2>
+            <div className={`mt-3 grid grid-cols-1 gap-3 ${pictures ? "picture-pair:grid-cols-2" : ""}`}>
+              {question.options.map((option) => {
+                const on = chosen.includes(option.id);
+                if (pictures) {
+                  return (
+                    <button
+                      key={option.id}
+                      type="button"
+                      onClick={() => toggle(question.id, option.id)}
+                      aria-pressed={on}
+                      className={`relative flex flex-col items-stretch gap-2 rounded-lg border-2 p-2 text-center transition-colors ${FOCUS} active:scale-95 motion-reduce:transition-none ${
+                        on ? "border-signal-orange bg-surface-raised" : "border-hairline bg-background"
+                      }`}
+                    >
+                      <span className="block overflow-hidden rounded-md bg-surface-raised p-1">
+                        <TraitFigure figure={option.figure as TraitFigureKey} size="card" />
+                      </span>
+                      <span className={`text-label ${on ? "text-text-primary" : "text-text-link"}`}>
+                        {option.label}
+                      </span>
+                      {on ? (
+                        <span
+                          aria-hidden
+                          className="absolute -right-2 -top-2 flex size-8 items-center justify-center rounded-full bg-signal-orange text-label text-ink-on-orange"
+                        >
+                          ✓
+                        </span>
+                      ) : null}
+                    </button>
+                  );
+                }
+                return (
+                  <button
+                    key={option.id}
+                    type="button"
+                    onClick={() => toggle(question.id, option.id)}
+                    aria-pressed={on}
+                    className={`flex min-h-touch-floor items-center gap-3 rounded-lg border-2 px-4 py-2 text-left text-label transition-colors ${FOCUS} active:scale-95 motion-reduce:transition-none ${
+                      on
+                        ? "border-signal-orange bg-surface-raised text-text-primary"
+                        : "border-hairline bg-background text-text-link"
+                    }`}
+                  >
+                    {option.figure !== undefined ? (
+                      <TraitFigure figure={option.figure as TraitFigureKey} />
+                    ) : null}
+                    <span className="flex-1">{option.label}</span>
+                    {on ? (
+                      <span aria-hidden className="text-signal-orange">
+                        ✓
+                      </span>
+                    ) : null}
+                  </button>
+                );
+              })}
+            </div>
+          </section>
+        );
+      })}
 
       <section className="rounded-lg border border-hairline bg-surface p-4" aria-live="polite">
         <h2 className="text-h3">
