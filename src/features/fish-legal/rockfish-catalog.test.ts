@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { SPECIES } from "@/core/ontology/species";
+import { SOCAL } from "./reg-data";
 import { ROCKFISH_CATALOG } from "./rockfish-catalog";
 import { ROCKFISH_PROFILES } from "./rockfish-id";
 import { idPhoto, SPECIES_PHOTOS } from "./species-photos";
@@ -33,9 +34,21 @@ describe("the rockfish catalog", () => {
     expect(ids.size).toBe(ROCKFISH_CATALOG.length);
   });
 
+  it("never shows a rockfish as keepable that the SoCal rules prohibit year-round (#171)", () => {
+    const prohibited = SOCAL.rules.filter(
+      (r) => r.kind === "prohibited" && r.speciesId !== null && r.seasonStart === null,
+    );
+    for (const rule of prohibited) {
+      const fish = ROCKFISH_CATALOG.find((r) => r.speciesId === rule.speciesId);
+      if (fish !== undefined) expect(fish.noRetention, fish.speciesId).toBe(true);
+    }
+  });
+
   it("marks the no-take rockfish", () => {
     const flagged = ROCKFISH_CATALOG.filter((r) => r.noRetention).map((r) => r.speciesId);
-    expect(flagged).toEqual(expect.arrayContaining(["cowcod", "yelloweye_rockfish"]));
+    expect(flagged).toEqual(
+      expect.arrayContaining(["cowcod", "yelloweye_rockfish", "bronzespotted_rockfish", "quillback_rockfish"]),
+    );
   });
 
   it("shows a picture for every rockfish except the unlicensed stock image", () => {

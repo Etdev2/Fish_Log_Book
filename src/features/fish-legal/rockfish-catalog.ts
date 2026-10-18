@@ -10,13 +10,26 @@
  */
 
 import { SPECIES } from "@/core/ontology/species";
+import { SOCAL } from "./reg-data";
 import { ROCKFISH_PROFILES } from "./rockfish-id";
+
+/**
+ * Species the SoCal pack names in a year-round, species-level `prohibited` rule (CCR T14
+ * §28.55, "No Retention at Any Time"). The rules are the sourced authority, so the catalog
+ * reads them rather than trusting the vocabulary's `takeStatus`, which lagged them for
+ * quillback (#171).
+ */
+const NO_TAKE_BY_RULE: ReadonlySet<string> = new Set(
+  SOCAL.rules.flatMap((r) =>
+    r.kind === "prohibited" && r.speciesId !== null && r.seasonStart === null ? [r.speciesId] : [],
+  ),
+);
 
 export interface CatalogRockfish {
   readonly speciesId: string;
   readonly commonName: string;
   readonly scientificName: string;
-  /** No-take in the profile or protected in the vocabulary. */
+  /** No-take in the profile, protected in the vocabulary, or prohibited by the rules. */
   readonly noRetention: boolean;
 }
 
@@ -54,7 +67,9 @@ function build(): readonly CatalogRockfish[] {
     });
   }
   for (const r of PICTURE_ONLY) if (!byId.has(r.speciesId)) byId.set(r.speciesId, r);
-  return [...byId.values()].sort((a, b) => a.commonName.localeCompare(b.commonName));
+  return [...byId.values()]
+    .map((r) => (NO_TAKE_BY_RULE.has(r.speciesId) ? { ...r, noRetention: true } : r))
+    .sort((a, b) => a.commonName.localeCompare(b.commonName));
 }
 
 export const ROCKFISH_CATALOG: readonly CatalogRockfish[] = build();
