@@ -70,16 +70,24 @@ export default function SignInPage() {
         this is the one place a terms link genuinely has to be.
       */}
       <p className="mt-4 text-caption text-text-muted">
-        By signing in you agree to our{" "}
-        <Link href="/legal/terms" className="text-text-link underline decoration-dotted underline-offset-2">
+        By signing in you agree to our Terms of Use and Privacy Notice. Your email is used
+        to send the sign-in link and to hold your account; it is never sold or used for
+        advertising.
+      </p>
+      {/* UI-1 #13: 48 px link rows instead of 17 px inline links. */}
+      <p className="mt-1 flex flex-wrap gap-x-6 text-caption">
+        <Link
+          href="/legal/terms"
+          className="inline-flex min-h-touch-floor items-center text-text-link underline decoration-dotted underline-offset-2"
+        >
           Terms of Use
-        </Link>{" "}
-        and{" "}
-        <Link href="/legal/privacy" className="text-text-link underline decoration-dotted underline-offset-2">
+        </Link>
+        <Link
+          href="/legal/privacy"
+          className="inline-flex min-h-touch-floor items-center text-text-link underline decoration-dotted underline-offset-2"
+        >
           Privacy Notice
         </Link>
-        . Your email is used to send the sign-in link and to hold your account; it is
-        never sold or used for advertising.
       </p>
 
       {state === "sent" && (

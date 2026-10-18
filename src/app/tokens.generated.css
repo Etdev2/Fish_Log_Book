@@ -28,6 +28,16 @@
   --color-map-area-protected: #a78bfa;
   --color-map-position-stroke: #111827;
   --color-map-position-fill: #fb923c;
+  --color-fish-back: #3D5A63;
+  --color-fish-side: #9DB3BB;
+  --color-fish-belly: #E3EBEE;
+  --color-fish-fin: #5E7A84;
+  --color-fish-spot: #0E1215;
+  --color-fish-gum-dark: #1B1416;
+  --color-fish-gum-pale: #F3E7E4;
+  --color-fish-mouth-flesh: #C98B86;
+  --color-fish-eye: #0E1215;
+  --color-fish-eye-ring: #D8C27A;
 
   --font-ui: var(--font-archivo), 'Helvetica Neue', sans-serif;
   --font-mono: var(--font-ibm-plex-mono), ui-monospace, monospace;
@@ -85,6 +95,7 @@
   --container-reading: 820px;
 
   --breakpoint-nav-single-row: 384px;
+  --breakpoint-picture-pair: 280px;
 
   --opacity-disabled: 0.45;
 }
@@ -117,6 +128,16 @@
     --color-map-area-protected: #a78bfa;
     --color-map-position-stroke: #111827;
     --color-map-position-fill: #fb923c;
+    --color-fish-back: #3D5A63;
+    --color-fish-side: #9DB3BB;
+    --color-fish-belly: #E3EBEE;
+    --color-fish-fin: #5E7A84;
+    --color-fish-spot: #0E1215;
+    --color-fish-gum-dark: #1B1416;
+    --color-fish-gum-pale: #F3E7E4;
+    --color-fish-mouth-flesh: #C98B86;
+    --color-fish-eye: #0E1215;
+    --color-fish-eye-ring: #D8C27A;
   }
 }
 

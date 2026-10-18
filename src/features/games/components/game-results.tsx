@@ -30,7 +30,7 @@ export function GameResultsRoute() {
 function NoSuchGame() {
   return (
     <div className="mx-auto flex max-w-reading flex-col gap-space-4 p-space-5">
-      <p className="text-body text-text-primary">That game is not on this phone.</p>
+      <h1 className="text-h2 text-text-primary">That game is not on this phone.</h1>
       <Link href="/games" className={SECONDARY_BUTTON}>
         Back to Boat Games
       </Link>
@@ -46,7 +46,7 @@ export function GameResults({ sessionId }: { sessionId: string }) {
   const view = gameView(games, sessionId);
 
   if (!games.hydrated) {
-    return <p className="p-space-5 text-body text-text-muted">Reading the scorecard…</p>;
+    return <h1 className="p-space-5 text-body text-text-muted">Reading the scorecard…</h1>;
   }
   if (!view) return <NoSuchGame />;
 

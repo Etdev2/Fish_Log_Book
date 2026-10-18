@@ -24,8 +24,16 @@ import { CARD_CLASS } from "../ui-classes";
  * had just watched the feature being built — went looking for it twice and could not find
  * it. Restraint is right; invisibility is not the same thing. A bordered card with the
  * name on its own line is still quiet, and can actually be seen.
+ *
+ * UI-1 #6 (2026-10-14): the two shapes now sit in two places. A live game stays ABOVE the
+ * log — it is still the one thing more urgent than logging. The resting card moves BELOW
+ * it, because with no game running the 20-second job on this screen is "+ Log catch", and
+ * a promo above the title pushed that button down. `placement` picks which shape a slot
+ * renders, so the page can mount one of each and only the right one shows. The extra
+ * `px-space-4` wrapper is gone too: the shell's <main> already pads, and the double inset
+ * is what made this card sit out of line with the log cards.
  */
-export function GamesEntry() {
+export function GamesEntry({ placement }: { placement: "above-log" | "below-log" }) {
   const games = useGames();
   if (!games.hydrated) return null;
 
@@ -33,8 +41,9 @@ export function GamesEntry() {
   const active = running[0];
 
   if (!active) {
+    if (placement !== "below-log") return null;
     return (
-      <div className="px-space-4">
+      <div>
         <Link
           href="/games"
           className={`${CARD_CLASS} flex min-h-touch-floor items-center justify-between gap-space-3 p-space-4`}
@@ -53,12 +62,14 @@ export function GamesEntry() {
     );
   }
 
+  if (placement !== "above-log") return null;
+
   const view = gameView(games, active.id);
   const leader = view?.standings.rows.find((r) => r.participant_id === view.standings.leader_id);
   const leaderName = view?.participants.find((p) => p.id === leader?.participant_id)?.display_name;
 
   return (
-    <div className="px-space-4">
+    <div>
       <Link
         href={`/games/play?id=${active.id}`}
         className={`${CARD_CLASS} flex flex-col gap-space-1 border-amber-flag p-space-4`}

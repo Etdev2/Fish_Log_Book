@@ -58,6 +58,7 @@ const VIEWPORT_HEIGHT = 640;
 
 const ROUTES = [
   "/",
+  "/calendar",
   "/log",
   "/setup",
   "/tournaments",
@@ -82,11 +83,12 @@ const fail = (route, width, message) => failures.push(`${route} @${width}px — 
  *
  * Two honest notes. The design doc says "~45px"; measured here they are 38px wide, which
  * is further under the floor than the exception was written against and worth `ux-ui`
- * knowing. And the exception is scoped to the calendar grid on "/" — anywhere else, the
+ * knowing. And the exception is scoped to the calendar grid on "/calendar" (it was "/"
+ * until the calendar left Home on 2026-10-16) — anywhere else, the
  * same shape of control fails, which is exactly what §1 says should happen.
  */
 const TOUCH_EXCEPTIONS = [
-  { route: "/", width: 320, match: /^BUTTON "\d{1,2}"/, reason: "calendar day cells (design 03 §1)" },
+  { route: "/calendar", width: 320, match: /^BUTTON "\d{1,2}"/, reason: "calendar day cells (design 03 §1)" },
 ];
 
 const exempt = (route, width, target) =>

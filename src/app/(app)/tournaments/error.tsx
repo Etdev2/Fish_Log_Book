@@ -28,7 +28,7 @@ export default function TournamentError({ reset }: { error: Error & { digest?: s
           <button type="button" className={PRIMARY_BUTTON} onClick={reset}>
             Try again
           </button>
-          <Link href="/" className={SECONDARY_BUTTON}>
+          <Link href="/calendar" className={SECONDARY_BUTTON}>
             Back to the calendar
           </Link>
         </div>

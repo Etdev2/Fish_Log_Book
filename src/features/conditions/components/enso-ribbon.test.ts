@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { monthSpans, monthTitle } from "./enso-ribbon";
+import { monthSpans, monthTitle, stepMonthKey } from "./enso-ribbon";
 
 describe("ENSO ribbon labels", () => {
   it("names observed months with their ONI", () => {
@@ -30,5 +30,25 @@ describe("ENSO ribbon time scale", () => {
     const day = 86_400_000;
     expect(spans).toEqual([16 * day, 28 * day, 7 * day]);
     expect(spans.reduce((a, b) => a + b, 0)).toBe(to - from);
+  });
+});
+
+describe("stepping through months with the 48px buttons", () => {
+  const month = (year: number, m: number) =>
+    ({ year, month: m, phase: null, basis: "none", oni: null, probability: null }) as const;
+  const months = [month(2026, 11), month(2026, 12), month(2027, 1)];
+
+  it("moves one month either way, across a year end", () => {
+    expect(stepMonthKey(months, "2026-12", 1)).toBe("2027-1");
+    expect(stepMonthKey(months, "2026-12", -1)).toBe("2026-11");
+  });
+
+  it("stops at the ends of the loaded range", () => {
+    expect(stepMonthKey(months, "2026-11", -1)).toBe("2026-11");
+    expect(stepMonthKey(months, "2027-1", 1)).toBe("2027-1");
+  });
+
+  it("has nothing to step through when no months are loaded", () => {
+    expect(stepMonthKey([], "2026-11", 1)).toBeNull();
   });
 });
