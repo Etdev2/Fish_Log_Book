@@ -45,8 +45,9 @@ code.
   look-alike.
 - **No invented boundaries.** Boundary coordinates come from the official source (CDFW
   MPA datasets ds3207/ds582, 50 CFR §660.72(a) (Subpart C) waypoints for the 50-fm RCA
-  line, and 50 CFR §660.70(t) for the current recreational closed areas, which replaced
-  the recreational Cowcod Conservation Areas in 2024) with source, retrieval date and simplification tolerance recorded
+  line, and 50 CFR §660.70(t) for the current recreational closed areas; Codex read
+  CDFW's Cowcod page on 2026-10-18 as saying these replaced the recreational Cowcod
+  Conservation Areas from 2024, so confirm against the live sources) with source, retrieval date and simplification tolerance recorded
   in `RuleProvenance` (ADR 007 §3). If you cannot download a source, leave the existing
   labelled-simplified geometry in place and report the blocked host.
 - **ADR 007 forbids a map tile layer without a superseding ADR.** Write that ADR first.
