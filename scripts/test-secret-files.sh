@@ -37,6 +37,8 @@ for path in .env .env.local config/.env.production .aws/credentials \
   playwright/.auth/user.json \
   id_rsa id_dsa id_ecdsa id_ed25519 id_ecdsa_sk nested/ID_ECDSA \
   signing.pem signing.KEY signing.p8 signing.p12 signing.pfx \
+  private-key.json private_key.json privatekey nested/PRIVATE-KEY.JSON private_keys.yaml \
+  signing-key.json keypair.json keystore.json release.jks app.keystore putty.ppk \
   $'nested/line\nbreak/service-account.json'; do
   check_name "$path" reject
 done
@@ -45,7 +47,8 @@ for path in .env.example .env.local.example nested/.env.production.example \
   README.md scripts/check-secret-files.sh src/credentials.ts \
   src/client-secret.ts src/client_secret_utils.ts docs/client-secret-setup.md \
   src/core/design/tokens.json docs/secrets-guide.md src/tokens.ts \
-  docs/service-account-setup.md .kube/config.example; do
+  docs/service-account-setup.md .kube/config.example \
+  src/private-key.ts docs/private-key-rotation.md src/keystore.ts; do
   check_name "$path" allow
 done
 
