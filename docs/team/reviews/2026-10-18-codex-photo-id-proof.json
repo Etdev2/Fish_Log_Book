@@ -1,0 +1,106 @@
+{
+  "head": "ce916e05a4b2f4e6dc18567e5b88dc319d299fad",
+  "commandExits": {
+    "npmCi": 0,
+    "verify": 0,
+    "build": 0
+  },
+  "tests": {
+    "files": 99,
+    "tests": 1089,
+    "lintWarnings": 8
+  },
+  "widths": [
+    {
+      "width": 320,
+      "overflow": false,
+      "overscroll": [
+        "none",
+        "none"
+      ],
+      "navBottom": 844,
+      "viewport": "width=device-width, initial-scale=1, viewport-fit=cover"
+    },
+    {
+      "width": 390,
+      "overflow": false,
+      "overscroll": [
+        "none",
+        "none"
+      ],
+      "navBottom": 844,
+      "viewport": "width=device-width, initial-scale=1, viewport-fit=cover"
+    }
+  ],
+  "screens": [
+    {
+      "path": "/fish-id/pacific-salmon",
+      "percentages": false,
+      "bestBeforeAnswers": false
+    },
+    {
+      "path": "/fish-id/socal-bass",
+      "percentages": false,
+      "bestBeforeAnswers": false
+    },
+    {
+      "path": "/fish-legal/rockfish",
+      "percentages": false,
+      "bestBeforeAnswers": false
+    },
+    {
+      "path": "/fin-id",
+      "percentages": false,
+      "bestBeforeAnswers": false
+    }
+  ],
+  "matcher": {
+    "/manifest.webmanifest": false,
+    "/log": true,
+    "/sign-in": true
+  },
+  "manifest": {
+    "status": 200,
+    "type": "application/manifest+json",
+    "body": {
+      "name": "Fish Log Book",
+      "short_name": "Fish Log",
+      "description": "Log every trip — including the ones that caught nothing.",
+      "start_url": "/",
+      "display": "standalone",
+      "orientation": "portrait",
+      "background_color": "#0A1014",
+      "theme_color": "#0A1014",
+      "icons": [
+        {
+          "src": "/icon-192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        },
+        {
+          "src": "/icon-512.png",
+          "sizes": "512x512",
+          "type": "image/png"
+        }
+      ]
+    }
+  },
+  "salmonAfterOne": false,
+  "salmonAfterTwo": {
+    "heading": 1,
+    "band": 1,
+    "percentages": false
+  },
+  "catalog": {
+    "cards": 19,
+    "decodedImages": 18,
+    "flags": {
+      "cowcod": "CDFW CA Marine Species Portal (ID illustration, Amadeo Bachar)\nCowcod\n\nSebastes levis\n\nNever keep this fish. Put it back.\n\nWhy it must go back",
+      "yelloweye_rockfish": "CDFW CA Marine Species Portal (ID illustration, Amadeo Bachar)\nYelloweye rockfish\n\nSebastes ruberrimus\n\nNever keep this fish. Put it back.\n\nWhy it must go back",
+      "bronzespotted_rockfish": "No checked picture of the bronzespotted rockfish yet.\nBronzespotted rockfish\n\nSebastes gilli\n\nNever keep this fish. Put it back.\n\nWhy it must go back",
+      "quillback_rockfish": "CDFW CA Marine Species Portal (ID illustration, Amadeo Bachar)\nQuillback rockfish\n\nSebastes maliger\n\nCurrent limits for this fish"
+    },
+    "bronzeImages": 0
+  },
+  "realIphone": "INCONCLUSIVE — unavailable"
+}
