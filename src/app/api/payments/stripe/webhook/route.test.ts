@@ -164,8 +164,24 @@ describe("the payment webhook", () => {
     // 500 rather than 200: the confirm function is idempotent, so a retry is safe, and a
     // real problem surfaces in the Stripe dashboard instead of being swallowed.
     rpc.mockResolvedValue({ error: { message: "order not found" } });
+    const logged = vi.spyOn(console, "error").mockImplementation(() => {});
     const response = await (await handler())(post(event()));
     expect(response.status).toBe(500);
+    logged.mockRestore();
+  });
+
+  it("keeps the database's error out of the response and in the server log (#162)", async () => {
+    rpc.mockResolvedValue({
+      error: { message: 'new row for relation "payment" violates check constraint "payment_amount_check"' },
+    });
+    const logged = vi.spyOn(console, "error").mockImplementation(() => {});
+    const response = await (await handler())(post(event()));
+    const body = await response.text();
+    expect(response.status).toBe(500);
+    expect(body).toBe(JSON.stringify({ error: "confirmation failed" }));
+    expect(body).not.toContain("payment_amount_check");
+    expect(logged).toHaveBeenCalledWith(expect.stringContaining("payment_amount_check"));
+    logged.mockRestore();
   });
 
   it("does not answer a GET with anything useful", async () => {
