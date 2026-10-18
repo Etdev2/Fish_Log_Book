@@ -7,7 +7,13 @@ import { heightAt, type TidePredictionSeries, type TideTurn } from "@/core/rules
 import type { DaylightSpan } from "@/core/rules/astro";
 
 import { unwrapSourced } from "./sourced-value";
-import { CATCH_HIT_DIAMETER_PX, clusterCatchMarkers, type CatchMarkerInput } from "../catch-markers";
+import {
+  CATCH_HIT_DIAMETER_PX,
+  clusterCatchMarkers,
+  hitAreaPath,
+  type CatchMarkerInput,
+  type Point,
+} from "../catch-markers";
 import {
   DEFAULT_CHART_HEIGHT,
   MIN_CHART_HEIGHT,
@@ -159,6 +165,14 @@ export function TideTimeline({
     () => makeYFor(yMinimum, yMaximum, chartHeight),
     [yMinimum, yMaximum, chartHeight],
   );
+
+  // Where each marker sits on the curve, so overlapping catch and sun targets can split.
+  const pointOnCurve = (at: number): Point | null => {
+    const height = heightAt(series, instant(at));
+    return height ? { x: xForAt(at, seriesStart), y: yFor(unwrapSourced(height)) } : null;
+  };
+  const catchPoints = catchClusters.map((c) => pointOnCurve(c.at)).filter((p) => p !== null);
+  const sunPoints = sunMarkers.map((m) => pointOnCurve(m.at)).filter((p) => p !== null);
 
   // The plotted curve reads heights from the engine's monotone-cubic heightAt, not the raw
   // sample tuples. Dense uniform sampling (plus every published sample instant, so the
@@ -327,6 +341,10 @@ export function TideTimeline({
           <svg
             width={chartWidth}
             height={chartHeight}
+            // A catch or sunrise at the very start of the series sits 10px from the left
+            // edge; clipping would cut its 50px tap circle to about 35px. The track's
+            // inline padding leaves room for it to spill (Codex review, UI-1c).
+            overflow="visible"
             // UI-1 #4: "group", not "img" — an img's children are presentational, which hid
             // the sunrise/sunset/catch buttons drawn on the curve (axe nested-interactive).
             role="group"
@@ -412,9 +430,9 @@ export function TideTimeline({
               );
             })}
 
-            {/* Catches paint before sun markers on purpose: both carry 50px hit circles, and
-                in SVG the later element wins a tap. A catch logged at sunrise must not steal
-                the tap aimed at the visible sun glyph (Codex review, UI-1c). */}
+            {/* Catches and sun markers both carry 50px hit circles. Where a catch was logged
+                near sunrise the circles overlap, so each gives up the side nearer the other
+                (hitAreaPath) and every visible glyph keeps its own tap (Codex review, UI-1c). */}
             {/* Catch markers (founder requirements §6): every logged catch sits ON the
                 curve at its exact instant. Tapping one does two things — reveals
                 species + time, and pins the read-head onto the catch, so the header
@@ -470,7 +488,7 @@ export function TideTimeline({
                     setRevealedCatchKey((current) => (current === cluster.key ? null : cluster.key));
                   }}
                 >
-                  <circle cx={x} cy={y} r={CATCH_HIT_DIAMETER_PX / 2} fill="transparent" pointerEvents="all" />
+                  <HitArea centre={{ x, y }} rivals={sunPoints} />
                   <circle cx={x} cy={y} r={count === 1 ? 9 : 12} fill={markerFill} stroke="var(--color-surface)" strokeWidth="2" />
                   {count === 1 ? (
                     // A fish body with a tail, sized to sit inside the marker.
@@ -530,7 +548,7 @@ export function TideTimeline({
                   }}
                 >
                   {/* UI-1 #5: a 50 px transparent hit area (48 px floor + subpixel margin); the visible glyph keeps its size. */}
-                  <circle cx={x} cy={y} r={CATCH_HIT_DIAMETER_PX / 2} fill="transparent" pointerEvents="all" />
+                  <HitArea centre={{ x, y }} rivals={catchPoints} />
                   <SunTransitionGlyph kind={marker.kind} x={x} y={y} />
                   {revealed && (
                     <>
@@ -597,6 +615,17 @@ export function TideTimeline({
         </button>
       )}
     </div>
+  );
+}
+
+/** A marker's transparent tap target: the full 50px circle, or its share where it overlaps. */
+function HitArea({ centre, rivals }: { centre: Point; rivals: readonly Point[] }) {
+  const radius = CATCH_HIT_DIAMETER_PX / 2;
+  const path = hitAreaPath(centre, radius, rivals);
+  return path === null ? (
+    <circle cx={centre.x} cy={centre.y} r={radius} fill="transparent" pointerEvents="all" />
+  ) : (
+    <path d={path} fill="transparent" pointerEvents="all" />
   );
 }
 
