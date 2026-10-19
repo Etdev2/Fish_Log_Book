@@ -95,9 +95,11 @@ export async function proxy(request: NextRequest) {
 export const config = {
   matcher: [
     /*
-     * Everything except static assets and image files. The auth routes are deliberately
-     * included: a signed-in angler hitting /sign-in should carry a fresh session.
+     * Everything except static assets, image files and the web app manifest (iOS fetches
+     * it before anyone signs in; a redirect to /sign-in would hand it HTML). The auth
+     * routes are deliberately included: a signed-in angler hitting /sign-in should carry
+     * a fresh session.
      */
-    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+    "/((?!_next/static|_next/image|favicon.ico|manifest.webmanifest|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
   ],
 };

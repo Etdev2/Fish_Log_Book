@@ -211,6 +211,7 @@ export function RegulationsHome() {
         <HomeCard href="/fish-legal/species" title="Species & limits" body="Pick a fish; get the 2-second answer." />
         <HomeCard href="/fish-legal/limits" title="Today's limits" body="What you're carrying vs. what the day allows." />
         <HomeCard href="/fish-legal/rockfish" title="Rockfish ID" body="Six questions; likely species with confidence, not verdicts." />
+        <HomeCard href="/fish-legal/rockfish/catalog" title="Rockfish pictures" body="Every rockfish we cover, with a picture, and which ones must go back." />
         <HomeCard href="/fish-id" title="Fish ID" body="Salmon, sand bass and rockfish — the ones that are genuinely hard to call." />
         <HomeCard href="/fin-id" title="Whale & dolphin ID" body="What surfaced next to the boat, and how far back to stay." />
         {/*

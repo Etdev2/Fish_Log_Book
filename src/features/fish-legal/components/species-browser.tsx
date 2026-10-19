@@ -10,6 +10,8 @@ import { regulationCard, platformFor } from "../reg-engine";
 import { JurisdictionChip } from "./jurisdiction-chip";
 import { packForRegion } from "../packs";
 import { speciesDisplayName } from "../reg-species";
+import { idPhoto } from "../species-photos";
+import { PictureCredits, SpeciesThumb } from "./species-picture";
 import { useFishingModePreference } from "../prefs";
 import type { RegulationCard as Card } from "../types";
 
@@ -40,6 +42,7 @@ export function SpeciesBrowser({ dateKey }: { dateKey: string }) {
       .map((id) => ({
         id,
         name: speciesDisplayName(id),
+        photo: idPhoto(id),
         card: regulationCard(bundle.data, bundle.primaryAreaId, id, dateKey, platform),
       }))
       .filter((r) => r.card !== null)
@@ -82,13 +85,14 @@ export function SpeciesBrowser({ dateKey }: { dateKey: string }) {
           </p>
 
           <ul className="flex flex-col gap-2">
-            {rows.map(({ id, name, card }) => (
+            {rows.map(({ id, name, card, photo }) => (
               <li key={id}>
                 <Link
                   href={`/fish-legal/species/${id}`}
-                  className="flex items-center justify-between gap-3 rounded-lg border border-hairline bg-surface p-4 focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-3 focus-visible:outline-focus-ring"
+                  className="flex items-center justify-between gap-3 rounded-lg border border-hairline bg-surface p-3 focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-3 focus-visible:outline-focus-ring"
                 >
-                  <span className="text-body font-semibold">{name}</span>
+                  <SpeciesThumb photo={photo} />
+                  <span className="flex-1 text-body font-semibold">{name}</span>
                   <VerdictChip card={card as Card} />
                 </Link>
               </li>
@@ -100,6 +104,7 @@ export function SpeciesBrowser({ dateKey }: { dateKey: string }) {
               </li>
             ) : null}
           </ul>
+          <PictureCredits photos={rows.map((r) => r.photo)} />
         </>
       )}
     </div>

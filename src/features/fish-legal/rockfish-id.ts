@@ -7,9 +7,9 @@
  * says zero-retention on. The product rule is §6: when identification is uncertain the
  * answer favors release, and the UI says so.
  *
- * Images in v1 are SCHEMATIC swatches (drawn color/pattern blocks), labeled as such — a
- * schematic is honest about what it is. §7's camera path narrows candidates through the
- * same scoring seam later; identification and regulation stay separate systems.
+ * Images are the bundled CDFW identification drawings (`species-photos.ts`, via
+ * `idPhoto`), checked by eye against each species. §7's camera path narrows candidates
+ * through the same scoring seam later; identification and regulation stay separate systems.
  */
 import { identify, RESTRICTED_WARNING_PCT as SHARED_WARNING_PCT } from "@/core/rules/identification/identify";
 import type { Identification, TraitPack } from "@/core/rules/identification/types";
@@ -103,8 +103,6 @@ export interface RockfishProfile {
   readonly speciesId: string;
   readonly commonName: string;
   readonly scientificName: string;
-  /** Schematic swatch colors for the honest "not a photo" visual. */
-  readonly swatch: { readonly base: string; readonly accent: string; readonly pattern: "plain" | "spots" | "blotches" };
   readonly keyFeatures: readonly string[];
   readonly similarTo: readonly string[];
   /** True when the pack or CCR marks zero-retention / no-take. */
@@ -117,7 +115,6 @@ export const ROCKFISH_PROFILES: readonly RockfishProfile[] = [
     speciesId: "vermilion_rockfish",
     commonName: "Vermilion rockfish",
     scientificName: "Sebastes miniatus",
-    swatch: { base: "#c0392b", accent: "#7b241c", pattern: "spots" },
     keyFeatures: [
       "Body red to orange-red with faint dark mottling or tiny brown spots",
       "Fins reddish, often with darker margins on young fish",
@@ -132,7 +129,6 @@ export const ROCKFISH_PROFILES: readonly RockfishProfile[] = [
     speciesId: "canary_rockfish",
     commonName: "Canary rockfish",
     scientificName: "Sebastes pinniger",
-    swatch: { base: "#e67e22", accent: "#fdf2e9", pattern: "plain" },
     keyFeatures: [
       "Bright orange body with a gray zone along the lateral line",
       "Underside of the jaw and fin edges often pale",
@@ -147,7 +143,6 @@ export const ROCKFISH_PROFILES: readonly RockfishProfile[] = [
     speciesId: "yelloweye_rockfish",
     commonName: "Yelloweye rockfish",
     scientificName: "Sebastes ruberrimus",
-    swatch: { base: "#d35400", accent: "#f1c40f", pattern: "plain" },
     keyFeatures: [
       "Bright orange-red with a distinctly YELLOW EYE",
       "Latural line in a pale stripe; adults often have raspy head spines",
@@ -162,7 +157,6 @@ export const ROCKFISH_PROFILES: readonly RockfishProfile[] = [
     speciesId: "copper_rockfish",
     commonName: "Copper rockfish",
     scientificName: "Sebastes caurinus",
-    swatch: { base: "#7e5109", accent: "#f0b27a", pattern: "blotches" },
     keyFeatures: [
       "Olive-brown with coppery or yellowish blotches on the back and sides",
       "Rear two-thirds of the lateral line noticeably lighter",
@@ -177,7 +171,6 @@ export const ROCKFISH_PROFILES: readonly RockfishProfile[] = [
     speciesId: "bocaccio",
     commonName: "Bocaccio",
     scientificName: "Sebastes paucispinis",
-    swatch: { base: "#a04000", accent: "#d5caca", pattern: "plain" },
     keyFeatures: [
       "Olive-orange to brownish, often with a pinkish cast",
       "Very large mouth — the lower jaw juts past the eye",
@@ -192,7 +185,6 @@ export const ROCKFISH_PROFILES: readonly RockfishProfile[] = [
     speciesId: "blue_rockfish",
     commonName: "Blue rockfish",
     scientificName: "Sebastes mystinus",
-    swatch: { base: "#1f3a93", accent: "#5d6d7e", pattern: "plain" },
     keyFeatures: [
       "Blue-black to slate, often with a blue sheen on the fins",
       "Small mouth, slim body, small scales",
@@ -207,7 +199,6 @@ export const ROCKFISH_PROFILES: readonly RockfishProfile[] = [
     speciesId: "black_rockfish",
     commonName: "Black rockfish",
     scientificName: "Sebastes melanops",
-    swatch: { base: "#17202a", accent: "#808b96", pattern: "plain" },
     keyFeatures: [
       "Dark gray to black, often with a lighter belly",
       "Large mouth with the jaw reaching to about mid-eye",
@@ -222,7 +213,6 @@ export const ROCKFISH_PROFILES: readonly RockfishProfile[] = [
     speciesId: "olive_rockfish",
     commonName: "Olive rockfish",
     scientificName: "Sebastes serranoides",
-    swatch: { base: "#6e6702", accent: "#aab7b8", pattern: "plain" },
     keyFeatures: [
       "Olive-brown above, sharply lighter toward the belly",
       "Fin membranes often pale/clear at the edges",
@@ -237,7 +227,6 @@ export const ROCKFISH_PROFILES: readonly RockfishProfile[] = [
     speciesId: "gopher_rockfish",
     commonName: "Gopher rockfish",
     scientificName: "Sebastes carnatus",
-    swatch: { base: "#935116", accent: "#f5b7b1", pattern: "blotches" },
     keyFeatures: [
       "Olive-brown with pinkish or white blotches, often a pink cast on the lips",
       "Squat, thick-bodied fish",
@@ -252,7 +241,6 @@ export const ROCKFISH_PROFILES: readonly RockfishProfile[] = [
     speciesId: "cowcod",
     commonName: "Cowcod",
     scientificName: "Sebastes levis",
-    swatch: { base: "#e59866", accent: "#fdfefe", pattern: "plain" },
     keyFeatures: [
       "Salmon-pink to orange-red, plain-bodied with notably large scales",
       "Heavy, deep body and a big mouth",

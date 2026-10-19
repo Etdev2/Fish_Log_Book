@@ -76,10 +76,10 @@ export const SPECIES_PHOTOS: Record<string, SpeciesPhoto> = {
   chinook_salmon: { src: "/species-photos/chinook_salmon.jpg", credit: "CDFW CA Marine Species Portal (ID illustration, Amadeo Bachar)", license: W, sourceUrl: "https://marinespecies.wildlife.ca.gov/chinook-salmon/false/" },
   coho_salmon: { src: "/species-photos/coho_salmon.jpg", credit: "CDFW CA Marine Species Portal (ID illustration, Amadeo Bachar)", license: W, sourceUrl: "https://marinespecies.wildlife.ca.gov/coho-salmon/false/" },
   yellowtail_rockfish: { src: "/species-photos/yellowtail_rockfish.jpg", credit: "CDFW CA Marine Species Portal (ID illustration, Amadeo Bachar)", license: W, sourceUrl: "https://marinespecies.wildlife.ca.gov/yellowtail-rockfish/false/" },
-  widow_rockfish: { src: "/species-photos/widow_rockfish.jpg", credit: "CDFW CA Marine Species Portal (ID illustration, Amadeo Bachar)", license: W, sourceUrl: "https://marinespecies.wildlife.ca.gov/widow-rockfish/false/" },
+  widow_rockfish: { src: "/species-photos/widow_rockfish.jpg", credit: "CDFW CA Marine Species Portal (ID illustration, signed C. Makeyev)", license: W, sourceUrl: "https://marinespecies.wildlife.ca.gov/widow-rockfish/false/" },
   china_rockfish: { src: "/species-photos/china_rockfish.jpg", credit: "CDFW CA Marine Species Portal (ID illustration, Amadeo Bachar)", license: W, sourceUrl: "https://marinespecies.wildlife.ca.gov/china-rockfish/false/" },
   grass_rockfish: { src: "/species-photos/grass_rockfish.jpg", credit: "CDFW CA Marine Species Portal (ID illustration, Amadeo Bachar)", license: W, sourceUrl: "https://marinespecies.wildlife.ca.gov/grass-rockfish/false/" },
-  calico_rockfish: { src: "/species-photos/calico_rockfish.jpg", credit: "CDFW CA Marine Species Portal (ID illustration, Amadeo Bachar)", license: W, sourceUrl: "https://marinespecies.wildlife.ca.gov/calico-rockfish/false/" },
+  calico_rockfish: { src: "/species-photos/calico_rockfish.jpg", credit: "CDFW CA Marine Species Portal (ID illustration, signed L. Sinclair)", license: W, sourceUrl: "https://marinespecies.wildlife.ca.gov/calico-rockfish/false/" },
   brown_rockfish: { src: "/species-photos/brown_rockfish.jpg", credit: "CDFW CA Marine Species Portal (ID illustration, Amadeo Bachar)", license: W, sourceUrl: "https://marinespecies.wildlife.ca.gov/brown-rockfish/false/" },
   treefish: { src: "/species-photos/treefish.jpg", credit: "CDFW CA Marine Species Portal (ID illustration, Amadeo Bachar)", license: W, sourceUrl: "https://marinespecies.wildlife.ca.gov/treefish/false/" },
   starry_flounder: { src: "/species-photos/starry_flounder.jpg", credit: "CDFW CA Marine Species Portal (ID illustration, Amadeo Bachar)", license: W, sourceUrl: "https://marinespecies.wildlife.ca.gov/starry-flounder/false/" },
@@ -90,4 +90,22 @@ export const SPECIES_PHOTOS: Record<string, SpeciesPhoto> = {
 
 export function speciesPhoto(speciesId: string): SpeciesPhoto | null {
   return SPECIES_PHOTOS[speciesId] ?? null;
+}
+
+/**
+ * The picture an ID screen may show to help someone decide what is in their hand.
+ *
+ * Stricter than `speciesPhoto`: a stock thumbnail with no licence (`S`) is left out, so the
+ * screens that decide "can this go in the box" only ever show agency or open-licence
+ * images. Every image this returns was checked by eye against its species on 2026-10-18
+ * (worklog of that date). A species with nothing here gets the honest placeholder.
+ */
+export function idPhoto(speciesId: string): SpeciesPhoto | null {
+  const photo = speciesPhoto(speciesId);
+  return photo !== null && photo.license !== S ? photo : null;
+}
+
+/** Each credit once, sorted: the attribution line for a list of thumbnails. */
+export function pictureCredits(photos: readonly (SpeciesPhoto | null)[]): readonly string[] {
+  return [...new Set(photos.flatMap((p) => (p === null ? [] : [p.credit])))].sort();
 }

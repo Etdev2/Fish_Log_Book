@@ -2,6 +2,17 @@
 @import "./tokens.generated.css";
 @import "../styles/tide-chart.css";
 
+/*
+ * No rubber-band. iOS Safari otherwise lets the whole page be dragged past its top and
+ * bottom edges, which lifts the sticky bottom dock off the edge of the screen and shows an
+ * empty band beneath it (founder's Home screenshot, 2026-10-18). Inner scrollers keep
+ * scrolling; only the bounce at the ends goes.
+ */
+html,
+body {
+  overscroll-behavior: none;
+}
+
 body {
   background: var(--color-background);
   color: var(--color-text-primary);

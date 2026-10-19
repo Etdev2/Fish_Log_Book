@@ -74,6 +74,12 @@ export interface TraitPack {
   readonly version: number;
 }
 
+/**
+ * ADR 007 §4: a candidate is shown as a band, never a percentage. A five-year-old reads
+ * "best match"; nobody reads "17%" correctly, least of all when four fish all show it.
+ */
+export type MatchBand = "strong" | "moderate" | "weak";
+
 /** One ranked possibility, with the reasons it is there. */
 export interface Candidate {
   readonly profile: TraitProfile;

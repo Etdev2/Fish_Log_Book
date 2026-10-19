@@ -5,8 +5,10 @@ import { BackLink } from "@/components/back-link";
 import { useMemo, useState } from "react";
 
 import { TraitFigure, type TraitFigureKey } from "@/components/trait-figure";
-import { identify } from "@/core/rules/identification/identify";
-import type { Candidate } from "@/core/rules/identification/types";
+import { identify, matchBand, STRONG_SHARE_PCT } from "@/core/rules/identification/identify";
+import type { Candidate, Identification } from "@/core/rules/identification/types";
+import { CandidateCard } from "@/features/fish-legal/components/candidate-card";
+import { idPhoto } from "@/features/fish-legal/species-photos";
 
 import { FIN_ID_PACK, VIEWING_GUIDANCE } from "../fin-id-pack";
 
@@ -30,7 +32,9 @@ export function FinId() {
 
   const reading = useMemo(() => identify(FIN_ID_PACK, chosen), [chosen]);
   const top = reading.candidates[0];
-  const confident = reading.ranked && top !== undefined && top.sharePct >= 40;
+  const confident = reading.ranked && top !== undefined && top.sharePct >= STRONG_SHARE_PCT;
+  // Every animal until something is answered, then the four likeliest (as in Fish ID).
+  const shown = chosen.length === 0 ? reading.candidates : reading.candidates.slice(0, 4);
 
   function toggle(questionId: string, optionId: string) {
     const question = FIN_ID_PACK.questions.find((q) => q.id === questionId);
@@ -98,9 +102,9 @@ export function FinId() {
       <section className="rounded-lg border border-hairline bg-surface p-4" aria-live="polite">
         <h2 className="text-h3">
           {chosen.length === 0
-            ? "What you might be looking at"
+            ? "Which one did you see?"
             : confident
-              ? `Likely ${top.profile.commonName.toLowerCase()}`
+              ? `Best match: ${top.profile.commonName}`
               : "Not enough to say yet"}
         </h2>
 
@@ -111,9 +115,14 @@ export function FinId() {
           </p>
         ) : null}
 
-        <ul className="mt-3 flex flex-col gap-3">
-          {reading.candidates.slice(0, 4).map((candidate) => (
-            <CandidateRow key={candidate.profile.speciesId} candidate={candidate} />
+        <ul className="mt-3 flex flex-col gap-4">
+          {shown.map((candidate) => (
+            <CandidateRow
+              key={candidate.profile.speciesId}
+              candidate={candidate}
+              reading={reading}
+              answered={chosen.length}
+            />
           ))}
         </ul>
       </section>
@@ -134,60 +143,54 @@ export function FinId() {
   );
 }
 
-function CandidateRow({ candidate }: { candidate: Candidate }) {
-  const [open, setOpen] = useState(false);
-  const { profile, sharePct } = candidate;
+function CandidateRow({
+  candidate,
+  reading,
+  answered,
+}: {
+  candidate: Candidate;
+  reading: Identification;
+  answered: number;
+}) {
+  const { profile } = candidate;
   const guidance = VIEWING_GUIDANCE[profile.speciesId];
+  /*
+   * Every animal here is protected, so the line that must not be missed is the distance,
+   * not "never keep" (§21). Endangered ones say so in the same line.
+   */
+  const warning =
+    guidance === undefined
+      ? null
+      : `Stay at least ${guidance.distanceYards} yards away.${
+          guidance.status === "endangered" ? " Endangered." : ""
+        }`;
 
   return (
-    <li className="rounded-md border border-hairline">
-      <button
-        type="button"
-        onClick={() => setOpen((v) => !v)}
-        aria-expanded={open}
-        className={`flex w-full items-center gap-3 p-3 text-left ${FOCUS}`}
-      >
-        <span className="flex-1">
-          <span className="text-body font-semibold">{profile.commonName}</span>
-          <span className="block text-caption italic text-text-muted">
-            {profile.scientificName}
-          </span>
-          {guidance?.status === "endangered" ? (
-            <span className="block text-caption text-amber-flag">Endangered</span>
-          ) : null}
-        </span>
-        <span className="text-label text-text-muted">{sharePct}%</span>
-      </button>
+    <CandidateCard
+      name={profile.commonName}
+      scientificName={profile.scientificName}
+      warning={warning}
+      photo={idPhoto(profile.speciesId)}
+      band={matchBand(reading, profile.speciesId, answered)}
+    >
+      <ul className="flex flex-col gap-1 text-body">
+        {profile.keyFeatures.map((feature) => (
+          <li key={feature}>• {feature}</li>
+        ))}
+      </ul>
 
-      {open ? (
-        <div className="flex flex-col gap-3 border-t border-hairline p-3">
-          <ul className="flex flex-col gap-1 text-caption">
-            {profile.keyFeatures.map((feature) => (
-              <li key={feature}>• {feature}</li>
-            ))}
-          </ul>
-
-          {candidate.supporting.length > 0 || candidate.against.length > 0 ? (
-            <p className="text-caption text-text-muted">
-              {candidate.supporting.length > 0
-                ? `Matches what you said: ${candidate.supporting.join(", ")}.`
-                : ""}
-              {candidate.against.length > 0
-                ? ` Counts against: ${candidate.against.join(", ")}.`
-                : ""}
-            </p>
-          ) : null}
-
-          {guidance !== undefined ? (
-            <p className="text-caption text-text-muted">
-              Keep at least {guidance.distanceYards} yards away.
-              {guidance.reportUrl !== undefined
-                ? " NOAA wants sightings of this one reported."
-                : ""}
-            </p>
-          ) : null}
-        </div>
+      {candidate.supporting.length > 0 || candidate.against.length > 0 ? (
+        <p className="text-caption text-text-muted">
+          {candidate.supporting.length > 0
+            ? `Matches what you said: ${candidate.supporting.join(", ")}.`
+            : ""}
+          {candidate.against.length > 0 ? ` Counts against: ${candidate.against.join(", ")}.` : ""}
+        </p>
       ) : null}
-    </li>
+
+      {guidance?.reportUrl !== undefined ? (
+        <p className="text-caption text-text-muted">NOAA wants sightings of this one reported.</p>
+      ) : null}
+    </CandidateCard>
   );
 }
