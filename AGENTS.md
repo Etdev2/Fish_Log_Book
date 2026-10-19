@@ -28,3 +28,19 @@ LOW/MEDIUM/HIGH mappings; they do not create a duplicate team. Do not duplicate 
 across runtimes. Each initiative has one coordinating COO and exclusive write lanes;
 follow the assignment protocol in `docs/team/AI-OPERATING-SYSTEM.md`. Never touch,
 stage, commit, revert, or push another lane's work.
+
+## Sweet Potato control room
+
+This repo is a project of the [Sweet Potato](https://github.com/Etdev2/sweet-potato) control room. Its coordinator, builder and reviewer bots meet on GitHub issues and pull requests. The roles above stay as they are; Sweet Potato adds these rules on top.
+
+| Rule | Enforced by |
+| --- | --- |
+| Every pull request commits a fresh, passing proof bundle in `proof/`, made by `scripts/prove.sh` (see `.claude/skills/verify/`). | Hard check: `scripts/check-proof.sh` in the CI `proof` job, at the PR head commit |
+| The proof scripts and `skills/registry.json` copied from the control room match its reviewed commit. | Hard check: `scripts/check-pinned-scripts.sh` against `scripts/control-room-pin.txt`, in `npm run verify`; `scripts/test-proof-tools.sh` in CI |
+| No secret-looking file (env files, private keys, credential files) is committed. `*.example` env templates are allowed. | Hard check: `.gitignore`, plus `scripts/check-secret-files.sh` in `npm run verify` |
+| Upstream skills come from the pinned commits in `skills/registry.json`. | Pin check above; update only by copying a newer reviewed control-room commit |
+| Et marks product tickets ready, names the builder, and merges every pull request. | Soft rule: control-room ADR 0006 |
+| A different model family reviews the builder's pull request (Codex: comment `@codex review`), on two axes: repository standards and the originating spec. | Soft rule: review |
+| Handoffs between bots use the control room's TO / HANDOFF / status format on the issue or pull request. | Soft rule: review |
+
+Don't edit a pinned file here. Change it in the control room, then copy it and update the pin in one pull request.

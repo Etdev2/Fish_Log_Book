@@ -1,0 +1,8 @@
+# Copied byte for byte from Etdev2/sweet-potato at commit 8a18b9435c4af0e894378c15fbbfa2e311b52922.
+# Lines are `git ls-tree` output for that commit; scripts/check-pinned-scripts.sh fails if a copy differs.
+# skills/registry.json is the control room's reviewed skill pin (ADR 0003); it is pinned here so it can't drift silently.
+# To update: copy the files from a newer reviewed commit, regenerate these lines with git ls-tree, and say what changed in the pull request.
+100755 blob 3d146e60905d1b41ae81830bce10d4958c129bef	scripts/check-proof.sh
+100755 blob f782798f72cdca25f915fda052fce00b2bfd70b6	scripts/proof-digest.sh
+100755 blob 7b71bef4702ed7217e6160057566560d3fbb1939	scripts/write-proof.sh
+100644 blob 4582faeb3af4f225c946997b00cb201aed093527	skills/registry.json
