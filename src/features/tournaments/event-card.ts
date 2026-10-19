@@ -74,20 +74,27 @@ export function registrationState(event: TournamentEvent, nowMs: number): Regist
 
 /** Money for reading, not for accounting: "$1,250" and "$0" rather than "$1250.00". */
 export function formatMoney(minor: number | null, currency: string): string | null {
-  if (minor === null || !Number.isFinite(minor)) return null;
-  const major = minor / 100;
+  if (minor === null || !Number.isSafeInteger(minor)) return null;
+  const exact = BigInt(minor);
+  const absolute = exact < BigInt(0) ? -exact : exact;
+  const whole = absolute / BigInt(100);
+  const cents = absolute % BigInt(100);
+  const signedWhole = exact < BigInt(0) ? (whole === BigInt(0) ? -0 : -whole) : whole;
   try {
     return new Intl.NumberFormat(undefined, {
       style: "currency",
       currency,
       // Whole dollars unless the cents are real. A $250 entry fee should not read "$250.00"
       // on a card that is already dense with numbers.
-      minimumFractionDigits: Number.isInteger(major) ? 0 : 2,
+      minimumFractionDigits: cents === BigInt(0) ? 0 : 2,
       maximumFractionDigits: 2,
-    }).format(major);
+    }).formatToParts(signedWhole).map((part) =>
+      part.type === "fraction" ? String(cents).padStart(2, "0") : part.value,
+    ).join("");
   } catch {
     // An unknown currency code must not blank the pot out. Say the number.
-    return `${major.toFixed(Number.isInteger(major) ? 0 : 2)} ${currency}`;
+    const major = `${exact < BigInt(0) ? "-" : ""}${whole}${cents === BigInt(0) ? "" : `.${String(cents).padStart(2, "0")}`}`;
+    return `${major} ${currency}`;
   }
 }
 

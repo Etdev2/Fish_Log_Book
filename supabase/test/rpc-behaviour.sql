@@ -592,4 +592,473 @@ begin
     exists (select 1 from public.environmental_provider where id = 'noaa-coops'));
 end $$;
 
+-- ---------------------------------------------------------------- host roles
+/*
+  Who can see the money, proved by row-level security rather than by reading the policy
+  text. These run as the `authenticated` role — every check above calls a SECURITY DEFINER
+  function, which bypasses RLS entirely, so none of them would have noticed if a policy
+  were wrong.
+
+  FINANCE was in `organization_member.role`'s check constraint from the first tournament
+  migration and named by no policy anywhere, so a club treasurer could read no order, no
+  payment and no prize pool. The first two checks are that hole, closed.
+*/
+insert into auth.users (id, email) values
+  ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'treasurer@example.test'),
+  ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', 'dockhand@example.test'),
+  ('cccccccc-cccc-cccc-cccc-cccccccccccc', 'stranger@example.test');
+
+insert into public.organization_member (organization_id, angler_id, role, status) values
+  ('33333333-3333-3333-3333-333333333333', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'FINANCE', 'ACTIVE'),
+  ('33333333-3333-3333-3333-333333333333', 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', 'STAFF', 'ACTIVE');
+
+insert into public.tournament_order (id, organization_id, tournament_id, purchaser_angler_id,
+                                     currency, subtotal_minor, total_minor, status, idempotency_key)
+values ('dddddddd-dddd-dddd-dddd-dddddddddddd', '33333333-3333-3333-3333-333333333333',
+        '55555555-5555-5555-5555-555555555555', '11111111-1111-1111-1111-111111111111',
+        'USD', 40000, 40000, 'PENDING_PAYMENT', 'host-role-fixture');
+
+grant select on public.tournament_order to authenticated;
+
+do $$
+declare n integer;
+begin
+  set local role authenticated;
+
+  set local request.jwt.claim.sub = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa';
+  -- Scoped to the fixture row: the registration checks above created several real orders
+  -- in this same club, and a bare count would pass for the wrong reason.
+  select count(*) into n from public.tournament_order
+   where id = 'dddddddd-dddd-dddd-dddd-dddddddddddd';
+  perform pg_temp.check('a treasurer can read an order for their club', n = 1);
+
+  -- And every other order the club has taken, which is the point of the role.
+  select count(*) into n from public.tournament_order
+   where organization_id = '33333333-3333-3333-3333-333333333333';
+  perform pg_temp.check('and every other order the club has taken', n > 1);
+
+  perform pg_temp.check('and knows they are the treasurer',
+    public.my_tournament_host_role('55555555-5555-5555-5555-555555555555') = 'FINANCE');
+
+  -- Event staff run the dock. Whether a boat has paid is the entry's registration status,
+  -- not the ledger, and this release takes them off it deliberately.
+  set local request.jwt.claim.sub = 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb';
+  select count(*) into n from public.tournament_order;
+  perform pg_temp.check('event staff cannot read the ledger at all', n = 0);
+
+  perform pg_temp.check('but staff still know they are staff',
+    public.my_tournament_host_role('55555555-5555-5555-5555-555555555555') = 'STAFF');
+
+  -- The purchaser keeps their own receipt. Tightening the host side must never take an
+  -- angler's own order away from them.
+  set local request.jwt.claim.sub = '11111111-1111-1111-1111-111111111111';
+  select count(*) into n from public.tournament_order
+   where id = 'dddddddd-dddd-dddd-dddd-dddddddddddd';
+  perform pg_temp.check('an angler can still read the order they paid for', n = 1);
+
+  perform pg_temp.check('and an entrant is not a host',
+    public.my_tournament_host_role('55555555-5555-5555-5555-555555555555') is null);
+
+  set local request.jwt.claim.sub = 'cccccccc-cccc-cccc-cccc-cccccccccccc';
+  select count(*) into n from public.tournament_order;
+  perform pg_temp.check('a stranger reads no orders at all', n = 0);
+
+  /*
+    Told a tournament id they have no business with, a stranger learns nothing. The
+    function returns null whether the tournament exists or not, so it cannot be used to
+    discover which ids are real.
+  */
+  perform pg_temp.check('a stranger gets null, not an error',
+    public.my_tournament_host_role('55555555-5555-5555-5555-555555555555') is null);
+  perform pg_temp.check('and null for an id that does not exist either',
+    public.my_tournament_host_role('00000000-0000-0000-0000-000000000000') is null);
+
+  reset role;
+
+  -- Signed out. The screen calls this before it knows whether anybody is signed in, and a
+  -- permission failure here would put a red error in front of a visitor who has simply
+  -- followed a link to a host page.
+  set local role anon;
+  set local request.jwt.claim.sub = '';
+  perform pg_temp.check('signed out, the host role is null rather than an error',
+    public.my_tournament_host_role('55555555-5555-5555-5555-555555555555') is null);
+  reset role;
+end $$;
+
+-- ---------------------------------------------------------------- host permission boundaries
+-- Full fixture rows retain their foreign keys: approvals operate on real drafts derived
+-- from a result set, not a mocked table with its constraints removed.
+do $$
+declare
+  t record;
+  rv uuid; sv uuid; vv uuid; bv uuid; computation uuid; result_id uuid;
+  team_id uuid; pool_id uuid;
+begin
+  for t in select id, organization_id from public.tournament
+    where id in ('55555555-5555-5555-5555-555555555555', '88888888-8888-8888-8888-888888888888')
+  loop
+    insert into public.tournament_rule_set_version (tournament_id, version, rules, created_by)
+      values (t.id, 1, '{}'::jsonb, '22222222-2222-2222-2222-222222222222') returning id into rv;
+    insert into public.tournament_scoring_version (tournament_id, version, scoring_family, created_by)
+      values (t.id, 1, 'BIGGEST_FISH', '22222222-2222-2222-2222-222222222222') returning id into sv;
+    insert into public.tournament_verification_policy_version (tournament_id, version, created_by)
+      values (t.id, 1, '22222222-2222-2222-2222-222222222222') returning id into vv;
+    insert into public.tournament_boundary_version (tournament_id, version, created_by)
+      values (t.id, 1, '22222222-2222-2222-2222-222222222222') returning id into bv;
+    insert into public.score_computation
+      (tournament_id, organization_id, scoring_version_id, source_cutoff_at, source_hash)
+      values (t.id, t.organization_id, sv, now(), 'host-approval-fixture') returning id into computation;
+    insert into public.final_result_set
+      (tournament_id, organization_id, version, score_computation_id, rules_version_id,
+       scoring_version_id, verification_policy_version_id, boundary_version_id, finalized_by, source_hash)
+      values (t.id, t.organization_id, 1, computation, rv, sv, vv, bv,
+        '22222222-2222-2222-2222-222222222222', 'host-approval-fixture') returning id into result_id;
+    insert into public.tournament_team (tournament_id, organization_id, name, created_by)
+      values (t.id, t.organization_id, 'Payout crew', '11111111-1111-1111-1111-111111111111') returning id into team_id;
+    insert into public.prize_pool (tournament_id, organization_id, name, currency)
+      values (t.id, t.organization_id, 'Approval fixture', 'USD') returning id into pool_id;
+    insert into public.payout_instruction
+      (id, tournament_id, organization_id, prize_pool_id, final_result_set_id, tournament_team_id, rank, currency, amount_minor)
+      values (case when t.id = '55555555-5555-5555-5555-555555555555' then
+        'eeeeeeee-eeee-eeee-eeee-eeeeeeeeeee1'::uuid else 'eeeeeeee-eeee-eeee-eeee-eeeeeeeeeee2'::uuid end,
+        t.id, t.organization_id, pool_id, result_id, team_id, 1, 'USD', 25000);
+  end loop;
+end $$;
+
+do $$
+declare n integer; denied boolean;
+begin
+  set local role authenticated;
+  set local request.jwt.claim.sub = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa';
+
+  update public.tournament_order set total_minor = 1 where id = 'dddddddd-dddd-dddd-dddd-dddddddddddd';
+  get diagnostics n = row_count;
+  perform pg_temp.check('treasurer cannot rewrite another purchaser order', n = 0);
+
+  denied := false;
+  begin
+    insert into public.tournament_order
+      (organization_id, tournament_id, purchaser_angler_id, currency, subtotal_minor, total_minor, status, idempotency_key)
+      values ('33333333-3333-3333-3333-333333333333', '55555555-5555-5555-5555-555555555555',
+        '11111111-1111-1111-1111-111111111111', 'USD', 1, 1, 'DRAFT', 'finance-cannot-create-order');
+  exception when insufficient_privilege then denied := true; end;
+  perform pg_temp.check('treasurer cannot create an order for another purchaser', denied);
+
+  denied := false;
+  begin
+    insert into public.tournament_order_item (order_id, item_type, description, quantity, unit_amount_minor, total_amount_minor)
+      values ('dddddddd-dddd-dddd-dddd-dddddddddddd', 'TOURNAMENT_ENTRY', 'No permission', 1, 1, 1);
+  exception when insufficient_privilege then denied := true; end;
+  perform pg_temp.check('treasurer cannot add a line item to another purchaser order', denied);
+
+  update public.payout_instruction set amount_minor = 1 where id = 'eeeeeeee-eeee-eeee-eeee-eeeeeeeeeee1';
+  get diagnostics n = row_count;
+  perform pg_temp.check('treasurer cannot rewrite payout terms through table UPDATE', n = 0);
+
+  denied := false;
+  begin
+    insert into public.payout_instruction
+      (tournament_id, organization_id, prize_pool_id, final_result_set_id, tournament_team_id, rank, currency, amount_minor)
+      select tournament_id, organization_id, prize_pool_id, final_result_set_id, tournament_team_id, 2, currency, 1
+      from public.payout_instruction where id = 'eeeeeeee-eeee-eeee-eeee-eeeeeeeeeee1';
+  exception when insufficient_privilege then denied := true; end;
+  perform pg_temp.check('treasurer cannot create a payout instruction', denied);
+
+  select count(*) into n from public.tournament_entry;
+  perform pg_temp.check('treasurer cannot read the entrant roster', n = 0);
+  select count(*) into n from public.tournament_entry_identity;
+  perform pg_temp.check('treasurer cannot read entrant names or phone numbers', n = 0);
+  select count(*) into n from public.tournament_team;
+  perform pg_temp.check('treasurer cannot read the crew roster', n = 0);
+
+  denied := false;
+  begin perform public.approve_tournament_payout('eeeeeeee-eeee-eeee-eeee-eeeeeeeeeee1', '  ');
+  exception when insufficient_privilege then denied := true; end;
+  perform pg_temp.check('approval requires a nonblank reason', denied);
+
+  denied := false;
+  begin perform public.approve_tournament_payout('eeeeeeee-eeee-eeee-eeee-eeeeeeeeeee2', 'Other club');
+  exception when insufficient_privilege then denied := true; end;
+  perform pg_temp.check('treasurer cannot approve another club payout', denied);
+
+  set local request.jwt.claim.sub = 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb';
+  select count(*) into n from public.tournament_entry;
+  perform pg_temp.check('event staff retain roster access', n > 0);
+  denied := false;
+  begin perform public.approve_tournament_payout('eeeeeeee-eeee-eeee-eeee-eeeeeeeeeee1', 'Dock staff');
+  exception when insufficient_privilege then denied := true; end;
+  perform pg_temp.check('event staff cannot approve payouts', denied);
+
+  set local request.jwt.claim.sub = '11111111-1111-1111-1111-111111111111';
+  select count(*) into n from public.tournament_entry;
+  perform pg_temp.check('entrants retain their own claimed entry', n > 0);
+
+  set local request.jwt.claim.sub = 'cccccccc-cccc-cccc-cccc-cccccccccccc';
+  denied := false;
+  begin perform public.approve_tournament_payout('eeeeeeee-eeee-eeee-eeee-eeeeeeeeeee1', 'Stranger');
+  exception when insufficient_privilege then denied := true; end;
+  perform pg_temp.check('strangers cannot approve payouts', denied);
+
+  set local request.jwt.claim.sub = '';
+  denied := false;
+  begin perform public.approve_tournament_payout('eeeeeeee-eeee-eeee-eeee-eeeeeeeeeee1', 'No user');
+  exception when insufficient_privilege then denied := true; end;
+  perform pg_temp.check('an authenticated database role alone cannot approve without a user', denied);
+
+  set local request.jwt.claim.sub = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa';
+  perform pg_temp.check('treasurer can approve their club existing draft',
+    public.approve_tournament_payout('eeeeeeee-eeee-eeee-eeee-eeeeeeeeeee1', '  Reviewed result  ')
+      = 'eeeeeeee-eeee-eeee-eeee-eeeeeeeeeee1'::uuid);
+  denied := false;
+  begin perform public.approve_tournament_payout('eeeeeeee-eeee-eeee-eeee-eeeeeeeeeee1', 'Approve twice');
+  exception when insufficient_privilege then denied := true; end;
+  perform pg_temp.check('an approved instruction cannot be approved again', denied);
+
+  perform pg_temp.check('approval records server-side identity and preserves the amount and rank', exists (
+    select 1 from public.payout_instruction where id = 'eeeeeeee-eeee-eeee-eeee-eeeeeeeeeee1'
+      and status = 'APPROVED' and amount_minor = 25000 and rank = 1
+      and approved_by = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa'
+      and approved_at is not null and approval_reason = 'Reviewed result'
+  ));
+  select count(*) into n from public.payout_event where payout_instruction_id = 'eeeeeeee-eeee-eeee-eeee-eeeeeeeeeee1'
+    and event_type = 'APPROVED' and actor_angler_id = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa';
+  perform pg_temp.check('exactly one approval audit event is recorded', n = 1);
+  reset role;
+  perform pg_temp.check('anonymous callers cannot execute approval',
+    not has_function_privilege('anon', 'public.approve_tournament_payout(uuid,text)', 'EXECUTE'));
+end $$;
+
+-- ---------------------------------------------------------------- complete role matrix and net ledger
+-- Synthetic public fixtures only; no provider is called.
+insert into public.payment (id, organization_id, order_id, provider, currency, amount_minor, status)
+values ('ffffffff-ffff-ffff-ffff-fffffffffff1', '33333333-3333-3333-3333-333333333333',
+  'dddddddd-dddd-dddd-dddd-dddddddddddd', 'fixture', 'USD', 40000, 'PARTIALLY_REFUNDED');
+insert into public.payment_refund (payment_id, amount_minor, status) values
+  ('ffffffff-ffff-ffff-ffff-fffffffffff1', 36000, 'CONFIRMED'),
+  ('ffffffff-ffff-ffff-ffff-fffffffffff1', 1000, 'PENDING');
+update public.tournament_order set status = 'PARTIALLY_REFUNDED'
+where id = 'dddddddd-dddd-dddd-dddd-dddddddddddd';
+insert into public.crypto_payment_quote
+  (id, organization_id, order_id, fiat_currency, fiat_amount_minor, crypto_asset, crypto_amount_atomic,
+   chain_namespace, chain_id, rate_source, expires_at)
+values ('ffffffff-ffff-ffff-ffff-fffffffffff2', '33333333-3333-3333-3333-333333333333',
+  'dddddddd-dddd-dddd-dddd-dddddddddddd', 'USD', 40000, 'USDC', 400000000, 'eip155', 'fixture', 'fixture', now() + interval '1 hour');
+insert into public.crypto_payment
+  (id, payment_id, quote_id, payer_wallet_address, recipient_wallet_address, chain_namespace, chain_id,
+   crypto_asset, expected_amount_atomic)
+values ('ffffffff-ffff-ffff-ffff-fffffffffff3', 'ffffffff-ffff-ffff-ffff-fffffffffff1',
+  'ffffffff-ffff-ffff-ffff-fffffffffff2', 'synthetic-payer', 'synthetic-recipient', 'eip155', 'fixture', 'USDC', 400000000);
+insert into public.crypto_chain_observation
+  (crypto_payment_id, tx_hash, observed_chain_id, observed_asset, observed_amount_atomic, recipient_wallet_address, finality_status)
+values ('ffffffff-ffff-ffff-ffff-fffffffffff3', 'synthetic-hash', 'fixture', 'USDC', 400000000, 'synthetic-recipient', 'SEEN');
+
+do $$
+declare n integer; denied boolean; totals record; before record; later record;
+begin
+  set local role authenticated;
+  set local request.jwt.claim.sub = 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb';
+  update public.tournament set name = 'Staff changed settings' where id = '55555555-5555-5555-5555-555555555555';
+  get diagnostics n = row_count;
+  perform pg_temp.check('dock staff cannot directly change event settings', n = 0);
+  update public.tournament_rule_set_version set rules = '{"changed":true}' where tournament_id = '55555555-5555-5555-5555-555555555555';
+  get diagnostics n = row_count;
+  perform pg_temp.check('dock staff cannot directly rewrite rule versions', n = 0);
+  denied := false;
+  begin perform public.transition_tournament('55555555-5555-5555-5555-555555555555', 'CANCELLED', 'Dock staff');
+  exception when insufficient_privilege then denied := true; end;
+  perform pg_temp.check('dock staff cannot cancel through the lifecycle RPC', denied);
+  select count(*) into n from public.prize_pool;
+  perform pg_temp.check('dock staff cannot read prize pools', n = 0);
+  select count(*) into n from public.prize_pool_entry;
+  perform pg_temp.check('dock staff cannot read prize contributions', n = 0);
+  select count(*) into n from public.crypto_payment_quote;
+  perform pg_temp.check('dock staff cannot read crypto quotes', n = 0);
+  denied := false;
+  begin perform * from public.tournament_money_totals('55555555-5555-5555-5555-555555555555');
+  exception when insufficient_privilege then denied := true; end;
+  perform pg_temp.check('dock staff cannot call the ledger aggregate', denied);
+
+  set local request.jwt.claim.sub = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa';
+  select count(*) into n from public.prize_pool;
+  perform pg_temp.check('treasurer can read the prize pools', n > 0);
+  select count(*) into n from public.crypto_payment_quote;
+  perform pg_temp.check('treasurer can read crypto quotes', n = 1);
+  select count(*) into n from public.crypto_payment;
+  perform pg_temp.check('treasurer can read crypto payments', n = 1);
+  select count(*) into n from public.crypto_chain_observation;
+  perform pg_temp.check('treasurer can read crypto observations', n = 1);
+  select * into totals from public.tournament_money_totals('55555555-5555-5555-5555-555555555555');
+  -- The shared registration contributes 50000 to this event, not its full 75000 order; this order retains 4000.
+  perform pg_temp.check('confirmed partial refunds reduce collected money, pending refunds do not', totals.collected_minor = '54000');
+  perform pg_temp.check('a partially refunded order is counted as refunded', totals.refunded_orders = '1');
+  select * into totals from public.tournament_money_totals('66666666-6666-6666-6666-666666666666');
+  perform pg_temp.check('a shared order contributes only its own fees to the second event', totals.collected_minor = '25000');
+  denied := false;
+  begin perform * from public.tournament_money_totals('88888888-8888-8888-8888-888888888888');
+  exception when insufficient_privilege then denied := true; end;
+  perform pg_temp.check('treasurer cannot aggregate another club ledger', denied);
+  reset role;
+
+  -- Refuse a plausible but wrong combined total when currencies differ.
+  denied := false;
+  begin
+    insert into public.tournament_order
+      (organization_id, tournament_id, purchaser_angler_id, currency, subtotal_minor, total_minor, status, idempotency_key)
+    values ('33333333-3333-3333-3333-333333333333', '55555555-5555-5555-5555-555555555555',
+      '11111111-1111-1111-1111-111111111111', 'EUR', 100, 100, 'PAID', 'mixed-currency-fixture');
+    set local role authenticated;
+    perform * from public.tournament_money_totals('55555555-5555-5555-5555-555555555555');
+  exception when invalid_parameter_value then denied := true; end;
+  reset role;
+  perform pg_temp.check('mixed-currency ledgers fail instead of summing unlike units', denied);
+
+  insert into public.tournament_order
+    (organization_id, tournament_id, purchaser_angler_id, currency, subtotal_minor, total_minor, status, idempotency_key)
+  values ('33333333-3333-3333-3333-333333333333', '55555555-5555-5555-5555-555555555555',
+    '11111111-1111-1111-1111-111111111111', 'USD', 9007199254740993, 9007199254740993, 'PAID', 'exact-bigint-fixture');
+  set local role authenticated;
+  select * into totals from public.tournament_money_totals('55555555-5555-5555-5555-555555555555');
+  perform pg_temp.check('database returns large sums as exact text before client range checks', totals.collected_minor = '9007199254794993');
+  reset role;
+
+  denied := false;
+  begin
+    insert into public.payment_refund (payment_id, amount_minor, status)
+    select p.id, 1, 'CONFIRMED' from public.payment p
+    join public.tournament_order o on o.id = p.order_id where o.idempotency_key = 'key-happy-path';
+    get diagnostics n = row_count;
+    perform pg_temp.check('shared-order refund fixture has a real payment', n = 1);
+    update public.tournament_order set status = 'PARTIALLY_REFUNDED' where idempotency_key = 'key-happy-path';
+    set local role authenticated;
+    perform * from public.tournament_money_totals('55555555-5555-5555-5555-555555555555');
+  exception when invalid_parameter_value then denied := true; end;
+  reset role;
+  perform pg_temp.check('unallocated partial refunds across events fail rather than guess', denied);
+
+  -- Lines decide the event. The header only names the first event registered, and its fee
+  -- can be set after the order is made: an order filed while the header event was unpriced
+  -- must still total for both events once the host sets that fee.
+  begin
+    update public.tournament set entry_fee_minor = null where id = '55555555-5555-5555-5555-555555555555';
+    set local role authenticated;
+    set local request.jwt.claim.sub = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa';
+    select * into before from public.tournament_money_totals('55555555-5555-5555-5555-555555555555');
+    reset role;
+    insert into public.tournament_order (id, organization_id, tournament_id, purchaser_angler_id,
+      currency, subtotal_minor, total_minor, status, idempotency_key)
+    values ('eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee', '33333333-3333-3333-3333-333333333333',
+      '55555555-5555-5555-5555-555555555555', '11111111-1111-1111-1111-111111111111',
+      'USD', 700, 700, 'PAID', 'header-fee-set-later');
+    insert into public.tournament_order_item (order_id, item_type, reference_id, description, quantity, unit_amount_minor, total_amount_minor)
+    values ('eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee', 'TEAM_ENTRY', '66666666-6666-6666-6666-666666666666', 'Entry', 1, 700, 700);
+    update public.tournament set entry_fee_minor = 500 where id = '55555555-5555-5555-5555-555555555555';
+    set local role authenticated;
+    set local request.jwt.claim.sub = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa';
+    select * into totals from public.tournament_money_totals('55555555-5555-5555-5555-555555555555');
+    select * into later from public.tournament_money_totals('66666666-6666-6666-6666-666666666666');
+    raise exception 'undo fee-set-later fixture' using errcode = 'UF001';
+  exception when sqlstate 'UF001' then null; end;
+  reset role;
+  perform pg_temp.check('a header fee set after the order does not fail the header event''s ledger',
+    totals.collected_minor = before.collected_minor and totals.paid_orders = before.paid_orders
+    and totals.unpriced_orders::int = before.unpriced_orders::int + 1);
+  perform pg_temp.check('the event the lines name still collects the order after the header fee changes',
+    later.collected_minor = '25700');
+
+  -- A shared order: unpriced header event, priced second event. Paying it confirms only
+  -- the priced event, so for the header event it is waiting on a price, before and after
+  -- payment, never "owed $0" and never paid.
+  begin
+    update public.tournament set entry_fee_minor = null where id = '55555555-5555-5555-5555-555555555555';
+    set local role authenticated;
+    set local request.jwt.claim.sub = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa';
+    select * into before from public.tournament_money_totals('55555555-5555-5555-5555-555555555555');
+    reset role;
+    insert into public.tournament_order (id, organization_id, tournament_id, purchaser_angler_id,
+      currency, subtotal_minor, total_minor, status, idempotency_key)
+    values ('eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee', '33333333-3333-3333-3333-333333333333',
+      '55555555-5555-5555-5555-555555555555', '11111111-1111-1111-1111-111111111111',
+      'USD', 700, 700, 'PENDING_PAYMENT', 'mixed-basket-pending');
+    insert into public.tournament_order_item (order_id, item_type, reference_id, description, quantity, unit_amount_minor, total_amount_minor)
+    values ('eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee', 'TEAM_ENTRY', '66666666-6666-6666-6666-666666666666', 'Entry', 1, 700, 700);
+    set local role authenticated;
+    set local request.jwt.claim.sub = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa';
+    select * into totals from public.tournament_money_totals('55555555-5555-5555-5555-555555555555');
+    reset role;
+    update public.tournament_order set status = 'PAID' where id = 'eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee';
+    set local role authenticated;
+    set local request.jwt.claim.sub = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa';
+    select * into later from public.tournament_money_totals('55555555-5555-5555-5555-555555555555');
+    raise exception 'undo mixed-basket fixture' using errcode = 'UF001';
+  exception when sqlstate 'UF001' then null; end;
+  reset role;
+  perform pg_temp.check('a mixed basket waits on a price for its unpriced header event, not owed zero',
+    totals.unpriced_orders::int = before.unpriced_orders::int + 1
+    and totals.unpaid_orders = before.unpaid_orders and totals.outstanding_minor = before.outstanding_minor);
+  perform pg_temp.check('paying a mixed basket does not count it as paid for the unpriced header event',
+    later.unpriced_orders::int = before.unpriced_orders::int + 1 and later.paid_orders = before.paid_orders
+    and later.collected_minor = before.collected_minor);
+
+  -- An order whose every event was unpriced has no lines and a zero total. It is waiting on
+  -- the host's price, not owed zero, so it is counted apart from unpaid money.
+  begin
+    update public.tournament set entry_fee_minor = null where id = '55555555-5555-5555-5555-555555555555';
+    set local role authenticated;
+    set local request.jwt.claim.sub = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa';
+    select * into before from public.tournament_money_totals('55555555-5555-5555-5555-555555555555');
+    reset role;
+    insert into public.tournament_order (id, organization_id, tournament_id, purchaser_angler_id,
+      currency, subtotal_minor, total_minor, status, idempotency_key)
+    values ('eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee', '33333333-3333-3333-3333-333333333333',
+      '55555555-5555-5555-5555-555555555555', '11111111-1111-1111-1111-111111111111',
+      'USD', 0, 0, 'PENDING_PAYMENT', 'unpriced-only-order');
+    set local role authenticated;
+    set local request.jwt.claim.sub = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa';
+    select * into totals from public.tournament_money_totals('55555555-5555-5555-5555-555555555555');
+    raise exception 'undo unpriced-only fixture' using errcode = 'UF001';
+  exception when sqlstate 'UF001' then null; end;
+  reset role;
+  perform pg_temp.check('an order with only unpriced events counts as waiting on a price',
+    totals.unpriced_orders::int = before.unpriced_orders::int + 1);
+  perform pg_temp.check('an order with only unpriced events adds nothing to unpaid orders or money owed',
+    totals.unpaid_orders = before.unpaid_orders and totals.outstanding_minor = before.outstanding_minor);
+
+  -- register_crew_for_tournaments files an unpriced first event as the order header and
+  -- gives it no line (null fee = "the host has not said"). That is a valid shared order, not
+  -- a disagreement: the priced event's ledger must still read it.
+  begin
+    update public.tournament set entry_fee_minor = null where id = '55555555-5555-5555-5555-555555555555';
+    insert into public.tournament_order (id, organization_id, tournament_id, purchaser_angler_id,
+      currency, subtotal_minor, total_minor, status, idempotency_key)
+    values ('eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee', '33333333-3333-3333-3333-333333333333',
+      '55555555-5555-5555-5555-555555555555', '11111111-1111-1111-1111-111111111111',
+      'USD', 700, 700, 'PAID', 'unpriced-header-shared-order');
+    insert into public.tournament_order_item (order_id, item_type, reference_id, description, quantity, unit_amount_minor, total_amount_minor)
+    values ('eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee', 'TEAM_ENTRY', '66666666-6666-6666-6666-666666666666', 'Entry', 1, 700, 700);
+    set local role authenticated;
+    set local request.jwt.claim.sub = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa';
+    select * into totals from public.tournament_money_totals('66666666-6666-6666-6666-666666666666');
+    -- Undo the fixture; plpgsql variables keep their values across the rollback.
+    raise exception 'undo unpriced-header fixture' using errcode = 'UF001';
+  exception when sqlstate 'UF001' then null; end;
+  reset role;
+  perform pg_temp.check('an unpriced header event with lines only for a priced event still totals', totals.collected_minor = '25700');
+
+  -- ADR 011: FINANCE reads every money table, including whether the club's provider
+  -- account can take charges and pay out. Dock staff read none of it.
+  insert into public.organizer_payment_account (organization_id, provider_account_id, payouts_enabled)
+  values ('33333333-3333-3333-3333-333333333333', 'acct_fixture_treasurer', true);
+  set local role authenticated;
+  set local request.jwt.claim.sub = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa';
+  select count(*) into n from public.organizer_payment_account where provider_account_id = 'acct_fixture_treasurer';
+  perform pg_temp.check('treasurer can read the club payment account state', n = 1);
+  set local request.jwt.claim.sub = 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb';
+  select count(*) into n from public.organizer_payment_account where provider_account_id = 'acct_fixture_treasurer';
+  perform pg_temp.check('dock staff cannot read the club payment account state', n = 0);
+  reset role;
+
+  perform pg_temp.check('anonymous callers cannot execute ledger totals',
+    not has_function_privilege('anon', 'public.tournament_money_totals(uuid)', 'EXECUTE'));
+end $$;
+
 rollback;
