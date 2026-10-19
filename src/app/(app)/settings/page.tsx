@@ -23,16 +23,12 @@ export default function SettingsPage() {
     <div className="flex flex-col gap-6">
       <section className="rounded-lg border border-hairline bg-surface p-4">
         <h1 className="text-h1">Settings</h1>
-        <p className="mt-3 text-body text-text-muted">
-          Account and the platform selector (D26) land with the rest of the settings feature.
-        </p>
       </section>
 
       <section id="tide-station" className="scroll-mt-space-16 rounded-lg border border-hairline bg-surface p-4">
         <h2 className="text-h3">Tide station</h2>
         <p className="mt-2 text-body text-text-muted">
-          Which NOAA station the tide chart reads. Predictions are fetched when you have
-          signal and kept on this device for when you do not.
+          The station your tide chart uses.
         </p>
         <label className="mt-3 flex flex-col gap-1">
           <span className="sr-only">Tide station</span>
@@ -51,8 +47,7 @@ export default function SettingsPage() {
         <section className="rounded-lg border border-hairline bg-surface p-4">
           <h2 className="text-h3">Passport</h2>
           <p className="mt-2 text-body text-text-muted">
-            Every species you have caught, your personal bests, and how far along each family is.
-            Built from catches you have already logged.
+            Every fish you have caught, and your bests.
           </p>
           <Link
             href="/passport"
@@ -66,7 +61,7 @@ export default function SettingsPage() {
       <section className="rounded-lg border border-hairline bg-surface p-4">
         <h2 className="text-h3">Tackle</h2>
         <p className="mt-2 text-body text-text-muted">
-          Name the lures you reach for most, then keep favorites ready for your next rig.
+          Your lures and favorite rigs.
         </p>
         <Link
           href="/tackle"
@@ -83,13 +78,11 @@ export default function SettingsPage() {
       <section className="rounded-lg border border-hairline bg-surface p-4">
         <h2 className="text-h3">Fishing shortcuts</h2>
         <p className="mt-2 mb-4 text-body text-text-muted">
-          Extra one-tap controls for the water. Off by default so they do not take up room
-          you have not asked them to.
+          One-tap extras for the water. Off by default.
         </p>
         <QuickMarkToggle />
         <p className="mt-2 text-caption text-text-muted">
-          Quickly record that something happened while fishing and add the details later.
-          Marks appear in the Fish Log under &ldquo;Needs details&rdquo;.
+          Mark a moment now, add details later.
         </p>
       </section>
 
@@ -100,8 +93,7 @@ export default function SettingsPage() {
       <section id="fishing-region" className="scroll-mt-space-16 rounded-lg border border-hairline bg-surface p-4">
         <h2 className="text-h3">Fishing region</h2>
         <p className="mt-2 mb-4 text-body text-text-muted">
-          Sets the species suggested first when you log a catch. Every species stays
-          searchable wherever you fish — this only changes what is one tap away.
+          Fish suggested first when you log a catch.
         </p>
         <Suspense fallback={<div className="min-h-touch-floor" />}>
           <RegionSelect />
@@ -109,10 +101,7 @@ export default function SettingsPage() {
       </section>
 
       <section className="rounded-lg border border-hairline bg-surface p-4">
-        <h2 className="text-h3">Height units</h2>
-        <p className="mt-2 mb-4 text-body text-text-muted">
-          Choose how tide heights and rates are shown. This does not change how anything is stored.
-        </p>
+        <h2 className="mb-4 text-h3">Height units</h2>
         <UnitsToggle />
       </section>
 
@@ -124,8 +113,7 @@ export default function SettingsPage() {
       <section className="rounded-lg border border-hairline bg-surface p-4">
         <h2 className="text-h3">Setup guide</h2>
         <p className="mt-2 text-body text-text-muted">
-          The six one-time steps that point the app at your water and your gear. Open it any
-          time to check what is done, change an answer, or walk the whole thing again.
+          Check or redo your setup.
         </p>
         <Link
           href="/onboarding"
@@ -142,8 +130,8 @@ export default function SettingsPage() {
       <section className="rounded-lg border border-hairline bg-surface p-4">
         <h2 className="text-h3">Notices</h2>
         <p className="mt-2 text-body text-text-muted">
-          What this app is, what it is not, and what happens to your log. Your fishing log
-          is stored on this device; there is no analytics or advertising anywhere in the app.
+          {/* Accuracy beats brevity here: signed-in logs sync (documents.ts, privacy). */}
+          Saved on this device, synced if you sign in. No ads or analytics.
         </p>
         <Link
           href="/legal"
