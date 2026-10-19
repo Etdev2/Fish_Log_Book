@@ -18,7 +18,7 @@
  * NOT bump it, because re-asking everyone for a comma is how people learn to click
  * through without reading.
  */
-export const LEGAL_VERSION = "2026-09-04";
+export const LEGAL_VERSION = "2026-10-18";
 
 /**
  * The details only the founder can supply. `resolved: false` makes the gap visible in the
@@ -222,7 +222,7 @@ const PRIVACY: LegalDocument = {
   id: "privacy",
   slug: "privacy",
   title: "Privacy Notice",
-  summary: "Your log lives on your phone. Two things leave it, and this says exactly what.",
+  summary: "Your log lives on your phone. This says exactly what leaves it, and when.",
   effective: LEGAL_VERSION,
   sections: [
     {
@@ -249,6 +249,7 @@ const PRIVACY: LegalDocument = {
       ],
       bullets: [
         "We send your email address to Supabase, our hosted database and authentication provider, so it can email you a sign-in link. We do not set a password, and we never see one.",
+        "If you choose Continue with Google instead, Google confirms who you are and shares your name, email address, and profile picture with Supabase. We do not see your Google password or anything else in your Google account.",
         "Once signed in, your log syncs to our database: trips, catches, gear, spots, tackle, journal entries, and condition snapshots — including the GPS coordinates stored with them.",
         "Supabase processes this on our behalf under its own terms and security controls. We do not share your log with anyone else.",
       ],
@@ -262,7 +263,7 @@ const PRIVACY: LegalDocument = {
       ],
     },
     {
-      heading: "The one outside service the app calls",
+      heading: "The one outside service the app calls on its own",
       paragraphs: [
         "Tide predictions come from the NOAA Tides & Currents public API. Your device requests them directly, which means NOAA sees the request — including your device's IP address, as with any web request.",
         "We send NOAA a station identifier and a date range. We do not send your identity, your account, your log, or your GPS position.",
